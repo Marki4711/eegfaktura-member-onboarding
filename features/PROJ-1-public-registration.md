@@ -105,7 +105,204 @@ The feature includes:
 ## Dependencies
 - None (this is the first feature)
 
-## Affected Tables
+## Tech Design (Solution Architect)
+
+### Implementation Scope
+Backend-only implementation for the first iteration. The public registration API will be built as a Go service with PostgreSQL persistence. Frontend development will follow in a subsequent iteration using the same stack as eegfaktura-web (Next.js).
+
+### Component Responsibilities
+
+**HTTP Handlers** (`internal/http/`):
+- Parse incoming JSON requests
+- Validate request structure and required fields
+- Route requests to appropriate service methods
+- Format JSON responses
+- Handle HTTP status codes and error responses
+
+**Application Services** (`internal/application/`):
+- Contain business logic for registration operations
+- Coordinate between repositories and external services
+- Handle status transitions and validation rules
+- Manage transaction boundaries
+- Trigger asynchronous operations (email sending)
+
+**Repositories** (`internal/application/`):
+- Encapsulate database access patterns
+- Execute SQL queries for CRUD operations
+- Handle database constraints and errors
+- Provide data mapping between database rows and Go structs
+
+**Domain Models** (`internal/shared/`):
+- Define Go structs for request/response payloads
+- Represent database entities
+- Include JSON tags for API serialization
+- Define validation tags for input validation
+
+### Handler/Service/Repository Structure
+
+```
+internal/
+├── http/
+│   ├── registration.go     # GET /api/public/registration/{slug}
+│   └── application.go      # POST/PUT applications, POST submit
+├── application/
+│   ├── registration_service.go    # Business logic for registration
+│   ├── application_service.go     # Business logic for applications
+│   ├── application_repo.go        # Database operations for applications
+│   ├── metering_point_repo.go     # Database operations for metering points
+│   └── status_log_repo.go         # Database operations for status logging
+└── shared/
+    ├── models.go          # Request/response/domain structs
+    └── errors.go          # Custom error types
+```
+
+### Database Interactions
+
+**member_onboarding.application**:
+- `INSERT` for application creation with generated UUID and reference number
+- `SELECT` for loading applications by ID with status checks
+- `UPDATE` for modifying application data (draft status only)
+- `UPDATE` for status transitions (draft → submitted)
+- Indexed on `id`, `reference_number`, `registration_slug`, `status`
+
+**member_onboarding.metering_point**:
+- `INSERT` for adding metering points (bulk insert on create/update)
+- `DELETE` followed by `INSERT` for replacing all metering points on update
+- Foreign key constraint to `application.id`
+- Unique constraint on `(application_id, metering_point)`
+- Indexed on `application_id`
+
+**member_onboarding.status_log**:
+- `INSERT` for logging status changes with timestamps
+- Foreign key constraint to `application.id`
+- Tracks all status transitions with `old_status`, `new_status`, `changed_at`
+- Used for audit trail and status history
+
+### Validation Approach
+
+**Request Validation**:
+- Struct tags with `validate` package for field-level validation
+- Custom validators for business rules (email format, phone format, postal codes)
+- Metering point uniqueness within application
+- Maximum 10 metering points per application
+- Required field validation with custom error messages
+
+**Business Rule Validation**:
+- Status checks before allowing updates (only draft/needs_info)
+- Registration slug validation against database
+- Privacy consent and accuracy confirmation required
+- Metering point format validation (existing eegFaktura standards)
+
+**Database Constraint Validation**:
+- Foreign key constraints for data integrity
+- Unique constraints for metering points
+- Check constraints for status values and directions
+
+### Status Transition Handling
+
+**Allowed Transitions**:
+- `null` → `draft` (creation)
+- `draft` → `draft` (updates allowed)
+- `draft` → `submitted` (final submission)
+- `needs_info` → `draft` (admin requests changes)
+
+**Transition Logic**:
+- Service methods check current status before allowing operations
+- Status changes logged in `status_log` table with timestamps
+- `submitted_at` timestamp set on submission
+- Email notifications triggered on status changes
+
+**Concurrency Protection**:
+- Optimistic locking with `updated_at` timestamps
+- Last-write-wins strategy for concurrent updates
+- Status transition validation prevents invalid state changes
+
+### Error Handling Approach
+
+**HTTP Error Responses**:
+- `400 Bad Request` for validation errors with detailed field messages
+- `404 Not Found` for invalid application IDs or registration slugs
+- `409 Conflict` for status conflicts or duplicate metering points
+- `500 Internal Server Error` for unexpected database/system errors
+
+**Custom Error Types**:
+- `ValidationError` with field-specific error messages
+- `NotFoundError` for missing resources
+- `ConflictError` for business rule violations
+- `InternalError` for system failures
+
+**Error Response Format**:
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Validation failed",
+    "details": {
+      "email": ["Invalid email format"],
+      "meteringPoints": ["Duplicate metering point found"]
+    }
+  }
+}
+```
+
+### Request/Response Model Boundaries
+
+**Request Models** (input validation):
+- `CreateApplicationRequest` - for POST /applications
+- `UpdateApplicationRequest` - for PUT /applications/{id}
+- `SubmitApplicationRequest` - for POST /applications/{id}/submit (empty body)
+
+**Response Models** (output formatting):
+- `RegistrationConfig` - for GET /registration/{slug}
+- `ApplicationResponse` - for create/update operations
+- `SubmitResponse` - for submit operations
+
+**Domain Models** (internal business logic):
+- `Application` - core business entity
+- `MeteringPoint` - metering point entity
+- `StatusLogEntry` - status change tracking
+
+**Database Models** (SQL mapping):
+- Direct mapping to table schemas
+- JSON serialization for complex fields
+- Timestamp handling with proper time zones
+
+### Migration Dependency
+Requires database schema `member_onboarding` and tables:
+- `application` with all required columns and indexes
+- `metering_point` with foreign key constraints
+- `status_log` with foreign key constraints
+
+Migration must be applied before deploying this feature.
+
+### Local Development Considerations for PostgreSQL
+
+**Database Setup**:
+- Local PostgreSQL instance required
+- Schema `member_onboarding` must be created
+- Database connection via environment variables
+- Migration scripts for initial schema setup
+
+**Development Workflow**:
+- Use `docker-compose` for local PostgreSQL instance
+- Database migrations run on service startup
+- Test database with sample data for development
+- Connection pooling configured for development load
+
+**Testing**:
+- Unit tests for services and repositories
+- Integration tests with test database
+- API tests with HTTP client
+- Database transaction rollback for test isolation
+
+## Dependencies (Technical)
+- Go 1.21+ for language features
+- PostgreSQL 13+ for JSON and constraint support
+- `github.com/go-chi/chi` for HTTP routing
+- `github.com/go-playground/validator` for request validation
+- `github.com/lib/pq` for PostgreSQL driver
+- `github.com/google/uuid` for ID generation
+- `github.com/golang-migrate/migrate` for database migrations
 - `member_onboarding.application` - stores application data and status
 - `member_onboarding.metering_point` - stores metering point data
 - `member_onboarding.status_log` - tracks status changes
