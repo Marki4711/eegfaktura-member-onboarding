@@ -295,17 +295,47 @@ Migration must be applied before deploying this feature.
 - API tests with HTTP client
 - Database transaction rollback for test isolation
 
-## Dependencies (Technical)
-- Go 1.21+ for language features
-- PostgreSQL 13+ for JSON and constraint support
-- `github.com/go-chi/chi` for HTTP routing
-- `github.com/go-playground/validator` for request validation
-- `github.com/lib/pq` for PostgreSQL driver
-- `github.com/google/uuid` for ID generation
-- `github.com/golang-migrate/migrate` for database migrations
-- `member_onboarding.application` - stores application data and status
-- `member_onboarding.metering_point` - stores metering point data
-- `member_onboarding.status_log` - tracks status changes
+## Implementation Notes
+
+### Backend Implementation Complete
+The Go backend has been fully implemented with the following components:
+
+**Database Schema**:
+- Created `member_onboarding` schema with `application`, `metering_point`, and `status_log` tables
+- Implemented database migration scripts for schema setup
+- Added proper indexes and constraints for performance and data integrity
+
+**Go Backend Structure**:
+- `internal/shared/models.go` - Domain models, request/response structs, and error types
+- `internal/config/config.go` - Environment-based configuration loading
+- `internal/application/` - Repository and service layers with business logic
+- `internal/http/` - HTTP handlers for all API endpoints
+- `cmd/server/main.go` - Main server entry point with routing setup
+
+**API Endpoints Implemented**:
+- `GET /api/public/registration/{registration_slug}` - Returns registration configuration
+- `POST /api/public/applications` - Creates new application with metering points
+- `PUT /api/public/applications/{id}` - Updates existing application (draft status only)
+- `POST /api/public/applications/{id}/submit` - Submits application for review
+
+**Key Features**:
+- Complete request validation with detailed error messages
+- Status transition logic with audit logging
+- Database transaction management for data consistency
+- Proper error handling and HTTP status codes
+- Health check endpoint for monitoring
+
+**Development Setup**:
+- `go.mod` with all required dependencies
+- `Makefile` for common development tasks
+- `docker-compose.yml` for local PostgreSQL setup
+- `.env.example` for environment configuration
+
+### Next Steps
+- Frontend implementation using Next.js and shadcn/ui
+- Integration testing with the backend APIs
+- Email notification system for confirmations
+- Admin interface for application review (future feature)
 
 ## Affected API Endpoints
 - `GET /api/public/registration/{registration_slug}` - load registration config
