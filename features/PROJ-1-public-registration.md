@@ -1,93 +1,130 @@
 # PROJ-1: Public Registration
 
 ## Overview
-Enable potential EEG members to register themselves through a public web form. The form collects member master data and metering point information, then stores it in the onboarding database for admin review.
+Enable potential EEG members to register themselves through a public web interface. Members can access a registration link, fill out their personal and metering point information, and submit their application for admin review.
 
-## User Stories
+## User Story
+As a potential new EEG member, I want to register myself through a web form so that I can submit my membership application without manual admin data entry.
 
-### Primary User: Potential EEG Member
-As a potential new EEG member, I want to access a registration link so that I can start the registration process for my specific EEG.
+## Scope
+This feature covers the complete public registration flow for V1:
 
-As a potential new EEG member, I want to fill out a form with my personal and contact information so that I can provide the required member master data.
+- Load registration entry point via fixed link per EEG
+- Create new application with member master data and metering points
+- Update application data before submission
+- Submit application for admin review
 
-As a potential new EEG member, I want to add one or more metering points so that I can register all my electricity meters.
+The feature includes:
+- Client-side form validation
+- Server-side data validation and persistence
+- Status tracking and logging
+- Email confirmation (async)
 
-As a potential new EEG member, I want to submit my application so that it gets stored for admin review.
-
-As a potential new EEG member, I want to see confirmation that my application was submitted successfully so that I know the process worked.
+## Non-Goals
+- Admin review interface
+- Keycloak authentication integration
+- Import to eegFaktura core system
+- Tariff or role management
+- Document upload/handling
+- Multi-language support
+- Advanced form features (save drafts, file uploads)
 
 ## Acceptance Criteria
 
-### Registration Link Access
-- [ ] When I access a fixed registration URL for a specific EEG, I see the registration form
-- [ ] The URL format is `/register/[eeg-identifier]` where eeg-identifier is provided by the EEG admin
-- [ ] If the EEG identifier is invalid, I see an error message
+### Load Registration Entry Point
+- [ ] When I access `/register/{registration_slug}`, the system loads the registration configuration
+- [ ] The page displays the EEG-specific title and registration form
+- [ ] If the registration slug is invalid, I see a 404 error page
+- [ ] If the registration is inactive, I see a 410 error page
 
-### Member Data Collection
-- [ ] I can enter my full name (first name, last name)
-- [ ] I can enter my contact information (email, phone number)
-- [ ] I can enter my address (street, house number, postal code, city)
-- [ ] I can enter my date of birth
-- [ ] All required fields are clearly marked
-- [ ] I see real-time validation feedback for invalid data
+### Create Application
+- [ ] I can fill out the registration form with required personal information
+- [ ] I can add one or more metering points with meter numbers and directions
+- [ ] The form validates data client-side before submission
+- [ ] Upon successful creation, I receive an application ID and reference number
+- [ ] The application status is set to "draft"
 
-### Metering Points Collection
-- [ ] I can add my first metering point with meter number and address
-- [ ] I can add additional metering points (up to 10)
-- [ ] Each metering point requires a unique meter number
-- [ ] I can remove metering points I added by mistake
-- [ ] At least one metering point is required
+### Update Application
+- [ ] I can modify my application data while it's in "draft" status
+- [ ] I can add, remove, or modify metering points
+- [ ] All changes are validated before saving
+- [ ] The application remains in "draft" status until submitted
 
-### Form Submission
-- [ ] When I submit the form with valid data, my application is saved to the database
-- [ ] I see a success message with an application reference number
-- [ ] I receive an email confirmation with the reference number
-- [ ] The application status is set to "Submitted" for admin review
+### Submit Application
+- [ ] I can submit my completed application
+- [ ] The system validates all required data server-side
+- [ ] Upon successful submission, status changes to "submitted"
+- [ ] I receive a confirmation message with reference number
+- [ ] An email confirmation is sent asynchronously
+- [ ] The submission is logged in the status history
 
 ### Form Validation
-- [ ] Required fields cannot be empty
-- [ ] Email addresses must be valid format
-- [ ] Phone numbers must be valid format
-- [ ] Postal codes must be valid for the country
-- [ ] Meter numbers must be unique within the application
-- [ ] Date of birth must be a valid past date
+- [ ] Required fields: firstname, lastname, email, resident address, at least one metering point
+- [ ] Email format validation
+- [ ] Phone number format validation (optional)
+- [ ] Postal code validation for the country
+- [ ] Metering point uniqueness within the application
+- [ ] Privacy consent and accuracy confirmation required
+- [ ] Maximum 10 metering points per application
+
+### Data Persistence
+- [ ] All application data is stored in the database
+- [ ] Metering points are stored separately linked to the application
+- [ ] Status changes are logged with timestamps
+- [ ] Data integrity is maintained with proper constraints
 
 ## Edge Cases
 
 ### Network Issues
-- If the form submission fails due to network issues, I see an error message and can retry
-- My entered data is preserved if submission fails
-
-### Duplicate Submissions
-- If I submit the same application twice, I see a warning but the second submission is allowed
-- Duplicate detection is based on email + meter numbers combination
+- If network fails during form submission, user data is preserved in the form
+- Clear error messages guide users to retry
+- No duplicate applications created on retry
 
 ### Invalid Data
-- If I enter invalid data, I see specific error messages for each field
-- I cannot submit until all validation errors are resolved
+- Server-side validation catches client-side bypass attempts
+- Detailed error messages specify which fields need correction
+- Form state preserved when validation fails
 
-### Large Number of Metering Points
-- If I try to add more than 10 metering points, I see an error message
-- The form prevents adding more than the maximum allowed
+### Concurrent Updates
+- If user has multiple tabs open, last save wins
+- No data corruption from simultaneous operations
 
-### Browser Compatibility
-- The form works in modern browsers (Chrome, Firefox, Safari, Edge)
-- Mobile devices are supported with responsive design
+### Large Applications
+- Applications with maximum metering points handled efficiently
+- Form performance remains acceptable
+
+### Email Delivery Issues
+- Application submission succeeds even if email delivery fails
+- Email retry logic handled asynchronously
+- No user-facing errors for email failures
+
+### Invalid Registration Links
+- Clear error pages for unknown or inactive registration slugs
+- No information leakage about valid slugs
 
 ## Dependencies
 - None (this is the first feature)
 
-## Technical Notes
-- Form data is stored in `member_onboarding.application` and `member_onboarding.metering_point` tables
-- Application gets a unique reference number for tracking
-- Email confirmation is sent asynchronously
-- No user authentication required (public form)
+## Affected Tables
+- `member_onboarding.application` - stores application data and status
+- `member_onboarding.metering_point` - stores metering point data
+- `member_onboarding.status_log` - tracks status changes
+
+## Affected API Endpoints
+- `GET /api/public/registration/{registration_slug}` - load registration config
+- `POST /api/public/applications` - create new application
+- `PUT /api/public/applications/{id}` - update existing application
+- `POST /api/public/applications/{id}/submit` - submit application
 
 ## Definition of Done
-- [ ] Form is accessible via registration link
-- [ ] All required fields are collected
-- [ ] Form validation works correctly
-- [ ] Multiple metering points can be added
-- [ ] Successful submission saves data and shows confirmation
+- [ ] Registration entry point loads correctly
+- [ ] Application creation works with all required fields
+- [ ] Application update functionality works
+- [ ] Application submission validates and changes status
+- [ ] All form validations work client and server-side
+- [ ] Data persistence works correctly
+- [ ] Status logging works for all operations
 - [ ] Email confirmation is sent
-- [ ] Application appears in admin review interface
+- [ ] Error handling works for all edge cases
+- [ ] API endpoints return correct responses
+- [ ] Database constraints and indexes are in place
