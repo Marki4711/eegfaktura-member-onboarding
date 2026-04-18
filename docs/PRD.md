@@ -1,29 +1,93 @@
 # Product Requirements Document
+## eegfaktura Member Onboarding
 
-## Vision
-_Describe what you are building and why._
+## 1. Vision
 
-## Target Users
-_Who will use this product? Describe their needs and pain points._
+`eegfaktura Member Onboarding` enables self-service registration of members for EEGs managed in eegFaktura.
 
-## Core Features (Roadmap)
+Today, new members are created manually by an administrator in eegFaktura. The goal of this product is to reduce manual effort by allowing members to submit their own basic data through a web form.
+
+Submitted data must first stay in a dedicated onboarding workflow. Only after admin review and explicit approval may the data be imported into the eegFaktura core.
+
+## 2. Target Users
+
+### Public user
+A potential new EEG member who wants to register through a fixed registration link.
+
+### EEG admin
+A user who reviews applications for a specific EEG and decides whether an application is complete and ready for import.
+
+## 3. MVP Scope
+
+Version 1 includes:
+
+- fixed registration link per EEG
+- public self-service form
+- collection of member master data
+- collection of multiple metering points
+- admin review flow
+- status handling
+- controlled import into eegFaktura core
+- dedicated onboarding persistence in schema `member_onboarding`
+
+## 4. Core Features (Roadmap)
 
 | Priority | Feature | Status |
 |----------|---------|--------|
-| P0 (MVP) | _Feature 1_ | Planned |
-| P0 (MVP) | _Feature 2_ | Planned |
-| P1 | _Feature 3_ | Planned |
-| P2 | _Feature 4_ | Planned |
+| P0 (MVP) | Public Registration | Planned |
+| P0 (MVP) | Admin Review | Planned |
+| P0 (MVP) | Core Import | Planned |
+| P1 | Keycloak-secured Admin Area | Planned |
+| P1 | Improved Validation and Error Handling | Planned |
 
-## Success Metrics
-_How will you measure success? (e.g., user signups, retention, task completion rate)_
+## 5. Success Metrics
 
-## Constraints
-_Budget, timeline, technical limitations, team size._
+The MVP is successful if:
 
-## Non-Goals
-_What are you explicitly NOT building in this version?_
+- new members can create and submit an application themselves
+- admins can review submitted applications
+- admins can approve or reject applications
+- approved applications can be imported into eegFaktura core
+- no productive participant is created before explicit import
+- the onboarding workflow remains simpler than the existing manual participant creation flow
 
----
+## 6. Constraints
 
-Use `/requirements` to create detailed feature specifications for each item in the roadmap above.
+- The component must follow the same technology direction as eegFaktura.
+- The backend must be implemented in Go.
+- The frontend must follow the same web stack direction as `eegfaktura-web`.
+- The onboarding data must use the existing PostgreSQL database with a separate schema `member_onboarding`.
+- Admin authentication must use Keycloak.
+- Import into eegFaktura core must happen through an internal service call only.
+- Version 1 must stay deliberately smaller than the full participant model in eegFaktura.
+
+## 7. Non-Goals
+
+Version 1 does not include:
+
+- document uploads
+- tariff selection
+- role selection
+- account or payment data
+- tax data
+- separate metering point addresses
+- public account/login management
+- direct writes into eegFaktura core tables
+- bidirectional sync between onboarding and core
+
+## 8. Core Business Rules
+
+- one application contains exactly one member
+- one application can contain multiple metering points
+- all metering points use the same address as the member in onboarding
+- only approved applications may be imported
+- imported participants are created in eegFaktura core, not directly in onboarding
+- tariff, role, and similar business details are completed later in eegFaktura
+
+## 9. Notes for Feature Work
+
+Use this PRD as the high-level product context.
+
+Detailed implementation work should be tracked via:
+- `features/INDEX.md`
+- individual feature specification files in `features/`
