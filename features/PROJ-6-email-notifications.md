@@ -77,7 +77,84 @@ E-Mails werden direkt per SMTP verschickt — kein externer Mail-Microservice, k
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+
+### Betroffene Komponenten
+
+Rein Backend — keine Frontend-Änderungen.
+
+```
+internal/
+  config/config.go                            ← erweitert: SMTPConfig
+  shared/models.go                            ← erweitert: ContactEmail in RegistrationEntrypoint
+  application/
+    registration_entrypoint_repo.go           ← erweitert: contact_email aus DB lesen
+    application_service.go                    ← erweitert: MailService injizieren + aufrufen
+  mail/                                       ← neu
+    mailer.go                                 ← SMTP-Verbindung und Versand
+    service.go                                ← Template-Rendering, Entscheidungslogik
+    templates/
+      application_submitted_member.html       ← neu
+      application_submitted_eeg.html          ← neu
+db/migrations/
+  000003_add_contact_email_…up.sql            ← neu
+  000003_add_contact_email_…down.sql          ← neu
+```
+
+### Datenmodell-Erweiterung
+
+`registration_entrypoint` erhält ein neues optionales Feld:
+
+| Feld | Typ | Pflicht |
+|------|-----|---------|
+| `contact_email` | VARCHAR(255) | nein (NULL erlaubt) |
+
+Bestehende Einträge ohne Wert bleiben unverändert gültig.
+
+### Auslöse-Logik
+
+Der Auslöser sitzt in `SubmitApplication()` in `application_service.go`. Die Methode kennt bereits `oldStatus`. Der MailService wird nur aufgerufen wenn `oldStatus == "draft"`:
+
+```
+POST /api/public/applications/{id}/submit
+  → SubmitApplication()
+      → Status-Übergang wird durchgeführt
+      → oldStatus == "draft"?
+          JA  → MailService.SendSubmissionEmails(application, meteringPoints, entrypoint)
+                    → Bestätigung an application.Email (immer)
+                    → Benachrichtigung an entrypoint.ContactEmail (nur wenn gesetzt)
+                    → Fehler: loggen, nicht an den Aufrufer weitergeben
+          NEIN → keine E-Mail (Wiedereinreichung nach needs_info)
+      → Response wie bisher
+```
+
+### Entkopplung über Interface
+
+`MailService` wird als Interface definiert und in `ApplicationService` injiziert. Für lokale Entwicklung ohne SMTP-Konfiguration wird eine No-Op-Implementierung verwendet — kein Absturz, keine Fehlermeldung.
+
+### Konfiguration
+
+Fünf neue Umgebungsvariablen in `config.go`:
+
+| Variable | Bedeutung | Pflicht |
+|----------|-----------|---------|
+| `SMTP_HOST` | SMTP-Server-Adresse | Ja — fehlt: Versand deaktiviert |
+| `SMTP_PORT` | Port (Standard: 587) | Nein |
+| `SMTP_USER` | Login-Benutzername | Nein |
+| `SMTP_PASSWORD` | Login-Passwort | Nein |
+| `SMTP_FROM` | Absenderadresse | Ja (wenn SMTP_HOST gesetzt) |
+
+### Templates
+
+HTML-Templates werden per Go `embed.FS` direkt ins Binary eingebettet — kein Volume-Mount, keine externen Dateien.
+
+| Template | Empfänger | Template-Variablen |
+|----------|-----------|-------------------|
+| `application_submitted_member.html` | Antragsteller | Firstname, Lastname, ReferenceNumber |
+| `application_submitted_eeg.html` | EEG | Firstname, Lastname, Email, ReferenceNumber, MeteringPoints |
+
+### Neue Abhängigkeit
+
+`github.com/wneessen/go-mail` — leichtgewichtige Go-Bibliothek für SMTP mit HTML-Mail-Unterstützung. Kein gRPC, kein Microservice, keine weitere externe Abhängigkeit.
 
 ## QA Test Results
 _To be added by /qa_
