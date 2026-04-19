@@ -19,6 +19,24 @@ func NewStatusLogRepository(db *sql.DB) *StatusLogRepository {
 	return &StatusLogRepository{db: db}
 }
 
+// CreateTx inserts a status log entry using an existing transaction.
+func (r *StatusLogRepository) CreateTx(tx *sql.Tx, entry *shared.StatusLogEntry) error {
+	query := `
+		INSERT INTO member_onboarding.status_log (
+			application_id, from_status, to_status, changed_by_user_id, reason, created_at
+		) VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id`
+
+	err := tx.QueryRow(query,
+		entry.ApplicationID, entry.FromStatus, entry.ToStatus,
+		entry.ChangedByUserID, entry.Reason, entry.CreatedAt,
+	).Scan(&entry.ID)
+	if err != nil {
+		return fmt.Errorf("failed to create status log entry: %w", err)
+	}
+	return nil
+}
+
 // Create creates a new status log entry
 func (r *StatusLogRepository) Create(entry *shared.StatusLogEntry) error {
 	query := `

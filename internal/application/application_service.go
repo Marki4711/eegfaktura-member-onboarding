@@ -1,6 +1,7 @@
 package application
 
 import (
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -11,70 +12,78 @@ import (
 
 // ApplicationService handles business logic for applications
 type ApplicationService struct {
+	db             *sql.DB
 	appRepo        *ApplicationRepository
 	meteringRepo   *MeteringPointRepository
 	statusLogRepo  *StatusLogRepository
+	entrypointRepo *RegistrationEntrypointRepository
 }
 
 // NewApplicationService creates a new application service
 func NewApplicationService(
+	db *sql.DB,
 	appRepo *ApplicationRepository,
 	meteringRepo *MeteringPointRepository,
 	statusLogRepo *StatusLogRepository,
+	entrypointRepo *RegistrationEntrypointRepository,
 ) *ApplicationService {
 	return &ApplicationService{
-		appRepo:       appRepo,
-		meteringRepo:  meteringRepo,
-		statusLogRepo: statusLogRepo,
+		db:             db,
+		appRepo:        appRepo,
+		meteringRepo:   meteringRepo,
+		statusLogRepo:  statusLogRepo,
+		entrypointRepo: entrypointRepo,
 	}
 }
 
-// CreateApplication creates a new application
+// CreateApplication creates a new application wrapped in a single database transaction.
+// If metering point insertion fails the application row is rolled back automatically.
 func (s *ApplicationService) CreateApplication(req shared.CreateApplicationRequest) (*shared.ApplicationResponse, error) {
-	// Validate registration slug exists
-	exists, err := s.appRepo.CheckRegistrationSlugExists(req.RegistrationSlug)
+	// Resolve RC number via registration_entrypoint — never reads core tables
+	ep, err := s.entrypointRepo.GetByRCNumber(req.RCNumber)
 	if err != nil {
-		return nil, fmt.Errorf("failed to validate registration slug: %w", err)
+		return nil, err
 	}
-	if !exists {
-		return nil, shared.ErrNotFound
+	if !ep.IsActive {
+		return nil, shared.ErrGone
 	}
 
-	// Validate metering points
+	// Build metering point list and check for duplicates within the request
 	var meteringPoints []shared.MeteringPoint
 	for _, mpReq := range req.MeteringPoints {
-		point := shared.MeteringPoint{
+		meteringPoints = append(meteringPoints, shared.MeteringPoint{
 			MeteringPoint: mpReq.MeteringPoint,
 			Direction:     shared.MeterDirection(mpReq.Direction),
 			CreatedAt:     time.Now(),
 			UpdatedAt:     time.Now(),
-		}
-		meteringPoints = append(meteringPoints, point)
+		})
 	}
-
-	// Check for duplicate metering points
-	err = s.meteringRepo.ValidateUniqueMeteringPoints(uuid.Nil, meteringPoints)
-	if err != nil {
-		return nil, shared.NewValidationError("Validation failed", map[string][]string{
-			"meteringPoints": {err.Error()},
+	if err = s.meteringRepo.ValidateUniqueMeteringPoints(uuid.Nil, meteringPoints); err != nil {
+		return nil, shared.NewValidationError("Validation failed", map[string]string{
+			"meteringPoints": err.Error(),
 		})
 	}
 
-	// Generate reference number
-	referenceNumber := s.generateReferenceNumber()
+	birthDate, err := parseDateString(req.BirthDate)
+	if err != nil {
+		return nil, shared.NewValidationError("Validation failed", map[string]string{
+			"birthDate": err.Error(),
+		})
+	}
 
-	// Create application
 	now := time.Now()
 	privacyAcceptedAt := now
+	eegID := ep.EEGID
 
 	app := &shared.Application{
-		ReferenceNumber:      referenceNumber,
-		RegistrationSlug:     req.RegistrationSlug,
+		ReferenceNumber:      s.generateReferenceNumber(),
+		EEGID:                &eegID,
+		RCNumber:             req.RCNumber,
 		Status:               shared.StatusDraft,
 		StartedAt:            &now,
 		Firstname:            req.Firstname,
 		Lastname:             req.Lastname,
-		BirthDate:            req.BirthDate,
+		BirthDate:            birthDate,
 		Email:                req.Email,
 		Phone:                req.Phone,
 		ResidentStreet:       req.ResidentStreet,
@@ -91,45 +100,59 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 		UpdatedAt:            now,
 	}
 
-	err = s.appRepo.Create(app)
+	tx, err := s.db.Begin()
 	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	if err = s.appRepo.CreateTx(tx, app); err != nil {
 		return nil, fmt.Errorf("failed to create application: %w", err)
 	}
 
-	// Set application ID for metering points
 	for i := range meteringPoints {
 		meteringPoints[i].ApplicationID = app.ID
 	}
 
-	// Create metering points
-	err = s.meteringRepo.CreateBulk(app.ID, meteringPoints)
-	if err != nil {
+	if err = s.meteringRepo.CreateBulkTx(tx, app.ID, meteringPoints); err != nil {
 		return nil, fmt.Errorf("failed to create metering points: %w", err)
 	}
 
+	toStatus := string(shared.StatusDraft)
+	statusLog := &shared.StatusLogEntry{
+		ApplicationID: app.ID,
+		FromStatus:    nil,
+		ToStatus:      toStatus,
+		CreatedAt:     now,
+	}
+	if err = s.statusLogRepo.CreateTx(tx, statusLog); err != nil {
+		return nil, fmt.Errorf("failed to create status log: %w", err)
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
 	return &shared.ApplicationResponse{
-		ID:             app.ID,
+		ID:              app.ID,
 		ReferenceNumber: app.ReferenceNumber,
-		Status:         string(app.Status),
-		CreatedAt:      app.CreatedAt,
-		UpdatedAt:      app.UpdatedAt,
+		Status:          string(app.Status),
+		CreatedAt:       app.CreatedAt,
+		UpdatedAt:       app.UpdatedAt,
 	}, nil
 }
 
-// UpdateApplication updates an existing application
+// UpdateApplication updates an existing application in draft or needs_info status.
 func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateApplicationRequest) (*shared.ApplicationResponse, error) {
-	// Get existing application
 	app, err := s.appRepo.GetByID(id)
 	if err != nil {
 		return nil, err
 	}
 
-	// Check if application can be updated
 	if app.Status != shared.StatusDraft && app.Status != shared.StatusNeedsInfo {
 		return nil, shared.ErrConflict
 	}
 
-	// Apply updates
 	if req.Firstname != nil {
 		app.Firstname = *req.Firstname
 	}
@@ -137,7 +160,13 @@ func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateAp
 		app.Lastname = *req.Lastname
 	}
 	if req.BirthDate != nil {
-		app.BirthDate = req.BirthDate
+		bd, bdErr := parseDateString(req.BirthDate)
+		if bdErr != nil {
+			return nil, shared.NewValidationError("Validation failed", map[string]string{
+				"birthDate": bdErr.Error(),
+			})
+		}
+		app.BirthDate = bd
 	}
 	if req.Email != nil {
 		app.Email = *req.Email
@@ -173,113 +202,121 @@ func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateAp
 		app.CommunicationConsent = *req.CommunicationConsent
 	}
 
-	// Handle metering points update
+	var meteringPoints []shared.MeteringPoint
 	if req.MeteringPoints != nil {
-		var meteringPoints []shared.MeteringPoint
 		for _, mpReq := range req.MeteringPoints {
-			point := shared.MeteringPoint{
+			meteringPoints = append(meteringPoints, shared.MeteringPoint{
 				ApplicationID: id,
 				MeteringPoint: mpReq.MeteringPoint,
 				Direction:     shared.MeterDirection(mpReq.Direction),
 				CreatedAt:     time.Now(),
 				UpdatedAt:     time.Now(),
-			}
-			meteringPoints = append(meteringPoints, point)
-		}
-
-		// Validate metering points
-		err = s.meteringRepo.ValidateUniqueMeteringPoints(id, meteringPoints)
-		if err != nil {
-			return nil, shared.NewValidationError("Validation failed", map[string][]string{
-				"meteringPoints": {err.Error()},
 			})
 		}
 
-		// Update metering points
-		err = s.meteringRepo.CreateBulk(id, meteringPoints)
-		if err != nil {
+		// Only check for duplicates within the new set — CreateBulkTx replaces all existing points
+		if err = s.meteringRepo.ValidateUniqueMeteringPoints(uuid.Nil, meteringPoints); err != nil {
+			return nil, shared.NewValidationError("Validation failed", map[string]string{
+				"meteringPoints": err.Error(),
+			})
+		}
+	}
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	if meteringPoints != nil {
+		if err = s.meteringRepo.CreateBulkTx(tx, id, meteringPoints); err != nil {
 			return nil, fmt.Errorf("failed to update metering points: %w", err)
 		}
 	}
 
-	// Update application
-	err = s.appRepo.Update(app)
-	if err != nil {
+	if err = s.appRepo.UpdateTx(tx, app); err != nil {
 		return nil, err
 	}
 
+	if err = tx.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
 	return &shared.ApplicationResponse{
-		ID:             app.ID,
+		ID:              app.ID,
 		ReferenceNumber: app.ReferenceNumber,
-		Status:         string(app.Status),
-		CreatedAt:      app.CreatedAt,
-		UpdatedAt:      app.UpdatedAt,
+		Status:          string(app.Status),
+		CreatedAt:       app.CreatedAt,
+		UpdatedAt:       app.UpdatedAt,
 	}, nil
 }
 
-// SubmitApplication submits an application
+// SubmitApplication transitions an application from draft/needs_info to submitted.
 func (s *ApplicationService) SubmitApplication(id uuid.UUID) (*shared.SubmitResponse, error) {
-	// Get application
 	app, err := s.appRepo.GetByID(id)
 	if err != nil {
 		return nil, err
 	}
 
-	// Check if application can be submitted
 	if app.Status != shared.StatusDraft && app.Status != shared.StatusNeedsInfo {
 		return nil, shared.ErrConflict
 	}
 
-	// Validate required fields for submission
 	if !app.PrivacyAccepted || app.PrivacyVersion == nil || !app.AccuracyConfirmed {
-		return nil, shared.NewValidationError("Validation failed", map[string][]string{
-			"general": {"Privacy consent and accuracy confirmation required for submission"},
+		return nil, shared.NewValidationError("Validation failed", map[string]string{
+			"general": "Privacy consent and accuracy confirmation required for submission",
 		})
 	}
 
-	// Check if metering points exist
 	meteringPoints, err := s.meteringRepo.GetByApplicationID(id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get metering points: %w", err)
 	}
 	if len(meteringPoints) == 0 {
-		return nil, shared.NewValidationError("Validation failed", map[string][]string{
-			"meteringPoints": {"At least one metering point is required"},
+		return nil, shared.NewValidationError("Validation failed", map[string]string{
+			"meteringPoints": "At least one metering point is required",
 		})
 	}
 
-	// Update status
 	now := time.Now()
 	oldStatus := string(app.Status)
-	err = s.appRepo.UpdateStatus(id, shared.StatusSubmitted, &now)
-	if err != nil {
+
+	if err = s.appRepo.UpdateStatus(id, shared.StatusSubmitted, &now); err != nil {
 		return nil, err
 	}
 
-	// Log status change
 	statusLog := &shared.StatusLogEntry{
 		ApplicationID: id,
 		FromStatus:    &oldStatus,
 		ToStatus:      string(shared.StatusSubmitted),
 		CreatedAt:     now,
 	}
-	err = s.statusLogRepo.Create(statusLog)
-	if err != nil {
-		// Log error but don't fail the submission
+	if err = s.statusLogRepo.Create(statusLog); err != nil {
 		fmt.Printf("Failed to create status log: %v\n", err)
 	}
 
 	return &shared.SubmitResponse{
-		ID:             id,
+		ID:              id,
 		ReferenceNumber: app.ReferenceNumber,
-		Status:         shared.StatusSubmitted,
-		SubmittedAt:    now,
+		Status:          shared.StatusSubmitted,
+		SubmittedAt:     now,
 	}, nil
+}
+
+// parseDateString parses an optional "YYYY-MM-DD" string into *time.Time.
+func parseDateString(s *string) (*time.Time, error) {
+	if s == nil || *s == "" {
+		return nil, nil
+	}
+	t, err := time.Parse("2006-01-02", *s)
+	if err != nil {
+		return nil, fmt.Errorf("invalid date format, expected YYYY-MM-DD")
+	}
+	return &t, nil
 }
 
 // generateReferenceNumber generates a unique reference number
 func (s *ApplicationService) generateReferenceNumber() string {
-	// Simple implementation - in production, this would be more sophisticated
 	now := time.Now()
 	return fmt.Sprintf("MO-%s-%06d", now.Format("2006"), now.Unix()%1000000)
 }
