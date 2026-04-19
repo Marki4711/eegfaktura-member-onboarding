@@ -13,6 +13,17 @@ type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
 	CORS     CORSConfig
+	SMTP     SMTPConfig
+}
+
+// SMTPConfig holds SMTP mail configuration.
+// When Host is empty the mail sender is disabled.
+type SMTPConfig struct {
+	Host     string
+	Port     int
+	User     string
+	Password string
+	From     string
 }
 
 // CORSConfig holds allowed origins for CORS.
@@ -55,6 +66,13 @@ func Load() (*Config, error) {
 		},
 		CORS: CORSConfig{
 			AllowedOrigins: strings.Split(getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000"), ","),
+		},
+		SMTP: SMTPConfig{
+			Host:     getEnv("SMTP_HOST", ""),
+			Port:     getIntEnv("SMTP_PORT", 587),
+			User:     getEnv("SMTP_USER", ""),
+			Password: getEnv("SMTP_PASSWORD", ""),
+			From:     getEnv("SMTP_FROM", ""),
 		},
 	}
 

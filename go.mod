@@ -1,6 +1,6 @@
 module github.com/your-org/eegfaktura-member-onboarding
 
-go 1.21
+go 1.24.0
 
 require (
 	github.com/go-chi/chi/v5 v5.0.10
@@ -17,9 +17,10 @@ require (
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/leodido/go-urn v1.2.4 // indirect
+	github.com/wneessen/go-mail v0.7.2 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	golang.org/x/crypto v0.7.0 // indirect
 	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/sys v0.8.0 // indirect
-	golang.org/x/text v0.9.0 // indirect
+	golang.org/x/text v0.29.0 // indirect
 )

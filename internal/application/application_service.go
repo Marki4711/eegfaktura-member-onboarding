@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/your-org/eegfaktura-member-onboarding/internal/mail"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/shared"
 )
 
@@ -17,6 +18,7 @@ type ApplicationService struct {
 	meteringRepo   *MeteringPointRepository
 	statusLogRepo  *StatusLogRepository
 	entrypointRepo *RegistrationEntrypointRepository
+	mailService    mail.MailService
 }
 
 // NewApplicationService creates a new application service
@@ -26,6 +28,7 @@ func NewApplicationService(
 	meteringRepo *MeteringPointRepository,
 	statusLogRepo *StatusLogRepository,
 	entrypointRepo *RegistrationEntrypointRepository,
+	mailService mail.MailService,
 ) *ApplicationService {
 	return &ApplicationService{
 		db:             db,
@@ -33,6 +36,7 @@ func NewApplicationService(
 		meteringRepo:   meteringRepo,
 		statusLogRepo:  statusLogRepo,
 		entrypointRepo: entrypointRepo,
+		mailService:    mailService,
 	}
 }
 
@@ -293,6 +297,16 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID) (*shared.SubmitResp
 	}
 	if err = s.statusLogRepo.Create(statusLog); err != nil {
 		fmt.Printf("Failed to create status log: %v\n", err)
+	}
+
+	// Send submission emails only on first submission (draft → submitted).
+	if oldStatus == string(shared.StatusDraft) {
+		entrypoint, epErr := s.entrypointRepo.GetByRCNumber(app.RCNumber)
+		if epErr != nil {
+			fmt.Printf("mail: failed to load entrypoint for rc=%s: %v\n", app.RCNumber, epErr)
+		} else {
+			go s.mailService.SendSubmissionEmails(app, meteringPoints, entrypoint)
+		}
 	}
 
 	return &shared.SubmitResponse{
