@@ -275,7 +275,7 @@ Manifests for an isolated test installation live in [`k8s/test/`](k8s/test/).
 | `05-backend.yaml` | Backend Deployment + Service |
 | `06-frontend.yaml` | Frontend Deployment + Service |
 | `07-ingress-web.yaml` | Web ingress — routes `/*` to frontend:3000 |
-| `08-ingress-backend.yaml` | Backend ingress — routes `/api(/\|$)(.*)` to backend:8080, strips `/api` prefix via rewrite |
+| `08-ingress-backend.yaml` | Backend ingress — routes `/api` (Prefix) to backend:8080, no rewrite |
 
 **Hostname:** `member-onboarding-test.eegfaktura.at`  
 Ingress routes `/api` → backend, `/` → frontend. Does not reuse any existing eegfaktura.at ingress rules.
@@ -333,17 +333,11 @@ Point `member-onboarding-test.eegfaktura.at` to the cluster's nginx ingress cont
 
 The test ingress runs without TLS. Access the installation at `http://member-onboarding-test.eegfaktura.at`.
 
-#### Backend ingress rewrite and route alignment
+#### Backend ingress routing
 
-`08-ingress-backend.yaml` strips the `/api` prefix before forwarding to the backend (`rewrite-target: /$2`). This means:
+`08-ingress-backend.yaml` routes all `/api/*` requests to the backend using a plain Prefix match — no rewrite. The Go backend registers routes under `/api/public/...` and `/api/admin/...`, so paths are forwarded unchanged.
 
-| Ingress receives | Backend receives | Backend route exists? |
-|-----------------|-----------------|----------------------|
-| `GET /api/health` | `GET /health` | ✅ `/health` |
-| `GET /api/public/registration/RC123456` | `GET /public/registration/RC123456` | ❌ backend has `/api/public/...` |
-| `GET /api/admin/applications` | `GET /admin/applications` | ❌ backend has `/api/admin/...` |
-
-The Go backend currently registers all routes under `/api/public/...` and `/api/admin/...`. To align with this ingress pattern (consistent with existing eegfaktura production ingresses), the backend routes must be changed to `/public/...` and `/admin/...` (without the `/api` prefix). This is a required follow-up change in `cmd/server/main.go`.
+The backend's `/health` endpoint is not exposed via the ingress (it has no `/api` prefix). Use `kubectl port-forward` to reach it directly for internal health checks.
 
 #### Note on NEXT_PUBLIC_API_URL
 

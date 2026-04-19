@@ -1,19 +1,15 @@
-# Routes /api/* to the backend, stripping the /api prefix before forwarding.
+# Routes all /api/* requests to the backend unchanged.
+# The backend registers routes under /api/public/... and /api/admin/...
+# so no path rewriting is applied.
 #
-# IMPORTANT: The Go backend currently registers routes as /api/public/... and
-# /api/admin/... (with /api prefix). With rewrite-target: /$2, nginx strips /api
-# before forwarding, so the backend will receive /public/... and /admin/... which
-# do not match the current routes. To align with this ingress pattern, the backend
-# routes must be changed to /public/... and /admin/... (without /api prefix).
-# The /health route works correctly as-is: /api/health → /health.
+# Note: /health (the backend's internal health check) is not exposed via
+# this ingress. It is only reachable via kubectl port-forward.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: member-onboarding-test-backend
   namespace: eegfaktura-member-onboarding-test
   annotations:
-    nginx.ingress.kubernetes.io/use-regex: "true"
-    nginx.ingress.kubernetes.io/rewrite-target: "/$2"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
 spec:
@@ -22,8 +18,8 @@ spec:
     - host: member-onboarding-test.eegfaktura.at
       http:
         paths:
-          - path: /api(/|$)(.*)
-            pathType: ImplementationSpecific
+          - path: /api
+            pathType: Prefix
             backend:
               service:
                 name: backend
