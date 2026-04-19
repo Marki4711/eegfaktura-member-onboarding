@@ -349,6 +349,6 @@ This creates RC number `RC123456` linked to EEG ID `00000000-0000-0000-0000-0000
 
 #### Note on NEXT_PUBLIC_API_URL
 
-The frontend image bakes `NEXT_PUBLIC_API_URL` at build time. Image `37289bd` was built with this variable unset (empty), so the browser makes relative `/api/...` requests — which the ingress routes correctly to the backend. No env var override is needed in the pod spec.
+The frontend image bakes `NEXT_PUBLIC_API_URL` at build time. The `:latest` image is built with this variable unset (empty), so the browser makes relative `/api/...` requests — which the ingress routes correctly to the backend. No env var override is needed in the pod spec.
 
 If you need to rebuild with a specific API URL, set `vars.NEXT_PUBLIC_API_URL` in the GitHub repository variables and re-trigger the workflow.

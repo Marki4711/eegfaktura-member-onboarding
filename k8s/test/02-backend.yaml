@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: marki4711/eegfaktura-member-onboarding-backend:37289bd
+          image: marki4711/eegfaktura-member-onboarding-backend:latest
           ports:
             - containerPort: 8080
           env:

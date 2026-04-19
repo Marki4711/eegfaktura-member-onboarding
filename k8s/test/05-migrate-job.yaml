@@ -17,7 +17,7 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: migrate
-          image: marki4711/eegfaktura-member-onboarding-backend:37289bd   # keep in sync with 02-backend.yaml
+          image: marki4711/eegfaktura-member-onboarding-backend:latest
           workingDir: /app
           command: ["/bin/sh", "-c"]
           args:
