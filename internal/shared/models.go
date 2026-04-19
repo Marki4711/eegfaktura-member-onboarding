@@ -9,12 +9,13 @@ import (
 // RegistrationEntrypoint maps an EEG RC number to its internal EEG ID.
 // It is the sole source of truth for public registration lookup.
 type RegistrationEntrypoint struct {
-	ID        uuid.UUID `json:"id"        db:"id"`
-	EEGID     string    `json:"eegId"     db:"eeg_id"`
-	RCNumber  string    `json:"rcNumber"  db:"rc_number"`
-	IsActive  bool      `json:"isActive"  db:"is_active"`
-	CreatedAt time.Time `json:"createdAt" db:"created_at"`
-	UpdatedAt time.Time `json:"updatedAt" db:"updated_at"`
+	ID           uuid.UUID `json:"id"           db:"id"`
+	EEGID        string    `json:"eegId"        db:"eeg_id"`
+	RCNumber     string    `json:"rcNumber"     db:"rc_number"`
+	IsActive     bool      `json:"isActive"     db:"is_active"`
+	ContactEmail *string   `json:"contactEmail" db:"contact_email"`
+	CreatedAt    time.Time `json:"createdAt"    db:"created_at"`
+	UpdatedAt    time.Time `json:"updatedAt"    db:"updated_at"`
 }
 
 // ApplicationStatus represents the status of an application

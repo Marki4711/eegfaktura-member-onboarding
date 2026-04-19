@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Neuer Beitrittsantrag eingegangen</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+  <p>Guten Tag,</p>
+
+  <p>es ist ein neuer Beitrittsantrag eingegangen. Bitte prüfen Sie diesen im Adminbereich.</p>
+
+  <table style="border-collapse: collapse; margin: 16px 0;">
+    <tr>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold;">Name:</td>
+      <td style="padding: 4px 0;">{{.Firstname}} {{.Lastname}}</td>
+    </tr>
+    <tr>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold;">E-Mail:</td>
+      <td style="padding: 4px 0;">{{.Email}}</td>
+    </tr>
+    <tr>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold;">Antragsnummer:</td>
+      <td style="padding: 4px 0;">{{.ReferenceNumber}}</td>
+    </tr>
+  </table>
+
+  <p><strong>Angemeldete Zählpunkte:</strong></p>
+  <ul>
+    {{range .MeteringPoints}}<li>{{.MeteringPoint}} ({{.Direction}})</li>
+    {{end}}
+  </ul>
+
+  <p>Bitte melden Sie sich im Adminbereich an, um den Antrag zu bearbeiten.</p>
+
+  <p>Mit freundlichen Grüßen<br>Ihr eegFaktura-System</p>
+</body>
+</html>

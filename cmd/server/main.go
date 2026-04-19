@@ -12,6 +12,7 @@ import (
 	"github.com/your-org/eegfaktura-member-onboarding/internal/application"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/config"
 	internalhttp "github.com/your-org/eegfaktura-member-onboarding/internal/http"
+	"github.com/your-org/eegfaktura-member-onboarding/internal/mail"
 )
 
 func main() {
@@ -41,9 +42,24 @@ func main() {
 	statusLogRepo := application.NewStatusLogRepository(db)
 	entrypointRepo := application.NewRegistrationEntrypointRepository(db)
 
+	// Initialize mail service
+	var mailService mail.MailService = &mail.NoOpMailService{}
+	if cfg.SMTP.Host != "" {
+		if cfg.SMTP.From == "" {
+			log.Fatalf("SMTP_FROM must be set when SMTP_HOST is configured")
+		}
+		mailer := mail.NewMailer(cfg.SMTP.Host, cfg.SMTP.Port, cfg.SMTP.User, cfg.SMTP.Password, cfg.SMTP.From)
+		svc, err := mail.NewSMTPMailService(mailer)
+		if err != nil {
+			log.Fatalf("Failed to initialize mail service: %v", err)
+		}
+		mailService = svc
+		log.Printf("Mail service enabled (SMTP host: %s)", cfg.SMTP.Host)
+	}
+
 	// Initialize services
 	registrationService := application.NewRegistrationService(entrypointRepo)
-	applicationService := application.NewApplicationService(db, appRepo, meteringRepo, statusLogRepo, entrypointRepo)
+	applicationService := application.NewApplicationService(db, appRepo, meteringRepo, statusLogRepo, entrypointRepo, mailService)
 	adminService := application.NewAdminApplicationService(db, appRepo, meteringRepo, statusLogRepo)
 
 	// Initialize handlers
