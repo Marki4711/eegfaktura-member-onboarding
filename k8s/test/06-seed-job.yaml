@@ -1,0 +1,34 @@
+# Run this Job once after the migrate Job completes.
+# It inserts the minimum required test data for the onboarding happy path.
+# The INSERT uses ON CONFLICT DO NOTHING, so re-running is safe.
+#
+# Re-run:
+#   kubectl delete job seed -n eegfaktura-member-onboarding-test
+#   kubectl apply  -f k8s/test/06-seed-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: seed
+  namespace: eegfaktura-member-onboarding-test
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: seed
+          image: postgres:16-alpine
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              psql "postgres://postgres:${DB_PASSWORD}@postgres:5432/member_onboarding?sslmode=disable" <<'SQL'
+              INSERT INTO member_onboarding.registration_entrypoint (eeg_id, rc_number, is_active)
+              VALUES ('00000000-0000-0000-0000-000000000001', 'RC123456', TRUE)
+              ON CONFLICT (rc_number) DO NOTHING;
+              SQL
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: DB_PASSWORD
