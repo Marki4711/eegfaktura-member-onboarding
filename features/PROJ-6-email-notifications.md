@@ -2,7 +2,7 @@
 
 ## Status: Planned
 **Created:** 2026-04-19
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-04-19 (Auslöser auf Ersteinreichung eingeschränkt)
 
 ## Dependencies
 - Requires: PROJ-1 (Public Registration) — liefert den Einreichungs-Trigger (submit endpoint)
@@ -23,12 +23,18 @@ E-Mails werden direkt per SMTP verschickt — kein externer Mail-Microservice, k
 
 ## Acceptance Criteria
 
+### Auslöser
+- [ ] E-Mails werden **nur bei der Ersteinreichung** ausgelöst: wenn der Antrag vom Status `draft` in `submitted` wechselt
+- [ ] Bei Wiedereinreichung (`needs_info` → `submitted`) werden **keine** E-Mails gesendet — das Mitglied korrigiert einen bestehenden Antrag und erhält bereits eine Bildschirm-Rückmeldung
+
 ### E-Mail an das Mitglied (Bestätigung)
-- [ ] Nach erfolgreichem Einreichen (Status `draft` → `submitted`) wird eine Bestätigungs-E-Mail an die E-Mail-Adresse des Mitglieds gesendet
+- [ ] Wird ausgelöst wenn `fromStatus = draft` und `toStatus = submitted`
+- [ ] Empfänger: E-Mail-Adresse des Antragstellers
 - [ ] Die E-Mail enthält: Anrede mit Vorname + Nachname, Referenznummer des Antrags, Hinweis dass die EEG den Antrag prüfen wird
 - [ ] Die E-Mail ist auf Deutsch
 
 ### E-Mail an die EEG (Benachrichtigung)
+- [ ] Wird ausgelöst wenn `fromStatus = draft` und `toStatus = submitted`
 - [ ] Nach erfolgreichem Einreichen wird eine Benachrichtigungs-E-Mail an die `contact_email` der zugehörigen EEG gesendet
 - [ ] Die E-Mail enthält: Name des Antragstellers (Vorname + Nachname), E-Mail-Adresse des Antragstellers, Referenznummer, Liste der angemeldeten Zählpunkte, Hinweis zur Bearbeitung im Admin-Bereich
 - [ ] Hat die EEG keine `contact_email` hinterlegt, wird keine EEG-Benachrichtigung gesendet (kein Fehler)
@@ -53,7 +59,7 @@ E-Mails werden direkt per SMTP verschickt — kein externer Mail-Microservice, k
 - **EEG hat keine contact_email:** Nur die Mitglieds-Bestätigung wird gesendet, keine EEG-Benachrichtigung, kein Fehler
 - **Mitglied hat keine gültige E-Mail:** Kann nicht vorkommen — E-Mail ist Pflichtfeld bei der Einreichung (PROJ-1 validiert dies)
 - **SMTP nicht erreichbar:** Fehler wird geloggt, Einreichung wird nicht blockiert
-- **Antrag wird erneut eingereicht** (Status `needs_info` → `submitted`): E-Mails werden erneut versendet, da das Mitglied aktiv nachgebessert hat
+- **Antrag wird erneut eingereicht** (Status `needs_info` → `submitted`): Keine E-Mails — der Übergang `fromStatus = needs_info` ist kein Ersteinreichungs-Ereignis. Das Mitglied erhält die Bestätigung bereits auf dem Bildschirm.
 - **SMTP_HOST nicht konfiguriert:** E-Mail-Versand wird stillschweigend übersprungen — sinnvoll für lokale Entwicklung ohne Mail-Server
 
 ## Technical Requirements
