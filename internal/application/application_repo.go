@@ -3,6 +3,7 @@ package application
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -234,6 +235,158 @@ func (r *ApplicationRepository) UpdateStatus(id uuid.UUID, status shared.Applica
 		return fmt.Errorf("failed to update application status: %w", err)
 	}
 
+	return nil
+}
+
+// List returns a paginated, filtered list of applications for the admin view.
+func (r *ApplicationRepository) List(filters ApplicationListFilters, page, pageSize int) ([]shared.ApplicationListItem, int, error) {
+	conditions := []string{}
+	args := []interface{}{}
+	n := 1
+
+	if filters.Status != nil {
+		conditions = append(conditions, fmt.Sprintf("a.status = $%d", n))
+		args = append(args, *filters.Status)
+		n++
+	}
+	if filters.EEGID != nil {
+		conditions = append(conditions, fmt.Sprintf("a.eeg_id = $%d", n))
+		args = append(args, *filters.EEGID)
+		n++
+	}
+	if filters.ReferenceNumber != nil {
+		conditions = append(conditions, fmt.Sprintf("a.reference_number ILIKE $%d", n))
+		args = append(args, "%"+*filters.ReferenceNumber+"%")
+		n++
+	}
+	if filters.Lastname != nil {
+		conditions = append(conditions, fmt.Sprintf("a.lastname ILIKE $%d", n))
+		args = append(args, "%"+*filters.Lastname+"%")
+		n++
+	}
+	if filters.Email != nil {
+		conditions = append(conditions, fmt.Sprintf("a.email ILIKE $%d", n))
+		args = append(args, "%"+*filters.Email+"%")
+		n++
+	}
+	if filters.MeteringPoint != nil {
+		conditions = append(conditions, fmt.Sprintf(
+			"EXISTS (SELECT 1 FROM member_onboarding.metering_point mp WHERE mp.application_id = a.id AND mp.metering_point ILIKE $%d)", n,
+		))
+		args = append(args, "%"+*filters.MeteringPoint+"%")
+		n++
+	}
+	if filters.SubmittedFrom != nil {
+		conditions = append(conditions, fmt.Sprintf("a.submitted_at >= $%d", n))
+		args = append(args, *filters.SubmittedFrom)
+		n++
+	}
+	if filters.SubmittedTo != nil {
+		conditions = append(conditions, fmt.Sprintf("a.submitted_at <= $%d", n))
+		args = append(args, *filters.SubmittedTo)
+		n++
+	}
+
+	where := ""
+	if len(conditions) > 0 {
+		where = "WHERE " + strings.Join(conditions, " AND ")
+	}
+
+	countQuery := fmt.Sprintf(`SELECT COUNT(*) FROM member_onboarding.application a %s`, where)
+	var total int
+	if err := r.db.QueryRow(countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("failed to count applications: %w", err)
+	}
+
+	offset := (page - 1) * pageSize
+	listArgs := append(args, pageSize, offset)
+	listQuery := fmt.Sprintf(`
+		SELECT a.id, a.reference_number, a.eeg_id, a.rc_number, a.status,
+		       a.firstname, a.lastname, a.email, a.submitted_at
+		FROM member_onboarding.application a
+		%s
+		ORDER BY a.created_at DESC
+		LIMIT $%d OFFSET $%d`, where, n, n+1)
+
+	rows, err := r.db.Query(listQuery, listArgs...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to list applications: %w", err)
+	}
+	defer rows.Close()
+
+	items := []shared.ApplicationListItem{}
+	for rows.Next() {
+		var item shared.ApplicationListItem
+		var eegID sql.NullString
+		var submittedAt sql.NullTime
+		if err := rows.Scan(
+			&item.ID, &item.ReferenceNumber, &eegID, &item.RCNumber, &item.Status,
+			&item.Firstname, &item.Lastname, &item.Email, &submittedAt,
+		); err != nil {
+			return nil, 0, fmt.Errorf("failed to scan application list item: %w", err)
+		}
+		if eegID.Valid {
+			item.EEGID = &eegID.String
+		}
+		if submittedAt.Valid {
+			item.SubmittedAt = &submittedAt.Time
+		}
+		item.MeteringPoints = []string{}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating applications: %w", err)
+	}
+
+	return items, total, nil
+}
+
+// UpdateAdminTx updates application fields (including admin_note) using an existing transaction.
+func (r *ApplicationRepository) UpdateAdminTx(tx *sql.Tx, app *shared.Application) error {
+	query := `
+		UPDATE member_onboarding.application SET
+			firstname = $1, lastname = $2, birth_date = $3, email = $4, phone = $5,
+			resident_street = $6, resident_street_number = $7, resident_zip = $8,
+			resident_city = $9, resident_country = $10, admin_note = $11,
+			updated_at = NOW()
+		WHERE id = $12`
+
+	_, err := tx.Exec(query,
+		app.Firstname, app.Lastname, app.BirthDate, app.Email, app.Phone,
+		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity, app.ResidentCountry,
+		app.AdminNote,
+		app.ID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update application: %w", err)
+	}
+	return nil
+}
+
+// UpdateStatusAdminTx updates the status and related timestamp columns atomically.
+// Columns not applicable to the transition are preserved via COALESCE.
+func (r *ApplicationRepository) UpdateStatusAdminTx(
+	tx *sql.Tx,
+	id uuid.UUID,
+	toStatus shared.ApplicationStatus,
+	submittedAt, approvedAt, rejectedAt *time.Time,
+	needsInfoReason, reviewedByUserID *string,
+) error {
+	query := `
+		UPDATE member_onboarding.application SET
+			status              = $1,
+			submitted_at        = COALESCE($2, submitted_at),
+			approved_at         = COALESCE($3, approved_at),
+			rejected_at         = COALESCE($4, rejected_at),
+			needs_info_reason   = COALESCE($5, needs_info_reason),
+			reviewed_by_user_id = COALESCE($6, reviewed_by_user_id),
+			updated_at          = NOW()
+		WHERE id = $7`
+
+	_, err := tx.Exec(query, toStatus, submittedAt, approvedAt, rejectedAt, needsInfoReason, reviewedByUserID, id)
+	if err != nil {
+		return fmt.Errorf("failed to update application status: %w", err)
+	}
 	return nil
 }
 

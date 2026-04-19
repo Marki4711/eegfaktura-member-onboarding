@@ -42,8 +42,8 @@ func (h *ApplicationHandler) CreateApplication(w http.ResponseWriter, r *http.Re
 
 	// Additional validation for metering points
 	if len(req.MeteringPoints) == 0 {
-		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string][]string{
-			"meteringPoints": {"At least one metering point is required"},
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string]string{
+			"meteringPoints": "At least one metering point is required",
 		})))
 		return
 	}
@@ -108,15 +108,14 @@ func (h *ApplicationHandler) SubmitApplication(w http.ResponseWriter, r *http.Re
 // Helper methods
 
 func (h *ApplicationHandler) writeValidationError(w http.ResponseWriter, err error) {
-	validationErrors := make(map[string][]string)
-
-	for _, err := range err.(validator.ValidationErrors) {
-		field := err.Field()
-		message := h.getValidationMessage(err)
-		validationErrors[field] = append(validationErrors[field], message)
+	fields := make(map[string]string)
+	for _, verr := range err.(validator.ValidationErrors) {
+		field := verr.Field()
+		if _, exists := fields[field]; !exists {
+			fields[field] = h.getValidationMessage(verr)
+		}
 	}
-
-	h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", validationErrors)))
+	h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", fields)))
 }
 
 func (h *ApplicationHandler) getValidationMessage(err validator.FieldError) string {
@@ -139,11 +138,14 @@ func (h *ApplicationHandler) handleServiceError(w http.ResponseWriter, err error
 	case shared.ValidationError:
 		h.writeError(w, shared.NewErrorResponse(e))
 	default:
-		if err == shared.ErrNotFound {
+		switch err {
+		case shared.ErrNotFound:
 			h.writeError(w, shared.NewErrorResponse(shared.ErrNotFound))
-		} else if err == shared.ErrConflict {
+		case shared.ErrGone:
+			h.writeError(w, shared.NewErrorResponse(shared.ErrGone))
+		case shared.ErrConflict:
 			h.writeError(w, shared.NewErrorResponse(shared.ErrConflict))
-		} else {
+		default:
 			h.writeError(w, shared.NewErrorResponse(shared.ErrInternal))
 		}
 	}

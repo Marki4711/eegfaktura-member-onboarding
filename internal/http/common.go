@@ -8,7 +8,23 @@ import (
 	"github.com/your-org/eegfaktura-member-onboarding/internal/shared"
 )
 
-// writeJSON writes a JSON response
+func httpStatusFor(code string) int {
+	switch code {
+	case "not_found":
+		return http.StatusNotFound
+	case "gone":
+		return http.StatusGone
+	case "validation_error":
+		return http.StatusBadRequest
+	case "conflict":
+		return http.StatusConflict
+	case "forbidden":
+		return http.StatusForbidden
+	default:
+		return http.StatusInternalServerError
+	}
+}
+
 func (h *RegistrationHandler) writeJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
@@ -17,27 +33,14 @@ func (h *RegistrationHandler) writeJSON(w http.ResponseWriter, status int, data 
 	}
 }
 
-// writeError writes an error response
 func (h *RegistrationHandler) writeError(w http.ResponseWriter, errorResp shared.ErrorResponse) {
 	w.Header().Set("Content-Type", "application/json")
-
-	status := http.StatusInternalServerError
-	switch errorResp.Error.Code {
-	case "NOT_FOUND":
-		status = http.StatusNotFound
-	case "VALIDATION_ERROR":
-		status = http.StatusBadRequest
-	case "CONFLICT":
-		status = http.StatusConflict
-	}
-
-	w.WriteHeader(status)
+	w.WriteHeader(httpStatusFor(errorResp.Code))
 	if err := json.NewEncoder(w).Encode(errorResp); err != nil {
 		log.Printf("Error encoding error response: %v", err)
 	}
 }
 
-// writeJSON for ApplicationHandler
 func (h *ApplicationHandler) writeJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
@@ -46,21 +49,9 @@ func (h *ApplicationHandler) writeJSON(w http.ResponseWriter, status int, data i
 	}
 }
 
-// writeError for ApplicationHandler
 func (h *ApplicationHandler) writeError(w http.ResponseWriter, errorResp shared.ErrorResponse) {
 	w.Header().Set("Content-Type", "application/json")
-
-	status := http.StatusInternalServerError
-	switch errorResp.Error.Code {
-	case "NOT_FOUND":
-		status = http.StatusNotFound
-	case "VALIDATION_ERROR":
-		status = http.StatusBadRequest
-	case "CONFLICT":
-		status = http.StatusConflict
-	}
-
-	w.WriteHeader(status)
+	w.WriteHeader(httpStatusFor(errorResp.Code))
 	if err := json.NewEncoder(w).Encode(errorResp); err != nil {
 		log.Printf("Error encoding error response: %v", err)
 	}

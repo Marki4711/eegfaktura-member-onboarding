@@ -1,42 +1,35 @@
 package application
 
 import (
-	"database/sql"
-	"fmt"
-
 	"github.com/your-org/eegfaktura-member-onboarding/internal/shared"
 )
 
-// RegistrationService handles business logic for registration
+// RegistrationService handles business logic for public registration lookups.
 type RegistrationService struct {
-	appRepo *ApplicationRepository
+	entrypointRepo *RegistrationEntrypointRepository
 }
 
-// NewRegistrationService creates a new registration service
-func NewRegistrationService(appRepo *ApplicationRepository) *RegistrationService {
-	return &RegistrationService{appRepo: appRepo}
+// NewRegistrationService creates a new RegistrationService.
+func NewRegistrationService(entrypointRepo *RegistrationEntrypointRepository) *RegistrationService {
+	return &RegistrationService{entrypointRepo: entrypointRepo}
 }
 
-// GetRegistrationConfig gets the configuration for a registration slug
-func (s *RegistrationService) GetRegistrationConfig(slug string) (*shared.RegistrationConfig, error) {
-	// For now, we check if the slug exists in the database
-	// In a real implementation, there might be a separate table for registration configurations
-	exists, err := s.appRepo.CheckRegistrationSlugExists(slug)
+// GetRegistrationConfig resolves an RC number via the local registration_entrypoint
+// table and returns the public configuration for the registration form.
+// Returns shared.ErrNotFound when the RC number is unknown.
+// Returns shared.ErrGone when the entry point exists but is_active = false.
+func (s *RegistrationService) GetRegistrationConfig(rcNumber string) (*shared.RegistrationConfig, error) {
+	ep, err := s.entrypointRepo.GetByRCNumber(rcNumber)
 	if err != nil {
-		return nil, fmt.Errorf("failed to check registration slug: %w", err)
+		return nil, err
 	}
-
-	if !exists {
-		return nil, shared.ErrNotFound
+	if !ep.IsActive {
+		return nil, shared.ErrGone
 	}
-
-	// Mock configuration - in production, this would come from a database table
-	config := &shared.RegistrationConfig{
-		RegistrationSlug: slug,
-		EEGID:            "mock-eeg-id", // This would be looked up based on slug
-		Title:            "Mitglied werden",
-		Active:           true,
-	}
-
-	return config, nil
+	return &shared.RegistrationConfig{
+		RCNumber: ep.RCNumber,
+		EEGID:    ep.EEGID,
+		Title:    "Mitglied werden",
+		Active:   ep.IsActive,
+	}, nil
 }

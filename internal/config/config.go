@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -11,6 +12,12 @@ import (
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
+	CORS     CORSConfig
+}
+
+// CORSConfig holds allowed origins for CORS.
+type CORSConfig struct {
+	AllowedOrigins []string
 }
 
 // ServerConfig holds server-related configuration
@@ -42,9 +49,12 @@ func Load() (*Config, error) {
 			Host:     getEnv("DB_HOST", "localhost"),
 			Port:     getIntEnv("DB_PORT", 5432),
 			User:     getEnv("DB_USER", "postgres"),
-			Password: getEnv("DB_PASSWORD", "postgres"),
-			DBName:   getEnv("DB_NAME", "eegfaktura"),
+			Password: getEnv("DB_PASSWORD", "password"),
+			DBName:   getEnv("DB_NAME", "member_onboarding"),
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
+		},
+		CORS: CORSConfig{
+			AllowedOrigins: strings.Split(getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000"), ","),
 		},
 	}
 
