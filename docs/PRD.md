@@ -40,6 +40,7 @@ Version 1 includes:
 | P0 (MVP) | Admin Frontend UI | Planned | `features/PROJ-3-admin-frontend-ui.md` |
 | P0 (MVP) | Core Import | Architected | `features/PROJ-4-core-import.md` |
 | P1 | Keycloak-secured Admin Area | Planned | — |
+| P2 | E-Mail-Benachrichtigungen | Planned | — |
 
 ## 5. Success Metrics
 
@@ -66,6 +67,7 @@ The MVP is successful if:
 
 Version 1 does not include:
 
+- E-Mail-Benachrichtigungen (weder an die EEG noch an das Mitglied) — geplant als PROJ-6
 - document uploads
 - tariff selection
 - role selection
