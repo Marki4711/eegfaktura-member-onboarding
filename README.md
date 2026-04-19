@@ -71,6 +71,117 @@ This project uses the AI Coding Starter Kit workflow with specialized skills:
 
 ### Getting Started
 
+#### Backend (Go service)
+
+All commands must be run from the repository root.
+
+**1. Start PostgreSQL**
+
+```bash
+docker compose up -d
+```
+
+**2. Run database migrations**
+
+```bash
+# bash / Make
+make migrate-up
+
+# PowerShell (no Make)
+$env:DATABASE_URL = "postgres://postgres:password@localhost:5432/member_onboarding?sslmode=disable"
+go run ./cmd/migrate -direction up
+
+# Roll back one step
+go run ./cmd/migrate -direction down
+```
+
+The migration runner is a plain Go program (`cmd/migrate/main.go`) that uses the
+golang-migrate library directly — no external `migrate` binary is needed.
+Override the default DATABASE_URL if your PostgreSQL uses different credentials:
+
+```bash
+make migrate-up DATABASE_URL=postgres://user:pass@host:5432/dbname?sslmode=disable
+```
+
+**3. Seed local dev data**
+
+After migrations, insert a test registration entry point so the happy path is
+testable without any admin UI:
+
+```powershell
+# PowerShell
+$env:PGPASSWORD = "password"
+psql -h localhost -U postgres -d member_onboarding -f db/seeds/dev_seed.sql
+```
+
+```bash
+# bash / Make
+PGPASSWORD=password psql -h localhost -U postgres -d member_onboarding -f db/seeds/dev_seed.sql
+```
+
+This inserts one active entry: **RC number `RC123456`**, EEG ID `00000000-0000-0000-0000-000000000001`.
+
+**4. Build and run the Go server**
+
+```bash
+# Copy and adjust environment
+copy .env.example .env.local     # Windows
+# cp .env.example .env.local     # bash
+
+go run ./cmd/server              # run directly
+# or
+go build -o bin/server.exe ./cmd/server && ./bin/server.exe
+```
+
+The server reads configuration from environment variables (see `.env.example`).
+Default port is `8080`. Health check: `GET http://localhost:8080/health`.
+
+**One-shot local setup**
+
+```bash
+make dev-setup   # docker compose up -d + migrate-up
+make run         # go run ./cmd/server
+# then seed: PGPASSWORD=password psql ... -f db/seeds/dev_seed.sql
+```
+
+**5. Test the public registration flow**
+
+```powershell
+# 1. Look up the registration entry point
+Invoke-RestMethod -Uri http://localhost:8080/api/public/registration/RC123456
+
+# 2. Create an application
+$body = @{
+    rcNumber             = "RC123456"
+    firstname            = "Josef"
+    lastname             = "Mustermann"
+    email                = "max.mustermann@example.org"
+    residentStreet       = "Musterstraße"
+    residentStreetNumber = "2"
+    residentZip          = "1010"
+    residentCity         = "Musterstadt"
+    residentCountry      = "AT"
+    privacyAccepted      = $true
+    privacyVersion       = "2026-01"
+    accuracyConfirmed    = $true
+    communicationConsent = $false
+    meteringPoints       = @(@{ meteringPoint = "AT0031000000000000000000990022105"; direction = "CONSUMPTION" })
+} | ConvertTo-Json -Depth 5
+
+Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/public/applications `
+    -ContentType "application/json" -Body $body
+```
+
+Expected responses:
+- `GET /api/public/registration/RC123456` → 200 with `rcNumber`, `eegId`, `active: true`
+- `POST /api/public/applications` → 201 with `id`, `referenceNumber`, `status: "draft"`
+- Unknown RC number → 404
+- Inactive RC number → 410
+
+---
+
+#### Frontend (Next.js)
+
 1. **Clone and Install**
    ```bash
    git clone <repository-url>
@@ -79,20 +190,16 @@ This project uses the AI Coding Starter Kit workflow with specialized skills:
    npx playwright install chromium  # For E2E tests
    ```
 
-2. **Database Setup**
-   - Ensure PostgreSQL is running
-   - Schema `member_onboarding` should exist
-   - Run migrations from `db/migrations/`
-
-3. **Environment Configuration**
+2. **Environment Configuration**
    - Copy `.env.local.example` to `.env.local`
-   - Configure database connection, Keycloak settings
+   - The only required variable is `NEXT_PUBLIC_API_URL` (defaults to `http://localhost:8080`)
 
-4. **Start Development**
+3. **Start Development**
    ```bash
    npm run dev  # Frontend on localhost:3000
-   # Backend: follow Go service setup in docs/
    ```
+
+   Open `http://localhost:3000` in the browser. Enter RC number `RC123456` (seeded by `dev_seed.sql`) to access the registration form.
 
 ### Feature Development
 
