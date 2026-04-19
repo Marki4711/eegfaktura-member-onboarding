@@ -1,9 +1,7 @@
 # NOTE: NEXT_PUBLIC_API_URL is baked into the image at build time.
-# The image 37289bd was built with NEXT_PUBLIC_API_URL="" (empty), so
-# the frontend makes relative /api/... requests — which the ingress below
-# routes to the backend. No env var override is needed here.
-# If the image was built with a different URL, rebuild it via GitHub Actions
-# with vars.NEXT_PUBLIC_API_URL unset or set to empty string.
+# The :latest image is built with NEXT_PUBLIC_API_URL="" (GitHub variable unset),
+# so the browser makes relative /api/... requests — routed by the ingress below.
+# No env var override is needed in this pod spec.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -21,7 +19,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: marki4711/eegfaktura-member-onboarding-frontend:37289bd
+          image: marki4711/eegfaktura-member-onboarding-frontend:latest
           ports:
             - containerPort: 3000
           env:
