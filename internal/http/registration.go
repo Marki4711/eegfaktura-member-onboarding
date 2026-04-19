@@ -1,7 +1,6 @@
 package http
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -22,21 +21,24 @@ func NewRegistrationHandler(registrationService *application.RegistrationService
 	}
 }
 
-// GetRegistrationConfig handles GET /api/public/registration/{registration_slug}
+// GetRegistrationConfig handles GET /api/public/registration/{rc_number}
 func (h *RegistrationHandler) GetRegistrationConfig(w http.ResponseWriter, r *http.Request) {
-	slug := chi.URLParam(r, "registration_slug")
-	if slug == "" {
+	rcNumber := chi.URLParam(r, "rc_number")
+	if rcNumber == "" {
 		h.writeError(w, shared.NewErrorResponse(shared.ErrNotFound))
 		return
 	}
 
-	config, err := h.registrationService.GetRegistrationConfig(slug)
+	config, err := h.registrationService.GetRegistrationConfig(rcNumber)
 	if err != nil {
-		if err == shared.ErrNotFound {
+		switch err {
+		case shared.ErrNotFound:
 			h.writeError(w, shared.NewErrorResponse(shared.ErrNotFound))
-			return
+		case shared.ErrGone:
+			h.writeError(w, shared.NewErrorResponse(shared.ErrGone))
+		default:
+			h.writeError(w, shared.NewErrorResponse(shared.ErrInternal))
 		}
-		h.writeError(w, shared.NewErrorResponse(shared.ErrInternal))
 		return
 	}
 

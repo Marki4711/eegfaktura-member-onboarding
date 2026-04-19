@@ -1,4 +1,8 @@
-.PHONY: build run test clean migrate-up migrate-down docker-up docker-down
+.PHONY: build run test clean migrate-up migrate-down docker-up docker-down dev-setup dev
+
+# Default database URL matching docker-compose.yml defaults.
+# Override on the command line: make migrate-up DATABASE_URL=postgres://...
+DATABASE_URL ?= postgres://postgres:password@localhost:5432/member_onboarding?sslmode=disable
 
 # Build the application
 build:
@@ -16,22 +20,22 @@ test:
 clean:
 	rm -rf bin/
 
-# Database migrations
+# Database migrations (uses go run so no external migrate binary needed)
 migrate-up:
-	migrate -path db/migrations -database "$(shell go run ./cmd/server --print-dsn)" up
+	DATABASE_URL="$(DATABASE_URL)" go run ./cmd/migrate -direction up
 
 migrate-down:
-	migrate -path db/migrations -database "$(shell go run ./cmd/server --print-dsn)" down 1
+	DATABASE_URL="$(DATABASE_URL)" go run ./cmd/migrate -direction down
 
-# Docker commands
+# Docker commands (requires Docker Desktop with Compose plugin)
 docker-up:
-	docker-compose up -d
+	docker compose up -d
 
 docker-down:
-	docker-compose down
+	docker compose down
 
-# Development setup
+# Start postgres and apply migrations
 dev-setup: docker-up migrate-up
 
-# Full development workflow
-dev: dev-setup build run
+# Full local workflow
+dev: dev-setup run

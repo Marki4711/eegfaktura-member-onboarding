@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -12,7 +11,7 @@ import (
 
 	"github.com/your-org/eegfaktura-member-onboarding/internal/application"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/config"
-	"github.com/your-org/eegfaktura-member-onboarding/internal/http"
+	internalhttp "github.com/your-org/eegfaktura-member-onboarding/internal/http"
 )
 
 func main() {
@@ -40,19 +39,23 @@ func main() {
 	appRepo := application.NewApplicationRepository(db)
 	meteringRepo := application.NewMeteringPointRepository(db)
 	statusLogRepo := application.NewStatusLogRepository(db)
+	entrypointRepo := application.NewRegistrationEntrypointRepository(db)
 
 	// Initialize services
-	registrationService := application.NewRegistrationService(appRepo)
-	applicationService := application.NewApplicationService(appRepo, meteringRepo, statusLogRepo)
+	registrationService := application.NewRegistrationService(entrypointRepo)
+	applicationService := application.NewApplicationService(db, appRepo, meteringRepo, statusLogRepo, entrypointRepo)
+	adminService := application.NewAdminApplicationService(db, appRepo, meteringRepo, statusLogRepo)
 
 	// Initialize handlers
-	registrationHandler := http.NewRegistrationHandler(registrationService)
-	applicationHandler := http.NewApplicationHandler(applicationService)
+	registrationHandler := internalhttp.NewRegistrationHandler(registrationService)
+	applicationHandler := internalhttp.NewApplicationHandler(applicationService)
+	adminHandler := internalhttp.NewAdminHandler(adminService)
 
 	// Setup routes
 	r := chi.NewRouter()
 
 	// Middleware
+	r.Use(internalhttp.CORSMiddleware(cfg.CORS.AllowedOrigins))
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RequestID)
@@ -65,7 +68,7 @@ func main() {
 
 	// API routes
 	r.Route("/api/public", func(r chi.Router) {
-		r.Route("/registration/{registration_slug}", func(r chi.Router) {
+		r.Route("/registration/{rc_number}", func(r chi.Router) {
 			r.Get("/", registrationHandler.GetRegistrationConfig)
 		})
 
@@ -76,6 +79,18 @@ func main() {
 				r.Route("/submit", func(r chi.Router) {
 					r.Post("/", applicationHandler.SubmitApplication)
 				})
+			})
+		})
+	})
+
+	// Admin routes (authentication added in PROJ-4 via Keycloak middleware)
+	r.Route("/api/admin", func(r chi.Router) {
+		r.Route("/applications", func(r chi.Router) {
+			r.Get("/", adminHandler.ListApplications)
+			r.Route("/{id}", func(r chi.Router) {
+				r.Get("/", adminHandler.GetApplicationDetail)
+				r.Put("/", adminHandler.UpdateApplication)
+				r.Post("/status", adminHandler.ChangeStatus)
 			})
 		})
 	})
