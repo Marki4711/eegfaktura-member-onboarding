@@ -1,0 +1,30 @@
+# Node
+node_modules
+.next
+
+# Git
+.git
+.gitignore
+
+# Go build artifacts
+bin/
+*.exe
+
+# Local env
+.env*.local
+
+# Docs and specs (not needed in image)
+docs/
+features/
+.claude/
+
+# Tests
+tests/
+coverage/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store

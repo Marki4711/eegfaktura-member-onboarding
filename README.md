@@ -224,6 +224,39 @@ npm run test:all     # All test suites
 
 ## Deployment
 
-Frontend deploys to Vercel. Backend Go service deployment follows eegFaktura infrastructure standards.
+### Container Images
 
-See `docs/production/` for production setup guides including error tracking, security headers, and performance optimization.
+Both services are published to Docker Hub on every push to `main`:
+
+| Image | Docker Hub |
+|-------|-----------|
+| Backend | `marki4711/eegfaktura-member-onboarding-backend` |
+| Frontend | `marki4711/eegfaktura-member-onboarding-frontend` |
+
+**Tags:** `latest` (default branch) and short git SHA (e.g. `abc1234`).
+
+#### GitHub Secrets and Variables Required
+
+| Name | Type | Purpose |
+|------|------|---------|
+| `DOCKERHUB_USERNAME` | Secret | Docker Hub login |
+| `DOCKERHUB_TOKEN` | Secret | Docker Hub access token |
+| `NEXT_PUBLIC_API_URL` | Repository variable | Backend URL baked into the frontend image at build time |
+
+Set these under **Settings → Secrets and variables → Actions** in the GitHub repository.
+
+#### Building images locally
+
+```bash
+# Backend
+docker build -f Dockerfile.backend -t marki4711/eegfaktura-member-onboarding-backend .
+
+# Frontend (set API URL for the target environment)
+docker build -f Dockerfile.frontend \
+  --build-arg NEXT_PUBLIC_API_URL=https://api.example.com \
+  -t marki4711/eegfaktura-member-onboarding-frontend .
+```
+
+The frontend image requires `NEXT_PUBLIC_API_URL` at **build time** because Next.js bakes `NEXT_PUBLIC_*` variables into the static bundle. Pass the correct URL for each target environment.
+
+Backend Go service deployment follows eegFaktura infrastructure (Kubernetes) standards.
