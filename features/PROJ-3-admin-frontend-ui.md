@@ -493,3 +493,201 @@ The detail page includes two placeholder areas that are empty in PROJ-3 and fill
 | `import_failed` | destructive (red) |
 
 The mapping is a single lookup table in `admin-status-badge.tsx` — easy to update without touching other components.
+
+---
+
+## QA Test Results
+
+**QA Date:** 2026-04-19
+**Reviewer:** QA (code review — backend not yet running)
+**Status at QA start:** In Review
+
+### Acceptance Criteria Results
+
+#### List Page
+
+| # | Criterion | Result | Notes |
+|---|-----------|--------|-------|
+| L1 | Loads at `/admin/applications`, fetches from `GET /api/admin/applications` | PASS | `ApplicationsPageContent` fetches on mount and on searchParam change |
+| L2 | Table columns: reference, firstname+lastname, email, status, submitted date, metering point count | PASS | Firstname+lastname combined in one "Name" column; count shown, not numbers — acceptable per spec wording "(or count)" |
+| L3 | Status shown as coloured badge per status value | PASS | `AdminStatusBadge` with `STATUS_CONFIG` covers all 8 statuses |
+| L4 | Filter panel: status dropdown, lastname, email, metering_point, submitted_from, submitted_to | PASS | All 6 filters implemented |
+| L5 | Applying filters sends correct query params, updates table | PASS | `applyFilters()` builds URLSearchParams, `router.push`; content re-fetches on param change |
+| L6 | Pagination controls show current page and total; navigation works | PASS | "Seite X von Y", Zurück/Weiter with disabled states |
+| L7 | Page size configurable; default 20 | PARTIAL FAIL | Default 20 ✅ — but no UI selector exists; page size can only be set by manually editing the URL |
+| L8 | Empty state message when result set is empty | PASS | "Keine Anträge gefunden. Passen Sie die Filter an." |
+| L9 | Clicking a row navigates to `/admin/applications/[id]` | PASS | `navigateTo()` with encoded `returnTo` param |
+| L10 | Active filters and page reflected in URL | PASS | All filter values stored exclusively in URL search params |
+
+#### Detail Page — Data Display
+
+| # | Criterion | Result | Notes |
+|---|-----------|--------|-------|
+| D1 | Loads at `/admin/applications/[id]`, displays all fields | PASS | |
+| D2 | All member data fields shown | PASS | Name, birth date, email, phone, street, street number, zip, city, country |
+| D3 | Consent section: privacy accepted, version, accepted at, accuracy, communication consent | PASS | All 5 fields shown |
+| D4 | Reference number, EEG ID, RC number, started/submitted/created timestamps | PARTIAL FAIL | `createdAt` exists in API type but is not displayed; `startedAt`, `submittedAt`, `approvedAt`, `rejectedAt` are shown |
+| D5 | Current status shown prominently as coloured badge | PASS | Status badge in header next to reference number |
+| D6 | Admin note shown; null → placeholder | PASS | "Keine Admin-Notiz vorhanden." shown when null |
+| D7 | Back link navigates to list | PASS | Uses `returnTo` param, defaults to `/admin/applications` |
+| D8 | 404 → "not found" message with back link, no crash | FAIL | **HIGH BUG** — see Bug #1 |
+
+#### Detail Page — Metering Points
+
+| # | Criterion | Result | Notes |
+|---|-----------|--------|-------|
+| M1 | Metering points table: metering point number, direction | PASS | `AdminMeteringPointTable` with two columns |
+| M2 | Empty state if no metering points | PASS | "Keine Zählpunkte vorhanden." |
+
+#### Detail Page — Status Log
+
+| # | Criterion | Result | Notes |
+|---|-----------|--------|-------|
+| S1 | Entries shown in reverse chronological order | PASS | Sorted by `createdAt` descending |
+| S2 | Each entry: from status, to status, reason, timestamp | PASS | Badges + reason + timestamp displayed |
+| S3 | Empty state if no entries | PASS | "Noch keine Statuseinträge vorhanden." |
+
+#### Edit Form
+
+| # | Criterion | Result | Notes |
+|---|-----------|--------|-------|
+| E1 | Edit button opens form, fields pre-filled | PASS | |
+| E2 | Metering point rows with editable number and direction | PASS | |
+| E3 | Rows can be added/removed; at least one required | PASS | Last row CAN be removed (inline warning shows), but submission is blocked |
+| E4 | Validation blocks submission with empty required fields | PASS | All required fields validated |
+| E5 | Validation shows error for invalid email | PASS | Regex validation |
+| E6 | Submitting calls `PUT /api/admin/applications/{id}` | PASS | |
+| E7 | On success: form closes, detail refreshes | PASS | `onClose()` + `onRefresh()` |
+| E8 | On API error: form stays open, error shown, no data lost | PASS | Dialog stays open, error displayed |
+| E9 | Admin note editable via PUT | PASS | Both in edit form and standalone `AdminNoteEditor` |
+| E10 | Cancel discards changes, no API call | PASS | `onClose()` only |
+
+#### Status Actions
+
+| # | Criterion | Result | Notes |
+|---|-----------|--------|-------|
+| A1 | `submitted` → "In Prüfung nehmen" → `{ toStatus: "under_review" }` | PASS | |
+| A2 | `under_review` → Approve, Reject, Request Info buttons | PASS | |
+| A3 | Approve → `{ toStatus: "approved" }`, no reason required | PASS | |
+| A4 | Reject → reason dialog; blocked until non-empty; sends reason | PASS | |
+| A5 | Request Info → reason dialog; blocked until non-empty; sends reason | PASS | |
+| A6 | `needs_info` → "Erneut einreichen" → `{ toStatus: "submitted" }` | PASS | |
+| A7 | `approved`, `rejected`, `imported`, `import_failed` → no buttons, static note | PASS | STATIC_NOTES map covers all four |
+| A8 | Successful status change updates badge and log without page reload | PASS | `onRefresh()` re-fetches data; no browser navigation |
+| A9 | API error on status change → inline error; displayed status unchanged | PASS | `onRefresh()` not called on error |
+| A10 | 409 conflict → message + reload prompt | PARTIAL FAIL | Generic error message shown; no specific reload button/prompt for 409 |
+
+---
+
+### Bugs Found
+
+#### Bug #1 — HIGH: 404 "not found" detection fails
+
+**Component:** `src/components/admin-application-detail.tsx:79`
+
+**Description:** The `notFound` state is detected by checking `err.message.toLowerCase().includes("not_found")`. The API error model returns `{"code": "not_found", "message": "application not found"}`. `ApiResponseError` sets `err.message = apiError.message = "application not found"`. The string `"application not found"` contains `"not found"` with a space — it does NOT contain `"not_found"` (with underscore). The check always returns false.
+
+**Impact:** 404 responses show the generic error card ("retry" button) instead of the "not found" card ("back to list" button). The user cannot distinguish "API down" from "application does not exist".
+
+**Steps to reproduce:** Navigate to `/admin/applications/non-existent-uuid`. Expect: "Dieser Antrag wurde nicht gefunden." Actually: generic error card.
+
+**Fix:** Replace message-string matching with `err instanceof ApiResponseError && err.apiError.code === "not_found"`.
+
+---
+
+#### Bug #2 — MEDIUM: Filter panel inputs desync after external URL change
+
+**Component:** `src/components/admin-filter-panel.tsx:32-43`
+
+**Description:** Filter input values are stored in `useState` initialized once from `searchParams` at mount time. If the URL search params change externally (browser back navigation, another tab, direct URL edit), the `useSearchParams()` live value used for fetching updates correctly, but the `useState` values shown in the input boxes do not re-sync.
+
+**Impact:** Filter inputs can show stale values that don't match what is actually being fetched. If the user presses "Apply" after navigating back, the stale input values overwrite the correct URL state.
+
+**Steps to reproduce:**
+1. Apply lastname filter "Smith" → navigate to detail → browser back
+2. Clear URL param by navigating to `/admin/applications` from nav link
+3. Observe: lastname input still shows "Smith" but no filter is active
+
+**Fix:** Initialize inputs from `useSearchParams()` on each render (derive from URL directly, not `useState`) or use a `useEffect` to sync `useState` when `searchParams` changes.
+
+---
+
+#### Bug #3 — MEDIUM: No page size selector in UI
+
+**Component:** `src/app/admin/applications/applications-page-content.tsx`
+
+**Description:** Acceptance criterion L7 states "Page size is configurable". The default of 20 is correct, but there is no UI element to change it. Users must manually edit the URL to set a different page size.
+
+**Fix:** Add a page size select (e.g., 10/20/50) to the filter panel or the pagination footer.
+
+---
+
+#### Bug #4 — MEDIUM: 409 conflict response has no reload prompt
+
+**Component:** `src/components/admin-status-actions.tsx:58-63`
+
+**Description:** Acceptance criterion A10 specifies that a 409 response should prompt the user to reload the detail page. The implementation shows the error message text, but there is no dedicated reload button or message specifically for 409.
+
+**Fix:** Check if the error is a 409 (`err instanceof ApiResponseError && err.apiError.code === "conflict"`) and render a tailored message with a reload button when true.
+
+---
+
+#### Bug #5 — LOW: `draft` status renders empty actions panel
+
+**Component:** `src/components/admin-status-actions.tsx`
+
+**Description:** For `draft` status, no condition matches in the actions component: it's not in STATIC_NOTES and not in the submitted/under_review/needs_info branches. The result is an empty `<div>` with no buttons and no message. While draft applications are not normally reached via admin workflows, an admin can navigate directly to one.
+
+**Fix:** Add `draft` to STATIC_NOTES with a message like "Antrag noch nicht eingereicht."
+
+---
+
+#### Bug #6 — LOW: `createdAt` timestamp not displayed in metadata
+
+**Component:** `src/components/admin-application-detail.tsx:220-233`
+
+**Description:** The spec AC D4 requires "started / submitted / created timestamps". `createdAt` is present in the `AdminApplicationDetail` type and the API response but is not rendered. Only `startedAt`, `submittedAt`, `approvedAt`, and `rejectedAt` are shown.
+
+**Fix:** Add a "Erstellt am" field showing `application.createdAt`.
+
+---
+
+#### Security Note — LOW: Unvalidated `returnTo` open redirect
+
+**Component:** `src/app/admin/applications/[id]/page.tsx:15`
+
+**Description:** The `returnTo` query parameter is passed to `router.push(returnTo)` without validation. A crafted URL like `?returnTo=https://evil.com` could redirect the user off-site. In the current unauthenticated state this has limited exploitability, but when PROJ-5 adds Keycloak authentication, this pattern becomes a post-auth open redirect risk.
+
+**Fix before PROJ-5:** Validate that `returnTo` starts with `/` before using it; fall back to `/admin/applications` if it does not.
+
+---
+
+### Acceptance Criteria Summary
+
+| Category | Total | Pass | Partial/Fail |
+|----------|-------|------|------|
+| List Page | 10 | 9 | 1 (L7 — no page size selector) |
+| Detail Display | 8 | 6 | 2 (D4 createdAt, D8 not_found bug) |
+| Metering Points | 2 | 2 | 0 |
+| Status Log | 3 | 3 | 0 |
+| Edit Form | 10 | 10 | 0 |
+| Status Actions | 10 | 9 | 1 (A10 — no 409 reload prompt) |
+| **Total** | **43** | **39** | **4** |
+
+### Bug Summary
+
+| # | Severity | Description |
+|---|----------|-------------|
+| 1 | HIGH | 404 not_found detection fails — wrong string match |
+| 2 | MEDIUM | Filter inputs desync after URL changes externally |
+| 3 | MEDIUM | No page size selector in UI |
+| 4 | MEDIUM | 409 conflict has no reload prompt |
+| 5 | LOW | `draft` status shows empty actions panel |
+| 6 | LOW | `createdAt` not displayed in metadata |
+| Security | LOW | Unvalidated `returnTo` open redirect (critical before PROJ-5) |
+
+### Production-Ready Decision
+
+**NOT READY — Bug #1 (HIGH) must be fixed before approval.**
+
+Bugs #2, #3, #4 (MEDIUM) should be fixed before approval but do not block all user workflows. Bugs #5, #6 (LOW) and the security note can be fixed alongside or deferred to a follow-up.
