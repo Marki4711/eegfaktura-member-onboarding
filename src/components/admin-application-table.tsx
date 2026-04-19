@@ -77,7 +77,7 @@ export function AdminApplicationTable({
 
   if (error) {
     return (
-      <div className="bg-white rounded-lg border p-8 text-center space-y-3">
+      <div className="bg-card rounded-lg border p-8 text-center space-y-3">
         <p className="text-sm text-destructive">{error}</p>
         <Button variant="outline" onClick={onRetry}>
           Erneut versuchen
@@ -87,7 +87,7 @@ export function AdminApplicationTable({
   }
 
   return (
-    <div className="bg-white rounded-lg border overflow-hidden">
+    <div className="bg-card rounded-lg border overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
