@@ -1,0 +1,44 @@
+# Helm post-install hook: läuft einmalig nach dem Erstinstall.
+# Bei Upgrades wird dieser Job NICHT erneut ausgeführt.
+# ON CONFLICT DO NOTHING macht den Job idempotent (Neustart sicher).
+# hook-weight: 5 — läuft nach dem migrate-job (weight 0).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: seed
+  namespace: {{ include "member-onboarding.namespace" . }}
+  labels:
+    {{- include "member-onboarding.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:16-alpine
+          command: ['sh', '-c',
+            'until pg_isready -h postgres -p 5432 -U {{ .Values.postgres.user }}; do
+               echo "waiting for postgres..."; sleep 2;
+             done']
+      containers:
+        - name: seed
+          image: postgres:16-alpine
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              psql "postgres://{{ .Values.postgres.user }}:${DB_PASSWORD}@postgres:5432/{{ .Values.postgres.database }}?sslmode=disable" <<'SQL'
+              INSERT INTO member_onboarding.registration_entrypoint (eeg_id, rc_number, is_active)
+              VALUES ('{{ .Values.seed.eegId }}', '{{ .Values.seed.rcNumber }}', TRUE)
+              ON CONFLICT (rc_number) DO NOTHING;
+              SQL
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: DB_PASSWORD

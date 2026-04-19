@@ -263,81 +263,95 @@ Backend Go service deployment follows eegFaktura infrastructure (Kubernetes) sta
 
 ### Kubernetes Test Environment
 
-Manifests for an isolated test installation live in [`k8s/test/`](k8s/test/).
-
-| Manifest | Contents |
-|----------|----------|
-| `00-namespace.yaml` | Namespace `eegfaktura-member-onboarding-test` |
-| `01-secrets.yaml` | `postgres-secret` and `backend-secret` (fill in password before applying) |
-| `02-postgres.yaml` | PostgreSQL StatefulSet + PVC + Service |
-| `03-migrate-job.yaml` | One-shot Job — applies all pending DB migrations |
-| `04-seed-job.yaml` | One-shot Job — inserts minimum test data (RC123456) |
-| `05-backend.yaml` | Backend Deployment + Service |
-| `06-frontend.yaml` | Frontend Deployment + Service |
-| `07-ingress-web.yaml` | Web ingress — routes `/*` to frontend:3000 |
-| `08-ingress-backend.yaml` | Backend ingress — routes `/api` (Prefix) to backend:8080, no rewrite |
+The test installation is managed with **Helm**. The chart lives in [`helm/member-onboarding/`](helm/member-onboarding/).
 
 **Hostname:** `member-onboarding-test.eegfaktura.at`  
-Ingress routes `/api` → backend, `/` → frontend. Does not reuse any existing eegfaktura.at ingress rules.
+Ingress routes `/api` → Go backend, `/` → Next.js frontend.
 
-The backend image ships two binaries (`/app/server`, `/app/migrate`) and the migration files (`/app/db/migrations`). No Go installation is needed on the target machine — migrations and seed data run as Kubernetes Jobs using the same image.
+The backend image ships two binaries (`/app/server`, `/app/migrate`) and the migration files (`/app/db/migrations`). No Go installation is needed on the target machine.
 
-#### Pre-flight: fill in required values
+#### Chart overview
 
-Edit `k8s/test/01-secrets.yaml` and set the same password in both `<FILL_IN>` placeholders before applying anything:
+| Template | What it creates |
+|----------|----------------|
+| `namespace.yaml` | Namespace `eegfaktura-member-onboarding-test` |
+| `secrets.yaml` | `postgres-secret`, `backend-secret` (passwords + SMTP) |
+| `postgres.yaml` | PostgreSQL 16 StatefulSet + PVC + Service |
+| `migrate-job.yaml` | Helm hook (`post-install`, `pre-upgrade`) — runs migrations automatically |
+| `seed-job.yaml` | Helm hook (`post-install`, once) — inserts RC123456 test data |
+| `backend.yaml` | Go backend Deployment + Service |
+| `frontend.yaml` | Next.js frontend Deployment + Service |
+| `ingress.yaml` | Two Ingress objects (web + api) |
 
-| Secret | Key | Value |
-|--------|-----|-------|
-| `postgres-secret` | `POSTGRES_PASSWORD` | Strong password for the in-cluster PostgreSQL |
-| `backend-secret` | `DB_PASSWORD` | Same password as above |
+#### First-time setup
 
-> `storageClassName` in `02-postgres.yaml` is already set to `csi-rbd-sc`.
-
-#### Deployment order
+**1. Secrets file**
 
 ```bash
-# 1. Namespace
-kubectl apply -f k8s/test/00-namespace.yaml
+cp helm/member-onboarding/values-secret.yaml.example helm/member-onboarding/values-secret.yaml
+# Edit values-secret.yaml — set postgresPassword and dbPassword to the same strong password
+```
 
-# 2. Secrets (fill in password in 01-secrets.yaml first)
-kubectl apply -f k8s/test/01-secrets.yaml
+`values-secret.yaml` is listed in `.helmignore` and never committed.
 
-# 3. PostgreSQL — wait for readiness before running jobs
-kubectl apply -f k8s/test/02-postgres.yaml
-kubectl rollout status statefulset/postgres -n eegfaktura-member-onboarding-test
+**2. Install**
 
-# 4. Database migrations
-kubectl apply -f k8s/test/03-migrate-job.yaml
-kubectl wait --for=condition=complete job/migrate-up \
-  -n eegfaktura-member-onboarding-test --timeout=120s
-kubectl logs job/migrate-up -n eegfaktura-member-onboarding-test
+```bash
+helm install member-onboarding ./helm/member-onboarding \
+  --create-namespace \
+  -f helm/member-onboarding/values-secret.yaml
+```
 
-# 5. Seed minimum test data
-kubectl apply -f k8s/test/04-seed-job.yaml
-kubectl wait --for=condition=complete job/seed \
-  -n eegfaktura-member-onboarding-test --timeout=60s
-kubectl logs job/seed -n eegfaktura-member-onboarding-test
+Helm will:
+1. Deploy namespace, secrets, postgres, backend, frontend, ingress
+2. Run the migration Job (waits for postgres, then applies all migrations)
+3. Run the seed Job (inserts RC123456 test data, idempotent)
 
-# 6. Backend and frontend
-kubectl apply -f k8s/test/05-backend.yaml
-kubectl apply -f k8s/test/06-frontend.yaml
+#### Upgrade (new image or config change)
 
-# 7. Ingress
-kubectl apply -f k8s/test/07-ingress-web.yaml
-kubectl apply -f k8s/test/08-ingress-backend.yaml
+```bash
+helm upgrade member-onboarding ./helm/member-onboarding \
+  -f helm/member-onboarding/values-secret.yaml
+```
+
+On upgrade, the migration Job runs automatically before the backend is updated (`pre-upgrade` hook).
+
+#### SMTP aktivieren
+
+In `values-secret.yaml` ergänzen:
+
+```yaml
+backend:
+  smtp:
+    host: smtp.example.com
+    port: "587"
+    user: noreply@example.com
+    from: noreply@example.com
+secrets:
+  smtpPassword: "FILL_IN"
+```
+
+Dann `helm upgrade` ausführen.
+
+#### Rollback
+
+```bash
+helm rollback member-onboarding   # rollt auf die vorige Revision zurück
+```
+
+#### Uninstall
+
+```bash
+helm uninstall member-onboarding
+# PVC wird nicht automatisch gelöscht — Postgres-Daten bleiben erhalten
+kubectl delete pvc -n eegfaktura-member-onboarding-test --all
 ```
 
 #### DNS
 
-Point `member-onboarding-test.eegfaktura.at` to the cluster's nginx ingress controller IP/load balancer before applying the ingress.
+Point `member-onboarding-test.eegfaktura.at` to the cluster's nginx ingress controller IP/load balancer before installing the chart.
 
 The test ingress runs without TLS. Access the installation at `http://member-onboarding-test.eegfaktura.at`.
-
-#### Backend ingress routing
-
-`08-ingress-backend.yaml` routes all `/api/*` requests to the backend using a plain Prefix match — no rewrite. The Go backend registers routes under `/api/public/...` and `/api/admin/...`, so paths are forwarded unchanged.
-
-The backend's `/health` endpoint is not exposed via the ingress (it has no `/api` prefix). Use `kubectl port-forward` to reach it directly for internal health checks.
 
 #### Note on NEXT_PUBLIC_API_URL
 

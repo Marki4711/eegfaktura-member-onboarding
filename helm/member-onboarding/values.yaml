@@ -1,0 +1,55 @@
+# Default values for member-onboarding.
+# Override with: helm install ... -f values-secret.yaml --set key=value
+
+# ── Namespace ──────────────────────────────────────────────────────────────────
+namespace: eegfaktura-member-onboarding-test
+
+# ── Ingress ────────────────────────────────────────────────────────────────────
+ingress:
+  host: member-onboarding-test.eegfaktura.at
+  className: nginx
+  proxyReadTimeout: "60"
+  proxySendTimeout: "60"
+
+# ── Images ─────────────────────────────────────────────────────────────────────
+images:
+  backend:
+    repository: marki4711/eegfaktura-member-onboarding-backend
+    tag: latest
+    pullPolicy: Always
+  frontend:
+    repository: marki4711/eegfaktura-member-onboarding-frontend
+    tag: latest
+    pullPolicy: Always
+
+# ── PostgreSQL ─────────────────────────────────────────────────────────────────
+postgres:
+  user: postgres
+  database: member_onboarding
+  storageClassName: csi-rbd-sc
+  storageSize: 5Gi
+
+# ── Backend ────────────────────────────────────────────────────────────────────
+backend:
+  replicas: 1
+  corsAllowedOrigins: "https://member-onboarding-test.eegfaktura.at"
+  smtp:
+    host: ""       # leave empty to disable mail sending (NoOpMailService)
+    port: "587"
+    user: ""       # leave empty for open-relay / no-auth servers
+    from: ""       # required when smtp.host is set
+
+# ── Seed data ──────────────────────────────────────────────────────────────────
+# Applied once as a post-install Helm hook. Re-running is safe (ON CONFLICT DO NOTHING).
+seed:
+  rcNumber: RC123456
+  eegId: "00000000-0000-0000-0000-000000000001"
+
+# ── Secrets ────────────────────────────────────────────────────────────────────
+# Do NOT commit real values here.
+# Pass them via: helm install ... -f values-secret.yaml
+# or:           helm install ... --set secrets.postgresPassword=... --set secrets.dbPassword=...
+secrets:
+  postgresPassword: ""   # password for the in-cluster PostgreSQL
+  dbPassword: ""         # must match postgresPassword
+  smtpPassword: ""       # SMTP auth password (ignored when smtp.host is empty)
