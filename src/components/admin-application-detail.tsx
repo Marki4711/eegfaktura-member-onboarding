@@ -228,7 +228,7 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
               <Field label="Abgelehnt am" value={formatDateTime(application.rejectedAt)} />
             </dl>
             {application.needsInfoReason && (
-              <div className="mt-4 p-3 bg-orange-50 rounded-md">
+              <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-md">
                 <p className="text-xs text-muted-foreground mb-1">Anforderung (Info benötigt)</p>
                 <p className="text-sm">{application.needsInfoReason}</p>
               </div>
@@ -243,7 +243,7 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
                   <Field label="Import abgeschlossen" value={formatDateTime(application.importFinishedAt)} />
                 </dl>
                 {application.importErrorMessage && (
-                  <div className="mt-4 p-3 bg-red-50 rounded-md">
+                  <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
                     <p className="text-xs text-muted-foreground mb-1">Import-Fehlermeldung</p>
                     <p className="text-sm font-mono break-all">{application.importErrorMessage}</p>
                   </div>
