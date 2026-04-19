@@ -1,6 +1,6 @@
 # PROJ-6: E-Mail-Benachrichtigungen bei Antragseinreichung
 
-## Status: In Progress
+## Status: Approved
 **Created:** 2026-04-19
 **Last Updated:** 2026-04-19 (Backend implementiert)
 
@@ -268,4 +268,61 @@ Alle 8 Tests bestanden. `go vet` sauber.
 - **Recommendation:** Deploy
 
 ## Deployment
-_To be added by /deploy_
+
+**Deployed:** 2026-04-19
+**Commit:** a33d50a
+**Image tag:** `latest` (built by GitHub Actions on push to main)
+
+### Cluster-Schritte für den Test-Cluster
+
+PROJ-6 liefert nur Backend-Änderungen (neues `internal/mail`-Paket + Migration 000003). Das neue Backend-Image wird automatisch von GitHub Actions gebaut und auf Docker Hub (`marki4711/eegfaktura-member-onboarding-backend:latest`) publiziert.
+
+**1. Migration 000003 einspielen**
+
+```bash
+# Alten Migration-Job löschen (Jobs sind einmalig und können nicht erneut ausgeführt werden)
+kubectl delete job migrate-up -n eegfaktura-member-onboarding-test --ignore-not-found
+
+# Neuen Migration-Job anwenden
+kubectl apply -f k8s/test/03-migrate-job.yaml
+kubectl wait --for=condition=complete job/migrate-up \
+  -n eegfaktura-member-onboarding-test --timeout=120s
+kubectl logs job/migrate-up -n eegfaktura-member-onboarding-test
+```
+
+Erwartete Ausgabe: `migrating up ... 000003/u add_contact_email_to_registration_entrypoint`
+
+**2. Backend neu starten (neues Image ziehen)**
+
+```bash
+kubectl rollout restart deployment/backend -n eegfaktura-member-onboarding-test
+kubectl rollout status deployment/backend -n eegfaktura-member-onboarding-test
+```
+
+**3. SMTP-Konfiguration (optional)**
+
+Wenn E-Mail-Versand aktiviert werden soll, SMTP-Variablen in das Backend-Secret eintragen:
+
+```bash
+kubectl edit secret backend-secret -n eegfaktura-member-onboarding-test
+```
+
+Folgende Keys hinzufügen (base64-kodiert):
+- `SMTP_HOST`
+- `SMTP_PORT` (Standard: `587`)
+- `SMTP_USER`
+- `SMTP_PASSWORD`
+- `SMTP_FROM`
+
+Danach in `k8s/test/05-backend.yaml` die Env-Vars aus dem Secret mounten und Backend erneut neu starten.
+
+Ohne SMTP-Konfiguration startet der Server mit `NoOpMailService` — keine E-Mails, kein Fehler.
+
+**4. Smoke Test**
+
+```bash
+# Antrag einreichen und prüfen, dass Endpoint 200 zurückgibt
+# (E-Mail-Versand ist async und blockiert nicht)
+curl -s -o /dev/null -w "%{http_code}" \
+  -X POST https://member-onboarding-test.eegfaktura.at/api/public/applications/{id}/submit
+```
