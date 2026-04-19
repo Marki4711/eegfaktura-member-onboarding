@@ -36,10 +36,10 @@ Version 1 includes:
 | Priority | Feature | Status | Spec |
 |----------|---------|--------|------|
 | P0 (MVP) | Public Registration | Approved | `features/PROJ-1-public-registration.md` |
-| P0 (MVP) | Admin Review | Planned | `features/PROJ-2-admin-review.md` |
-| P0 (MVP) | Core Import | Planned | — |
+| P0 (MVP) | Admin Review | Approved | `features/PROJ-2-admin-review.md` |
+| P0 (MVP) | Admin Frontend UI | Planned | `features/PROJ-3-admin-frontend-ui.md` |
+| P0 (MVP) | Core Import | Architected | `features/PROJ-4-core-import.md` |
 | P1 | Keycloak-secured Admin Area | Planned | — |
-| P1 | Admin Frontend UI | Planned | — |
 
 ## 5. Success Metrics
 
