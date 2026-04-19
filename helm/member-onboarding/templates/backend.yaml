@@ -1,0 +1,85 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: {{ include "member-onboarding.namespace" . }}
+  labels:
+    {{- include "member-onboarding.labels" . | nindent 4 }}
+    app: backend
+spec:
+  replicas: {{ .Values.backend.replicas }}
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: {{ .Values.images.backend.repository }}:{{ .Values.images.backend.tag }}
+          imagePullPolicy: {{ .Values.images.backend.pullPolicy }}
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+            - name: DB_HOST
+              value: postgres
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USER
+              value: {{ .Values.postgres.user | quote }}
+            - name: DB_NAME
+              value: {{ .Values.postgres.database | quote }}
+            - name: DB_SSLMODE
+              value: disable
+            - name: CORS_ALLOWED_ORIGINS
+              value: {{ .Values.backend.corsAllowedOrigins | quote }}
+            - name: SMTP_HOST
+              value: {{ .Values.backend.smtp.host | quote }}
+            - name: SMTP_PORT
+              value: {{ .Values.backend.smtp.port | quote }}
+            - name: SMTP_USER
+              value: {{ .Values.backend.smtp.user | quote }}
+            - name: SMTP_FROM
+              value: {{ .Values.backend.smtp.from | quote }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: DB_PASSWORD
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: SMTP_PASSWORD
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: {{ include "member-onboarding.namespace" . }}
+  labels:
+    {{- include "member-onboarding.labels" . | nindent 4 }}
+    app: backend
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 8080
+      targetPort: 8080
