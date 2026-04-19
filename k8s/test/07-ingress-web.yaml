@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: member-onboarding-test
+  name: member-onboarding-test-web
   namespace: eegfaktura-member-onboarding-test
   annotations:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
@@ -12,13 +12,6 @@ spec:
     - host: member-onboarding-test.eegfaktura.at
       http:
         paths:
-          - path: /api
-            pathType: Prefix
-            backend:
-              service:
-                name: backend
-                port:
-                  number: 8080
           - path: /
             pathType: Prefix
             backend:
