@@ -15,5 +15,6 @@ Central tracking for all features.
 | ID | Feature | Status | Spec | Created |
 |----|---------|--------|------|---------|
 | PROJ-1 | Public Registration | Approved | `features/PROJ-1-public-registration.md` | 2026-04-18 |
+| PROJ-2 | Admin Review | Planned | `features/PROJ-2-admin-review.md` | 2026-04-19 |
 
-## Next Available ID: PROJ-2
+## Next Available ID: PROJ-3
