@@ -273,6 +273,7 @@ Manifests for an isolated test installation live in [`k8s/test/`](k8s/test/).
 | `03-frontend.yaml` | Frontend Deployment + Service |
 | `04-ingress.yaml` | Ingress (`ingressClassName: nginx`, host `member-onboarding-test.eegfaktura.at`) |
 | `05-migrate-job.yaml` | One-shot Kubernetes Job for running database migrations |
+| `06-seed-job.yaml` | One-shot Kubernetes Job for inserting minimum test data |
 
 **Hostname:** `member-onboarding-test.eegfaktura.at`  
 Ingress routes `/api` → backend, `/` → frontend. Does not reuse any existing eegfaktura.at ingress rules.
@@ -307,11 +308,17 @@ kubectl wait --for=condition=complete job/migrate-up \
   -n eegfaktura-member-onboarding-test --timeout=120s
 kubectl logs job/migrate-up -n eegfaktura-member-onboarding-test
 
-# 4. Deploy backend and frontend
+# 4. Seed minimum test data
+kubectl apply -f k8s/test/06-seed-job.yaml
+kubectl wait --for=condition=complete job/seed \
+  -n eegfaktura-member-onboarding-test --timeout=60s
+kubectl logs job/seed -n eegfaktura-member-onboarding-test
+
+# 5. Deploy backend and frontend
 kubectl apply -f k8s/test/02-backend.yaml
 kubectl apply -f k8s/test/03-frontend.yaml
 
-# 5. Apply ingress (after TLS is ready — see below)
+# 6. Apply ingress (after TLS is ready — see below)
 kubectl apply -f k8s/test/04-ingress.yaml
 ```
 
