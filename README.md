@@ -268,57 +268,61 @@ Manifests for an isolated test installation live in [`k8s/test/`](k8s/test/).
 | Manifest | Contents |
 |----------|----------|
 | `00-namespace.yaml` | Namespace `eegfaktura-member-onboarding-test` |
-| `01-postgres.yaml` | PostgreSQL StatefulSet + PVC + Service + Secret |
-| `02-backend.yaml` | Backend Deployment + Service + Secret |
-| `03-frontend.yaml` | Frontend Deployment + Service |
-| `04-ingress.yaml` | Ingress (`ingressClassName: nginx`, host `member-onboarding-test.eegfaktura.at`) |
-| `05-migrate-job.yaml` | One-shot Kubernetes Job for running database migrations |
-| `06-seed-job.yaml` | One-shot Kubernetes Job for inserting minimum test data |
+| `01-secrets.yaml` | `postgres-secret` and `backend-secret` (fill in password before applying) |
+| `02-postgres.yaml` | PostgreSQL StatefulSet + PVC + Service |
+| `03-migrate-job.yaml` | One-shot Job — applies all pending DB migrations |
+| `04-seed-job.yaml` | One-shot Job — inserts minimum test data (RC123456) |
+| `05-backend.yaml` | Backend Deployment + Service |
+| `06-frontend.yaml` | Frontend Deployment + Service |
+| `07-ingress.yaml` | Ingress (`ingressClassName: nginx`, host `member-onboarding-test.eegfaktura.at`) |
 
 **Hostname:** `member-onboarding-test.eegfaktura.at`  
 Ingress routes `/api` → backend, `/` → frontend. Does not reuse any existing eegfaktura.at ingress rules.
 
-The backend image ships two binaries (`/app/server`, `/app/migrate`) and the migration files (`/app/db/migrations`). No Go installation is needed on the target machine — migrations run as a Kubernetes Job using the same image.
+The backend image ships two binaries (`/app/server`, `/app/migrate`) and the migration files (`/app/db/migrations`). No Go installation is needed on the target machine — migrations and seed data run as Kubernetes Jobs using the same image.
 
 #### Pre-flight: fill in required values
 
-Before applying, edit the `<FILL_IN>` placeholders:
+Edit `k8s/test/01-secrets.yaml` and set the same password in both `<FILL_IN>` placeholders before applying anything:
 
-| File | Field | What to set |
-|------|-------|-------------|
-| `01-postgres.yaml` | `POSTGRES_PASSWORD` | Strong password for the in-cluster PostgreSQL |
-| `02-backend.yaml` | `DB_PASSWORD` | Same password as above |
+| Secret | Key | Value |
+|--------|-----|-------|
+| `postgres-secret` | `POSTGRES_PASSWORD` | Strong password for the in-cluster PostgreSQL |
+| `backend-secret` | `DB_PASSWORD` | Same password as above |
 
-> `storageClassName` in `01-postgres.yaml` is already set to `csi-rbd-sc`.
+> `storageClassName` in `02-postgres.yaml` is already set to `csi-rbd-sc`.
 
 #### Deployment order
 
 ```bash
-# 1. Create namespace
+# 1. Namespace
 kubectl apply -f k8s/test/00-namespace.yaml
 
-# 2. Deploy PostgreSQL and wait for it to be ready
-kubectl apply -f k8s/test/01-postgres.yaml
+# 2. Secrets (fill in password in 01-secrets.yaml first)
+kubectl apply -f k8s/test/01-secrets.yaml
+
+# 3. PostgreSQL — wait for readiness before running jobs
+kubectl apply -f k8s/test/02-postgres.yaml
 kubectl rollout status statefulset/postgres -n eegfaktura-member-onboarding-test
 
-# 3. Run database migrations as a Kubernetes Job
-kubectl apply -f k8s/test/05-migrate-job.yaml
+# 4. Database migrations
+kubectl apply -f k8s/test/03-migrate-job.yaml
 kubectl wait --for=condition=complete job/migrate-up \
   -n eegfaktura-member-onboarding-test --timeout=120s
 kubectl logs job/migrate-up -n eegfaktura-member-onboarding-test
 
-# 4. Seed minimum test data
-kubectl apply -f k8s/test/06-seed-job.yaml
+# 5. Seed minimum test data
+kubectl apply -f k8s/test/04-seed-job.yaml
 kubectl wait --for=condition=complete job/seed \
   -n eegfaktura-member-onboarding-test --timeout=60s
 kubectl logs job/seed -n eegfaktura-member-onboarding-test
 
-# 5. Deploy backend and frontend
-kubectl apply -f k8s/test/02-backend.yaml
-kubectl apply -f k8s/test/03-frontend.yaml
+# 6. Backend and frontend
+kubectl apply -f k8s/test/05-backend.yaml
+kubectl apply -f k8s/test/06-frontend.yaml
 
-# 6. Apply ingress
-kubectl apply -f k8s/test/04-ingress.yaml
+# 7. Ingress
+kubectl apply -f k8s/test/07-ingress.yaml
 ```
 
 #### DNS
@@ -326,19 +330,6 @@ kubectl apply -f k8s/test/04-ingress.yaml
 Point `member-onboarding-test.eegfaktura.at` to the cluster's nginx ingress controller IP/load balancer before applying the ingress.
 
 The test ingress runs without TLS. Access the installation at `http://member-onboarding-test.eegfaktura.at`.
-
-#### Seed test data (optional)
-
-After migrations, insert a test registration entry point:
-
-```bash
-kubectl port-forward svc/postgres 5433:5432 -n eegfaktura-member-onboarding-test &
-PGPASSWORD=<PASSWORD> psql -h localhost -p 5433 -U postgres -d member_onboarding \
-  -f db/seeds/dev_seed.sql
-kill %1
-```
-
-This creates RC number `RC123456` linked to EEG ID `00000000-0000-0000-0000-000000000001`.
 
 #### Note on NEXT_PUBLIC_API_URL
 
