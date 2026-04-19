@@ -274,7 +274,8 @@ Manifests for an isolated test installation live in [`k8s/test/`](k8s/test/).
 | `04-seed-job.yaml` | One-shot Job — inserts minimum test data (RC123456) |
 | `05-backend.yaml` | Backend Deployment + Service |
 | `06-frontend.yaml` | Frontend Deployment + Service |
-| `07-ingress.yaml` | Ingress (`ingressClassName: nginx`, host `member-onboarding-test.eegfaktura.at`) |
+| `07-ingress-web.yaml` | Web ingress — routes `/*` to frontend:3000 |
+| `08-ingress-backend.yaml` | Backend ingress — routes `/api(/\|$)(.*)` to backend:8080, strips `/api` prefix via rewrite |
 
 **Hostname:** `member-onboarding-test.eegfaktura.at`  
 Ingress routes `/api` → backend, `/` → frontend. Does not reuse any existing eegfaktura.at ingress rules.
@@ -322,7 +323,8 @@ kubectl apply -f k8s/test/05-backend.yaml
 kubectl apply -f k8s/test/06-frontend.yaml
 
 # 7. Ingress
-kubectl apply -f k8s/test/07-ingress.yaml
+kubectl apply -f k8s/test/07-ingress-web.yaml
+kubectl apply -f k8s/test/08-ingress-backend.yaml
 ```
 
 #### DNS
@@ -330,6 +332,18 @@ kubectl apply -f k8s/test/07-ingress.yaml
 Point `member-onboarding-test.eegfaktura.at` to the cluster's nginx ingress controller IP/load balancer before applying the ingress.
 
 The test ingress runs without TLS. Access the installation at `http://member-onboarding-test.eegfaktura.at`.
+
+#### Backend ingress rewrite and route alignment
+
+`08-ingress-backend.yaml` strips the `/api` prefix before forwarding to the backend (`rewrite-target: /$2`). This means:
+
+| Ingress receives | Backend receives | Backend route exists? |
+|-----------------|-----------------|----------------------|
+| `GET /api/health` | `GET /health` | ✅ `/health` |
+| `GET /api/public/registration/RC123456` | `GET /public/registration/RC123456` | ❌ backend has `/api/public/...` |
+| `GET /api/admin/applications` | `GET /admin/applications` | ❌ backend has `/api/admin/...` |
+
+The Go backend currently registers all routes under `/api/public/...` and `/api/admin/...`. To align with this ingress pattern (consistent with existing eegfaktura production ingresses), the backend routes must be changed to `/public/...` and `/admin/...` (without the `/api` prefix). This is a required follow-up change in `cmd/server/main.go`.
 
 #### Note on NEXT_PUBLIC_API_URL
 
