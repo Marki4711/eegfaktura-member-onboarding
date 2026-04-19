@@ -260,3 +260,91 @@ docker build -f Dockerfile.frontend \
 The frontend image requires `NEXT_PUBLIC_API_URL` at **build time** because Next.js bakes `NEXT_PUBLIC_*` variables into the static bundle. Pass the correct URL for each target environment.
 
 Backend Go service deployment follows eegFaktura infrastructure (Kubernetes) standards.
+
+### Kubernetes Test Environment
+
+Manifests for an isolated test installation live in [`k8s/test/`](k8s/test/).
+
+| Manifest | Contents |
+|----------|----------|
+| `00-namespace.yaml` | Namespace `eegfaktura-member-onboarding-test` |
+| `01-postgres.yaml` | PostgreSQL StatefulSet + PVC + Service + Secret |
+| `02-backend.yaml` | Backend Deployment + Service + Secret |
+| `03-frontend.yaml` | Frontend Deployment + Service |
+| `04-ingress.yaml` | Ingress (`ingressClassName: nginx`, host `member-onboarding-test.eegfaktura.at`) |
+
+**Hostname:** `member-onboarding-test.eegfaktura.at`  
+Ingress routes `/api` → backend, `/` → frontend. Does not reuse any existing eegfaktura.at ingress rules.
+
+#### Pre-flight: fill in required values
+
+Before applying, edit two `<FILL_IN>` placeholders:
+
+| File | Field | What to set |
+|------|-------|-------------|
+| `01-postgres.yaml` | `POSTGRES_PASSWORD` | Strong password for the in-cluster PostgreSQL |
+| `01-postgres.yaml` | `storageClassName` | Your cluster's storage class (e.g. `longhorn`, `local-path`, `standard`) |
+| `02-backend.yaml` | `DB_PASSWORD` | Same password as above |
+| `04-ingress.yaml` | `secretName` (TLS) | TLS secret name — see TLS section below |
+
+#### Deployment order
+
+```bash
+# 1. Create namespace
+kubectl apply -f k8s/test/00-namespace.yaml
+
+# 2. Deploy PostgreSQL and wait for it to be ready
+kubectl apply -f k8s/test/01-postgres.yaml
+kubectl rollout status statefulset/postgres -n eegfaktura-member-onboarding-test
+
+# 3. Run database migrations (from local machine via port-forward)
+kubectl port-forward svc/postgres 5433:5432 -n eegfaktura-member-onboarding-test &
+DATABASE_URL="postgres://postgres:<PASSWORD>@localhost:5433/member_onboarding?sslmode=disable" \
+  go run ./cmd/migrate -direction up
+kill %1   # stop port-forward
+
+# 4. Deploy backend and frontend
+kubectl apply -f k8s/test/02-backend.yaml
+kubectl apply -f k8s/test/03-frontend.yaml
+
+# 5. Apply ingress (after TLS is ready — see below)
+kubectl apply -f k8s/test/04-ingress.yaml
+```
+
+#### TLS
+
+**Option A — cert-manager (recommended if available):**
+
+Uncomment the `cert-manager.io/cluster-issuer` annotation in `04-ingress.yaml`. cert-manager will create the TLS secret automatically.
+
+**Option B — manual certificate:**
+
+```bash
+kubectl create secret tls member-onboarding-test-tls \
+  --cert=path/to/tls.crt \
+  --key=path/to/tls.key \
+  -n eegfaktura-member-onboarding-test
+```
+
+#### DNS
+
+Point `member-onboarding-test.eegfaktura.at` to the cluster's nginx ingress controller IP/load balancer before applying the ingress.
+
+#### Seed test data (optional)
+
+After migrations, insert a test registration entry point:
+
+```bash
+kubectl port-forward svc/postgres 5433:5432 -n eegfaktura-member-onboarding-test &
+PGPASSWORD=<PASSWORD> psql -h localhost -p 5433 -U postgres -d member_onboarding \
+  -f db/seeds/dev_seed.sql
+kill %1
+```
+
+This creates RC number `RC123456` linked to EEG ID `00000000-0000-0000-0000-000000000001`.
+
+#### Note on NEXT_PUBLIC_API_URL
+
+The frontend image bakes `NEXT_PUBLIC_API_URL` at build time. Image `37289bd` was built with this variable unset (empty), so the browser makes relative `/api/...` requests — which the ingress routes correctly to the backend. No env var override is needed in the pod spec.
+
+If you need to rebuild with a specific API URL, set `vars.NEXT_PUBLIC_API_URL` in the GitHub repository variables and re-trigger the workflow.
