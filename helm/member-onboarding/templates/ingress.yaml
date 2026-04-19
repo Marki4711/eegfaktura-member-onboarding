@@ -1,9 +1,8 @@
 ---
-# Frontend: alle Requests außer /api/* → Next.js
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: web
+  name: {{ include "member-onboarding.fullname" . }}-web
   namespace: {{ include "member-onboarding.namespace" . }}
   labels:
     {{- include "member-onboarding.labels" . | nindent 4 }}
@@ -20,15 +19,14 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: frontend
+                name: {{ include "member-onboarding.fullname" . }}-frontend
                 port:
                   number: 3000
 ---
-# Backend: /api/* → Go-Backend (kein Rewrite — Backend registriert Routen unter /api/...)
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: api
+  name: {{ include "member-onboarding.fullname" . }}-api
   namespace: {{ include "member-onboarding.namespace" . }}
   labels:
     {{- include "member-onboarding.labels" . | nindent 4 }}
@@ -45,6 +43,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: backend
+                name: {{ include "member-onboarding.fullname" . }}-backend
                 port:
                   number: 8080

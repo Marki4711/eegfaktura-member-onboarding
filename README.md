@@ -297,7 +297,7 @@ cp helm/member-onboarding/values-secret.yaml.example helm/member-onboarding/valu
 **2. Install**
 
 ```bash
-helm install member-onboarding ./helm/member-onboarding \
+helm install eegfaktura-member-onboarding ./helm/member-onboarding \
   --create-namespace \
   -f helm/member-onboarding/values-secret.yaml
 ```
@@ -310,7 +310,7 @@ Helm will:
 #### Upgrade (new image or config change)
 
 ```bash
-helm upgrade member-onboarding ./helm/member-onboarding \
+helm upgrade eegfaktura-member-onboarding ./helm/member-onboarding \
   -f helm/member-onboarding/values-secret.yaml
 ```
 
@@ -336,13 +336,13 @@ Dann `helm upgrade` ausführen.
 #### Rollback
 
 ```bash
-helm rollback member-onboarding   # rollt auf die vorige Revision zurück
+helm rollback eegfaktura-member-onboarding   # rollt auf die vorige Revision zurück
 ```
 
 #### Uninstall
 
 ```bash
-helm uninstall member-onboarding
+helm uninstall eegfaktura-member-onboarding
 # PVC wird nicht automatisch gelöscht — Postgres-Daten bleiben erhalten
 kubectl delete pvc -n eegfaktura-member-onboarding-test --all
 ```

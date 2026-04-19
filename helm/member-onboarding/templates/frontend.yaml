@@ -2,20 +2,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: frontend
+  name: {{ include "member-onboarding.fullname" . }}-frontend
   namespace: {{ include "member-onboarding.namespace" . }}
   labels:
     {{- include "member-onboarding.labels" . | nindent 4 }}
-    app: frontend
+    app: {{ include "member-onboarding.fullname" . }}-frontend
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: frontend
+      app: {{ include "member-onboarding.fullname" . }}-frontend
   template:
     metadata:
       labels:
-        app: frontend
+        app: {{ include "member-onboarding.fullname" . }}-frontend
     spec:
       containers:
         - name: frontend
@@ -40,14 +40,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: frontend
+  name: {{ include "member-onboarding.fullname" . }}-frontend
   namespace: {{ include "member-onboarding.namespace" . }}
   labels:
     {{- include "member-onboarding.labels" . | nindent 4 }}
-    app: frontend
+    app: {{ include "member-onboarding.fullname" . }}-frontend
 spec:
   selector:
-    app: frontend
+    app: {{ include "member-onboarding.fullname" . }}-frontend
   ports:
     - port: 3000
       targetPort: 3000

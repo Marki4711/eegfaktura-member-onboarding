@@ -2,21 +2,21 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: postgres
+  name: {{ include "member-onboarding.fullname" . }}-postgres
   namespace: {{ include "member-onboarding.namespace" . }}
   labels:
     {{- include "member-onboarding.labels" . | nindent 4 }}
-    app: postgres
+    app: {{ include "member-onboarding.fullname" . }}-postgres
 spec:
-  serviceName: postgres
+  serviceName: {{ include "member-onboarding.fullname" . }}-postgres
   replicas: 1
   selector:
     matchLabels:
-      app: postgres
+      app: {{ include "member-onboarding.fullname" . }}-postgres
   template:
     metadata:
       labels:
-        app: postgres
+        app: {{ include "member-onboarding.fullname" . }}-postgres
     spec:
       containers:
         - name: postgres
@@ -31,7 +31,7 @@ spec:
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: postgres-secret
+                  name: {{ include "member-onboarding.fullname" . }}-postgres-secret
                   key: POSTGRES_PASSWORD
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
@@ -61,14 +61,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres
+  name: {{ include "member-onboarding.fullname" . }}-postgres
   namespace: {{ include "member-onboarding.namespace" . }}
   labels:
     {{- include "member-onboarding.labels" . | nindent 4 }}
-    app: postgres
+    app: {{ include "member-onboarding.fullname" . }}-postgres
 spec:
   selector:
-    app: postgres
+    app: {{ include "member-onboarding.fullname" . }}-postgres
   ports:
     - port: 5432
       targetPort: 5432
