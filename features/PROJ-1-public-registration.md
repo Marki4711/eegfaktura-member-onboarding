@@ -32,15 +32,17 @@ The feature includes:
 ## Acceptance Criteria
 
 ### Load Registration Entry Point
-- [ ] When I access `/register/{registration_slug}`, the system loads the registration configuration
+- [ ] When I access `/register/{rc_number}`, the system loads the registration configuration
+- [ ] The RC number is resolved via `member_onboarding.registration_entrypoint` — no direct reads from eegFaktura core tables
 - [ ] The page displays the EEG-specific title and registration form
-- [ ] If the registration slug is invalid, I see a 404 error page
-- [ ] If the registration is inactive, I see a 410 error page
+- [ ] If the RC number is not found in `registration_entrypoint`, I see a 404 error page
+- [ ] If `registration_entrypoint.is_active = false`, I see a 410 error page
 
 ### Create Application
 - [ ] I can fill out the registration form with required personal information
 - [ ] I can add one or more metering points with meter numbers and directions
 - [ ] The form validates data client-side before submission
+- [ ] The request carries `rcNumber`; the backend resolves `eeg_id` from `registration_entrypoint` and stores `rc_number` on the application
 - [ ] Upon successful creation, I receive an application ID and reference number
 - [ ] The application status is set to "draft"
 
@@ -143,14 +145,15 @@ Backend-only implementation for the first iteration. The public registration API
 ```
 internal/
 ├── http/
-│   ├── registration.go     # GET /api/public/registration/{slug}
+│   ├── registration.go     # GET /api/public/registration/{rc_number}
 │   └── application.go      # POST/PUT applications, POST submit
 ├── application/
-│   ├── registration_service.go    # Business logic for registration
-│   ├── application_service.go     # Business logic for applications
-│   ├── application_repo.go        # Database operations for applications
-│   ├── metering_point_repo.go     # Database operations for metering points
-│   └── status_log_repo.go         # Database operations for status logging
+│   ├── registration_service.go       # Resolves rc_number via registration_entrypoint_repo
+│   ├── registration_entrypoint_repo.go  # DB ops for registration_entrypoint
+│   ├── application_service.go        # Business logic for applications
+│   ├── application_repo.go           # Database operations for applications
+│   ├── metering_point_repo.go        # Database operations for metering points
+│   └── status_log_repo.go            # Database operations for status logging
 └── shared/
     ├── models.go          # Request/response/domain structs
     └── errors.go          # Custom error types
@@ -158,12 +161,17 @@ internal/
 
 ### Database Interactions
 
+**member_onboarding.registration_entrypoint**:
+- `SELECT` by `rc_number` to validate the entry point and resolve `eeg_id`
+- Check `is_active` flag; return 410 if inactive, 404 if not found
+- No writes from the public API — this table is managed by admins / deployment
+
 **member_onboarding.application**:
-- `INSERT` for application creation with generated UUID and reference number
+- `INSERT` for application creation with generated UUID and reference number; stores `rc_number` and resolved `eeg_id`
 - `SELECT` for loading applications by ID with status checks
 - `UPDATE` for modifying application data (draft status only)
 - `UPDATE` for status transitions (draft → submitted)
-- Indexed on `id`, `reference_number`, `registration_slug`, `status`
+- Indexed on `id`, `reference_number`, `rc_number`, `status`
 
 **member_onboarding.metering_point**:
 - `INSERT` for adding metering points (bulk insert on create/update)
@@ -189,7 +197,7 @@ internal/
 
 **Business Rule Validation**:
 - Status checks before allowing updates (only draft/needs_info)
-- Registration slug validation against database
+- RC number validated against `member_onboarding.registration_entrypoint` — never against core tables
 - Privacy consent and accuracy confirmation required
 - Metering point format validation (existing eegFaktura standards)
 
@@ -226,24 +234,39 @@ internal/
 - `500 Internal Server Error` for unexpected database/system errors
 
 **Custom Error Types**:
-- `ValidationError` with field-specific error messages
-- `NotFoundError` for missing resources
-- `ConflictError` for business rule violations
-- `InternalError` for system failures
+- `ValidationError` with per-field messages (`map[string]string`)
+- Sentinel errors: `ErrNotFound`, `ErrGone`, `ErrConflict`, `ErrInternal`
 
-**Error Response Format**:
+**Error Response Format** (matches `docs/api-spec.md §7`):
+
+Validation error:
 ```json
 {
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Validation failed",
-    "details": {
-      "email": ["Invalid email format"],
-      "meteringPoints": ["Duplicate metering point found"]
-    }
+  "code": "validation_error",
+  "message": "Validation failed",
+  "fields": {
+    "email": "Invalid email format"
   }
 }
 ```
+
+Not found:
+```json
+{
+  "code": "not_found",
+  "message": "Resource not found"
+}
+```
+
+Gone (inactive registration):
+```json
+{
+  "code": "gone",
+  "message": "Registration is no longer active"
+}
+```
+
+All error codes are lowercase. The response is a flat JSON object — there is no wrapping `"error"` key.
 
 ### Request/Response Model Boundaries
 
@@ -313,7 +336,7 @@ The Go backend has been fully implemented with the following components:
 - `cmd/server/main.go` - Main server entry point with routing setup
 
 **API Endpoints Implemented**:
-- `GET /api/public/registration/{registration_slug}` - Returns registration configuration
+- `GET /api/public/registration/{rc_number}` - Returns registration configuration (resolved via `registration_entrypoint`)
 - `POST /api/public/applications` - Creates new application with metering points
 - `PUT /api/public/applications/{id}` - Updates existing application (draft status only)
 - `POST /api/public/applications/{id}/submit` - Submits application for review
@@ -331,27 +354,54 @@ The Go backend has been fully implemented with the following components:
 - `docker-compose.yml` for local PostgreSQL setup
 - `.env.example` for environment configuration
 
-### Next Steps
-- Frontend implementation using Next.js and shadcn/ui
-- Integration testing with the backend APIs
-- Email notification system for confirmations
-- Admin interface for application review (future feature)
+### Frontend Implementation Complete
+
+**Pages**:
+- `/` — RC-number entry page (client component, redirects to `/register/[rc_number]`)
+- `/register/[rc_number]` — Server component that resolves the registration config and renders the form; returns 404 for unknown RC numbers and an informational 410 state for inactive ones
+
+**Components**:
+- `src/components/registration-form.tsx` — Full registration form (Client Component); create + submit in one user action using `createApplication` then `submitApplication`; surfaces backend `fields` errors per-field via react-hook-form `setError`; shows success state with reference number
+- `src/components/metering-point-fields.tsx` — Dynamic metering point group using `useFieldArray`; supports add/remove (1–10 points); CONSUMPTION/PRODUCTION select
+
+**API client**:
+- `src/lib/api.ts` — Typed fetch wrapper for `getRegistrationConfig`, `createApplication`, `submitApplication`; parses `ApiResponseError` with `{ code, message, fields }` matching the spec error format
+
+**Tech choices**:
+- react-hook-form + zod v4 for form state and client-side validation
+- shadcn/ui: Form, Input, Checkbox, Select, Card, Alert, Badge, Button
+- German-language UI to match target audience
+- `NEXT_PUBLIC_API_URL` env var (default `http://localhost:8080`)
+- Server component initial fetch avoids CORS on page load; client POST requests use the CORS middleware on the backend
+
+**QA Fixes Applied (2026-04-19)**:
+- `BirthDate` changed from `*time.Time` to `*string` in request structs; parsed to `time.Time` via `parseDateString` helper — fixes "Invalid JSON" on create
+- `UpdateApplication` now wraps metering point replacement and application field update in a single shared transaction (`CreateBulkTx` + `UpdateTx`) — fixes partial update risk
+- `CreateApplication` writes a `null → draft` status log entry inside the create transaction — completes the audit trail
+- `go.sum` committed; `SERVER_PORT` corrected to `PORT` in `.env.example`; README updated to reflect that the frontend is implemented
+- Server Component crash on `/register/[rc_number]` fixed by moving to `try/catch` + duck-type guard for `ApiResponseError`
+
+**Deferred to future features**:
+- Email notification on submission
+- Admin interface for application review (PROJ-2)
+- Per-EEG customizable registration title
+- Rate limiting on public endpoints
 
 ## Affected API Endpoints
-- `GET /api/public/registration/{registration_slug}` - load registration config
+- `GET /api/public/registration/{rc_number}` - load registration config (resolved via `registration_entrypoint`)
 - `POST /api/public/applications` - create new application
 - `PUT /api/public/applications/{id}` - update existing application
 - `POST /api/public/applications/{id}/submit` - submit application
 
 ## Definition of Done
-- [ ] Registration entry point loads correctly
-- [ ] Application creation works with all required fields
-- [ ] Application update functionality works
-- [ ] Application submission validates and changes status
-- [ ] All form validations work client and server-side
-- [ ] Data persistence works correctly
-- [ ] Status logging works for all operations
-- [ ] Email confirmation is sent
-- [ ] Error handling works for all edge cases
-- [ ] API endpoints return correct responses
-- [ ] Database constraints and indexes are in place
+- [x] Registration entry point loads correctly
+- [x] Application creation works with all required fields
+- [x] Application update functionality works
+- [x] Application submission validates and changes status
+- [x] All form validations work client and server-side
+- [x] Data persistence works correctly
+- [x] Status logging works for all operations
+- [ ] Email confirmation is sent — deferred, async (future feature)
+- [x] Error handling works for all edge cases
+- [x] API endpoints return correct responses
+- [x] Database constraints and indexes are in place
