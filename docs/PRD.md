@@ -12,7 +12,7 @@ Submitted data must first stay in a dedicated onboarding workflow. Only after ad
 ## 2. Target Users
 
 ### Public user
-A potential new EEG member who wants to register through a fixed registration link.
+A potential new EEG member who wants to register through a fixed registration link identified by the EEG's RC number.
 
 ### EEG admin
 A user who reviews applications for a specific EEG and decides whether an application is complete and ready for import.
@@ -21,7 +21,8 @@ A user who reviews applications for a specific EEG and decides whether an applic
 
 Version 1 includes:
 
-- fixed registration link per EEG
+- fixed registration link per EEG, identified by the EEG's RC number
+- RC number resolved locally through `member_onboarding.registration_entrypoint` — no direct reads from eegFaktura core tables
 - public self-service form
 - collection of member master data
 - collection of multiple metering points
@@ -32,13 +33,13 @@ Version 1 includes:
 
 ## 4. Core Features (Roadmap)
 
-| Priority | Feature | Status |
-|----------|---------|--------|
-| P0 (MVP) | Public Registration | Planned |
-| P0 (MVP) | Admin Review | Planned |
-| P0 (MVP) | Core Import | Planned |
-| P1 | Keycloak-secured Admin Area | Planned |
-| P1 | Improved Validation and Error Handling | Planned |
+| Priority | Feature | Status | Spec |
+|----------|---------|--------|------|
+| P0 (MVP) | Public Registration | Approved | `features/PROJ-1-public-registration.md` |
+| P0 (MVP) | Admin Review | Planned | `features/PROJ-2-admin-review.md` |
+| P0 (MVP) | Core Import | Planned | — |
+| P1 | Keycloak-secured Admin Area | Planned | — |
+| P1 | Admin Frontend UI | Planned | — |
 
 ## 5. Success Metrics
 
@@ -78,6 +79,9 @@ Version 1 does not include:
 ## 8. Core Business Rules
 
 - one application contains exactly one member
+- one application belongs to exactly one EEG
+- the public registration entry point is identified by the EEG's RC number
+- the RC number is resolved through `member_onboarding.registration_entrypoint`; the onboarding backend never reads EEG data directly from eegFaktura core tables
 - one application can contain multiple metering points
 - all metering points use the same address as the member in onboarding
 - only approved applications may be imported
