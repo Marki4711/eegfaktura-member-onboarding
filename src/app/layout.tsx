@@ -1,5 +1,12 @@
 import type { Metadata } from "next";
+import { Roboto } from "next/font/google";
 import "./globals.css";
+
+const roboto = Roboto({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-roboto",
+});
 
 export const metadata: Metadata = {
   title: "eegFaktura Mitglieder-Onboarding",
@@ -12,8 +19,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="de">
-      <body className="antialiased">{children}</body>
+    <html lang="de" className={roboto.variable}>
+      <body className="antialiased font-[var(--font-roboto)]">{children}</body>
     </html>
   );
 }
