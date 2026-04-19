@@ -20,6 +20,6 @@ Central tracking for all features.
 | PROJ-3 | Admin Frontend UI | In Review | `features/PROJ-3-admin-frontend-ui.md` | 2026-04-19 |
 | PROJ-4 | Core Import | Architected | `features/PROJ-4-core-import.md` | 2026-04-19 |
 | PROJ-5 | Keycloak-secured Admin Area | Planned | — | 2026-04-19 |
-| PROJ-6 | E-Mail-Benachrichtigungen | Planned | — | 2026-04-19 |
+| PROJ-6 | E-Mail-Benachrichtigungen | Planned | `features/PROJ-6-email-notifications.md` | 2026-04-19 |
 
 ## Next Available ID: PROJ-7
