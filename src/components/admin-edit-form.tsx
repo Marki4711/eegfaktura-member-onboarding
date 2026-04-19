@@ -41,12 +41,19 @@ function validateEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+// The API returns birthDate as RFC3339 ("1962-06-06T00:00:00Z").
+// <input type="date"> requires "YYYY-MM-DD". Slice the first 10 chars.
+function toDateInputValue(iso: string | null | undefined): string {
+  if (!iso) return "";
+  return iso.slice(0, 10);
+}
+
 let mpKeyCounter = 0;
 
 export function AdminEditForm({ open, application, onClose, onRefresh }: Props) {
   const [firstname, setFirstname] = useState(application.firstname);
   const [lastname, setLastname] = useState(application.lastname);
-  const [birthDate, setBirthDate] = useState(application.birthDate ?? "");
+  const [birthDate, setBirthDate] = useState(toDateInputValue(application.birthDate));
   const [email, setEmail] = useState(application.email);
   const [phone, setPhone] = useState(application.phone ?? "");
   const [residentStreet, setResidentStreet] = useState(application.residentStreet);
