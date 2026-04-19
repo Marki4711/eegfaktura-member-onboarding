@@ -16,6 +16,10 @@
 # production
 /build
 
+# Go build artifacts
+bin/
+*.exe
+
 # misc
 .DS_Store
 *.pem
