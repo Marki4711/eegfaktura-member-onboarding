@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,16 @@ export function AdminFilterPanel() {
   const [submittedTo, setSubmittedTo] = useState(
     searchParams.get("submitted_to") ?? ""
   );
+
+  // Keep inputs in sync when searchParams change (e.g. browser back, nav link)
+  useEffect(() => {
+    setStatus(searchParams.get("status") ?? "all");
+    setLastname(searchParams.get("lastname") ?? "");
+    setEmail(searchParams.get("email") ?? "");
+    setMeteringPoint(searchParams.get("metering_point") ?? "");
+    setSubmittedFrom(searchParams.get("submitted_from") ?? "");
+    setSubmittedTo(searchParams.get("submitted_to") ?? "");
+  }, [searchParams]);
 
   function applyFilters() {
     const params = new URLSearchParams();

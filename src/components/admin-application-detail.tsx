@@ -12,7 +12,7 @@ import { AdminStatusLog } from "@/components/admin-status-log";
 import { AdminStatusActions } from "@/components/admin-status-actions";
 import { AdminNoteEditor } from "@/components/admin-note-editor";
 import { AdminEditForm } from "@/components/admin-edit-form";
-import { getApplicationDetail } from "@/lib/api";
+import { getApplicationDetail, ApiResponseError } from "@/lib/api";
 import type { AdminApplicationDetail } from "@/lib/api";
 
 interface Props {
@@ -74,10 +74,7 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
       const data = await getApplicationDetail(id);
       setApplication(data);
     } catch (err: unknown) {
-      if (
-        err instanceof Error &&
-        err.message.toLowerCase().includes("not_found")
-      ) {
+      if (err instanceof ApiResponseError && err.apiError.code === "not_found") {
         setNotFound(true);
       } else {
         const msg = err instanceof Error ? err.message : "Fehler beim Laden des Antrags";
@@ -221,6 +218,7 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
               <Field label="Referenznummer" value={application.referenceNumber} />
               <Field label="EEG-ID" value={application.eegId} />
               <Field label="RC-Nummer" value={application.rcNumber} />
+              <Field label="Erstellt am" value={formatDateTime(application.createdAt)} />
               <Field label="Angelegt am" value={formatDateTime(application.startedAt)} />
               <Field label="Eingereicht am" value={formatDateTime(application.submittedAt)} />
               <Field label="Genehmigt am" value={formatDateTime(application.approvedAt)} />

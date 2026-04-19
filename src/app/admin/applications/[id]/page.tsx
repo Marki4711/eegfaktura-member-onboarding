@@ -11,8 +11,8 @@ interface Props {
 export default function ApplicationDetailPage({ params }: Props) {
   const { id } = use(params);
   const searchParams = useSearchParams();
-  const returnTo =
-    searchParams.get("returnTo") ?? "/admin/applications";
+  const raw = searchParams.get("returnTo") ?? "";
+  const returnTo = raw.startsWith("/") ? raw : "/admin/applications";
 
   return <AdminApplicationDetail id={id} returnTo={returnTo} />;
 }

@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { changeApplicationStatus } from "@/lib/api";
+import { changeApplicationStatus, ApiResponseError } from "@/lib/api";
 import type { ApplicationStatus } from "@/lib/api";
 
 interface Props {
@@ -24,6 +24,7 @@ interface Props {
 type DialogTarget = "rejected" | "needs_info";
 
 const STATIC_NOTES: Partial<Record<ApplicationStatus, string>> = {
+  draft:         "Antrag noch nicht eingereicht. Keine Admin-Aktionen verfügbar.",
   approved:      "Antrag genehmigt — Import über PROJ-4 verfügbar.",
   rejected:      "Antrag abgelehnt. Keine weiteren Aktionen verfügbar.",
   imported:      "Antrag wurde erfolgreich importiert.",
@@ -40,6 +41,7 @@ export function AdminStatusActions({ applicationId, status, onRefresh }: Props) 
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isConflict, setIsConflict] = useState(false);
 
   const staticNote = STATIC_NOTES[status];
   if (staticNote) {
@@ -48,16 +50,26 @@ export function AdminStatusActions({ applicationId, status, onRefresh }: Props) 
     );
   }
 
+  function handleActionError(err: unknown) {
+    if (err instanceof ApiResponseError && err.apiError.code === "conflict") {
+      setIsConflict(true);
+      setError("Diese Aktion ist nicht mehr gültig. Bitte laden Sie die Seite neu, um den aktuellen Status zu sehen.");
+    } else {
+      setIsConflict(false);
+      setError(err instanceof Error ? err.message : "Fehler bei der Statusänderung");
+    }
+  }
+
   async function directAction(toStatus: string) {
     setLoading(true);
     setError(null);
+    setIsConflict(false);
     try {
       await changeApplicationStatus(applicationId, { toStatus });
       toast.success("Status erfolgreich geändert");
       onRefresh();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Fehler bei der Statusänderung";
-      setError(msg);
+      handleActionError(err);
     } finally {
       setLoading(false);
     }
@@ -79,6 +91,7 @@ export function AdminStatusActions({ applicationId, status, onRefresh }: Props) 
     if (!dialogTarget || !reason.trim()) return;
     setLoading(true);
     setError(null);
+    setIsConflict(false);
     try {
       await changeApplicationStatus(applicationId, {
         toStatus: dialogTarget,
@@ -88,8 +101,7 @@ export function AdminStatusActions({ applicationId, status, onRefresh }: Props) 
       closeDialog();
       onRefresh();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Fehler bei der Statusänderung";
-      setError(msg);
+      handleActionError(err);
     } finally {
       setLoading(false);
     }
@@ -146,7 +158,18 @@ export function AdminStatusActions({ applicationId, status, onRefresh }: Props) 
       </div>
 
       {error && (
-        <p className="text-sm text-destructive mt-2">{error}</p>
+        <div className="mt-2 space-y-1">
+          <p className="text-sm text-destructive">{error}</p>
+          {isConflict && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.location.reload()}
+            >
+              Seite neu laden
+            </Button>
+          )}
+        </div>
       )}
 
       <Dialog open={dialogTarget !== null} onOpenChange={(open) => { if (!open) closeDialog(); }}>
@@ -166,7 +189,20 @@ export function AdminStatusActions({ applicationId, status, onRefresh }: Props) 
               rows={4}
               className="resize-none"
             />
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            {error && (
+              <div className="space-y-1">
+                <p className="text-sm text-destructive">{error}</p>
+                {isConflict && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.location.reload()}
+                  >
+                    Seite neu laden
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={closeDialog} disabled={loading}>

@@ -1,6 +1,6 @@
 # PROJ-3: Admin Frontend UI
 
-## Status: In Progress
+## Status: In Review
 **Created:** 2026-04-19
 **Last Updated:** 2026-04-19
 
@@ -691,3 +691,19 @@ The mapping is a single lookup table in `admin-status-badge.tsx` — easy to upd
 **NOT READY — Bug #1 (HIGH) must be fixed before approval.**
 
 Bugs #2, #3, #4 (MEDIUM) should be fixed before approval but do not block all user workflows. Bugs #5, #6 (LOW) and the security note can be fixed alongside or deferred to a follow-up.
+
+---
+
+## QA Fix Notes (2026-04-19)
+
+All 7 QA issues addressed in commit `fix(PROJ-3): Fix QA issues`. Build passes.
+
+| Bug | Fix |
+|-----|-----|
+| #1 HIGH — 404 detection | `admin-application-detail.tsx`: check `err instanceof ApiResponseError && err.apiError.code === "not_found"` instead of message string |
+| #2 MEDIUM — filter desync | `admin-filter-panel.tsx`: added `useEffect` that syncs all input state from `searchParams` on every URL change |
+| #3 MEDIUM — no page size selector | `admin-application-table.tsx`: added shadcn Select in pagination footer with options 10/20/50; changes URL param `page_size`, resets to page 1 |
+| #4 MEDIUM — no 409 reload prompt | `admin-status-actions.tsx`: added `isConflict` state; `handleActionError()` detects `code === "conflict"` and shows a "Seite neu laden" button below the error message (both inline and in dialog) |
+| #5 LOW — draft empty panel | `admin-status-actions.tsx`: added `draft` to `STATIC_NOTES` |
+| #6 LOW — createdAt missing | `admin-application-detail.tsx`: added "Erstellt am" field to metadata card |
+| #7 Security — open redirect | `[id]/page.tsx`: `returnTo` validated to start with `/`; falls back to `/admin/applications` |
