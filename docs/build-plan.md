@@ -52,7 +52,7 @@ Ziel:
 - öffentliche Registrierung technisch verfügbar machen
 
 Umfang:
-- `GET /api/public/registration/{registration_slug}`
+- `GET /api/public/registration/{rc_number}`
 - `POST /api/public/applications`
 - `PUT /api/public/applications/{id}`
 - `POST /api/public/applications/{id}/submit`

@@ -23,6 +23,7 @@ Nicht Teil dieser API:
 - Timestamps: ISO-8601 / RFC3339
 - DB schema: `member_onboarding`
 - Tabellen:
+  - `member_onboarding.registration_entrypoint`
   - `member_onboarding.application`
   - `member_onboarding.metering_point`
   - `member_onboarding.status_log`
@@ -62,17 +63,20 @@ Erlaubte Werte:
 
 ## 5.1 Load registration entry point
 
-### GET `/api/public/registration/{registration_slug}`
+### GET `/api/public/registration/{rc_number}`
 
-Lädt die Grundkonfiguration für einen festen Registrierungslink.
+Lädt die Grundkonfiguration für einen festen Registrierungslink anhand der RC-Nummer der EEG.
+
+Die RC-Nummer wird gegen `member_onboarding.registration_entrypoint` geprüft.
+Es erfolgt kein direkter Zugriff auf eegFaktura-Core-Tabellen.
 
 ### Path params
-- `registration_slug: string`
+- `rc_number: string` — RC-Nummer der EEG
 
 ### Response 200
 ```json
 {
-  "registrationSlug": "eg-naarn",
+  "rcNumber": "RC123456",
   "eegId": "9f3d5f0d-....",
   "title": "Mitglied werden",
   "active": true
@@ -80,8 +84,8 @@ Lädt die Grundkonfiguration für einen festen Registrierungslink.
 ```
 
 ### Errors
-- `404` wenn `registration_slug` unbekannt
-- `410` wenn Registrierungslink deaktiviert
+- `404` wenn `rc_number` in `registration_entrypoint` nicht gefunden
+- `410` wenn `registration_entrypoint.is_active = false`
 
 ---
 
@@ -94,7 +98,7 @@ Legt einen neuen Antrag an.
 ### Request
 ```json
 {
-  "registrationSlug": "eg-naarn",
+  "rcNumber": "RC123456",
   "firstname": "Josef",
   "lastname": "Brandstätter",
   "birthDate": "1962-06-06",
@@ -119,7 +123,7 @@ Legt einen neuen Antrag an.
 ```
 
 ### Rules
-- `registrationSlug` Pflicht
+- `rcNumber` Pflicht
 - `firstname` Pflicht
 - `lastname` Pflicht
 - `email` Pflicht
@@ -148,7 +152,8 @@ Legt einen neuen Antrag an.
 
 ### Errors
 - `400` Validierungsfehler
-- `404` unbekannter `registrationSlug`
+- `404` unbekannte `rcNumber`
+- `410` Registrierung deaktiviert (`is_active = false`)
 - `409` doppelte Zählpunktnummer im selben Request
 
 ---
@@ -295,7 +300,7 @@ Liefert die Admin-Liste.
   "id": "3f8c8c2d-....",
   "referenceNumber": "MO-2026-000001",
   "eegId": "9f3d5f0d-....",
-  "registrationSlug": "eg-naarn",
+  "rcNumber": "RC123456",
   "status": "submitted",
   "firstname": "Josef",
   "lastname": "Brandstätter",

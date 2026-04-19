@@ -23,7 +23,7 @@ Die Komponente ergänzt den bestehenden Prozess, in dem neue Mitglieder bisher m
 Öffentliche Benutzeroberfläche für neue Mitglieder.
 
 Aufgaben:
-- Einstieg über festen Registrierungslink pro EEG
+- Einstieg über festen Registrierungslink pro EEG (identifiziert durch RC-Nummer)
 - Erfassung von Mitgliedsdaten
 - Erfassung mehrerer Zählpunkte
 - clientseitige Validierung
@@ -66,6 +66,7 @@ Aufgaben:
 - serverseitige Validierung
 - Statusübergänge
 - Schreiben und Lesen im Schema `member_onboarding`
+- Auflösung der RC-Nummer über `member_onboarding.registration_entrypoint` (kein direkter Zugriff auf eegFaktura-Core-Tabellen)
 - Persistenz mehrerer Zählpunkte
 - Statushistorie
 - Import-Mapping
@@ -75,6 +76,7 @@ Aufgaben:
 ### 3.4 Persistenz
 Die Persistenz erfolgt in derselben PostgreSQL-Datenbank wie eegFaktura, aber in einem eigenen dedizierten Schema:
 
+- `member_onboarding.registration_entrypoint` — lokale Zuordnung von RC-Nummern zu EEGs; Einstiegspunkt für die öffentliche Registrierung
 - `member_onboarding.application`
 - `member_onboarding.metering_point`
 - `member_onboarding.status_log`
@@ -106,12 +108,16 @@ Nicht erlaubte Verbindungen:
 Das Modul verwendet ein bewusst reduziertes relationales Modell ohne JSON-Felder und ohne Dokumentenverwaltung.
 
 Tabellen:
+- `member_onboarding.registration_entrypoint`
 - `member_onboarding.application`
 - `member_onboarding.metering_point`
 - `member_onboarding.status_log`
 
 Grundregeln:
 - ein Antrag enthält genau ein Mitglied
+- ein Antrag gehört zu genau einer EEG
+- der öffentliche Einstiegspunkt wird über die RC-Nummer der EEG identifiziert
+- die RC-Nummer wird ausschließlich über `member_onboarding.registration_entrypoint` aufgelöst; kein direkter Zugriff auf eegFaktura-Core-Tabellen
 - ein Antrag kann mehrere Zählpunkte enthalten
 - im Onboarding haben alle Zählpunkte dieselbe Adresse wie das Mitglied
 - abweichende Zählpunktadressen werden später in eegFaktura gepflegt
