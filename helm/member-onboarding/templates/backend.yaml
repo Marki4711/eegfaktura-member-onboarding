@@ -2,20 +2,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: backend
+  name: {{ include "member-onboarding.fullname" . }}-backend
   namespace: {{ include "member-onboarding.namespace" . }}
   labels:
     {{- include "member-onboarding.labels" . | nindent 4 }}
-    app: backend
+    app: {{ include "member-onboarding.fullname" . }}-backend
 spec:
   replicas: {{ .Values.backend.replicas }}
   selector:
     matchLabels:
-      app: backend
+      app: {{ include "member-onboarding.fullname" . }}-backend
   template:
     metadata:
       labels:
-        app: backend
+        app: {{ include "member-onboarding.fullname" . }}-backend
     spec:
       containers:
         - name: backend
@@ -27,7 +27,7 @@ spec:
             - name: PORT
               value: "8080"
             - name: DB_HOST
-              value: postgres
+              value: {{ include "member-onboarding.fullname" . }}-postgres
             - name: DB_PORT
               value: "5432"
             - name: DB_USER
@@ -49,12 +49,12 @@ spec:
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: backend-secret
+                  name: {{ include "member-onboarding.fullname" . }}-backend-secret
                   key: DB_PASSWORD
             - name: SMTP_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: backend-secret
+                  name: {{ include "member-onboarding.fullname" . }}-backend-secret
                   key: SMTP_PASSWORD
           readinessProbe:
             httpGet:
@@ -72,14 +72,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: backend
+  name: {{ include "member-onboarding.fullname" . }}-backend
   namespace: {{ include "member-onboarding.namespace" . }}
   labels:
     {{- include "member-onboarding.labels" . | nindent 4 }}
-    app: backend
+    app: {{ include "member-onboarding.fullname" . }}-backend
 spec:
   selector:
-    app: backend
+    app: {{ include "member-onboarding.fullname" . }}-backend
   ports:
     - port: 8080
       targetPort: 8080

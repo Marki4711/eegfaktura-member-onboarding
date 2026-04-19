@@ -1,16 +1,7 @@
-# Helm hook-Strategie:
-#   post-install  — läuft nach dem ersten Deployment (Postgres bereits deployt)
-#   pre-upgrade   — läuft vor jedem Update (Postgres bereits aktiv)
-#
-# Init-Container wartet auf Postgres-Readiness, damit der Job nicht fehlschlägt
-# wenn Postgres beim Erstinstall noch hochfährt.
-#
-# hook-delete-policy: before-hook-creation — löscht automatisch den vorigen Job,
-# kein manuelles "kubectl delete job" nötig.
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: migrate-up
+  name: {{ include "member-onboarding.fullname" . }}-migrate
   namespace: {{ include "member-onboarding.namespace" . }}
   labels:
     {{- include "member-onboarding.labels" . | nindent 4 }}
@@ -27,7 +18,7 @@ spec:
         - name: wait-for-postgres
           image: postgres:16-alpine
           command: ['sh', '-c',
-            'until pg_isready -h postgres -p 5432 -U {{ .Values.postgres.user }}; do
+            'until pg_isready -h {{ include "member-onboarding.fullname" . }}-postgres -p 5432 -U {{ .Values.postgres.user }}; do
                echo "waiting for postgres..."; sleep 2;
              done']
       containers:
@@ -38,11 +29,11 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - |
-              DATABASE_URL="postgres://{{ .Values.postgres.user }}:${DB_PASSWORD}@postgres:5432/{{ .Values.postgres.database }}?sslmode=disable" \
+              DATABASE_URL="postgres://{{ .Values.postgres.user }}:${DB_PASSWORD}@{{ include "member-onboarding.fullname" . }}-postgres:5432/{{ .Values.postgres.database }}?sslmode=disable" \
               /app/migrate -direction up
           env:
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: backend-secret
+                  name: {{ include "member-onboarding.fullname" . }}-backend-secret
                   key: DB_PASSWORD

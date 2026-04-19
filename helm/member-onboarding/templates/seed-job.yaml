@@ -1,11 +1,7 @@
-# Helm post-install hook: läuft einmalig nach dem Erstinstall.
-# Bei Upgrades wird dieser Job NICHT erneut ausgeführt.
-# ON CONFLICT DO NOTHING macht den Job idempotent (Neustart sicher).
-# hook-weight: 5 — läuft nach dem migrate-job (weight 0).
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: seed
+  name: {{ include "member-onboarding.fullname" . }}-seed
   namespace: {{ include "member-onboarding.namespace" . }}
   labels:
     {{- include "member-onboarding.labels" . | nindent 4 }}
@@ -22,7 +18,7 @@ spec:
         - name: wait-for-postgres
           image: postgres:16-alpine
           command: ['sh', '-c',
-            'until pg_isready -h postgres -p 5432 -U {{ .Values.postgres.user }}; do
+            'until pg_isready -h {{ include "member-onboarding.fullname" . }}-postgres -p 5432 -U {{ .Values.postgres.user }}; do
                echo "waiting for postgres..."; sleep 2;
              done']
       containers:
@@ -31,7 +27,7 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - |
-              psql "postgres://{{ .Values.postgres.user }}:${DB_PASSWORD}@postgres:5432/{{ .Values.postgres.database }}?sslmode=disable" <<'SQL'
+              psql "postgres://{{ .Values.postgres.user }}:${DB_PASSWORD}@{{ include "member-onboarding.fullname" . }}-postgres:5432/{{ .Values.postgres.database }}?sslmode=disable" <<'SQL'
               INSERT INTO member_onboarding.registration_entrypoint (eeg_id, rc_number, is_active)
               VALUES ('{{ .Values.seed.eegId }}', '{{ .Values.seed.rcNumber }}', TRUE)
               ON CONFLICT (rc_number) DO NOTHING;
@@ -40,5 +36,5 @@ spec:
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: backend-secret
+                  name: {{ include "member-onboarding.fullname" . }}-backend-secret
                   key: DB_PASSWORD
