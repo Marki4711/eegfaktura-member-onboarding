@@ -9,10 +9,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { AdminStatusBadge } from "@/components/admin-status-badge";
 import type { ApplicationListItem } from "@/lib/api";
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 interface Props {
   items: ApplicationListItem[];
@@ -56,6 +65,13 @@ export function AdminApplicationTable({
   function setPage(p: number) {
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", String(p));
+    router.push(`/admin/applications?${params.toString()}`);
+  }
+
+  function changePageSize(size: number) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page_size", String(size));
+    params.set("page", "1");
     router.push(`/admin/applications?${params.toString()}`);
   }
 
@@ -132,12 +148,30 @@ export function AdminApplicationTable({
       </Table>
 
       {!loading && !error && (
-        <div className="flex items-center justify-between px-4 py-3 border-t text-sm text-muted-foreground">
-          <span>
-            {total === 0
-              ? "Keine Einträge"
-              : `${total} Einträge gesamt — Seite ${page} von ${totalPages}`}
-          </span>
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <span>Einträge pro Seite:</span>
+            <Select
+              value={String(pageSize)}
+              onValueChange={(v) => changePageSize(Number(v))}
+            >
+              <SelectTrigger className="h-7 w-16 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PAGE_SIZE_OPTIONS.map((n) => (
+                  <SelectItem key={n} value={String(n)}>
+                    {n}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span>
+              {total === 0
+                ? "— Keine Einträge"
+                : `— ${total} gesamt, Seite ${page} von ${totalPages}`}
+            </span>
+          </div>
           <div className="flex gap-2">
             <Button
               variant="outline"
