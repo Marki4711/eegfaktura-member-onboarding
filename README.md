@@ -288,7 +288,6 @@ Before applying, edit the `<FILL_IN>` placeholders:
 |------|-------|-------------|
 | `01-postgres.yaml` | `POSTGRES_PASSWORD` | Strong password for the in-cluster PostgreSQL |
 | `02-backend.yaml` | `DB_PASSWORD` | Same password as above |
-| `04-ingress.yaml` | `secretName` (TLS) | TLS secret name — see TLS section below |
 
 > `storageClassName` in `01-postgres.yaml` is already set to `csi-rbd-sc`.
 
@@ -318,28 +317,15 @@ kubectl logs job/seed -n eegfaktura-member-onboarding-test
 kubectl apply -f k8s/test/02-backend.yaml
 kubectl apply -f k8s/test/03-frontend.yaml
 
-# 6. Apply ingress (after TLS is ready — see below)
+# 6. Apply ingress
 kubectl apply -f k8s/test/04-ingress.yaml
-```
-
-#### TLS
-
-**Option A — cert-manager (recommended if available):**
-
-Uncomment the `cert-manager.io/cluster-issuer` annotation in `04-ingress.yaml`. cert-manager will create the TLS secret automatically.
-
-**Option B — manual certificate:**
-
-```bash
-kubectl create secret tls member-onboarding-test-tls \
-  --cert=path/to/tls.crt \
-  --key=path/to/tls.key \
-  -n eegfaktura-member-onboarding-test
 ```
 
 #### DNS
 
 Point `member-onboarding-test.eegfaktura.at` to the cluster's nginx ingress controller IP/load balancer before applying the ingress.
+
+The test ingress runs without TLS. Access the installation at `http://member-onboarding-test.eegfaktura.at`.
 
 #### Seed test data (optional)
 
