@@ -272,20 +272,24 @@ Manifests for an isolated test installation live in [`k8s/test/`](k8s/test/).
 | `02-backend.yaml` | Backend Deployment + Service + Secret |
 | `03-frontend.yaml` | Frontend Deployment + Service |
 | `04-ingress.yaml` | Ingress (`ingressClassName: nginx`, host `member-onboarding-test.eegfaktura.at`) |
+| `05-migrate-job.yaml` | One-shot Kubernetes Job for running database migrations |
 
 **Hostname:** `member-onboarding-test.eegfaktura.at`  
 Ingress routes `/api` → backend, `/` → frontend. Does not reuse any existing eegfaktura.at ingress rules.
 
+The backend image ships two binaries (`/app/server`, `/app/migrate`) and the migration files (`/app/db/migrations`). No Go installation is needed on the target machine — migrations run as a Kubernetes Job using the same image.
+
 #### Pre-flight: fill in required values
 
-Before applying, edit two `<FILL_IN>` placeholders:
+Before applying, edit the `<FILL_IN>` placeholders:
 
 | File | Field | What to set |
 |------|-------|-------------|
 | `01-postgres.yaml` | `POSTGRES_PASSWORD` | Strong password for the in-cluster PostgreSQL |
-| `01-postgres.yaml` | `storageClassName` | Your cluster's storage class (e.g. `longhorn`, `local-path`, `standard`) |
 | `02-backend.yaml` | `DB_PASSWORD` | Same password as above |
 | `04-ingress.yaml` | `secretName` (TLS) | TLS secret name — see TLS section below |
+
+> `storageClassName` in `01-postgres.yaml` is already set to `csi-rbd-sc`.
 
 #### Deployment order
 
@@ -297,11 +301,11 @@ kubectl apply -f k8s/test/00-namespace.yaml
 kubectl apply -f k8s/test/01-postgres.yaml
 kubectl rollout status statefulset/postgres -n eegfaktura-member-onboarding-test
 
-# 3. Run database migrations (from local machine via port-forward)
-kubectl port-forward svc/postgres 5433:5432 -n eegfaktura-member-onboarding-test &
-DATABASE_URL="postgres://postgres:<PASSWORD>@localhost:5433/member_onboarding?sslmode=disable" \
-  go run ./cmd/migrate -direction up
-kill %1   # stop port-forward
+# 3. Run database migrations as a Kubernetes Job
+kubectl apply -f k8s/test/05-migrate-job.yaml
+kubectl wait --for=condition=complete job/migrate-up \
+  -n eegfaktura-member-onboarding-test --timeout=120s
+kubectl logs job/migrate-up -n eegfaktura-member-onboarding-test
 
 # 4. Deploy backend and frontend
 kubectl apply -f k8s/test/02-backend.yaml

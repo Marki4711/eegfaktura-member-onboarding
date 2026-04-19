@@ -1,0 +1,32 @@
+# Run this Job once after postgres is ready to apply all pending migrations.
+# Delete the completed Job before re-running: kubectl delete job migrate-up -n eegfaktura-member-onboarding-test
+#
+# The backend image ships /app/migrate and /app/db/migrations.
+# DATABASE_URL is composed from the existing backend-secret (DB_PASSWORD).
+#
+# Update the image tag to match the backend deployment after each new build.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate-up
+  namespace: eegfaktura-member-onboarding-test
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: migrate
+          image: marki4711/eegfaktura-member-onboarding-backend:37289bd   # keep in sync with 02-backend.yaml
+          workingDir: /app
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              DATABASE_URL="postgres://postgres:${DB_PASSWORD}@postgres:5432/member_onboarding?sslmode=disable" \
+              /app/migrate -direction up
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: DB_PASSWORD
