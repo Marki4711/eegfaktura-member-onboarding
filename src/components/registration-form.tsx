@@ -439,21 +439,6 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                   )}
                 />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormField
-                      control={form.control}
-                      name="uidNumber"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>
-                            UID-Nummer{memberType === "company" ? " *" : ""}
-                          </FormLabel>
-                          <FormControl>
-                            <Input placeholder="ATU12345678" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
                   {(memberType === "company" || memberType === "association") && (
                     <FormField
                       control={form.control}
@@ -474,6 +459,21 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                       )}
                     />
                   )}
+                  <FormField
+                    control={form.control}
+                    name="uidNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          UID-Nummer{memberType === "company" ? " *" : ""}
+                        </FormLabel>
+                        <FormControl>
+                          <Input placeholder="ATU12345678" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
               </>
             )}

@@ -256,16 +256,6 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
                     onChange={(e) => setCompanyName(e.target.value)}
                   />
                 </div>
-                <div className="space-y-1">
-                  <Label htmlFor="edit-uid">
-                    UID-Nummer{memberType === "company" ? " *" : ""}
-                  </Label>
-                  <Input
-                    id="edit-uid"
-                    value={uidNumber}
-                    onChange={(e) => setUidNumber(e.target.value)}
-                  />
-                </div>
                 {(memberType === "company" || memberType === "association") && (
                   <div className="space-y-1">
                     <Label htmlFor="edit-register">
@@ -278,6 +268,16 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
                     />
                   </div>
                 )}
+                <div className="space-y-1">
+                  <Label htmlFor="edit-uid">
+                    UID-Nummer{memberType === "company" ? " *" : ""}
+                  </Label>
+                  <Input
+                    id="edit-uid"
+                    value={uidNumber}
+                    onChange={(e) => setUidNumber(e.target.value)}
+                  />
+                </div>
               </div>
             )}
 
