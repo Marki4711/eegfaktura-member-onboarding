@@ -1,6 +1,6 @@
 # PROJ-5: Keycloak-gesicherte Admin-Oberfläche
 
-## Status: Planned
+## Status: Architected
 **Created:** 2026-04-19
 **Last Updated:** 2026-04-20
 
@@ -74,7 +74,110 @@
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+
+### Überblick
+
+PROJ-5 fügt dem bestehenden Admin-Bereich zwei Dinge hinzu:
+1. **Authentifizierung** — der Zugang ist nur mit einem gültigen Keycloak-Token möglich
+2. **Autorisierung** — was ein eingeloggter Benutzer sehen darf, hängt von seinem Benutzertyp ab
+
+Es gibt keine neuen Seiten. Die bestehenden Admin-Seiten (`/admin/applications`, `/admin/applications/[id]`) bleiben unverändert — sie werden lediglich abgesichert.
+
+### Komponenten-Struktur
+
+```
+src/app/admin/
++-- layout.tsx              ← NEU: Keycloak-Session prüfen; kein Token → Login-Redirect
+|                              Logout-Button in der Header-Leiste
++-- applications/
+|   +-- page.tsx            ← unverändert (Absicherung erfolgt im layout)
+|   +-- [id]/page.tsx       ← unverändert
+
+src/lib/
++-- auth.ts                 ← NEU: Token lesen, Rolle/Tenant prüfen, Hilfsfunktionen
++-- keycloak.ts             ← NEU: Keycloak-Client-Konfiguration
+
+src/app/admin/
++-- unauthorized/page.tsx   ← NEU: 403-Seite für eingeloggte Benutzer ohne Berechtigung
+```
+
+**Go-Backend (bestehend, wird erweitert):**
+```
+internal/http/
++-- middleware.go           ← NEU: JWT-Validierung für alle /api/admin/* Routen
++-- admin.go                ← erweitert: tenant-Filter aus dem Token anwenden
+internal/application/
++-- registration_entrypoint_repo.go  ← erweitert: UpsertForTenants (Sync-Logik)
+```
+
+### Datenfluss: Login
+
+```
+Browser                  Next.js (SSR)           Keycloak
+  |                           |                      |
+  |-- GET /admin/applications→|                      |
+  |                           |-- kein Token?        |
+  |                           |-- Redirect --------->|
+  |                           |                      |-- Login-Formular
+  |<----------------------------------------- Code--|
+  |-- GET /admin/applications→|                      |
+  |   ?code=...               |-- Token tauschen --->|
+  |                           |<--- Access Token ----|
+  |                           |-- Sync-Logik (falls Tenant-Admin)
+  |<-- Admin-Oberfläche ------|
+```
+
+### Datenfluss: API-Request
+
+```
+Browser             Next.js API-Route        Go-Backend
+  |                       |                      |
+  |-- GET /api/admin/... →|                      |
+  |   (mit Session-Cookie)|-- Bearer Token ----->|
+  |                       |                      |-- JWT prüfen
+  |                       |                      |-- Rolle/Tenant extrahieren
+  |                       |                      |-- Filter anwenden
+  |<-- gefilterte Daten --|<----- Response -------|
+```
+
+### Autorisierungslogik (vereinfacht)
+
+| Benutzertyp | Erkennungsmerkmal | Sichtbarkeit |
+|---|---|---|
+| Superuser | `realm_access.roles` enthält `superuser` | alle EEGs |
+| Tenant-Admin | `tenant`-Array nicht leer | nur eigene RC-Nummern |
+| Kein Zugriff | weder noch | HTTP 403 |
+
+### Sync-Logik bei Login (Tenant-Admin)
+
+Nach dem ersten gültigen Token-Tausch prüft die App für jeden Eintrag im `tenant`-Array des Tokens, ob ein Datensatz in `registration_entrypoint` existiert. Fehlende Einträge werden automatisch angelegt. Das passiert einmalig pro Session — nicht bei jedem Seitenaufruf.
+
+### Tech-Entscheidungen
+
+**NextAuth.js mit Keycloak-Provider**
+Das Standard-Paket für Next.js-Authentifizierung. Übernimmt den OAuth2-Flow (Login, Token-Tausch, Refresh, Logout) und stellt die Session serverseitig zur Verfügung. Kein eigener Auth-Code nötig.
+
+**JWT-Validierung im Go-Backend (Middleware)**
+Die Admin-API-Endpunkte prüfen jeden Request serverseitig. Das Frontend-Guarding allein ist nicht ausreichend — ein direkter API-Aufruf ohne Frontend würde sonst unkontrolliert durchkommen.
+
+**Tenant-Filter im Backend, nicht im Frontend**
+Die RC-Nummern-Einschränkung wird serverseitig in der SQL-Query angewendet. Das Frontend zeigt nur, was das Backend zurückgibt — kein clientseitiges Ausblenden von Daten.
+
+**`ON DELETE RESTRICT` auf dem FK `application.rc_number`**
+Bereits umgesetzt (Migration 000009). Stellt sicher, dass RC-Nummern in `registration_entrypoint` nicht gelöscht werden können, solange Anträge darauf verweisen.
+
+### Neue Abhängigkeiten (npm)
+
+| Paket | Zweck |
+|---|---|
+| `next-auth` | OAuth2/OIDC-Flow mit Keycloak, Session-Management |
+| `jose` | JWT-Signaturprüfung im Go-Backend (Go-seitig: `golang-jwt/jwt`) |
+
+**Go-seitig:**
+| Paket | Zweck |
+|---|---|
+| `golang-jwt/jwt/v5` | JWT-Parsing und -Validierung |
+| `MicahParks/keyfunc` | Automatisches Laden der Keycloak JWKS-Keys |
 
 ## QA Test Results
 _To be added by /qa_
