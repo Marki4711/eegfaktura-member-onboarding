@@ -86,7 +86,8 @@ func (h *AdminHandler) ListApplications(w http.ResponseWriter, r *http.Request) 
 
 	// Apply tenant scope: superuser sees everything; tenant-admin only sees own RC numbers.
 	if claims := ClaimsFromContext(r.Context()); claims != nil && !claims.IsSuperuser() {
-		filters.RCNumbers = &claims.Tenant
+		rcNumbers := []string(claims.Tenant)
+		filters.RCNumbers = &rcNumbers
 	}
 
 	page := intQueryParam(q.Get("page"), 1)
