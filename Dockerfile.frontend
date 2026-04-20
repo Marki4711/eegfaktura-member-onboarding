@@ -3,7 +3,9 @@ FROM node:20-alpine AS deps
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci
+# --omit=optional skips platform-specific native bindings (e.g. @rolldown/binding-win32-x64-msvc)
+# that end up in package-lock.json when generated on Windows but are not needed for next build.
+RUN npm ci --omit=optional
 
 FROM node:20-alpine AS builder
 
