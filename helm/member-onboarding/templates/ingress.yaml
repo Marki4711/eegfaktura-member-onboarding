@@ -39,7 +39,14 @@ spec:
     - host: {{ .Values.ingress.host }}
       http:
         paths:
-          - path: /api
+          - path: /api/admin
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "member-onboarding.fullname" . }}-backend
+                port:
+                  number: 8080
+          - path: /api/registration
             pathType: Prefix
             backend:
               service:
