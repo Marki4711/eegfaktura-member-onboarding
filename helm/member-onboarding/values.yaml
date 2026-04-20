@@ -22,6 +22,8 @@ ingress:
   className: nginx
   proxyReadTimeout: "60"
   proxySendTimeout: "60"
+  proxyBufferSize: "128k"
+  proxyBuffersNumber: "4"
 
 # ── Images ─────────────────────────────────────────────────────────────────────
 images:
