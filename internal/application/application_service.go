@@ -106,7 +106,6 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 		PrivacyVersion:        &req.PrivacyVersion,
 		PrivacyAcceptedAt:     &privacyAcceptedAt,
 		AccuracyConfirmed:     req.AccuracyConfirmed,
-		CommunicationConsent:  req.CommunicationConsent,
 		IBAN:                  &iban,
 		AccountHolder:         &req.AccountHolder,
 		SepaMandateAccepted:   req.SepaMandateAccepted,
@@ -212,9 +211,6 @@ func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateAp
 	}
 	if req.AccuracyConfirmed != nil {
 		app.AccuracyConfirmed = *req.AccuracyConfirmed
-	}
-	if req.CommunicationConsent != nil {
-		app.CommunicationConsent = *req.CommunicationConsent
 	}
 	if req.IBAN != nil {
 		normalized := normalizeIBAN(*req.IBAN)

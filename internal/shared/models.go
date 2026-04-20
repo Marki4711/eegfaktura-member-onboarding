@@ -66,7 +66,6 @@ type Application struct {
 	PrivacyVersion       *string           `json:"privacyVersion,omitempty" db:"privacy_version"`
 	PrivacyAcceptedAt    *time.Time        `json:"privacyAcceptedAt,omitempty" db:"privacy_accepted_at"`
 	AccuracyConfirmed    bool              `json:"accuracyConfirmed" db:"accuracy_confirmed"`
-	CommunicationConsent    bool              `json:"communicationConsent" db:"communication_consent"`
 	IBAN                    *string           `json:"iban,omitempty" db:"iban"`
 	AccountHolder           *string           `json:"accountHolder,omitempty" db:"account_holder"`
 	SepaMandateAccepted     bool              `json:"sepaMandateAccepted" db:"sepa_mandate_accepted"`
