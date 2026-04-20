@@ -24,6 +24,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { MeteringPointFields } from "./metering-point-fields";
 import { MaskedInput } from "@/components/ui/masked-input";
 import { isValidIBAN } from "ibantools";
@@ -32,10 +34,18 @@ import {
   submitApplication,
   ApiResponseError,
   type RegistrationConfig,
+  type MemberType,
 } from "@/lib/api";
 
 // Hardcoded for MVP — matches backend default
 const PRIVACY_VERSION = "2026-01";
+
+const MEMBER_TYPE_OPTIONS: { value: MemberType; label: string; hint: string }[] = [
+  { value: "private",      label: "Privat / Kleinunternehmer", hint: "0 % USt." },
+  { value: "farmer",       label: "Pauschalierter Landwirt",   hint: "13 % USt." },
+  { value: "municipality", label: "Gemeinde",                  hint: "variabel" },
+  { value: "company",      label: "Unternehmen / Verein",      hint: "20 % USt." },
+];
 
 // ---------- Zod schema ----------
 
@@ -48,38 +58,68 @@ const meteringPointSchema = z.object({
   direction: z.enum(["CONSUMPTION", "PRODUCTION"]),
 });
 
-const formSchema = z.object({
-  firstname: z.string().trim().min(1, "Vorname ist erforderlich").max(255),
-  lastname: z.string().trim().min(1, "Nachname ist erforderlich").max(255),
-  birthDate: z.string().optional(),
-  email: z.string().trim().email("Ungültige E-Mail-Adresse"),
-  phone: z.string().trim().optional(),
-  residentStreet: z.string().trim().min(1, "Straße ist erforderlich").max(255),
-  residentStreetNumber: z.string().trim().min(1, "Hausnummer ist erforderlich").max(50),
-  residentZip: z.string().trim().min(1, "PLZ ist erforderlich").max(20),
-  residentCity: z.string().trim().min(1, "Ort ist erforderlich").max(255),
-  iban: z
-    .string()
-    .min(1, "IBAN ist erforderlich")
-    .transform((v) => v.replace(/\s/g, "").toUpperCase())
-    .refine((v) => isValidIBAN(v), {
-      message: "Ungültige IBAN",
+const formSchema = z
+  .object({
+    memberType: z.enum(["private", "farmer", "municipality", "company"] as const),
+    firstname: z.string().trim().max(255).optional(),
+    lastname: z.string().trim().max(255).optional(),
+    birthDate: z.string().optional(),
+    companyName: z.string().trim().max(255).optional(),
+    uidNumber: z.string().trim().max(50).optional(),
+    registerNumber: z.string().trim().max(50).optional(),
+    email: z.string().trim().email("Ungültige E-Mail-Adresse"),
+    phone: z.string().trim().optional(),
+    residentStreet: z.string().trim().min(1, "Straße ist erforderlich").max(255),
+    residentStreetNumber: z.string().trim().min(1, "Hausnummer ist erforderlich").max(50),
+    residentZip: z.string().trim().min(1, "PLZ ist erforderlich").max(20),
+    residentCity: z.string().trim().min(1, "Ort ist erforderlich").max(255),
+    iban: z
+      .string()
+      .min(1, "IBAN ist erforderlich")
+      .transform((v) => v.replace(/\s/g, "").toUpperCase())
+      .refine((v) => isValidIBAN(v), { message: "Ungültige IBAN" }),
+    accountHolder: z.string().trim().min(1, "Kontoinhaber ist erforderlich").max(255),
+    privacyAccepted: z.boolean().refine((v) => v === true, {
+      message: "Datenschutzerklärung muss akzeptiert werden",
     }),
-  accountHolder: z.string().trim().min(1, "Kontoinhaber ist erforderlich").max(255),
-  privacyAccepted: z.boolean().refine((v) => v === true, {
-    message: "Datenschutzerklärung muss akzeptiert werden",
-  }),
-  accuracyConfirmed: z.boolean().refine((v) => v === true, {
-    message: "Richtigkeit der Angaben muss bestätigt werden",
-  }),
-  sepaMandateAccepted: z.boolean().refine((v) => v === true, {
-    message: "Zustimmung zum SEPA-Lastschriftmandat ist erforderlich",
-  }),
-  meteringPoints: z
-    .array(meteringPointSchema)
-    .min(1, "Mindestens ein Zählpunkt ist erforderlich")
-    .max(10, "Maximal 10 Zählpunkte erlaubt"),
-});
+    accuracyConfirmed: z.boolean().refine((v) => v === true, {
+      message: "Richtigkeit der Angaben muss bestätigt werden",
+    }),
+    sepaMandateAccepted: z.boolean().refine((v) => v === true, {
+      message: "Zustimmung zum SEPA-Lastschriftmandat ist erforderlich",
+    }),
+    meteringPoints: z
+      .array(meteringPointSchema)
+      .min(1, "Mindestens ein Zählpunkt ist erforderlich")
+      .max(10, "Maximal 10 Zählpunkte erlaubt"),
+  })
+  .superRefine((data, ctx) => {
+    const isPerson = data.memberType === "private" || data.memberType === "farmer";
+    if (isPerson) {
+      if (!data.firstname?.trim()) {
+        ctx.addIssue({ code: "custom", path: ["firstname"], message: "Vorname ist erforderlich" });
+      }
+      if (!data.lastname?.trim()) {
+        ctx.addIssue({ code: "custom", path: ["lastname"], message: "Nachname ist erforderlich" });
+      }
+      if (!data.birthDate) {
+        ctx.addIssue({ code: "custom", path: ["birthDate"], message: "Geburtsdatum ist erforderlich" });
+      }
+    } else {
+      const orgLabel = data.memberType === "municipality" ? "Organisationsname" : "Firmenname";
+      if (!data.companyName?.trim()) {
+        ctx.addIssue({ code: "custom", path: ["companyName"], message: `${orgLabel} ist erforderlich` });
+      }
+      if (data.memberType === "company") {
+        if (!data.uidNumber?.trim()) {
+          ctx.addIssue({ code: "custom", path: ["uidNumber"], message: "UID-Nummer ist erforderlich" });
+        }
+        if (!data.registerNumber?.trim()) {
+          ctx.addIssue({ code: "custom", path: ["registerNumber"], message: "Firmenbuch-/Vereinsnummer ist erforderlich" });
+        }
+      }
+    }
+  });
 
 export type RegistrationFormValues = z.infer<typeof formSchema>;
 
@@ -102,9 +142,13 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
   const form = useForm<RegistrationFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      memberType: "private",
       firstname: "",
       lastname: "",
       birthDate: "",
+      companyName: "",
+      uidNumber: "",
+      registerNumber: "",
       email: "",
       phone: "",
       residentStreet: "",
@@ -120,16 +164,41 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
     },
   });
 
+  const memberType = form.watch("memberType");
+  const isPerson = memberType === "private" || memberType === "farmer";
+
+  function onMemberTypeChange(value: MemberType) {
+    form.setValue("memberType", value);
+    // Clear fields from the other group so stale data is not submitted
+    if (value === "private" || value === "farmer") {
+      form.setValue("companyName", "");
+      form.setValue("uidNumber", "");
+      form.setValue("registerNumber", "");
+      form.clearErrors(["companyName", "uidNumber", "registerNumber"]);
+    } else {
+      form.setValue("firstname", "");
+      form.setValue("lastname", "");
+      form.setValue("birthDate", "");
+      form.clearErrors(["firstname", "lastname", "birthDate"]);
+    }
+  }
+
   async function onSubmit(values: RegistrationFormValues) {
     setIsSubmitting(true);
     setApiError(null);
 
+    const isPersonType = values.memberType === "private" || values.memberType === "farmer";
+
     try {
       const app = await createApplication({
         rcNumber: config.rcNumber,
-        firstname: values.firstname,
-        lastname: values.lastname,
-        birthDate: values.birthDate || undefined,
+        memberType: values.memberType,
+        firstname: isPersonType ? values.firstname || undefined : undefined,
+        lastname: isPersonType ? values.lastname || undefined : undefined,
+        birthDate: isPersonType ? values.birthDate || undefined : undefined,
+        companyName: !isPersonType ? values.companyName || undefined : undefined,
+        uidNumber: !isPersonType ? values.uidNumber || undefined : undefined,
+        registerNumber: !isPersonType ? values.registerNumber || undefined : undefined,
         email: values.email,
         phone: values.phone || undefined,
         residentStreet: values.residentStreet,
@@ -155,7 +224,6 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
       if (err instanceof ApiResponseError) {
         const { code, message, fields } = err.apiError;
 
-        // Surface per-field errors back into the form
         if (fields) {
           const knownFields = Object.keys(form.getValues()) as Array<
             keyof RegistrationFormValues
@@ -235,56 +303,162 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
           </Alert>
         )}
 
-        {/* Personal data */}
+        {/* Member type */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Persönliche Daten</CardTitle>
+            <CardTitle className="text-base">Mitgliedstyp</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FormField
+              control={form.control}
+              name="memberType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <RadioGroup
+                      value={field.value}
+                      onValueChange={(v) => onMemberTypeChange(v as MemberType)}
+                      className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+                    >
+                      {MEMBER_TYPE_OPTIONS.map((opt) => (
+                        <Label
+                          key={opt.value}
+                          htmlFor={`mt-${opt.value}`}
+                          className={`flex items-start gap-3 rounded-lg border p-4 cursor-pointer transition-colors ${
+                            field.value === opt.value
+                              ? "border-primary bg-primary/5"
+                              : "border-border hover:bg-muted/50"
+                          }`}
+                        >
+                          <RadioGroupItem
+                            id={`mt-${opt.value}`}
+                            value={opt.value}
+                            className="mt-0.5 shrink-0"
+                          />
+                          <div>
+                            <span className="text-sm font-medium">{opt.label}</span>
+                            <span className="block text-xs text-muted-foreground">{opt.hint}</span>
+                          </div>
+                        </Label>
+                      ))}
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Member / organisation data */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              {isPerson ? "Persönliche Daten" : "Organisationsdaten"}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="firstname"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Vorname *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Max" autoComplete="given-name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="lastname"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nachname *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Mustermann" autoComplete="family-name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="birthDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Geburtsdatum</FormLabel>
-                    <FormControl>
-                      <Input type="date" autoComplete="bday" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            {isPerson ? (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="firstname"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Vorname *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Max" autoComplete="given-name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="lastname"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nachname *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Mustermann" autoComplete="family-name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="birthDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Geburtsdatum *</FormLabel>
+                        <FormControl>
+                          <Input type="date" autoComplete="bday" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <FormField
+                  control={form.control}
+                  name="companyName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {memberType === "municipality" ? "Organisationsname *" : "Firmenname *"}
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder={memberType === "municipality" ? "Gemeinde Musterort" : "Muster GmbH"}
+                          autoComplete="organization"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="uidNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          UID-Nummer{memberType === "company" ? " *" : ""}
+                        </FormLabel>
+                        <FormControl>
+                          <Input placeholder="ATU12345678" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {memberType === "company" && (
+                    <FormField
+                      control={form.control}
+                      name="registerNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Firmenbuch-/Vereinsnummer *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="FN 123456 a" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                </div>
+              </>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
@@ -394,7 +568,6 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                 />
               </div>
             </div>
-
           </CardContent>
         </Card>
 

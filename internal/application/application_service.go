@@ -98,9 +98,13 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 		RCNumber:              strings.TrimSpace(req.RCNumber),
 		Status:                shared.StatusDraft,
 		StartedAt:             &now,
-		Firstname:             strings.TrimSpace(req.Firstname),
-		Lastname:              strings.TrimSpace(req.Lastname),
+		MemberType:            shared.MemberType(strings.TrimSpace(req.MemberType)),
+		Firstname:             trimStringPtr(req.Firstname),
+		Lastname:              trimStringPtr(req.Lastname),
 		BirthDate:             birthDate,
+		CompanyName:           trimStringPtr(req.CompanyName),
+		UIDNumber:             trimStringPtr(req.UIDNumber),
+		RegisterNumber:        trimStringPtr(req.RegisterNumber),
 		Email:                 strings.TrimSpace(req.Email),
 		Phone:                 phone,
 		ResidentStreet:        strings.TrimSpace(req.ResidentStreet),
@@ -117,6 +121,10 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 		SepaMandateAcceptedAt: sepaMandateAcceptedAt,
 		CreatedAt:             now,
 		UpdatedAt:             now,
+	}
+	clearMemberTypeFields(app)
+	if err = validateMemberTypeFields(app); err != nil {
+		return nil, err
 	}
 
 	tx, err := s.db.Begin()
@@ -172,11 +180,23 @@ func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateAp
 		return nil, shared.ErrConflict
 	}
 
+	if req.MemberType != nil {
+		app.MemberType = shared.MemberType(strings.TrimSpace(*req.MemberType))
+	}
 	if req.Firstname != nil {
-		app.Firstname = strings.TrimSpace(*req.Firstname)
+		app.Firstname = trimStringPtr(req.Firstname)
 	}
 	if req.Lastname != nil {
-		app.Lastname = strings.TrimSpace(*req.Lastname)
+		app.Lastname = trimStringPtr(req.Lastname)
+	}
+	if req.CompanyName != nil {
+		app.CompanyName = trimStringPtr(req.CompanyName)
+	}
+	if req.UIDNumber != nil {
+		app.UIDNumber = trimStringPtr(req.UIDNumber)
+	}
+	if req.RegisterNumber != nil {
+		app.RegisterNumber = trimStringPtr(req.RegisterNumber)
 	}
 	if req.BirthDate != nil {
 		bd, bdErr := parseDateString(req.BirthDate)
@@ -232,6 +252,11 @@ func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateAp
 			now := time.Now()
 			app.SepaMandateAcceptedAt = &now
 		}
+	}
+
+	clearMemberTypeFields(app)
+	if err = validateMemberTypeFields(app); err != nil {
+		return nil, err
 	}
 
 	var meteringPoints []shared.MeteringPoint
@@ -313,6 +338,9 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID) (*shared.SubmitResp
 		return nil, shared.NewValidationError("Validation failed", map[string]string{
 			"accountHolder": "Kontoinhaber ist erforderlich",
 		})
+	}
+	if err = validateMemberTypeFields(app); err != nil {
+		return nil, err
 	}
 
 	meteringPoints, err := s.meteringRepo.GetByApplicationID(id)
@@ -416,4 +444,62 @@ func validateIBAN(iban string) bool {
 		remainder = (remainder*10 + int(ch-'0')) % 97
 	}
 	return remainder == 1
+}
+
+// clearMemberTypeFields nils out fields not applicable to the current member type.
+func clearMemberTypeFields(app *shared.Application) {
+	switch app.MemberType {
+	case shared.MemberTypePrivate, shared.MemberTypeFarmer:
+		app.CompanyName = nil
+		app.UIDNumber = nil
+		app.RegisterNumber = nil
+	case shared.MemberTypeMunicipality, shared.MemberTypeCompany:
+		app.Firstname = nil
+		app.Lastname = nil
+		app.BirthDate = nil
+	}
+}
+
+// validateMemberTypeFields checks that all required fields for the member type are present.
+func validateMemberTypeFields(app *shared.Application) error {
+	switch app.MemberType {
+	case shared.MemberTypePrivate, shared.MemberTypeFarmer:
+		if app.Firstname == nil || strings.TrimSpace(*app.Firstname) == "" {
+			return shared.NewValidationError("Validation failed", map[string]string{
+				"firstname": "Vorname ist erforderlich",
+			})
+		}
+		if app.Lastname == nil || strings.TrimSpace(*app.Lastname) == "" {
+			return shared.NewValidationError("Validation failed", map[string]string{
+				"lastname": "Nachname ist erforderlich",
+			})
+		}
+	case shared.MemberTypeMunicipality:
+		if app.CompanyName == nil || strings.TrimSpace(*app.CompanyName) == "" {
+			return shared.NewValidationError("Validation failed", map[string]string{
+				"companyName": "Organisationsname ist erforderlich",
+			})
+		}
+	case shared.MemberTypeCompany:
+		if app.CompanyName == nil || strings.TrimSpace(*app.CompanyName) == "" {
+			return shared.NewValidationError("Validation failed", map[string]string{
+				"companyName": "Firmenname ist erforderlich",
+			})
+		}
+		if app.UIDNumber == nil || strings.TrimSpace(*app.UIDNumber) == "" {
+			return shared.NewValidationError("Validation failed", map[string]string{
+				"uidNumber": "UID-Nummer ist erforderlich",
+			})
+		}
+		if app.RegisterNumber == nil || strings.TrimSpace(*app.RegisterNumber) == "" {
+			return shared.NewValidationError("Validation failed", map[string]string{
+				"registerNumber": "Firmenbuch-/Vereinsnummer ist erforderlich",
+			})
+		}
+	default:
+		return shared.NewValidationError("Validation failed", map[string]string{
+			"memberType": "Ungültiger Mitgliedstyp",
+		})
+	}
+	return nil
 }

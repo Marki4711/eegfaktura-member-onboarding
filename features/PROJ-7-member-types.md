@@ -1,6 +1,6 @@
 # PROJ-7: Mitgliedstypen
 
-**Status:** 🔵 Architected
+**Status:** 🟡 In Progress
 **Created:** 2026-04-20
 **Last Updated:** 2026-04-20
 

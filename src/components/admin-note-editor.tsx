@@ -34,8 +34,8 @@ export function AdminNoteEditor({ application, onRefresh }: Props) {
     setError(null);
     try {
       await updateApplication(application.id, {
-        firstname: application.firstname,
-        lastname: application.lastname,
+        firstname: application.firstname ?? undefined,
+        lastname: application.lastname ?? undefined,
         birthDate: application.birthDate?.slice(0, 10) ?? undefined,
         email: application.email,
         phone: application.phone ?? undefined,

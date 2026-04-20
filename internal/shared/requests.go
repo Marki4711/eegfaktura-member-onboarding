@@ -11,9 +11,13 @@ import (
 // CreateApplicationRequest represents the request to create a new application
 type CreateApplicationRequest struct {
 	RCNumber             string                      `json:"rcNumber" validate:"required"`
-	Firstname            string                      `json:"firstname" validate:"required,min=1,max=255"`
-	Lastname             string                      `json:"lastname" validate:"required,min=1,max=255"`
+	MemberType           string                      `json:"memberType" validate:"required,oneof=private farmer municipality company"`
+	Firstname            *string                     `json:"firstname,omitempty" validate:"omitempty,min=1,max=255"`
+	Lastname             *string                     `json:"lastname,omitempty" validate:"omitempty,min=1,max=255"`
 	BirthDate            *string                     `json:"birthDate,omitempty"`
+	CompanyName          *string                     `json:"companyName,omitempty" validate:"omitempty,min=1,max=255"`
+	UIDNumber            *string                     `json:"uidNumber,omitempty" validate:"omitempty,max=50"`
+	RegisterNumber       *string                     `json:"registerNumber,omitempty" validate:"omitempty,max=50"`
 	Email                string                      `json:"email" validate:"required,email"`
 	Phone                *string                     `json:"phone,omitempty"`
 	ResidentStreet       string                      `json:"residentStreet" validate:"required,min=1,max=255"`
@@ -37,9 +41,13 @@ type CreateMeteringPointRequest struct {
 
 // UpdateApplicationRequest represents the request to update an application
 type UpdateApplicationRequest struct {
+	MemberType           *string                     `json:"memberType,omitempty" validate:"omitempty,oneof=private farmer municipality company"`
 	Firstname            *string                     `json:"firstname,omitempty" validate:"omitempty,min=1,max=255"`
 	Lastname             *string                     `json:"lastname,omitempty" validate:"omitempty,min=1,max=255"`
 	BirthDate            *string                     `json:"birthDate,omitempty"`
+	CompanyName          *string                     `json:"companyName,omitempty" validate:"omitempty,min=1,max=255"`
+	UIDNumber            *string                     `json:"uidNumber,omitempty" validate:"omitempty,max=50"`
+	RegisterNumber       *string                     `json:"registerNumber,omitempty" validate:"omitempty,max=50"`
 	Email                *string                     `json:"email,omitempty" validate:"omitempty,email"`
 	Phone                *string                     `json:"phone,omitempty"`
 	ResidentStreet       *string                     `json:"residentStreet,omitempty" validate:"omitempty,min=1,max=255"`
@@ -88,9 +96,13 @@ type SubmitResponse struct {
 // Unlike the public update it exposes AdminNote and omits consent fields
 // (privacyAccepted, accuracyConfirmed, etc.) which only the public user sets.
 type AdminUpdateApplicationRequest struct {
+	MemberType           *string                      `json:"memberType,omitempty" validate:"omitempty,oneof=private farmer municipality company"`
 	Firstname            *string                      `json:"firstname,omitempty" validate:"omitempty,min=1,max=255"`
 	Lastname             *string                      `json:"lastname,omitempty" validate:"omitempty,min=1,max=255"`
 	BirthDate            *string                      `json:"birthDate,omitempty"`
+	CompanyName          *string                      `json:"companyName,omitempty" validate:"omitempty,min=1,max=255"`
+	UIDNumber            *string                      `json:"uidNumber,omitempty" validate:"omitempty,max=50"`
+	RegisterNumber       *string                      `json:"registerNumber,omitempty" validate:"omitempty,max=50"`
 	Email                *string                      `json:"email,omitempty" validate:"omitempty,email"`
 	Phone                *string                      `json:"phone,omitempty"`
 	ResidentStreet       *string                      `json:"residentStreet,omitempty" validate:"omitempty,min=1,max=255"`
@@ -116,8 +128,10 @@ type ApplicationListItem struct {
 	EEGID           *string    `json:"eegId"`
 	RCNumber        string     `json:"rcNumber"`
 	Status          string     `json:"status"`
-	Firstname       string     `json:"firstname"`
-	Lastname        string     `json:"lastname"`
+	MemberType      string     `json:"memberType"`
+	Firstname       *string    `json:"firstname,omitempty"`
+	Lastname        *string    `json:"lastname,omitempty"`
+	CompanyName     *string    `json:"companyName,omitempty"`
 	Email           string     `json:"email"`
 	SubmittedAt     *time.Time `json:"submittedAt"`
 	MeteringPoints  []string   `json:"meteringPoints"`

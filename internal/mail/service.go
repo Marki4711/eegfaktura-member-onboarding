@@ -64,8 +64,8 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 	// Member confirmation
 	var memberBuf bytes.Buffer
 	if err := s.memberTpl.Execute(&memberBuf, memberTemplateData{
-		Firstname:       app.Firstname,
-		Lastname:        app.Lastname,
+		Firstname:       derefString(app.Firstname),
+		Lastname:        derefString(app.Lastname),
 		ReferenceNumber: app.ReferenceNumber,
 	}); err != nil {
 		log.Printf("mail: failed to render member template for application %s: %v", app.ID, err)
@@ -81,10 +81,13 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 		return
 	}
 
+	firstname := derefString(app.Firstname)
+	lastname := derefString(app.Lastname)
+
 	var eegBuf bytes.Buffer
 	if err := s.eegTpl.Execute(&eegBuf, eegTemplateData{
-		Firstname:       app.Firstname,
-		Lastname:        app.Lastname,
+		Firstname:       firstname,
+		Lastname:        lastname,
 		Email:           app.Email,
 		ReferenceNumber: app.ReferenceNumber,
 		MeteringPoints:  meteringPoints,
@@ -93,8 +96,15 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 		return
 	}
 
-	subject := fmt.Sprintf("Neuer Beitrittsantrag: %s %s (%s)", app.Firstname, app.Lastname, app.ReferenceNumber)
+	subject := fmt.Sprintf("Neuer Beitrittsantrag: %s %s (%s)", firstname, lastname, app.ReferenceNumber)
 	if err := s.sender.Send(*entrypoint.ContactEmail, subject, eegBuf.String()); err != nil {
 		log.Printf("mail: failed to send eeg notification for application %s: %v", app.ID, err)
 	}
+}
+
+func derefString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }

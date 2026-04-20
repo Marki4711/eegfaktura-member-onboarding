@@ -127,7 +127,9 @@ export function AdminApplicationTable({
                   {item.referenceNumber}
                 </TableCell>
                 <TableCell>
-                  {item.firstname} {item.lastname}
+                  {item.memberType === "private" || item.memberType === "farmer"
+                    ? `${item.firstname ?? ""} ${item.lastname ?? ""}`.trim()
+                    : (item.companyName ?? "")}
                 </TableCell>
                 <TableCell className="text-sm">{item.email}</TableCell>
                 <TableCell>
