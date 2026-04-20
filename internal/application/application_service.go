@@ -3,6 +3,7 @@ package application
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -79,29 +80,39 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 	privacyAcceptedAt := now
 	eegID := ep.EEGID
 
+	iban := normalizeIBAN(req.IBAN)
+	var sepaMandateAcceptedAt *time.Time
+	if req.SepaMandateAccepted {
+		sepaMandateAcceptedAt = &now
+	}
+
 	app := &shared.Application{
-		ReferenceNumber:      s.generateReferenceNumber(),
-		EEGID:                &eegID,
-		RCNumber:             req.RCNumber,
-		Status:               shared.StatusDraft,
-		StartedAt:            &now,
-		Firstname:            req.Firstname,
-		Lastname:             req.Lastname,
-		BirthDate:            birthDate,
-		Email:                req.Email,
-		Phone:                req.Phone,
-		ResidentStreet:       req.ResidentStreet,
-		ResidentStreetNumber: req.ResidentStreetNumber,
-		ResidentZip:          req.ResidentZip,
-		ResidentCity:         req.ResidentCity,
-		ResidentCountry:      req.ResidentCountry,
-		PrivacyAccepted:      req.PrivacyAccepted,
-		PrivacyVersion:       &req.PrivacyVersion,
-		PrivacyAcceptedAt:    &privacyAcceptedAt,
-		AccuracyConfirmed:    req.AccuracyConfirmed,
-		CommunicationConsent: req.CommunicationConsent,
-		CreatedAt:            now,
-		UpdatedAt:            now,
+		ReferenceNumber:       s.generateReferenceNumber(),
+		EEGID:                 &eegID,
+		RCNumber:              req.RCNumber,
+		Status:                shared.StatusDraft,
+		StartedAt:             &now,
+		Firstname:             req.Firstname,
+		Lastname:              req.Lastname,
+		BirthDate:             birthDate,
+		Email:                 req.Email,
+		Phone:                 req.Phone,
+		ResidentStreet:        req.ResidentStreet,
+		ResidentStreetNumber:  req.ResidentStreetNumber,
+		ResidentZip:           req.ResidentZip,
+		ResidentCity:          req.ResidentCity,
+		ResidentCountry:       req.ResidentCountry,
+		PrivacyAccepted:       req.PrivacyAccepted,
+		PrivacyVersion:        &req.PrivacyVersion,
+		PrivacyAcceptedAt:     &privacyAcceptedAt,
+		AccuracyConfirmed:     req.AccuracyConfirmed,
+		CommunicationConsent:  req.CommunicationConsent,
+		IBAN:                  &iban,
+		AccountHolder:         &req.AccountHolder,
+		SepaMandateAccepted:   req.SepaMandateAccepted,
+		SepaMandateAcceptedAt: sepaMandateAcceptedAt,
+		CreatedAt:             now,
+		UpdatedAt:             now,
 	}
 
 	tx, err := s.db.Begin()
@@ -205,6 +216,20 @@ func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateAp
 	if req.CommunicationConsent != nil {
 		app.CommunicationConsent = *req.CommunicationConsent
 	}
+	if req.IBAN != nil {
+		normalized := normalizeIBAN(*req.IBAN)
+		app.IBAN = &normalized
+	}
+	if req.AccountHolder != nil {
+		app.AccountHolder = req.AccountHolder
+	}
+	if req.SepaMandateAccepted != nil {
+		app.SepaMandateAccepted = *req.SepaMandateAccepted
+		if *req.SepaMandateAccepted && app.SepaMandateAcceptedAt == nil {
+			now := time.Now()
+			app.SepaMandateAcceptedAt = &now
+		}
+	}
 
 	var meteringPoints []shared.MeteringPoint
 	if req.MeteringPoints != nil {
@@ -271,6 +296,21 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID) (*shared.SubmitResp
 			"general": "Privacy consent and accuracy confirmation required for submission",
 		})
 	}
+	if !app.SepaMandateAccepted {
+		return nil, shared.NewValidationError("Validation failed", map[string]string{
+			"sepaMandateAccepted": "SEPA-Lastschriftmandat muss akzeptiert werden",
+		})
+	}
+	if app.IBAN == nil || *app.IBAN == "" {
+		return nil, shared.NewValidationError("Validation failed", map[string]string{
+			"iban": "IBAN ist erforderlich",
+		})
+	}
+	if app.AccountHolder == nil || *app.AccountHolder == "" {
+		return nil, shared.NewValidationError("Validation failed", map[string]string{
+			"accountHolder": "Kontoinhaber ist erforderlich",
+		})
+	}
 
 	meteringPoints, err := s.meteringRepo.GetByApplicationID(id)
 	if err != nil {
@@ -333,4 +373,10 @@ func parseDateString(s *string) (*time.Time, error) {
 func (s *ApplicationService) generateReferenceNumber() string {
 	now := time.Now()
 	return fmt.Sprintf("MO-%s-%06d", now.Format("2006"), now.Unix()%1000000)
+}
+
+// normalizeIBAN strips whitespace and uppercases an IBAN string.
+func normalizeIBAN(iban string) string {
+	result := strings.ToUpper(strings.ReplaceAll(iban, " ", ""))
+	return result
 }

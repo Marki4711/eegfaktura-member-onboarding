@@ -39,6 +39,9 @@ export interface CreateApplicationRequest {
   privacyVersion: string;
   accuracyConfirmed: boolean;
   communicationConsent: boolean;
+  iban: string;
+  accountHolder: string;
+  sepaMandateAccepted: boolean;
   meteringPoints: MeteringPointRequest[];
 }
 
@@ -195,6 +198,10 @@ export interface AdminApplicationDetail {
   privacyAcceptedAt: string | null;
   accuracyConfirmed: boolean;
   communicationConsent: boolean;
+  iban: string | null;
+  accountHolder: string | null;
+  sepaMandateAccepted: boolean;
+  sepaMandateAcceptedAt: string | null;
   adminNote: string | null;
   needsInfoReason: string | null;
   targetParticipantId: string | null;

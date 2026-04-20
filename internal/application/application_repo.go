@@ -29,13 +29,15 @@ func (r *ApplicationRepository) Create(app *shared.Application) error {
 			firstname, lastname, birth_date, email, phone,
 			resident_street, resident_street_number, resident_zip, resident_city, resident_country,
 			privacy_accepted, privacy_version, privacy_accepted_at, accuracy_confirmed, communication_consent,
+			iban, account_holder, sepa_mandate_accepted, sepa_mandate_accepted_at,
 			created_at, updated_at
 		) VALUES (
 			$1, $2, $3, $4, $5,
 			$6, $7, $8, $9, $10,
 			$11, $12, $13, $14, $15,
 			$16, $17, $18, $19, $20,
-			$21, $22
+			$21, $22, $23, $24,
+			$25, $26
 		) RETURNING id`
 
 	now := app.CreatedAt
@@ -44,6 +46,7 @@ func (r *ApplicationRepository) Create(app *shared.Application) error {
 		app.Firstname, app.Lastname, app.BirthDate, app.Email, app.Phone,
 		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity, app.ResidentCountry,
 		app.PrivacyAccepted, app.PrivacyVersion, &now, app.AccuracyConfirmed, app.CommunicationConsent,
+		app.IBAN, app.AccountHolder, app.SepaMandateAccepted, app.SepaMandateAcceptedAt,
 		app.CreatedAt, app.UpdatedAt,
 	}
 
@@ -63,13 +66,15 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 			firstname, lastname, birth_date, email, phone,
 			resident_street, resident_street_number, resident_zip, resident_city, resident_country,
 			privacy_accepted, privacy_version, privacy_accepted_at, accuracy_confirmed, communication_consent,
+			iban, account_holder, sepa_mandate_accepted, sepa_mandate_accepted_at,
 			created_at, updated_at
 		) VALUES (
 			$1, $2, $3, $4, $5,
 			$6, $7, $8, $9, $10,
 			$11, $12, $13, $14, $15,
 			$16, $17, $18, $19, $20,
-			$21, $22
+			$21, $22, $23, $24,
+			$25, $26
 		) RETURNING id`
 
 	now := app.CreatedAt
@@ -78,6 +83,7 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 		app.Firstname, app.Lastname, app.BirthDate, app.Email, app.Phone,
 		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity, app.ResidentCountry,
 		app.PrivacyAccepted, app.PrivacyVersion, &now, app.AccuracyConfirmed, app.CommunicationConsent,
+		app.IBAN, app.AccountHolder, app.SepaMandateAccepted, app.SepaMandateAcceptedAt,
 		app.CreatedAt, app.UpdatedAt,
 	}
 
@@ -95,22 +101,24 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		       approved_at, rejected_at, imported_at, firstname, lastname, birth_date, email, phone,
 		       resident_street, resident_street_number, resident_zip, resident_city, resident_country,
 		       privacy_accepted, privacy_version, privacy_accepted_at, accuracy_confirmed, communication_consent,
+		       iban, account_holder, sepa_mandate_accepted, sepa_mandate_accepted_at,
 		       reviewed_by_user_id, admin_note, needs_info_reason, target_participant_id,
 		       import_started_at, import_finished_at, import_error_message, created_at, updated_at
 		FROM member_onboarding.application
 		WHERE id = $1`
 
 	app := &shared.Application{}
-	var eegID, phone, privacyVersion, reviewedByUserID, adminNote, needsInfoReason, targetParticipantID, importErrorMessage sql.NullString
-	var birthDate, startedAt, submittedAt, approvedAt, rejectedAt, importedAt, privacyAcceptedAt, importStartedAt, importFinishedAt sql.NullTime
+	var eegID, phone, privacyVersion, iban, accountHolder, reviewedByUserID, adminNote, needsInfoReason, targetParticipantID, importErrorMessage sql.NullString
+	var birthDate, startedAt, submittedAt, approvedAt, rejectedAt, importedAt, privacyAcceptedAt, sepaMandateAcceptedAt, importStartedAt, importFinishedAt sql.NullTime
 
 	err := r.db.QueryRow(query, id).Scan(
 		&app.ID, &app.ReferenceNumber, &eegID, &app.RCNumber, &app.Status, &startedAt,
 		&submittedAt, &approvedAt, &rejectedAt, &importedAt, &app.Firstname, &app.Lastname, &birthDate,
 		&app.Email, &phone, &app.ResidentStreet, &app.ResidentStreetNumber, &app.ResidentZip,
 		&app.ResidentCity, &app.ResidentCountry, &app.PrivacyAccepted, &privacyVersion,
-		&privacyAcceptedAt, &app.AccuracyConfirmed, &app.CommunicationConsent, &reviewedByUserID,
-		&adminNote, &needsInfoReason, &targetParticipantID, &importStartedAt, &importFinishedAt,
+		&privacyAcceptedAt, &app.AccuracyConfirmed, &app.CommunicationConsent,
+		&iban, &accountHolder, &app.SepaMandateAccepted, &sepaMandateAcceptedAt,
+		&reviewedByUserID, &adminNote, &needsInfoReason, &targetParticipantID, &importStartedAt, &importFinishedAt,
 		&importErrorMessage, &app.CreatedAt, &app.UpdatedAt,
 	)
 	if err != nil {
@@ -144,6 +152,15 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	}
 	if importErrorMessage.Valid {
 		app.ImportErrorMessage = &importErrorMessage.String
+	}
+	if iban.Valid {
+		app.IBAN = &iban.String
+	}
+	if accountHolder.Valid {
+		app.AccountHolder = &accountHolder.String
+	}
+	if sepaMandateAcceptedAt.Valid {
+		app.SepaMandateAcceptedAt = &sepaMandateAcceptedAt.Time
 	}
 	if birthDate.Valid {
 		app.BirthDate = &birthDate.Time
@@ -184,13 +201,15 @@ func (r *ApplicationRepository) Update(app *shared.Application) error {
 			resident_street = $6, resident_street_number = $7, resident_zip = $8,
 			resident_city = $9, resident_country = $10, privacy_accepted = $11,
 			privacy_version = $12, accuracy_confirmed = $13, communication_consent = $14,
+			iban = $15, account_holder = $16, sepa_mandate_accepted = $17, sepa_mandate_accepted_at = $18,
 			updated_at = NOW()
-		WHERE id = $15`
+		WHERE id = $19`
 
 	_, err := r.db.Exec(query,
 		app.Firstname, app.Lastname, app.BirthDate, app.Email, app.Phone,
 		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity, app.ResidentCountry,
 		app.PrivacyAccepted, app.PrivacyVersion, app.AccuracyConfirmed, app.CommunicationConsent,
+		app.IBAN, app.AccountHolder, app.SepaMandateAccepted, app.SepaMandateAcceptedAt,
 		app.ID,
 	)
 	if err != nil {
@@ -208,13 +227,15 @@ func (r *ApplicationRepository) UpdateTx(tx *sql.Tx, app *shared.Application) er
 			resident_street = $6, resident_street_number = $7, resident_zip = $8,
 			resident_city = $9, resident_country = $10, privacy_accepted = $11,
 			privacy_version = $12, accuracy_confirmed = $13, communication_consent = $14,
+			iban = $15, account_holder = $16, sepa_mandate_accepted = $17, sepa_mandate_accepted_at = $18,
 			updated_at = NOW()
-		WHERE id = $15`
+		WHERE id = $19`
 
 	_, err := tx.Exec(query,
 		app.Firstname, app.Lastname, app.BirthDate, app.Email, app.Phone,
 		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity, app.ResidentCountry,
 		app.PrivacyAccepted, app.PrivacyVersion, app.AccuracyConfirmed, app.CommunicationConsent,
+		app.IBAN, app.AccountHolder, app.SepaMandateAccepted, app.SepaMandateAcceptedAt,
 		app.ID,
 	)
 	if err != nil {
@@ -348,13 +369,14 @@ func (r *ApplicationRepository) UpdateAdminTx(tx *sql.Tx, app *shared.Applicatio
 			firstname = $1, lastname = $2, birth_date = $3, email = $4, phone = $5,
 			resident_street = $6, resident_street_number = $7, resident_zip = $8,
 			resident_city = $9, resident_country = $10, admin_note = $11,
+			iban = $12, account_holder = $13,
 			updated_at = NOW()
-		WHERE id = $12`
+		WHERE id = $14`
 
 	_, err := tx.Exec(query,
 		app.Firstname, app.Lastname, app.BirthDate, app.Email, app.Phone,
 		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity, app.ResidentCountry,
-		app.AdminNote,
+		app.AdminNote, app.IBAN, app.AccountHolder,
 		app.ID,
 	)
 	if err != nil {

@@ -195,6 +195,21 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
           </CardContent>
         </Card>
 
+        {/* Bank account */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Bankverbindung</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <Field label="IBAN" value={application.iban} />
+              <Field label="Kontoinhaber" value={application.accountHolder} />
+              <BoolField label="SEPA-Mandat akzeptiert" value={application.sepaMandateAccepted} />
+              <Field label="SEPA-Mandat akzeptiert am" value={formatDateTime(application.sepaMandateAcceptedAt)} />
+            </dl>
+          </CardContent>
+        </Card>
+
         {/* Consent */}
         <Card>
           <CardHeader>
