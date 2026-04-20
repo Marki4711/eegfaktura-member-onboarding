@@ -16,11 +16,11 @@ import { getApplicationDetail, ApiResponseError } from "@/lib/api";
 import type { AdminApplicationDetail, MemberType } from "@/lib/api";
 
 const MEMBER_TYPE_LABELS: Record<MemberType, string> = {
-  private:      "Privatperson",
+  private:      "Privatperson / Kleinunternehmer",
   farmer:       "Pauschalierter Landwirt",
   municipality: "Gemeinde / öffentl. Körperschaft",
   company:      "Unternehmen",
-  association:  "Verein / Kleinunternehmer",
+  association:  "Verein",
 };
 
 interface Props {
@@ -228,7 +228,7 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
           <CardContent>
             <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <Field label="IBAN" value={application.iban} />
-              <Field label="Kontoinhaber" value={application.accountHolder} />
+              <Field label="Kontoinhaber:in" value={application.accountHolder} />
               <BoolField label="SEPA-Mandat akzeptiert" value={application.sepaMandateAccepted} />
               <Field label="SEPA-Mandat akzeptiert am" value={formatDateTime(application.sepaMandateAcceptedAt)} />
             </dl>
