@@ -40,6 +40,10 @@ spec:
               value: disable
             - name: CORS_ALLOWED_ORIGINS
               value: {{ .Values.backend.corsAllowedOrigins | quote }}
+            - name: KEYCLOAK_JWKS_URL
+              value: {{ .Values.backend.keycloakJwksUrl | quote }}
+            - name: KEYCLOAK_ISSUER
+              value: {{ .Values.backend.keycloakIssuer | quote }}
             - name: SMTP_HOST
               value: {{ .Values.backend.smtp.host | quote }}
             - name: SMTP_PORT
