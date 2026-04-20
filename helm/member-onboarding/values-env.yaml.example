@@ -48,6 +48,11 @@ frontend:
   # Log-Level für den Next.js Node.js Server-Prozess: debug | info | warn | error
   logLevel: "info"
 
+  # Interne Kubernetes-URL des Backend-Service (für SSR-Requests vom Frontend-Pod)
+  # Format: http://<release-name>-backend:8080
+  # Beispiel: http://eegfaktura-member-onboarding-backend:8080
+  backendUrl: "http://RELEASE-NAME-backend:8080"
+
 # ── Backend ────────────────────────────────────────────────────────────────────
 backend:
   # Anzahl der Backend-Pods (horizontal scaling)

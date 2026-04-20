@@ -32,6 +32,8 @@ spec:
               value: "0.0.0.0"
             - name: LOG_LEVEL
               value: {{ .Values.frontend.logLevel | default "info" | quote }}
+            - name: BACKEND_URL
+              value: {{ .Values.frontend.backendUrl | quote }}
           readinessProbe:
             httpGet:
               path: /

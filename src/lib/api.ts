@@ -1,4 +1,13 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+// Server-side (SSR/Node.js): use BACKEND_URL (runtime env var, set in Helm)
+// Client-side (browser): use NEXT_PUBLIC_API_URL (baked at build) or "" for relative URLs via ingress
+function getBaseUrl(): string {
+  if (typeof window === "undefined") {
+    return process.env.BACKEND_URL ?? "http://localhost:8080";
+  }
+  return process.env.NEXT_PUBLIC_API_URL ?? "";
+}
+
+const API_URL = getBaseUrl();
 
 // ---------- response shapes ----------
 
