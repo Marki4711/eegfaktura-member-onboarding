@@ -33,6 +33,7 @@ postgres:
 backend:
   replicas: 1
   corsAllowedOrigins: "https://member-onboarding-test.eegfaktura.at"
+  logLevel: "INFO"   # DEBUG | INFO | WARN | ERROR
   smtp:
     host: ""       # leave empty to disable mail sending (NoOpMailService)
     port: "587"
