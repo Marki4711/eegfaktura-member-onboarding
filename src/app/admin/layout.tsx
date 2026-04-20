@@ -1,11 +1,46 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
 import { Toaster } from "@/components/ui/sonner";
+import { AdminLogoutButton } from "@/components/admin-logout-button";
+import { authOptions, hasAdminAccess, isSuperuser } from "@/lib/auth";
 
-export default function AdminLayout({
+function getBaseUrl(): string {
+  return process.env.BACKEND_URL ?? "http://localhost:8080";
+}
+
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await getServerSession(authOptions);
+
+  if (!session) {
+    redirect("/api/auth/signin");
+  }
+
+  if (!hasAdminAccess(session.roles ?? [], session.tenant ?? [])) {
+    redirect("/admin/unauthorized");
+  }
+
+  // Trigger sync for tenant-admins once per server render (idempotent via ON CONFLICT DO NOTHING)
+  if (
+    session.accessToken &&
+    !isSuperuser(session.roles ?? []) &&
+    (session.tenant ?? []).length > 0
+  ) {
+    fetch(`${getBaseUrl()}/api/admin/sync`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${session.accessToken}` },
+    }).catch(() => {/* ignore sync errors */});
+  }
+
+  const username =
+    (session as unknown as { user?: { name?: string; email?: string } })?.user?.name ??
+    (session as unknown as { user?: { name?: string; email?: string } })?.user?.email ??
+    "Admin";
+
   return (
     <div className="min-h-screen bg-background">
       <header className="bg-card border-b border-border">
@@ -29,6 +64,7 @@ export default function AdminLayout({
               Anträge
             </Link>
           </nav>
+          <AdminLogoutButton username={username} />
         </div>
       </header>
       <main className="max-w-7xl mx-auto px-6 py-8">{children}</main>

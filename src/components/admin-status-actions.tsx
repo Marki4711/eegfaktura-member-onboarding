@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -37,6 +38,7 @@ const DIALOG_LABELS: Record<DialogTarget, { title: string; placeholder: string; 
 };
 
 export function AdminStatusActions({ applicationId, status, onRefresh }: Props) {
+  const { data: session } = useSession();
   const [dialogTarget, setDialogTarget] = useState<DialogTarget | null>(null);
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
@@ -65,7 +67,7 @@ export function AdminStatusActions({ applicationId, status, onRefresh }: Props) 
     setError(null);
     setIsConflict(false);
     try {
-      await changeApplicationStatus(applicationId, { toStatus });
+      await changeApplicationStatus(applicationId, { toStatus }, session?.accessToken);
       toast.success("Status erfolgreich geändert");
       onRefresh();
     } catch (err: unknown) {
@@ -96,7 +98,7 @@ export function AdminStatusActions({ applicationId, status, onRefresh }: Props) 
       await changeApplicationStatus(applicationId, {
         toStatus: dialogTarget,
         reason: reason.trim(),
-      });
+      }, session?.accessToken);
       toast.success("Status erfolgreich geändert");
       closeDialog();
       onRefresh();

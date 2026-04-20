@@ -105,6 +105,36 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   }) as Promise<T>;
 }
 
+// ---------- admin request helper (adds Bearer token when present) ----------
+
+async function adminRequest<T>(
+  path: string,
+  token: string | undefined,
+  options?: RequestInit
+): Promise<T> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(`${API_URL}${path}`, {
+    headers,
+    ...options,
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({
+      code: "internal_error",
+      message: "Ein unbekannter Fehler ist aufgetreten.",
+    }));
+    throw new ApiResponseError(body as ApiError);
+  }
+
+  return res.json().catch(() => {
+    throw new ApiResponseError({
+      code: "internal_error",
+      message: "Die Antwort des Servers konnte nicht verarbeitet werden.",
+    });
+  }) as Promise<T>;
+}
+
 // ---------- public API ----------
 
 export function getRegistrationConfig(
@@ -268,7 +298,8 @@ export interface ListApplicationsParams {
 // ---------- admin API ----------
 
 export function listApplications(
-  params: ListApplicationsParams
+  params: ListApplicationsParams,
+  token?: string
 ): Promise<ApplicationListResponse> {
   const qs = new URLSearchParams();
   if (params.status) qs.set("status", params.status);
@@ -282,20 +313,22 @@ export function listApplications(
   if (params.page) qs.set("page", String(params.page));
   if (params.page_size) qs.set("page_size", String(params.page_size));
   const query = qs.toString();
-  return request<ApplicationListResponse>(
-    `/api/admin/applications${query ? `?${query}` : ""}`
+  return adminRequest<ApplicationListResponse>(
+    `/api/admin/applications${query ? `?${query}` : ""}`,
+    token
   );
 }
 
-export function getApplicationDetail(id: string): Promise<AdminApplicationDetail> {
-  return request<AdminApplicationDetail>(`/api/admin/applications/${id}`);
+export function getApplicationDetail(id: string, token?: string): Promise<AdminApplicationDetail> {
+  return adminRequest<AdminApplicationDetail>(`/api/admin/applications/${id}`, token);
 }
 
 export function updateApplication(
   id: string,
-  data: AdminUpdateApplicationRequest
+  data: AdminUpdateApplicationRequest,
+  token?: string
 ): Promise<AdminUpdateResponse> {
-  return request<AdminUpdateResponse>(`/api/admin/applications/${id}`, {
+  return adminRequest<AdminUpdateResponse>(`/api/admin/applications/${id}`, token, {
     method: "PUT",
     body: JSON.stringify(data),
   });
@@ -303,13 +336,19 @@ export function updateApplication(
 
 export function changeApplicationStatus(
   id: string,
-  req: ChangeStatusRequest
+  req: ChangeStatusRequest,
+  token?: string
 ): Promise<ChangeStatusResponse> {
-  return request<ChangeStatusResponse>(
+  return adminRequest<ChangeStatusResponse>(
     `/api/admin/applications/${id}/status`,
+    token,
     {
       method: "POST",
       body: JSON.stringify(req),
     }
   );
+}
+
+export function syncEntrypoints(token?: string): Promise<void> {
+  return adminRequest<void>("/api/admin/sync", token, { method: "POST" });
 }

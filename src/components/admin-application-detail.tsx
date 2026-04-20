@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -71,6 +72,7 @@ function BoolField({ label, value }: { label: string; value: boolean }) {
 
 export function AdminApplicationDetail({ id, returnTo }: Props) {
   const router = useRouter();
+  const { data: session } = useSession();
   const [application, setApplication] = useState<AdminApplicationDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -82,7 +84,7 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
     setError(null);
     setNotFound(false);
     try {
-      const data = await getApplicationDetail(id);
+      const data = await getApplicationDetail(id, session?.accessToken);
       setApplication(data);
     } catch (err: unknown) {
       if (err instanceof ApiResponseError && err.apiError.code === "not_found") {
@@ -94,7 +96,7 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, session?.accessToken]);
 
   useEffect(() => {
     fetchApplication();
