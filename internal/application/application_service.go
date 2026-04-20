@@ -91,28 +91,29 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 		sepaMandateAcceptedAt = &now
 	}
 
+	phone := trimStringPtr(req.Phone)
 	app := &shared.Application{
 		ReferenceNumber:       s.generateReferenceNumber(),
 		EEGID:                 &eegID,
-		RCNumber:              req.RCNumber,
+		RCNumber:              strings.TrimSpace(req.RCNumber),
 		Status:                shared.StatusDraft,
 		StartedAt:             &now,
-		Firstname:             req.Firstname,
-		Lastname:              req.Lastname,
+		Firstname:             strings.TrimSpace(req.Firstname),
+		Lastname:              strings.TrimSpace(req.Lastname),
 		BirthDate:             birthDate,
-		Email:                 req.Email,
-		Phone:                 req.Phone,
-		ResidentStreet:        req.ResidentStreet,
-		ResidentStreetNumber:  req.ResidentStreetNumber,
-		ResidentZip:           req.ResidentZip,
-		ResidentCity:          req.ResidentCity,
-		ResidentCountry:       req.ResidentCountry,
+		Email:                 strings.TrimSpace(req.Email),
+		Phone:                 phone,
+		ResidentStreet:        strings.TrimSpace(req.ResidentStreet),
+		ResidentStreetNumber:  strings.TrimSpace(req.ResidentStreetNumber),
+		ResidentZip:           strings.TrimSpace(req.ResidentZip),
+		ResidentCity:          strings.TrimSpace(req.ResidentCity),
+		ResidentCountry:       strings.TrimSpace(req.ResidentCountry),
 		PrivacyAccepted:       req.PrivacyAccepted,
 		PrivacyVersion:        &req.PrivacyVersion,
 		PrivacyAcceptedAt:     &privacyAcceptedAt,
 		AccuracyConfirmed:     req.AccuracyConfirmed,
 		IBAN:                  &iban,
-		AccountHolder:         &req.AccountHolder,
+		AccountHolder:         func() *string { s := strings.TrimSpace(req.AccountHolder); return &s }(),
 		SepaMandateAccepted:   req.SepaMandateAccepted,
 		SepaMandateAcceptedAt: sepaMandateAcceptedAt,
 		CreatedAt:             now,
@@ -173,10 +174,10 @@ func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateAp
 	}
 
 	if req.Firstname != nil {
-		app.Firstname = *req.Firstname
+		app.Firstname = strings.TrimSpace(*req.Firstname)
 	}
 	if req.Lastname != nil {
-		app.Lastname = *req.Lastname
+		app.Lastname = strings.TrimSpace(*req.Lastname)
 	}
 	if req.BirthDate != nil {
 		bd, bdErr := parseDateString(req.BirthDate)
@@ -188,25 +189,25 @@ func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateAp
 		app.BirthDate = bd
 	}
 	if req.Email != nil {
-		app.Email = *req.Email
+		app.Email = strings.TrimSpace(*req.Email)
 	}
 	if req.Phone != nil {
-		app.Phone = req.Phone
+		app.Phone = trimStringPtr(req.Phone)
 	}
 	if req.ResidentStreet != nil {
-		app.ResidentStreet = *req.ResidentStreet
+		app.ResidentStreet = strings.TrimSpace(*req.ResidentStreet)
 	}
 	if req.ResidentStreetNumber != nil {
-		app.ResidentStreetNumber = *req.ResidentStreetNumber
+		app.ResidentStreetNumber = strings.TrimSpace(*req.ResidentStreetNumber)
 	}
 	if req.ResidentZip != nil {
-		app.ResidentZip = *req.ResidentZip
+		app.ResidentZip = strings.TrimSpace(*req.ResidentZip)
 	}
 	if req.ResidentCity != nil {
-		app.ResidentCity = *req.ResidentCity
+		app.ResidentCity = strings.TrimSpace(*req.ResidentCity)
 	}
 	if req.ResidentCountry != nil {
-		app.ResidentCountry = *req.ResidentCountry
+		app.ResidentCountry = strings.TrimSpace(*req.ResidentCountry)
 	}
 	if req.PrivacyAccepted != nil {
 		app.PrivacyAccepted = *req.PrivacyAccepted
@@ -227,7 +228,7 @@ func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateAp
 		app.IBAN = &normalized
 	}
 	if req.AccountHolder != nil {
-		app.AccountHolder = req.AccountHolder
+		app.AccountHolder = trimStringPtr(req.AccountHolder)
 	}
 	if req.SepaMandateAccepted != nil {
 		app.SepaMandateAccepted = *req.SepaMandateAccepted
@@ -379,6 +380,15 @@ func parseDateString(s *string) (*time.Time, error) {
 func (s *ApplicationService) generateReferenceNumber() string {
 	now := time.Now()
 	return fmt.Sprintf("MO-%s-%06d", now.Format("2006"), now.Unix()%1000000)
+}
+
+// trimStringPtr trims whitespace from a *string, returning nil if the pointer is nil.
+func trimStringPtr(s *string) *string {
+	if s == nil {
+		return nil
+	}
+	trimmed := strings.TrimSpace(*s)
+	return &trimmed
 }
 
 // normalizeIBAN strips whitespace and uppercases an IBAN string.
