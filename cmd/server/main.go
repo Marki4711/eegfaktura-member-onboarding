@@ -3,7 +3,9 @@ package main
 import (
 	"database/sql"
 	"log"
+	"log/slog"
 	"net/http"
+	"os"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -16,6 +18,20 @@ import (
 )
 
 func main() {
+	// Structured JSON logging — level configurable via LOG_LEVEL env var
+	logLevel := slog.LevelInfo
+	switch os.Getenv("LOG_LEVEL") {
+	case "DEBUG", "debug":
+		logLevel = slog.LevelDebug
+	case "WARN", "warn":
+		logLevel = slog.LevelWarn
+	case "ERROR", "error":
+		logLevel = slog.LevelError
+	}
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: logLevel,
+	})))
+
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
@@ -34,7 +50,7 @@ func main() {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
 
-	log.Println("Connected to database")
+	slog.Info("connected to database")
 
 	// Initialize repositories
 	appRepo := application.NewApplicationRepository(db)
@@ -54,7 +70,7 @@ func main() {
 			log.Fatalf("Failed to initialize mail service: %v", err)
 		}
 		mailService = svc
-		log.Printf("Mail service enabled (SMTP host: %s)", cfg.SMTP.Host)
+		slog.Info("mail service enabled", "smtp_host", cfg.SMTP.Host)
 	}
 
 	// Initialize services
@@ -66,21 +82,19 @@ func main() {
 	registrationHandler := internalhttp.NewRegistrationHandler(registrationService)
 	applicationHandler := internalhttp.NewApplicationHandler(applicationService)
 	adminHandler := internalhttp.NewAdminHandler(adminService)
+	healthHandler := internalhttp.NewHealthHandler(db)
 
 	// Setup routes
 	r := chi.NewRouter()
 
 	// Middleware
 	r.Use(internalhttp.CORSMiddleware(cfg.CORS.AllowedOrigins))
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
 	r.Use(middleware.RequestID)
+	r.Use(internalhttp.SlogRequestLogger)
+	r.Use(middleware.Recoverer)
 
 	// Health check
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
-	})
+	r.Get("/health", healthHandler.Health)
 
 	// API routes
 	r.Route("/api/public", func(r chi.Router) {
@@ -113,8 +127,8 @@ func main() {
 
 	// Start server
 	addr := ":" + cfg.Server.Port
-	log.Printf("Starting server on %s", addr)
+	slog.Info("starting server", "addr", addr)
 	if err := http.ListenAndServe(addr, r); err != nil {
-		log.Fatalf("Server failed to start: %v", err)
+		log.Fatalf("server failed to start: %v", err)
 	}
 }

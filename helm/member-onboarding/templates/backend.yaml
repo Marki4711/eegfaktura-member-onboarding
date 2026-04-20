@@ -26,6 +26,8 @@ spec:
           env:
             - name: PORT
               value: "8080"
+            - name: LOG_LEVEL
+              value: {{ .Values.backend.logLevel | quote }}
             - name: DB_HOST
               value: {{ include "member-onboarding.fullname" . }}-postgres
             - name: DB_PORT

@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -146,6 +147,7 @@ func (h *ApplicationHandler) handleServiceError(w http.ResponseWriter, err error
 		case shared.ErrConflict:
 			h.writeError(w, shared.NewErrorResponse(shared.ErrConflict))
 		default:
+			slog.Error("internal error", "error", err)
 			h.writeError(w, shared.NewErrorResponse(shared.ErrInternal))
 		}
 	}
