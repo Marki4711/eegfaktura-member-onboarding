@@ -1,6 +1,6 @@
 # PROJ-7: Mitgliedstypen
 
-**Status:** 🟡 In Progress
+**Status:** 🔴 In Review
 **Created:** 2026-04-20
 **Last Updated:** 2026-04-20
 
@@ -288,6 +288,137 @@ Alle benötigten UI-Komponenten (RadioGroup, Tabs, Input, Select) sind bereits i
 3. **Frontend** — MemberTypeSelector, Formularänderungen, Admin-Ansichten
 
 Backend und Frontend können nach den Migrationen parallel bearbeitet werden, da die API-Typen vorab festgelegt sind.
+
+---
+
+## QA Test Results
+
+**QA Date:** 2026-04-20
+**Tester:** Claude QA Engineer
+
+### Automated Tests
+
+| Suite | Result |
+|-------|--------|
+| Go unit tests (`internal/application`) | ✅ 19/19 passed |
+| Go mail tests (`internal/mail`) | ✅ 6/6 passed (fixed regression: `*string` fields) |
+| TypeScript compilation (`tsc --noEmit`) | ✅ clean |
+| Go build (`go build ./...`) | ✅ clean |
+| E2E tests (`npm run test:e2e`) | ⚠️ written, require running dev server + seeded DB |
+| Vitest (`npm test`) | ⚠️ pre-existing env issue (missing `rolldown-binding.win32-x64-msvc.node`), not caused by PROJ-7 |
+
+### Acceptance Criteria
+
+#### Formular: Typ-Auswahl
+| # | Criterion | Result |
+|---|-----------|--------|
+| AC-1 | 4 Typ-Optionen am Formularbeginn | ✅ PASS |
+| AC-2 | Standardauswahl „Privat / Kleinunternehmer" | ✅ PASS |
+| AC-3 | Klar beschriftet inkl. USt.-Hinweis | ✅ PASS |
+| AC-4 | Felder passen sich dynamisch an | ✅ PASS |
+
+#### Formular: Felder je Typ
+| # | Criterion | Result |
+|---|-----------|--------|
+| AC-5 | `private`/`farmer`: Vorname/Nachname/Geburtsdatum sichtbar und Pflicht | ✅ PASS |
+| AC-6 | `municipality`: Organisationsname Pflicht, UID optional, Person-Felder versteckt | ✅ PASS |
+| AC-7 | `company`: Firmenname/UID/Reg.Nr. Pflicht, Person-Felder versteckt | ✅ PASS |
+| AC-8 | Typ-Wechsel setzt typspezifische Felder zurück | ✅ PASS |
+
+#### Backend: Validierung
+| # | Criterion | Result |
+|---|-----------|--------|
+| AC-9 | `member_type` Pflichtfeld mit 4 erlaubten Werten | ✅ PASS |
+| AC-10 | Server-seitige Validierung typ-abhängig in Create/Update/Submit | ✅ PASS |
+| AC-11 | `company`: uid_number + register_number Pflicht | ✅ PASS |
+| AC-12 | `municipality`: uid_number optional | ✅ PASS |
+| AC-13 | `private`/`farmer`: company_name/uid/register_number ignoriert (clearMemberTypeFields) | ✅ PASS |
+| AC-14 | `municipality`/`company`: firstname/lastname/birthDate ignoriert | ✅ PASS |
+| AC-15 | Ungültiger member_type → 400 | ✅ PASS (`oneof` validator + `default` branch in validateMemberTypeFields) |
+| AC-16 | `birth_date` Pflicht für `private`/`farmer` im Backend | ❌ FAIL — **BUG-1** |
+
+#### Backend: Persistenz
+| # | Criterion | Result |
+|---|-----------|--------|
+| AC-17 | `member_type` in DB gespeichert | ✅ PASS |
+| AC-18 | `company_name`/`uid_number`/`register_number` nullable gespeichert | ✅ PASS |
+| AC-19 | `firstname`/`lastname` DB nullable | ✅ PASS |
+| AC-20 | Migration setzt Default `private` für Bestandsdaten | ✅ PASS |
+
+#### Admin: Detailansicht
+| # | Criterion | Result |
+|---|-----------|--------|
+| AC-21 | Mitgliedstyp als lesbares Label sichtbar | ✅ PASS |
+| AC-22 | Org-Felder für municipality/company, Person-Felder für private/farmer | ✅ PASS |
+
+#### Admin: Bearbeitungsformular
+| # | Criterion | Result |
+|---|-----------|--------|
+| AC-23 | Admin-Edit zeigt dem Typ entsprechende Felder | ✅ PASS |
+| AC-24 | Admin kann Mitgliedstyp ändern | ✅ PASS (UI + backend) |
+| AC-25 | AdminUpdateApplication validiert Pflichtfelder nach Typ-Wechsel | ❌ FAIL — **BUG-2** |
+
+### Bugs Found
+
+#### BUG-1 — Medium: Backend validiert `birth_date` nicht als Pflichtfeld für `private`/`farmer`
+
+**Severity:** Medium
+**Component:** `internal/application/application_service.go` — `validateMemberTypeFields`
+**Description:** Laut Spec muss `birth_date` für `private` und `farmer` serverseitig Pflichtfeld sein. Die Funktion `validateMemberTypeFields` prüft nur `firstname` und `lastname`, nicht aber `birth_date`. Ein direkter API-Aufruf ohne `birthDate` (unter Umgehung des Frontends) wird akzeptiert.
+**Steps to reproduce:**
+```bash
+POST /api/public/applications
+{ "memberType": "private", "firstname": "Max", "lastname": "Muster",
+  "email": "x@x.at", "residentStreet": "A", "residentStreetNumber": "1",
+  "residentZip": "4020", "residentCity": "Linz", "iban": "AT611904300234573201",
+  "accountHolder": "Max", "sepaMandateAccepted": true, "privacyAccepted": true,
+  "privacyVersion": "2026-01", "accuracyConfirmed": true, "rcNumber": "...",
+  "meteringPoints": [{"meteringPoint": "AT003100000000000000000000000001", "direction": "CONSUMPTION"}] }
+```
+→ Erwartet: 400 Validation Error für `birthDate`
+→ Tatsächlich: 201 Created
+**Fix:** In `validateMemberTypeFields`, für `private`/`farmer` auch `app.BirthDate == nil` prüfen.
+
+#### BUG-2 — Medium: `AdminUpdateApplication` ruft `validateMemberTypeFields` nicht auf
+
+**Severity:** Medium
+**Component:** `internal/application/admin_service.go` — `AdminUpdateApplication`
+**Description:** `clearMemberTypeFields` wird aufgerufen, aber `validateMemberTypeFields` nicht. Ein Admin kann den Typ auf `private` ändern ohne firstname/lastname zu liefern — die Daten werden ohne Validierung gespeichert.
+**Steps to reproduce:**
+```bash
+PUT /api/admin/applications/{id}
+{ "memberType": "private", "email": "x@x.at", "residentStreet": "A", ... }
+# kein firstname/lastname
+```
+→ Erwartet: 400 Validation Error
+→ Tatsächlich: 200 OK, Antrag mit memberType=private aber firstname=null
+**Fix:** Nach `clearMemberTypeFields(app)` in `AdminUpdateApplication` auch `validateMemberTypeFields(app)` aufrufen und bei Fehler abbrechen.
+
+#### BUG-3 — Low: Pre-existing regression: `internal/mail/service_test.go` brach durch `*string`-Umstellung
+
+**Severity:** Low (bereits behoben im QA-Lauf)
+**Component:** `internal/mail/service_test.go`
+**Description:** Test verwendete `Firstname: "Josef"` statt `Firstname: &fn` nach der Umstellung auf `*string`. Im QA-Lauf direkt gefixt.
+**Status:** ✅ Bereits behoben
+
+### Security Audit
+
+- **Injection:** Alle String-Eingaben werden via `strings.TrimSpace` bereinigt und über parametrisierte SQL-Abfragen (`$1, $2, ...`) eingefügt. Kein SQL-Injection-Risiko.
+- **Input validation:** `member_type` wird mit `oneof`-Validator eingeschränkt. Keine freien Enum-Werte möglich.
+- **Data leakage:** `uidNumber` und `registerNumber` sind sensible Geschäftsdaten. Sie werden nur über den Admin-Endpunkt (authentifiziert) exponiert — kein öffentlicher Endpunkt liefert diese Felder zurück.
+- **Mass assignment:** `clearMemberTypeFields` verhindert, dass ein `company`-Antrag trotz Typ-Wechsel Personendaten behält (serverseitig bereinigt).
+
+### Regression
+
+- PROJ-1 (Public Registration): Formular-Grundstruktur unverändert, neuer MemberType-Block ist additiv. ✅
+- PROJ-2/3 (Admin Review/Frontend): Admin-Liste und Detail nutzen jetzt nullable Felder korrekt. ✅ Kein Datenverlust bei Altanträgen (DEFAULT `private`).
+- PROJ-6 (E-Mail): `derefString`-Hilfsfunktion verhindert nil-panic für Org-Typen. ✅
+
+### Production-Ready Decision
+
+**NOT READY** — 2 Medium-Bugs müssen zuerst behoben werden:
+- BUG-1: `birth_date` serverseitig als Pflichtfeld für `private`/`farmer`
+- BUG-2: `validateMemberTypeFields` in AdminUpdateApplication fehlt
 
 ---
 
