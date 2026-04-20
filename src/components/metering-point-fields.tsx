@@ -3,7 +3,7 @@
 import { useFieldArray, type UseFormReturn } from "react-hook-form";
 import { PlusCircle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { MaskedInput } from "@/components/ui/masked-input";
 import {
   FormControl,
   FormField,
@@ -42,9 +42,15 @@ export function MeteringPointFields({ form }: MeteringPointFieldsProps) {
                 <FormItem>
                   <FormLabel>Zählpunkt {index + 1}</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="AT0031000000000000000000990022105"
-                      {...field}
+                    <MaskedInput
+                      mask="AT 000000 00000 000000000000 00000000"
+                      lazy={false}
+                      prepareChar={(str: string) => str.toUpperCase()}
+                      value={field.value}
+                      onAccept={(value: string) => field.onChange(value)}
+                      onBlur={field.onBlur}
+                      inputRef={field.ref}
+                      name={field.name}
                     />
                   </FormControl>
                   <FormMessage />
