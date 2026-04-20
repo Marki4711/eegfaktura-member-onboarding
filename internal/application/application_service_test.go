@@ -2,6 +2,7 @@ package application
 
 import (
 	"testing"
+	"time"
 
 	"github.com/your-org/eegfaktura-member-onboarding/internal/shared"
 )
@@ -27,6 +28,8 @@ func TestValidateMemberTypeFields_Private_Valid(t *testing.T) {
 	app := baseApp(shared.MemberTypePrivate)
 	app.Firstname = strPtr("Max")
 	app.Lastname = strPtr("Mustermann")
+	bd := time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC)
+	app.BirthDate = &bd
 	if err := validateMemberTypeFields(app); err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
@@ -57,6 +60,16 @@ func TestValidateMemberTypeFields_Private_MissingLastname(t *testing.T) {
 	}
 }
 
+func TestValidateMemberTypeFields_Private_MissingBirthDate(t *testing.T) {
+	app := baseApp(shared.MemberTypePrivate)
+	app.Firstname = strPtr("Max")
+	app.Lastname = strPtr("Mustermann")
+	// BirthDate intentionally nil
+	if err := validateMemberTypeFields(app); err == nil {
+		t.Fatal("expected validation error for missing birthDate (BUG-1 regression)")
+	}
+}
+
 func TestValidateMemberTypeFields_Private_EmptyFirstname(t *testing.T) {
 	app := baseApp(shared.MemberTypePrivate)
 	app.Firstname = strPtr("   ")
@@ -70,6 +83,8 @@ func TestValidateMemberTypeFields_Farmer_Valid(t *testing.T) {
 	app := baseApp(shared.MemberTypeFarmer)
 	app.Firstname = strPtr("Anna")
 	app.Lastname = strPtr("Bauer")
+	bd := time.Date(1975, 6, 15, 0, 0, 0, 0, time.UTC)
+	app.BirthDate = &bd
 	if err := validateMemberTypeFields(app); err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
