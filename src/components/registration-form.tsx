@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MeteringPointFields } from "./metering-point-fields";
+import { MaskedInput } from "@/components/ui/masked-input";
 import { isValidIBAN } from "ibantools";
 import {
   createApplication,
@@ -39,7 +40,11 @@ const PRIVACY_VERSION = "2026-01";
 // ---------- Zod schema ----------
 
 const meteringPointSchema = z.object({
-  meteringPoint: z.string().trim().min(1, "Zählpunkt ist erforderlich").max(33, "Maximal 33 Zeichen"),
+  meteringPoint: z
+    .string()
+    .transform((v) => v.replace(/\s/g, ""))
+    .refine((v) => v.length >= 1, { message: "Zählpunkt ist erforderlich" })
+    .refine((v) => v.length <= 33, { message: "Maximal 33 Zeichen" }),
   direction: z.enum(["CONSUMPTION", "PRODUCTION"]),
 });
 
@@ -434,13 +439,17 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                   <FormItem>
                     <FormLabel>IBAN *</FormLabel>
                     <FormControl>
-                      <Input
+                      <MaskedInput
+                        mask="aa00 0000 0000 0000 0000"
+                        lazy={false}
+                        prepareChar={(str: string) => str.toUpperCase()}
                         placeholder="AT12 3456 7890 1234 5678"
                         autoComplete="off"
-                        {...field}
-                        onChange={(e) =>
-                          field.onChange(e.target.value.toUpperCase())
-                        }
+                        value={field.value}
+                        onAccept={(value: string) => field.onChange(value)}
+                        onBlur={field.onBlur}
+                        inputRef={field.ref}
+                        name={field.name}
                       />
                     </FormControl>
                     <FormMessage />
