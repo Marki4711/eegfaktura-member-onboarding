@@ -55,6 +55,14 @@ const formSchema = z.object({
   residentCountry: z
     .string()
     .length(2, "Ländercode muss genau 2 Zeichen haben (z.B. AT)"),
+  iban: z
+    .string()
+    .min(1, "IBAN ist erforderlich")
+    .transform((v) => v.replace(/\s/g, "").toUpperCase())
+    .refine((v) => /^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(v), {
+      message: "Ungültiges IBAN-Format",
+    }),
+  accountHolder: z.string().min(1, "Kontoinhaber ist erforderlich").max(255),
   privacyAccepted: z.boolean().refine((v) => v === true, {
     message: "Datenschutzerklärung muss akzeptiert werden",
   }),
@@ -62,6 +70,9 @@ const formSchema = z.object({
     message: "Richtigkeit der Angaben muss bestätigt werden",
   }),
   communicationConsent: z.boolean(),
+  sepaMandateAccepted: z.boolean().refine((v) => v === true, {
+    message: "Zustimmung zum SEPA-Lastschriftmandat ist erforderlich",
+  }),
   meteringPoints: z
     .array(meteringPointSchema)
     .min(1, "Mindestens ein Zählpunkt ist erforderlich")
@@ -99,9 +110,12 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
       residentZip: "",
       residentCity: "",
       residentCountry: "AT",
+      iban: "",
+      accountHolder: "",
       privacyAccepted: false,
       accuracyConfirmed: false,
       communicationConsent: false,
+      sepaMandateAccepted: false,
       meteringPoints: [{ meteringPoint: "", direction: "CONSUMPTION" }],
     },
   });
@@ -127,6 +141,9 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
         privacyVersion: PRIVACY_VERSION,
         accuracyConfirmed: values.accuracyConfirmed,
         communicationConsent: values.communicationConsent,
+        iban: values.iban,
+        accountHolder: values.accountHolder,
+        sepaMandateAccepted: values.sepaMandateAccepted,
         meteringPoints: values.meteringPoints,
       });
 
@@ -404,6 +421,50 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
           </CardContent>
         </Card>
 
+        {/* Bank account / SEPA */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Bankverbindung</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="iban"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>IBAN *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="AT12 3456 7890 1234 5678"
+                        autoComplete="off"
+                        {...field}
+                        onChange={(e) =>
+                          field.onChange(e.target.value.toUpperCase())
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="accountHolder"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Kontoinhaber *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Max Mustermann" autoComplete="name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Metering points */}
         <Card>
           <CardHeader>
@@ -460,6 +521,28 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                   <div className="space-y-1 leading-none">
                     <FormLabel className="font-normal cursor-pointer">
                       Ich bestätige die Richtigkeit meiner Angaben. *
+                    </FormLabel>
+                    <FormMessage />
+                  </div>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="sepaMandateAccepted"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start gap-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel className="font-normal cursor-pointer">
+                      Ich erteile der Energiegemeinschaft ein SEPA-Lastschriftmandat
+                      und stimme dem Einzug fälliger Rechnungsbeträge von meinem
+                      angegebenen Konto zu. *
                     </FormLabel>
                     <FormMessage />
                   </div>

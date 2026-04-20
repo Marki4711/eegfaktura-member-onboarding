@@ -16,7 +16,6 @@ Nicht Teil des Modells:
 - Dokumente
 - Tarife
 - Rollenpflege
-- Kontoinformationen
 - abweichende Zählpunktadressen
 - JSON-Felder
 
@@ -93,6 +92,10 @@ Felder:
 - `privacy_accepted_at`
 - `accuracy_confirmed`
 - `communication_consent`
+- `iban`
+- `account_holder`
+- `sepa_mandate_accepted`
+- `sepa_mandate_accepted_at`
 - `reviewed_by_user_id`
 - `admin_note`
 - `needs_info_reason`

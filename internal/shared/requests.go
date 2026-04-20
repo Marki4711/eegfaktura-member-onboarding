@@ -25,6 +25,9 @@ type CreateApplicationRequest struct {
 	PrivacyVersion       string                      `json:"privacyVersion" validate:"required"`
 	AccuracyConfirmed    bool                        `json:"accuracyConfirmed" validate:"required"`
 	CommunicationConsent bool                        `json:"communicationConsent"`
+	IBAN                 string                      `json:"iban" validate:"required,min=15,max=34"`
+	AccountHolder        string                      `json:"accountHolder" validate:"required,min=1,max=255"`
+	SepaMandateAccepted  bool                        `json:"sepaMandateAccepted" validate:"required"`
 	MeteringPoints       []CreateMeteringPointRequest `json:"meteringPoints" validate:"required,min=1,max=10,dive"`
 }
 
@@ -50,6 +53,9 @@ type UpdateApplicationRequest struct {
 	PrivacyVersion       *string                     `json:"privacyVersion,omitempty"`
 	AccuracyConfirmed    *bool                       `json:"accuracyConfirmed,omitempty"`
 	CommunicationConsent *bool                       `json:"communicationConsent,omitempty"`
+	IBAN                 *string                     `json:"iban,omitempty" validate:"omitempty,min=15,max=34"`
+	AccountHolder        *string                     `json:"accountHolder,omitempty" validate:"omitempty,min=1,max=255"`
+	SepaMandateAccepted  *bool                       `json:"sepaMandateAccepted,omitempty"`
 	MeteringPoints       []CreateMeteringPointRequest `json:"meteringPoints,omitempty" validate:"omitempty,min=1,max=10,dive"`
 }
 
@@ -97,6 +103,8 @@ type AdminUpdateApplicationRequest struct {
 	ResidentCity         *string                      `json:"residentCity,omitempty" validate:"omitempty,min=1,max=255"`
 	ResidentCountry      *string                      `json:"residentCountry,omitempty" validate:"omitempty,len=2"`
 	AdminNote            *string                      `json:"adminNote,omitempty"`
+	IBAN                 *string                      `json:"iban,omitempty" validate:"omitempty,min=15,max=34"`
+	AccountHolder        *string                      `json:"accountHolder,omitempty" validate:"omitempty,min=1,max=255"`
 	MeteringPoints       []CreateMeteringPointRequest  `json:"meteringPoints,omitempty" validate:"omitempty,min=1,max=10,dive"`
 }
 

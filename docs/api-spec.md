@@ -113,6 +113,9 @@ Legt einen neuen Antrag an.
   "privacyVersion": "2026-01",
   "accuracyConfirmed": true,
   "communicationConsent": false,
+  "iban": "AT123456789012345678",
+  "accountHolder": "Josef Brandstätter",
+  "sepaMandateAccepted": true,
   "meteringPoints": [
     {
       "meteringPoint": "AT0031000000000000000000990022105",
@@ -138,6 +141,9 @@ Legt einen neuen Antrag an.
 - `privacyAccepted` muss `true` sein
 - `accuracyConfirmed` muss `true` sein
 - `privacyVersion` Pflicht, wenn `privacyAccepted = true`
+- `iban` Pflicht (15–34 Zeichen, Leerzeichen werden normalisiert)
+- `accountHolder` Pflicht
+- `sepaMandateAccepted` muss `true` sein
 
 ### Response 201
 ```json
