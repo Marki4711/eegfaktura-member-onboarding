@@ -104,7 +104,7 @@ export function AdminFilterPanel() {
             value={lastname}
             onChange={(e) => setLastname(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Brandstätter"
+            placeholder="Mustermann"
           />
         </div>
 
