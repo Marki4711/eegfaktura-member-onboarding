@@ -1,6 +1,6 @@
 # PROJ-7: Mitgliedstypen
 
-**Status:** 🔵 Planned
+**Status:** 🔵 Architected
 **Created:** 2026-04-20
 **Last Updated:** 2026-04-20
 
@@ -140,6 +140,156 @@ Vier Mitgliedstypen mit typspezifischen Pflichtfeldern:
 
 - Setzt PROJ-1 (Public Registration) voraus — erweitert dessen Datenmodell und Formular
 - Setzt PROJ-2/PROJ-3 (Admin Review + Frontend) voraus — erweitert Admin-Ansichten
+
+## Tech Design (Solution Architect)
+
+### Übersicht
+
+PROJ-7 ist eine **vertikale Erweiterung** durch alle Schichten: Datenbank → Backend → Frontend. Es werden keine neuen Tabellen angelegt — alle neuen Felder kommen in die bestehende `application`-Tabelle. Die Unterscheidung zwischen Typen steuert ausschließlich die Anwendungslogik, nicht das Datenbankschema.
+
+---
+
+### Datenbankänderungen (2 Migrationen)
+
+**Migration 007a — neue Spalten:**
+- `member_type` (Text, Pflicht, Default: `private`) — speichert einen der vier Werte: `private`, `farmer`, `municipality`, `company`
+- `company_name` (Text, nullable) — Organisationsname für Gemeinde und Unternehmen
+- `uid_number` (Text, nullable) — UID / Umsatzsteuer-ID
+- `register_number` (Text, nullable) — Firmenbuch- oder Vereinsnummer
+
+**Migration 007b — bestehende Spalten anpassen:**
+- `firstname` und `lastname` werden auf **nullable** geändert (waren bisher Pflicht auf DB-Ebene)
+- Alle bestehenden Anträge bekommen `member_type = 'private'` gesetzt (einmaliger UPDATE)
+
+`birth_date` ist bereits nullable — keine Änderung nötig.
+
+---
+
+### Backend-Struktur
+
+#### Datenmodell (`shared/models.go`)
+
+Das `Application`-Struct bekommt fünf neue Felder:
+- `MemberType` (immer gefüllt)
+- `CompanyName` (pointer/nullable)
+- `UIDNumber` (pointer/nullable)
+- `RegisterNumber` (pointer/nullable)
+- `Firstname` und `Lastname` werden von `string` auf pointer/nullable geändert
+
+#### Validierungslogik (`application_service.go`)
+
+Ein neuer, zentraler Helfer `validateMemberTypeFields(app)` kapselt alle typabhängigen Regeln:
+
+```
+private / farmer:
+  → firstname, lastname, birth_date erforderlich
+  → company_name, uid_number, register_number werden ignoriert
+
+municipality:
+  → company_name erforderlich
+  → uid_number optional
+  → firstname, lastname, birth_date werden ignoriert
+
+company:
+  → company_name, uid_number, register_number erforderlich
+  → firstname, lastname, birth_date werden ignoriert
+```
+
+Dieser Helfer wird an drei Stellen aufgerufen:
+1. `CreateApplication` — nach dem Mapping der Request-Felder
+2. `UpdateApplication` — nach dem Anwenden der Änderungen
+3. `SubmitApplication` — als finale Pflichtfeld-Prüfung vor der Statusänderung
+
+#### Request-Structs (`shared/requests.go`)
+
+`CreateApplicationRequest`, `UpdateApplicationRequest` und `AdminUpdateApplicationRequest` erhalten alle vier neuen Felder. `firstname` und `lastname` werden optional (pointer). `member_type` ist in Create ein Pflichtfeld, in Update optional (nur wenn geändert).
+
+#### Datenbank-Queries (`application_repo.go`)
+
+INSERT, SELECT und UPDATE in allen Repository-Methoden um die vier neuen Spalten erweitern. `firstname` und `lastname` werden als nullable behandelt.
+
+---
+
+### Frontend-Struktur
+
+#### Neue Komponente: `MemberTypeSelector`
+
+Ein eigenständiger Block am Beginn des Registrierungsformulars. Zeigt vier wählbare Karten oder Tabs:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Mitgliedstyp                                           │
+│                                                         │
+│  ● Privat / Kleinunternehmer  (0 % USt.)               │
+│  ○ Pauschalierter Landwirt    (13 % USt.)              │
+│  ○ Gemeinde                   (variabel)                │
+│  ○ Unternehmen                (20 % USt.)              │
+└─────────────────────────────────────────────────────────┘
+```
+
+Verwendet die bereits installierte shadcn `RadioGroup`-Komponente.
+
+#### Geänderte Komponente: `registration-form.tsx`
+
+Das Formular beobachtet den ausgewählten Typ und zeigt abhängig davon unterschiedliche Felder an:
+
+```
+RegistrationForm
+├── MemberTypeSelector (neu)
+├── Card: Persönliche Daten / Organisationsdaten
+│   ├── [private/farmer]  Vorname, Nachname, Geburtsdatum
+│   └── [municipality]    Organisationsname, UID (optional)
+│       [company]         Firmenname, UID (Pflicht), Reg.Nr. (Pflicht)
+├── Card: Adresse              (unverändert)
+├── Card: Bankverbindung       (unverändert)
+├── Card: Zählpunkte           (unverändert)
+└── Card: Einwilligungen       (unverändert)
+```
+
+Das Zod-Schema wird auf eine **diskriminierte Union** umgestellt: Der Typ `memberType` bestimmt, welche Felder verpflichtend sind. Das verhindert Validierungsfehler für Felder, die beim aktuellen Typ gar nicht angezeigt werden.
+
+Beim Typ-Wechsel werden alle typspezifischen Felder des vorherigen Typs geleert.
+
+#### Geänderte Komponente: `admin-application-detail.tsx`
+
+Der Bereich „Mitgliedsdaten" zeigt je nach `member_type`:
+
+```
+[private / farmer]             [municipality / company]
+──────────────────             ───────────────────────
+Typ:       Privatperson        Typ:        Unternehmen
+Vorname:   Max                 Name:       Muster GmbH
+Nachname:  Mustermann          UID:        ATU12345678
+Geburtsd.: 01.01.1980          Reg.Nr.:    FN 123456 a
+```
+
+#### Geänderte Komponente: `admin-edit-form.tsx`
+
+Das Admin-Bearbeitungsformular erhält eine Typ-Auswahl (Dropdown oder RadioGroup) und zeigt die entsprechenden Felder dynamisch an — analog zum öffentlichen Formular.
+
+---
+
+### API-Typen (`src/lib/api.ts`)
+
+`CreateApplicationRequest`, `AdminUpdateApplicationRequest` und `AdminApplicationDetail` erhalten die vier neuen Felder. `firstname` und `lastname` werden optional.
+
+---
+
+### Keine neuen Pakete erforderlich
+
+Alle benötigten UI-Komponenten (RadioGroup, Tabs, Input, Select) sind bereits installiert. Keine neuen npm-Pakete notwendig.
+
+---
+
+### Reihenfolge der Implementierung
+
+1. **Datenbank** — Migrationen 007a und 007b
+2. **Backend** — Datenmodell, Validierungshelfer, Request-Structs, Repository-Queries
+3. **Frontend** — MemberTypeSelector, Formularänderungen, Admin-Ansichten
+
+Backend und Frontend können nach den Migrationen parallel bearbeitet werden, da die API-Typen vorab festgelegt sind.
+
+---
 
 ## Definition of Done
 
