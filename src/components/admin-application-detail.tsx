@@ -13,7 +13,14 @@ import { AdminStatusActions } from "@/components/admin-status-actions";
 import { AdminNoteEditor } from "@/components/admin-note-editor";
 import { AdminEditForm } from "@/components/admin-edit-form";
 import { getApplicationDetail, ApiResponseError } from "@/lib/api";
-import type { AdminApplicationDetail } from "@/lib/api";
+import type { AdminApplicationDetail, MemberType } from "@/lib/api";
+
+const MEMBER_TYPE_LABELS: Record<MemberType, string> = {
+  private:      "Privat / Kleinunternehmer",
+  farmer:       "Pauschalierter Landwirt",
+  municipality: "Gemeinde",
+  company:      "Unternehmen / Verein",
+};
 
 interface Props {
   id: string;
@@ -150,7 +157,10 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
             <AdminStatusBadge status={application.status} />
           </div>
           <p className="text-sm text-muted-foreground">
-            {application.firstname} {application.lastname} · {application.email}
+            {application.memberType === "private" || application.memberType === "farmer"
+              ? `${application.firstname ?? ""} ${application.lastname ?? ""}`.trim()
+              : (application.companyName ?? "")}
+            {" · "}{application.email}
           </p>
         </div>
         <Button onClick={() => setEditOpen(true)}>Bearbeiten</Button>
@@ -177,13 +187,28 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
             <CardTitle className="text-base">Mitgliedsdaten</CardTitle>
           </CardHeader>
           <CardContent>
-            <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              <Field label="Vorname" value={application.firstname} />
-              <Field label="Nachname" value={application.lastname} />
-              <Field label="Geburtsdatum" value={formatDate(application.birthDate)} />
-              <Field label="E-Mail" value={application.email} />
-              <Field label="Telefon" value={application.phone} />
+            <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+              <Field label="Mitgliedstyp" value={MEMBER_TYPE_LABELS[application.memberType] ?? application.memberType} />
             </dl>
+            {(application.memberType === "private" || application.memberType === "farmer") ? (
+              <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <Field label="Vorname" value={application.firstname} />
+                <Field label="Nachname" value={application.lastname} />
+                <Field label="Geburtsdatum" value={formatDate(application.birthDate)} />
+                <Field label="E-Mail" value={application.email} />
+                <Field label="Telefon" value={application.phone} />
+              </dl>
+            ) : (
+              <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <Field label={application.memberType === "municipality" ? "Organisationsname" : "Firmenname"} value={application.companyName} />
+                <Field label="UID-Nummer" value={application.uidNumber} />
+                {application.memberType === "company" && (
+                  <Field label="Firmenbuch-/Vereinsnummer" value={application.registerNumber} />
+                )}
+                <Field label="E-Mail" value={application.email} />
+                <Field label="Telefon" value={application.phone} />
+              </dl>
+            )}
             <Separator className="my-4" />
             <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <Field label="Straße" value={application.residentStreet} />

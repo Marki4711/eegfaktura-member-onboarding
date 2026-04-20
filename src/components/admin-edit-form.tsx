@@ -22,7 +22,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { updateApplication } from "@/lib/api";
-import type { AdminApplicationDetail, MeteringPointRequest } from "@/lib/api";
+import type { AdminApplicationDetail, MeteringPointRequest, MemberType } from "@/lib/api";
 
 interface Props {
   open: boolean;
@@ -41,8 +41,6 @@ function validateEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-// The API returns birthDate as RFC3339 ("1962-06-06T00:00:00Z").
-// <input type="date"> requires "YYYY-MM-DD". Slice the first 10 chars.
 function toDateInputValue(iso: string | null | undefined): string {
   if (!iso) return "";
   return iso.slice(0, 10);
@@ -51,9 +49,13 @@ function toDateInputValue(iso: string | null | undefined): string {
 let mpKeyCounter = 0;
 
 export function AdminEditForm({ open, application, onClose, onRefresh }: Props) {
-  const [firstname, setFirstname] = useState(application.firstname);
-  const [lastname, setLastname] = useState(application.lastname);
+  const [memberType, setMemberType] = useState<MemberType>(application.memberType ?? "private");
+  const [firstname, setFirstname] = useState(application.firstname ?? "");
+  const [lastname, setLastname] = useState(application.lastname ?? "");
   const [birthDate, setBirthDate] = useState(toDateInputValue(application.birthDate));
+  const [companyName, setCompanyName] = useState(application.companyName ?? "");
+  const [uidNumber, setUidNumber] = useState(application.uidNumber ?? "");
+  const [registerNumber, setRegisterNumber] = useState(application.registerNumber ?? "");
   const [email, setEmail] = useState(application.email);
   const [phone, setPhone] = useState(application.phone ?? "");
   const [residentStreet, setResidentStreet] = useState(application.residentStreet);
@@ -70,6 +72,22 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isPerson = memberType === "private" || memberType === "farmer";
+
+  function onMemberTypeChange(value: MemberType) {
+    setMemberType(value);
+    // Clear the group that is no longer relevant
+    if (value === "private" || value === "farmer") {
+      setCompanyName("");
+      setUidNumber("");
+      setRegisterNumber("");
+    } else {
+      setFirstname("");
+      setLastname("");
+      setBirthDate("");
+    }
+  }
 
   function addRow() {
     setMeteringPoints((prev) => [
@@ -89,10 +107,19 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
   }
 
   function validate(): string | null {
-    if (!firstname.trim()) return "Vorname ist erforderlich.";
-    if (!lastname.trim()) return "Nachname ist erforderlich.";
     if (!email.trim()) return "E-Mail ist erforderlich.";
     if (!validateEmail(email.trim())) return "Ungültige E-Mail-Adresse.";
+    if (isPerson) {
+      if (!firstname.trim()) return "Vorname ist erforderlich.";
+      if (!lastname.trim()) return "Nachname ist erforderlich.";
+    } else {
+      const orgLabel = memberType === "municipality" ? "Organisationsname" : "Firmenname";
+      if (!companyName.trim()) return `${orgLabel} ist erforderlich.`;
+      if (memberType === "company") {
+        if (!uidNumber.trim()) return "UID-Nummer ist erforderlich.";
+        if (!registerNumber.trim()) return "Firmenbuch-/Vereinsnummer ist erforderlich.";
+      }
+    }
     if (!residentStreet.trim()) return "Straße ist erforderlich.";
     if (!residentStreetNumber.trim()) return "Hausnummer ist erforderlich.";
     if (!residentZip.trim()) return "PLZ ist erforderlich.";
@@ -121,9 +148,13 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
 
     try {
       await updateApplication(application.id, {
-        firstname: firstname.trim(),
-        lastname: lastname.trim(),
-        birthDate: birthDate || undefined,
+        memberType,
+        firstname: isPerson ? firstname.trim() || undefined : undefined,
+        lastname: isPerson ? lastname.trim() || undefined : undefined,
+        birthDate: isPerson ? birthDate || undefined : undefined,
+        companyName: !isPerson ? companyName.trim() || undefined : undefined,
+        uidNumber: !isPerson ? uidNumber.trim() || undefined : undefined,
+        registerNumber: !isPerson ? registerNumber.trim() || undefined : undefined,
         email: email.trim(),
         phone: phone.trim() || undefined,
         residentStreet: residentStreet.trim(),
@@ -152,35 +183,93 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
         </DialogHeader>
 
         <div className="space-y-6 py-2">
-          {/* Personal data */}
+          {/* Member type */}
           <div>
-            <h3 className="text-sm font-semibold mb-3">Persönliche Daten</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <Label htmlFor="edit-firstname">Vorname *</Label>
-                <Input
-                  id="edit-firstname"
-                  value={firstname}
-                  onChange={(e) => setFirstname(e.target.value)}
-                />
+            <h3 className="text-sm font-semibold mb-3">Mitgliedstyp</h3>
+            <Select value={memberType} onValueChange={(v) => onMemberTypeChange(v as MemberType)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="private">Privat / Kleinunternehmer</SelectItem>
+                <SelectItem value="farmer">Pauschalierter Landwirt</SelectItem>
+                <SelectItem value="municipality">Gemeinde</SelectItem>
+                <SelectItem value="company">Unternehmen / Verein</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Separator />
+
+          {/* Member / organisation data */}
+          <div>
+            <h3 className="text-sm font-semibold mb-3">
+              {isPerson ? "Persönliche Daten" : "Organisationsdaten"}
+            </h3>
+            {isPerson ? (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label htmlFor="edit-firstname">Vorname *</Label>
+                  <Input
+                    id="edit-firstname"
+                    value={firstname}
+                    onChange={(e) => setFirstname(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="edit-lastname">Nachname *</Label>
+                  <Input
+                    id="edit-lastname"
+                    value={lastname}
+                    onChange={(e) => setLastname(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="edit-birthdate">Geburtsdatum</Label>
+                  <Input
+                    id="edit-birthdate"
+                    type="date"
+                    value={birthDate}
+                    onChange={(e) => setBirthDate(e.target.value)}
+                  />
+                </div>
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="edit-lastname">Nachname *</Label>
-                <Input
-                  id="edit-lastname"
-                  value={lastname}
-                  onChange={(e) => setLastname(e.target.value)}
-                />
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1 col-span-2">
+                  <Label htmlFor="edit-company-name">
+                    {memberType === "municipality" ? "Organisationsname *" : "Firmenname *"}
+                  </Label>
+                  <Input
+                    id="edit-company-name"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="edit-uid">
+                    UID-Nummer{memberType === "company" ? " *" : ""}
+                  </Label>
+                  <Input
+                    id="edit-uid"
+                    value={uidNumber}
+                    onChange={(e) => setUidNumber(e.target.value)}
+                  />
+                </div>
+                {memberType === "company" && (
+                  <div className="space-y-1">
+                    <Label htmlFor="edit-register">Firmenbuch-/Vereinsnummer *</Label>
+                    <Input
+                      id="edit-register"
+                      value={registerNumber}
+                      onChange={(e) => setRegisterNumber(e.target.value)}
+                    />
+                  </div>
+                )}
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="edit-birthdate">Geburtsdatum</Label>
-                <Input
-                  id="edit-birthdate"
-                  type="date"
-                  value={birthDate}
-                  onChange={(e) => setBirthDate(e.target.value)}
-                />
-              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4 mt-4">
               <div className="space-y-1">
                 <Label htmlFor="edit-email">E-Mail *</Label>
                 <Input

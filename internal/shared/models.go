@@ -32,6 +32,16 @@ const (
 	StatusImportFailed ApplicationStatus = "import_failed"
 )
 
+// MemberType represents the type of EEG member
+type MemberType string
+
+const (
+	MemberTypePrivate      MemberType = "private"
+	MemberTypeFarmer       MemberType = "farmer"
+	MemberTypeMunicipality MemberType = "municipality"
+	MemberTypeCompany      MemberType = "company"
+)
+
 // MeterDirection represents the direction of a metering point
 type MeterDirection string
 
@@ -52,9 +62,13 @@ type Application struct {
 	ApprovedAt           *time.Time        `json:"approvedAt,omitempty" db:"approved_at"`
 	RejectedAt           *time.Time        `json:"rejectedAt,omitempty" db:"rejected_at"`
 	ImportedAt           *time.Time        `json:"importedAt,omitempty" db:"imported_at"`
-	Firstname            string            `json:"firstname" db:"firstname"`
-	Lastname             string            `json:"lastname" db:"lastname"`
+	MemberType           MemberType        `json:"memberType" db:"member_type"`
+	Firstname            *string           `json:"firstname,omitempty" db:"firstname"`
+	Lastname             *string           `json:"lastname,omitempty" db:"lastname"`
 	BirthDate            *time.Time        `json:"birthDate,omitempty" db:"birth_date"`
+	CompanyName          *string           `json:"companyName,omitempty" db:"company_name"`
+	UIDNumber            *string           `json:"uidNumber,omitempty" db:"uid_number"`
+	RegisterNumber       *string           `json:"registerNumber,omitempty" db:"register_number"`
 	Email                string            `json:"email" db:"email"`
 	Phone                *string           `json:"phone,omitempty" db:"phone"`
 	ResidentStreet       string            `json:"residentStreet" db:"resident_street"`

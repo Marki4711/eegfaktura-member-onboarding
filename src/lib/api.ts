@@ -18,6 +18,8 @@ export interface RegistrationConfig {
   active: boolean;
 }
 
+export type MemberType = "private" | "farmer" | "municipality" | "company";
+
 export interface MeteringPointRequest {
   meteringPoint: string;
   direction: "CONSUMPTION" | "PRODUCTION";
@@ -25,9 +27,13 @@ export interface MeteringPointRequest {
 
 export interface CreateApplicationRequest {
   rcNumber: string;
-  firstname: string;
-  lastname: string;
+  memberType: MemberType;
+  firstname?: string;
+  lastname?: string;
   birthDate?: string;
+  companyName?: string;
+  uidNumber?: string;
+  registerNumber?: string;
   email: string;
   phone?: string;
   residentStreet: string;
@@ -142,8 +148,10 @@ export interface ApplicationListItem {
   referenceNumber: string;
   eegId: string;
   status: ApplicationStatus;
-  firstname: string;
-  lastname: string;
+  memberType: MemberType;
+  firstname?: string | null;
+  lastname?: string | null;
+  companyName?: string | null;
   email: string;
   submittedAt: string | null;
   meteringPoints: string[];
@@ -181,9 +189,13 @@ export interface AdminApplicationDetail {
   approvedAt: string | null;
   rejectedAt: string | null;
   importedAt: string | null;
-  firstname: string;
-  lastname: string;
+  memberType: MemberType;
+  firstname?: string | null;
+  lastname?: string | null;
   birthDate: string | null;
+  companyName?: string | null;
+  uidNumber?: string | null;
+  registerNumber?: string | null;
   email: string;
   phone: string | null;
   residentStreet: string;
@@ -211,9 +223,13 @@ export interface AdminApplicationDetail {
 }
 
 export interface AdminUpdateApplicationRequest {
-  firstname: string;
-  lastname: string;
+  memberType?: MemberType;
+  firstname?: string;
+  lastname?: string;
   birthDate?: string;
+  companyName?: string;
+  uidNumber?: string;
+  registerNumber?: string;
   email: string;
   phone?: string;
   residentStreet: string;

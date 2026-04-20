@@ -21,6 +21,6 @@ Central tracking for all features.
 | PROJ-4 | Core Import | Architected | `features/PROJ-4-core-import.md` | 2026-04-19 |
 | PROJ-5 | Keycloak-secured Admin Area | Planned | — | 2026-04-19 |
 | PROJ-6 | E-Mail-Benachrichtigungen | Approved | `features/PROJ-6-email-notifications.md` | 2026-04-19 |
-| PROJ-7 | Mitgliedstypen | Architected | `features/PROJ-7-member-types.md` | 2026-04-20 |
+| PROJ-7 | Mitgliedstypen | In Progress | `features/PROJ-7-member-types.md` | 2026-04-20 |
 
 ## Next Available ID: PROJ-8

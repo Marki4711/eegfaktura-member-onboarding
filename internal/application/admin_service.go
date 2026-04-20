@@ -148,11 +148,23 @@ func (s *AdminApplicationService) AdminUpdateApplication(id uuid.UUID, req share
 	}
 
 	// Apply partial updates.
+	if req.MemberType != nil {
+		app.MemberType = shared.MemberType(*req.MemberType)
+	}
 	if req.Firstname != nil {
-		app.Firstname = *req.Firstname
+		app.Firstname = trimStringPtr(req.Firstname)
 	}
 	if req.Lastname != nil {
-		app.Lastname = *req.Lastname
+		app.Lastname = trimStringPtr(req.Lastname)
+	}
+	if req.CompanyName != nil {
+		app.CompanyName = trimStringPtr(req.CompanyName)
+	}
+	if req.UIDNumber != nil {
+		app.UIDNumber = trimStringPtr(req.UIDNumber)
+	}
+	if req.RegisterNumber != nil {
+		app.RegisterNumber = trimStringPtr(req.RegisterNumber)
 	}
 	if req.BirthDate != nil {
 		parsed, err := parseDateString(req.BirthDate)
@@ -182,6 +194,7 @@ func (s *AdminApplicationService) AdminUpdateApplication(id uuid.UUID, req share
 	if req.AdminNote != nil {
 		app.AdminNote = req.AdminNote
 	}
+	clearMemberTypeFields(app)
 
 	tx, err := s.db.Begin()
 	if err != nil {

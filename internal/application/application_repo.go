@@ -26,24 +26,30 @@ func (r *ApplicationRepository) Create(app *shared.Application) error {
 	query := `
 		INSERT INTO member_onboarding.application (
 			reference_number, eeg_id, rc_number, status, started_at,
-			firstname, lastname, birth_date, email, phone,
+			member_type, firstname, lastname, birth_date,
+			company_name, uid_number, register_number,
+			email, phone,
 			resident_street, resident_street_number, resident_zip, resident_city,
 			privacy_accepted, privacy_version, privacy_accepted_at, accuracy_confirmed,
 			iban, account_holder, sepa_mandate_accepted, sepa_mandate_accepted_at,
 			created_at, updated_at
 		) VALUES (
 			$1, $2, $3, $4, $5,
-			$6, $7, $8, $9, $10,
-			$11, $12, $13, $14,
+			$6, $7, $8, $9,
+			$10, $11, $12,
+			$13, $14,
 			$15, $16, $17, $18,
 			$19, $20, $21, $22,
-			$23, $24
+			$23, $24, $25, $26,
+			$27, $28
 		) RETURNING id`
 
 	now := app.CreatedAt
 	args := []interface{}{
 		app.ReferenceNumber, app.EEGID, app.RCNumber, app.Status, app.StartedAt,
-		app.Firstname, app.Lastname, app.BirthDate, app.Email, app.Phone,
+		app.MemberType, app.Firstname, app.Lastname, app.BirthDate,
+		app.CompanyName, app.UIDNumber, app.RegisterNumber,
+		app.Email, app.Phone,
 		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity,
 		app.PrivacyAccepted, app.PrivacyVersion, &now, app.AccuracyConfirmed,
 		app.IBAN, app.AccountHolder, app.SepaMandateAccepted, app.SepaMandateAcceptedAt,
@@ -63,24 +69,30 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 	query := `
 		INSERT INTO member_onboarding.application (
 			reference_number, eeg_id, rc_number, status, started_at,
-			firstname, lastname, birth_date, email, phone,
+			member_type, firstname, lastname, birth_date,
+			company_name, uid_number, register_number,
+			email, phone,
 			resident_street, resident_street_number, resident_zip, resident_city,
 			privacy_accepted, privacy_version, privacy_accepted_at, accuracy_confirmed,
 			iban, account_holder, sepa_mandate_accepted, sepa_mandate_accepted_at,
 			created_at, updated_at
 		) VALUES (
 			$1, $2, $3, $4, $5,
-			$6, $7, $8, $9, $10,
-			$11, $12, $13, $14,
+			$6, $7, $8, $9,
+			$10, $11, $12,
+			$13, $14,
 			$15, $16, $17, $18,
 			$19, $20, $21, $22,
-			$23, $24
+			$23, $24, $25, $26,
+			$27, $28
 		) RETURNING id`
 
 	now := app.CreatedAt
 	args := []interface{}{
 		app.ReferenceNumber, app.EEGID, app.RCNumber, app.Status, app.StartedAt,
-		app.Firstname, app.Lastname, app.BirthDate, app.Email, app.Phone,
+		app.MemberType, app.Firstname, app.Lastname, app.BirthDate,
+		app.CompanyName, app.UIDNumber, app.RegisterNumber,
+		app.Email, app.Phone,
 		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity,
 		app.PrivacyAccepted, app.PrivacyVersion, &now, app.AccuracyConfirmed,
 		app.IBAN, app.AccountHolder, app.SepaMandateAccepted, app.SepaMandateAcceptedAt,
@@ -98,7 +110,10 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, error) {
 	query := `
 		SELECT id, reference_number, eeg_id, rc_number, status, started_at, submitted_at,
-		       approved_at, rejected_at, imported_at, firstname, lastname, birth_date, email, phone,
+		       approved_at, rejected_at, imported_at,
+		       member_type, firstname, lastname, birth_date,
+		       company_name, uid_number, register_number,
+		       email, phone,
 		       resident_street, resident_street_number, resident_zip, resident_city,
 		       privacy_accepted, privacy_version, privacy_accepted_at, accuracy_confirmed,
 		       iban, account_holder, sepa_mandate_accepted, sepa_mandate_accepted_at,
@@ -109,14 +124,17 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 
 	app := &shared.Application{}
 	var eegID, phone, privacyVersion, iban, accountHolder, reviewedByUserID, adminNote, needsInfoReason, targetParticipantID, importErrorMessage sql.NullString
+	var firstname, lastname, companyName, uidNumber, registerNumber sql.NullString
 	var birthDate, startedAt, submittedAt, approvedAt, rejectedAt, importedAt, privacyAcceptedAt, sepaMandateAcceptedAt, importStartedAt, importFinishedAt sql.NullTime
 
 	err := r.db.QueryRow(query, id).Scan(
 		&app.ID, &app.ReferenceNumber, &eegID, &app.RCNumber, &app.Status, &startedAt,
-		&submittedAt, &approvedAt, &rejectedAt, &importedAt, &app.Firstname, &app.Lastname, &birthDate,
-		&app.Email, &phone, &app.ResidentStreet, &app.ResidentStreetNumber, &app.ResidentZip,
-		&app.ResidentCity, &app.PrivacyAccepted, &privacyVersion,
-		&privacyAcceptedAt, &app.AccuracyConfirmed,
+		&submittedAt, &approvedAt, &rejectedAt, &importedAt,
+		&app.MemberType, &firstname, &lastname, &birthDate,
+		&companyName, &uidNumber, &registerNumber,
+		&app.Email, &phone,
+		&app.ResidentStreet, &app.ResidentStreetNumber, &app.ResidentZip, &app.ResidentCity,
+		&app.PrivacyAccepted, &privacyVersion, &privacyAcceptedAt, &app.AccuracyConfirmed,
 		&iban, &accountHolder, &app.SepaMandateAccepted, &sepaMandateAcceptedAt,
 		&reviewedByUserID, &adminNote, &needsInfoReason, &targetParticipantID, &importStartedAt, &importFinishedAt,
 		&importErrorMessage, &app.CreatedAt, &app.UpdatedAt,
@@ -128,9 +146,23 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		return nil, fmt.Errorf("failed to get application: %w", err)
 	}
 
-	// Handle nullable fields
 	if eegID.Valid {
 		app.EEGID = &eegID.String
+	}
+	if firstname.Valid {
+		app.Firstname = &firstname.String
+	}
+	if lastname.Valid {
+		app.Lastname = &lastname.String
+	}
+	if companyName.Valid {
+		app.CompanyName = &companyName.String
+	}
+	if uidNumber.Valid {
+		app.UIDNumber = &uidNumber.String
+	}
+	if registerNumber.Valid {
+		app.RegisterNumber = &registerNumber.String
 	}
 	if phone.Valid {
 		app.Phone = &phone.String
@@ -197,16 +229,22 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 func (r *ApplicationRepository) Update(app *shared.Application) error {
 	query := `
 		UPDATE member_onboarding.application SET
-			firstname = $1, lastname = $2, birth_date = $3, email = $4, phone = $5,
-			resident_street = $6, resident_street_number = $7, resident_zip = $8,
-			resident_city = $9, privacy_accepted = $10,
-			privacy_version = $11, accuracy_confirmed = $12,
-			iban = $13, account_holder = $14, sepa_mandate_accepted = $15, sepa_mandate_accepted_at = $16,
+			member_type = $1,
+			firstname = $2, lastname = $3, birth_date = $4,
+			company_name = $5, uid_number = $6, register_number = $7,
+			email = $8, phone = $9,
+			resident_street = $10, resident_street_number = $11, resident_zip = $12,
+			resident_city = $13, privacy_accepted = $14,
+			privacy_version = $15, accuracy_confirmed = $16,
+			iban = $17, account_holder = $18, sepa_mandate_accepted = $19, sepa_mandate_accepted_at = $20,
 			updated_at = NOW()
-		WHERE id = $17`
+		WHERE id = $21`
 
 	_, err := r.db.Exec(query,
-		app.Firstname, app.Lastname, app.BirthDate, app.Email, app.Phone,
+		app.MemberType,
+		app.Firstname, app.Lastname, app.BirthDate,
+		app.CompanyName, app.UIDNumber, app.RegisterNumber,
+		app.Email, app.Phone,
 		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity,
 		app.PrivacyAccepted, app.PrivacyVersion, app.AccuracyConfirmed,
 		app.IBAN, app.AccountHolder, app.SepaMandateAccepted, app.SepaMandateAcceptedAt,
@@ -223,16 +261,22 @@ func (r *ApplicationRepository) Update(app *shared.Application) error {
 func (r *ApplicationRepository) UpdateTx(tx *sql.Tx, app *shared.Application) error {
 	query := `
 		UPDATE member_onboarding.application SET
-			firstname = $1, lastname = $2, birth_date = $3, email = $4, phone = $5,
-			resident_street = $6, resident_street_number = $7, resident_zip = $8,
-			resident_city = $9, privacy_accepted = $10,
-			privacy_version = $11, accuracy_confirmed = $12,
-			iban = $13, account_holder = $14, sepa_mandate_accepted = $15, sepa_mandate_accepted_at = $16,
+			member_type = $1,
+			firstname = $2, lastname = $3, birth_date = $4,
+			company_name = $5, uid_number = $6, register_number = $7,
+			email = $8, phone = $9,
+			resident_street = $10, resident_street_number = $11, resident_zip = $12,
+			resident_city = $13, privacy_accepted = $14,
+			privacy_version = $15, accuracy_confirmed = $16,
+			iban = $17, account_holder = $18, sepa_mandate_accepted = $19, sepa_mandate_accepted_at = $20,
 			updated_at = NOW()
-		WHERE id = $17`
+		WHERE id = $21`
 
 	_, err := tx.Exec(query,
-		app.Firstname, app.Lastname, app.BirthDate, app.Email, app.Phone,
+		app.MemberType,
+		app.Firstname, app.Lastname, app.BirthDate,
+		app.CompanyName, app.UIDNumber, app.RegisterNumber,
+		app.Email, app.Phone,
 		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity,
 		app.PrivacyAccepted, app.PrivacyVersion, app.AccuracyConfirmed,
 		app.IBAN, app.AccountHolder, app.SepaMandateAccepted, app.SepaMandateAcceptedAt,
@@ -323,7 +367,7 @@ func (r *ApplicationRepository) List(filters ApplicationListFilters, page, pageS
 	listArgs := append(args, pageSize, offset)
 	listQuery := fmt.Sprintf(`
 		SELECT a.id, a.reference_number, a.eeg_id, a.rc_number, a.status,
-		       a.firstname, a.lastname, a.email, a.submitted_at
+		       a.member_type, a.firstname, a.lastname, a.company_name, a.email, a.submitted_at
 		FROM member_onboarding.application a
 		%s
 		ORDER BY a.created_at DESC
@@ -338,16 +382,25 @@ func (r *ApplicationRepository) List(filters ApplicationListFilters, page, pageS
 	items := []shared.ApplicationListItem{}
 	for rows.Next() {
 		var item shared.ApplicationListItem
-		var eegID sql.NullString
+		var eegID, firstname, lastname, companyName sql.NullString
 		var submittedAt sql.NullTime
 		if err := rows.Scan(
 			&item.ID, &item.ReferenceNumber, &eegID, &item.RCNumber, &item.Status,
-			&item.Firstname, &item.Lastname, &item.Email, &submittedAt,
+			&item.MemberType, &firstname, &lastname, &companyName, &item.Email, &submittedAt,
 		); err != nil {
 			return nil, 0, fmt.Errorf("failed to scan application list item: %w", err)
 		}
 		if eegID.Valid {
 			item.EEGID = &eegID.String
+		}
+		if firstname.Valid {
+			item.Firstname = &firstname.String
+		}
+		if lastname.Valid {
+			item.Lastname = &lastname.String
+		}
+		if companyName.Valid {
+			item.CompanyName = &companyName.String
 		}
 		if submittedAt.Valid {
 			item.SubmittedAt = &submittedAt.Time
@@ -366,15 +419,21 @@ func (r *ApplicationRepository) List(filters ApplicationListFilters, page, pageS
 func (r *ApplicationRepository) UpdateAdminTx(tx *sql.Tx, app *shared.Application) error {
 	query := `
 		UPDATE member_onboarding.application SET
-			firstname = $1, lastname = $2, birth_date = $3, email = $4, phone = $5,
-			resident_street = $6, resident_street_number = $7, resident_zip = $8,
-			resident_city = $9, admin_note = $10,
-			iban = $11, account_holder = $12,
+			member_type = $1,
+			firstname = $2, lastname = $3, birth_date = $4,
+			company_name = $5, uid_number = $6, register_number = $7,
+			email = $8, phone = $9,
+			resident_street = $10, resident_street_number = $11, resident_zip = $12,
+			resident_city = $13, admin_note = $14,
+			iban = $15, account_holder = $16,
 			updated_at = NOW()
-		WHERE id = $13`
+		WHERE id = $17`
 
 	_, err := tx.Exec(query,
-		app.Firstname, app.Lastname, app.BirthDate, app.Email, app.Phone,
+		app.MemberType,
+		app.Firstname, app.Lastname, app.BirthDate,
+		app.CompanyName, app.UIDNumber, app.RegisterNumber,
+		app.Email, app.Phone,
 		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity,
 		app.AdminNote, app.IBAN, app.AccountHolder,
 		app.ID,
@@ -411,4 +470,3 @@ func (r *ApplicationRepository) UpdateStatusAdminTx(
 	}
 	return nil
 }
-
