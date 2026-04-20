@@ -39,22 +39,23 @@ const PRIVACY_VERSION = "2026-01";
 // ---------- Zod schema ----------
 
 const meteringPointSchema = z.object({
-  meteringPoint: z.string().min(1, "Zählpunkt ist erforderlich").max(33, "Maximal 33 Zeichen"),
+  meteringPoint: z.string().trim().min(1, "Zählpunkt ist erforderlich").max(33, "Maximal 33 Zeichen"),
   direction: z.enum(["CONSUMPTION", "PRODUCTION"]),
 });
 
 const formSchema = z.object({
-  firstname: z.string().min(1, "Vorname ist erforderlich").max(255),
-  lastname: z.string().min(1, "Nachname ist erforderlich").max(255),
+  firstname: z.string().trim().min(1, "Vorname ist erforderlich").max(255),
+  lastname: z.string().trim().min(1, "Nachname ist erforderlich").max(255),
   birthDate: z.string().optional(),
-  email: z.string().email("Ungültige E-Mail-Adresse"),
-  phone: z.string().optional(),
-  residentStreet: z.string().min(1, "Straße ist erforderlich").max(255),
-  residentStreetNumber: z.string().min(1, "Hausnummer ist erforderlich").max(50),
-  residentZip: z.string().min(1, "PLZ ist erforderlich").max(20),
-  residentCity: z.string().min(1, "Ort ist erforderlich").max(255),
+  email: z.string().trim().email("Ungültige E-Mail-Adresse"),
+  phone: z.string().trim().optional(),
+  residentStreet: z.string().trim().min(1, "Straße ist erforderlich").max(255),
+  residentStreetNumber: z.string().trim().min(1, "Hausnummer ist erforderlich").max(50),
+  residentZip: z.string().trim().min(1, "PLZ ist erforderlich").max(20),
+  residentCity: z.string().trim().min(1, "Ort ist erforderlich").max(255),
   residentCountry: z
     .string()
+    .trim()
     .length(2, "Ländercode muss genau 2 Zeichen haben (z.B. AT)"),
   iban: z
     .string()
@@ -63,7 +64,7 @@ const formSchema = z.object({
     .refine((v) => isValidIBAN(v), {
       message: "Ungültige IBAN",
     }),
-  accountHolder: z.string().min(1, "Kontoinhaber ist erforderlich").max(255),
+  accountHolder: z.string().trim().min(1, "Kontoinhaber ist erforderlich").max(255),
   privacyAccepted: z.boolean().refine((v) => v === true, {
     message: "Datenschutzerklärung muss akzeptiert werden",
   }),
