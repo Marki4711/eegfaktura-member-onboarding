@@ -19,7 +19,7 @@ Central tracking for all features.
 | PROJ-2 | Admin Review | Approved | `features/PROJ-2-admin-review.md` | 2026-04-19 |
 | PROJ-3 | Admin Frontend UI | In Review | `features/PROJ-3-admin-frontend-ui.md` | 2026-04-19 |
 | PROJ-4 | Core Import | Architected | `features/PROJ-4-core-import.md` | 2026-04-19 |
-| PROJ-5 | Keycloak-secured Admin Area | Planned | — | 2026-04-19 |
+| PROJ-5 | Keycloak-secured Admin Area | Planned | `features/PROJ-5-keycloak-admin-auth.md` | 2026-04-19 |
 | PROJ-6 | E-Mail-Benachrichtigungen | Approved | `features/PROJ-6-email-notifications.md` | 2026-04-19 |
 | PROJ-7 | Mitgliedstypen | Deployed | `features/PROJ-7-member-types.md` | 2026-04-20 |
 
