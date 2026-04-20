@@ -32,7 +32,7 @@ type CreateApplicationRequest struct {
 
 // CreateMeteringPointRequest represents a metering point in create request
 type CreateMeteringPointRequest struct {
-	MeteringPoint string `json:"meteringPoint" validate:"required"`
+	MeteringPoint string `json:"meteringPoint" validate:"required,max=33"`
 	Direction     string `json:"direction" validate:"required,oneof=CONSUMPTION PRODUCTION"`
 }
 

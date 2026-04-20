@@ -38,7 +38,7 @@ const PRIVACY_VERSION = "2026-01";
 // ---------- Zod schema ----------
 
 const meteringPointSchema = z.object({
-  meteringPoint: z.string().min(1, "Zählpunkt ist erforderlich"),
+  meteringPoint: z.string().min(1, "Zählpunkt ist erforderlich").max(33, "Maximal 33 Zeichen"),
   direction: z.enum(["CONSUMPTION", "PRODUCTION"]),
 });
 
