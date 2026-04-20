@@ -17,7 +17,7 @@ export default async function AdminLayout({
   const session = await getServerSession(authOptions);
 
   if (!session) {
-    redirect("/api/auth/signin");
+    redirect(`/api/auth/signin?callbackUrl=${encodeURIComponent("/admin/applications")}`);
   }
 
   if (!hasAdminAccess(session.roles ?? [], session.tenant ?? [])) {
