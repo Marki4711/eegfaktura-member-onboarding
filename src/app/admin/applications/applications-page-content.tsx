@@ -10,7 +10,7 @@ import type { ApplicationListItem } from "@/lib/api";
 
 export function ApplicationsPageContent() {
   const searchParams = useSearchParams();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [items, setItems] = useState<ApplicationListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -44,8 +44,9 @@ export function ApplicationsPageContent() {
   }, [searchParams, page, pageSize, session?.accessToken]);
 
   useEffect(() => {
+    if (status === "loading") return;
     fetchApplications();
-  }, [fetchApplications]);
+  }, [fetchApplications, status]);
 
   return (
     <div className="space-y-4">
