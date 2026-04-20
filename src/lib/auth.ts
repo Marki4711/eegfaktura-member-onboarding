@@ -42,8 +42,7 @@ export const authOptions: NextAuthOptions = {
     },
   },
   pages: {
-    signIn: "/api/auth/signin",
-    error: "/admin/unauthorized",
+    error: "/unauthorized",
   },
 };
 

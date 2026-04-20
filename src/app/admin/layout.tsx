@@ -21,7 +21,7 @@ export default async function AdminLayout({
   }
 
   if (!hasAdminAccess(session.roles ?? [], session.tenant ?? [])) {
-    redirect("/admin/unauthorized");
+    redirect("/unauthorized");
   }
 
   // Trigger sync for tenant-admins once per server render (idempotent via ON CONFLICT DO NOTHING)
