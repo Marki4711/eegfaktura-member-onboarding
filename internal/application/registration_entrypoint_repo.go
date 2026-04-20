@@ -21,13 +21,13 @@ func NewRegistrationEntrypointRepository(db *sql.DB) *RegistrationEntrypointRepo
 // Returns shared.ErrNotFound when no row matches.
 func (r *RegistrationEntrypointRepository) GetByRCNumber(rcNumber string) (*shared.RegistrationEntrypoint, error) {
 	query := `
-		SELECT id, eeg_id, rc_number, is_active, contact_email, created_at, updated_at
+		SELECT id, rc_number, is_active, contact_email, created_at, updated_at
 		FROM member_onboarding.registration_entrypoint
 		WHERE rc_number = $1`
 
 	ep := &shared.RegistrationEntrypoint{}
 	err := r.db.QueryRow(query, rcNumber).Scan(
-		&ep.ID, &ep.EEGID, &ep.RCNumber, &ep.IsActive, &ep.ContactEmail, &ep.CreatedAt, &ep.UpdatedAt,
+		&ep.ID, &ep.RCNumber, &ep.IsActive, &ep.ContactEmail, &ep.CreatedAt, &ep.UpdatedAt,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {

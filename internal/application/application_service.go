@@ -78,8 +78,6 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 
 	now := time.Now()
 	privacyAcceptedAt := now
-	eegID := ep.EEGID
-
 	iban := normalizeIBAN(req.IBAN)
 	if !validateIBAN(iban) {
 		return nil, shared.NewValidationError("Validation failed", map[string]string{
@@ -94,7 +92,6 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 	phone := trimStringPtr(req.Phone)
 	app := &shared.Application{
 		ReferenceNumber:       s.generateReferenceNumber(),
-		EEGID:                 &eegID,
 		RCNumber:              strings.TrimSpace(req.RCNumber),
 		Status:                shared.StatusDraft,
 		StartedAt:             &now,

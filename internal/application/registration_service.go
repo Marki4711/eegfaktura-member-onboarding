@@ -28,7 +28,6 @@ func (s *RegistrationService) GetRegistrationConfig(rcNumber string) (*shared.Re
 	}
 	return &shared.RegistrationConfig{
 		RCNumber: ep.RCNumber,
-		EEGID:    ep.EEGID,
 		Title:    "Mitglied werden",
 		Active:   ep.IsActive,
 	}, nil

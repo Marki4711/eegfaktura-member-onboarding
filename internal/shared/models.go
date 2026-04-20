@@ -10,7 +10,6 @@ import (
 // It is the sole source of truth for public registration lookup.
 type RegistrationEntrypoint struct {
 	ID           uuid.UUID `json:"id"           db:"id"`
-	EEGID        string    `json:"eegId"        db:"eeg_id"`
 	RCNumber     string    `json:"rcNumber"     db:"rc_number"`
 	IsActive     bool      `json:"isActive"     db:"is_active"`
 	ContactEmail *string   `json:"contactEmail" db:"contact_email"`
@@ -55,7 +54,6 @@ const (
 type Application struct {
 	ID                   uuid.UUID         `json:"id" db:"id"`
 	ReferenceNumber      string            `json:"referenceNumber" db:"reference_number"`
-	EEGID                *string           `json:"eegId,omitempty" db:"eeg_id"`
 	RCNumber             string            `json:"rcNumber"        db:"rc_number"`
 	Status               ApplicationStatus `json:"status" db:"status"`
 	StartedAt            *time.Time        `json:"startedAt,omitempty" db:"started_at"`
