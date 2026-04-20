@@ -14,6 +14,14 @@ type Config struct {
 	Database DatabaseConfig
 	CORS     CORSConfig
 	SMTP     SMTPConfig
+	Keycloak KeycloakConfig
+}
+
+// KeycloakConfig holds Keycloak JWT validation settings.
+// When JWKSUrl is empty, admin auth middleware is disabled (dev mode).
+type KeycloakConfig struct {
+	JWKSUrl string
+	Issuer  string
 }
 
 // SMTPConfig holds SMTP mail configuration.
@@ -73,6 +81,10 @@ func Load() (*Config, error) {
 			User:     getEnv("SMTP_USER", ""),
 			Password: getEnv("SMTP_PASSWORD", ""),
 			From:     getEnv("SMTP_FROM", ""),
+		},
+		Keycloak: KeycloakConfig{
+			JWKSUrl: getEnv("KEYCLOAK_JWKS_URL", ""),
+			Issuer:  getEnv("KEYCLOAK_ISSUER", ""),
 		},
 	}
 

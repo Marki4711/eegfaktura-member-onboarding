@@ -81,7 +81,7 @@ func main() {
 	// Initialize handlers
 	registrationHandler := internalhttp.NewRegistrationHandler(registrationService)
 	applicationHandler := internalhttp.NewApplicationHandler(applicationService)
-	adminHandler := internalhttp.NewAdminHandler(adminService)
+	adminHandler := internalhttp.NewAdminHandler(adminService, entrypointRepo)
 	healthHandler := internalhttp.NewHealthHandler(db)
 
 	// Setup routes
@@ -113,8 +113,10 @@ func main() {
 		})
 	})
 
-	// Admin routes (authentication added in PROJ-4 via Keycloak middleware)
+	// Admin routes — protected by Keycloak JWT middleware
 	r.Route("/api/admin", func(r chi.Router) {
+		r.Use(internalhttp.KeycloakAuthMiddleware(cfg.Keycloak.JWKSUrl, cfg.Keycloak.Issuer))
+		r.Post("/sync", adminHandler.SyncEntrypoints)
 		r.Route("/applications", func(r chi.Router) {
 			r.Get("/", adminHandler.ListApplications)
 			r.Route("/{id}", func(r chi.Router) {

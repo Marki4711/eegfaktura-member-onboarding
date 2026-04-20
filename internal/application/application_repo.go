@@ -343,6 +343,15 @@ func (r *ApplicationRepository) List(filters ApplicationListFilters, page, pageS
 		args = append(args, *filters.SubmittedTo)
 		n++
 	}
+	if filters.RCNumbers != nil && len(*filters.RCNumbers) > 0 {
+		placeholders := make([]string, len(*filters.RCNumbers))
+		for i, rc := range *filters.RCNumbers {
+			placeholders[i] = fmt.Sprintf("$%d", n)
+			args = append(args, rc)
+			n++
+		}
+		conditions = append(conditions, "a.rc_number IN ("+strings.Join(placeholders, ", ")+")")
+	}
 
 	where := ""
 	if len(conditions) > 0 {
