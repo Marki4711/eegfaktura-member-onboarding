@@ -14,7 +14,7 @@ export function AdminLogoutButton({ username }: Props) {
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => signOut({ callbackUrl: "/api/auth/signin" })}
+        onClick={() => signOut({ callbackUrl: "/admin/applications" })}
       >
         Abmelden
       </Button>
