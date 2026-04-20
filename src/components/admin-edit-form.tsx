@@ -196,11 +196,11 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="private">Privatperson</SelectItem>
+                <SelectItem value="private">Privatperson / Kleinunternehmer</SelectItem>
                 <SelectItem value="farmer">Pauschalierter Landwirt</SelectItem>
                 <SelectItem value="municipality">Gemeinde / öffentl. Körperschaft</SelectItem>
                 <SelectItem value="company">Unternehmen</SelectItem>
-                <SelectItem value="association">Verein / Kleinunternehmer</SelectItem>
+                <SelectItem value="association">Verein</SelectItem>
               </SelectContent>
             </Select>
           </div>

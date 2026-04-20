@@ -46,11 +46,11 @@ import {
 const PRIVACY_VERSION = "2026-01";
 
 const MEMBER_TYPE_OPTIONS: { value: MemberType; label: string; hint: string }[] = [
-  { value: "private",      label: "Privatperson",              hint: "0 % USt." },
+  { value: "private",      label: "Privatperson / Kleinunternehmer", hint: "0 % USt." },
   { value: "farmer",       label: "Pauschalierter Landwirt",   hint: "13 % USt." },
   { value: "municipality", label: "Gemeinde / öffentl. Körperschaft", hint: "variabel" },
   { value: "company",      label: "Unternehmen",               hint: "20 % USt." },
-  { value: "association",  label: "Verein / Kleinunternehmer", hint: "variabel" },
+  { value: "association",  label: "Verein",                    hint: "variabel" },
 ];
 
 // ---------- Zod schema ----------
@@ -84,7 +84,7 @@ const formSchema = z
       .min(1, "IBAN ist erforderlich")
       .transform((v) => v.replace(/\s/g, "").toUpperCase())
       .refine((v) => isValidIBAN(v), { message: "Ungültige IBAN" }),
-    accountHolder: z.string().trim().min(1, "Kontoinhaber ist erforderlich").max(255),
+    accountHolder: z.string().trim().min(1, "Kontoinhaber:in ist erforderlich").max(255),
     privacyAccepted: z.boolean().refine((v) => v === true, {
       message: "Datenschutzerklärung muss akzeptiert werden",
     }),
@@ -625,7 +625,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                 name="accountHolder"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Kontoinhaber *</FormLabel>
+                    <FormLabel>Kontoinhaber:in *</FormLabel>
                     <FormControl>
                       <Input placeholder="Max Mustermann" autoComplete="name" {...field} />
                     </FormControl>
