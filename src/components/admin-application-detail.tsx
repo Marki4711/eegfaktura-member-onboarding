@@ -190,7 +190,6 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
               <Field label="Hausnummer" value={application.residentStreetNumber} />
               <Field label="PLZ" value={application.residentZip} />
               <Field label="Ort" value={application.residentCity} />
-              <Field label="Land" value={application.residentCountry} />
             </dl>
           </CardContent>
         </Card>

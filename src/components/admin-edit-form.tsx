@@ -60,7 +60,6 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
   const [residentStreetNumber, setResidentStreetNumber] = useState(application.residentStreetNumber);
   const [residentZip, setResidentZip] = useState(application.residentZip);
   const [residentCity, setResidentCity] = useState(application.residentCity);
-  const [residentCountry, setResidentCountry] = useState(application.residentCountry);
   const [adminNote, setAdminNote] = useState(application.adminNote ?? "");
   const [meteringPoints, setMeteringPoints] = useState<FormMeteringPoint[]>(
     application.meteringPoints.map((mp) => ({
@@ -98,7 +97,6 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
     if (!residentStreetNumber.trim()) return "Hausnummer ist erforderlich.";
     if (!residentZip.trim()) return "PLZ ist erforderlich.";
     if (!residentCity.trim()) return "Ort ist erforderlich.";
-    if (!residentCountry.trim()) return "Land ist erforderlich.";
     if (meteringPoints.length === 0) return "Mindestens ein Zählpunkt ist erforderlich.";
     for (const mp of meteringPoints) {
       if (!mp.meteringPoint.trim()) return "Alle Zählpunktnummern müssen ausgefüllt sein.";
@@ -132,7 +130,6 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
         residentStreetNumber: residentStreetNumber.trim(),
         residentZip: residentZip.trim(),
         residentCity: residentCity.trim(),
-        residentCountry: residentCountry.trim(),
         adminNote: adminNote,
         meteringPoints: payload,
       });
@@ -240,14 +237,6 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
                   id="edit-city"
                   value={residentCity}
                   onChange={(e) => setResidentCity(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="edit-country">Land *</Label>
-                <Input
-                  id="edit-country"
-                  value={residentCountry}
-                  onChange={(e) => setResidentCountry(e.target.value)}
                 />
               </div>
             </div>

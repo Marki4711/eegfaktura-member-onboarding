@@ -179,9 +179,6 @@ func (s *AdminApplicationService) AdminUpdateApplication(id uuid.UUID, req share
 	if req.ResidentCity != nil {
 		app.ResidentCity = *req.ResidentCity
 	}
-	if req.ResidentCountry != nil {
-		app.ResidentCountry = *req.ResidentCountry
-	}
 	if req.AdminNote != nil {
 		app.AdminNote = req.AdminNote
 	}

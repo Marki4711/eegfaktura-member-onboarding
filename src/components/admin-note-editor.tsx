@@ -43,7 +43,6 @@ export function AdminNoteEditor({ application, onRefresh }: Props) {
         residentStreetNumber: application.residentStreetNumber,
         residentZip: application.residentZip,
         residentCity: application.residentCity,
-        residentCountry: application.residentCountry,
         adminNote: note,
         meteringPoints: application.meteringPoints.map((mp) => ({
           meteringPoint: mp.meteringPoint,

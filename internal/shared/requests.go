@@ -20,7 +20,6 @@ type CreateApplicationRequest struct {
 	ResidentStreetNumber string                      `json:"residentStreetNumber" validate:"required,min=1,max=50"`
 	ResidentZip          string                      `json:"residentZip" validate:"required,min=1,max=20"`
 	ResidentCity         string                      `json:"residentCity" validate:"required,min=1,max=255"`
-	ResidentCountry      string                      `json:"residentCountry" validate:"required,len=2"`
 	PrivacyAccepted      bool                        `json:"privacyAccepted" validate:"required"`
 	PrivacyVersion       string                      `json:"privacyVersion" validate:"required"`
 	AccuracyConfirmed    bool                        `json:"accuracyConfirmed" validate:"required"`
@@ -47,7 +46,6 @@ type UpdateApplicationRequest struct {
 	ResidentStreetNumber *string                     `json:"residentStreetNumber,omitempty" validate:"omitempty,min=1,max=50"`
 	ResidentZip          *string                     `json:"residentZip,omitempty" validate:"omitempty,min=1,max=20"`
 	ResidentCity         *string                     `json:"residentCity,omitempty" validate:"omitempty,min=1,max=255"`
-	ResidentCountry      *string                     `json:"residentCountry,omitempty" validate:"omitempty,len=2"`
 	PrivacyAccepted      *bool                       `json:"privacyAccepted,omitempty"`
 	PrivacyVersion       *string                     `json:"privacyVersion,omitempty"`
 	AccuracyConfirmed    *bool                       `json:"accuracyConfirmed,omitempty"`
@@ -99,7 +97,6 @@ type AdminUpdateApplicationRequest struct {
 	ResidentStreetNumber *string                      `json:"residentStreetNumber,omitempty" validate:"omitempty,min=1,max=50"`
 	ResidentZip          *string                      `json:"residentZip,omitempty" validate:"omitempty,min=1,max=20"`
 	ResidentCity         *string                      `json:"residentCity,omitempty" validate:"omitempty,min=1,max=255"`
-	ResidentCountry      *string                      `json:"residentCountry,omitempty" validate:"omitempty,len=2"`
 	AdminNote            *string                      `json:"adminNote,omitempty"`
 	IBAN                 *string                      `json:"iban,omitempty" validate:"omitempty,min=15,max=34"`
 	AccountHolder        *string                      `json:"accountHolder,omitempty" validate:"omitempty,min=1,max=255"`
