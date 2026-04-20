@@ -18,18 +18,24 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, account, profile }) {
-      // Persist the Keycloak access_token and custom claims on first sign-in
-      if (account) {
+    async jwt({ token, account }) {
+      if (account?.access_token) {
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token;
         token.expiresAt = account.expires_at;
-      }
-      if (profile) {
-        const p = profile as Record<string, unknown>;
-        const realmAccess = p["realm_access"] as { roles?: string[] } | undefined;
-        token.roles = realmAccess?.roles ?? [];
-        token.tenant = (p["tenant"] as string[]) ?? [];
+        // Decode access token — realm_access and tenant are in the access token,
+        // not the ID token, so we read them here instead of from profile.
+        try {
+          const payload = JSON.parse(
+            Buffer.from(account.access_token.split(".")[1], "base64url").toString()
+          ) as Record<string, unknown>;
+          const realmAccess = payload["realm_access"] as { roles?: string[] } | undefined;
+          token.roles = realmAccess?.roles ?? [];
+          token.tenant = (payload["tenant"] as string[]) ?? [];
+        } catch {
+          token.roles = [];
+          token.tenant = [];
+        }
       }
       return token;
     },
