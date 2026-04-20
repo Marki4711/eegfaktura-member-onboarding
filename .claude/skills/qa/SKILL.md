@@ -64,6 +64,15 @@ npm run test:e2e          # Playwright: E2E tests from previous QA runs
 ```
 Note any failures — these are regressions and must be treated as High bugs.
 
+If the feature includes Helm chart changes, also validate the chart:
+```bash
+helm lint helm/<chart-name>/
+helm template <release-name> helm/<chart-name>/ -f helm/<chart-name>/values.yaml | kubeconform -strict -summary -
+helm template <release-name> helm/<chart-name>/ -f helm/<chart-name>/values.yaml | kube-score score -
+```
+- `helm lint` errors or `kubeconform` schema errors → **High**
+- `kube-score` CRITICAL findings → **High**, WARNING findings → **Medium**
+
 ### 6. Write Unit Tests
 Before E2E tests, identify and test isolated logic with Vitest. Place tests **co-located** next to the source file (e.g. `src/hooks/useFeature.test.ts` next to `src/hooks/useFeature.ts`):
 
@@ -134,6 +143,7 @@ If your context was compacted mid-task:
 - [ ] Additional edge cases identified and tested
 - [ ] Cross-browser tested (Chrome, Firefox, Safari)
 - [ ] Responsive tested (375px, 768px, 1440px)
+- [ ] If feature includes Helm chart changes: `helm lint`, `kubeconform`, `kube-score` passed
 - [ ] Security audit completed (red-team perspective)
 - [ ] Regression test on related features
 - [ ] Every bug documented with severity + steps to reproduce
