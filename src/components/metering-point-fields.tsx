@@ -70,8 +70,8 @@ export function MeteringPointFields({ form }: MeteringPointFieldsProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="CONSUMPTION">Verbrauch</SelectItem>
-                      <SelectItem value="PRODUCTION">Einspeisung</SelectItem>
+                      <SelectItem value="CONSUMPTION">Verbraucher</SelectItem>
+                      <SelectItem value="PRODUCTION">Erzeuger</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
