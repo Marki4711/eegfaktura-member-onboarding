@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MeteringPointFields } from "./metering-point-fields";
+import { isValidIBAN } from "ibantools";
 import {
   createApplication,
   submitApplication,
@@ -59,8 +60,8 @@ const formSchema = z.object({
     .string()
     .min(1, "IBAN ist erforderlich")
     .transform((v) => v.replace(/\s/g, "").toUpperCase())
-    .refine((v) => /^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(v), {
-      message: "Ungültiges IBAN-Format",
+    .refine((v) => isValidIBAN(v), {
+      message: "Ungültige IBAN",
     }),
   accountHolder: z.string().min(1, "Kontoinhaber ist erforderlich").max(255),
   privacyAccepted: z.boolean().refine((v) => v === true, {

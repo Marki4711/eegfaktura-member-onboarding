@@ -81,6 +81,11 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 	eegID := ep.EEGID
 
 	iban := normalizeIBAN(req.IBAN)
+	if !validateIBAN(iban) {
+		return nil, shared.NewValidationError("Validation failed", map[string]string{
+			"iban": "Ungültige IBAN",
+		})
+	}
 	var sepaMandateAcceptedAt *time.Time
 	if req.SepaMandateAccepted {
 		sepaMandateAcceptedAt = &now
@@ -214,6 +219,11 @@ func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateAp
 	}
 	if req.IBAN != nil {
 		normalized := normalizeIBAN(*req.IBAN)
+		if !validateIBAN(normalized) {
+			return nil, shared.NewValidationError("Validation failed", map[string]string{
+				"iban": "Ungültige IBAN",
+			})
+		}
 		app.IBAN = &normalized
 	}
 	if req.AccountHolder != nil {
@@ -373,6 +383,31 @@ func (s *ApplicationService) generateReferenceNumber() string {
 
 // normalizeIBAN strips whitespace and uppercases an IBAN string.
 func normalizeIBAN(iban string) string {
-	result := strings.ToUpper(strings.ReplaceAll(iban, " ", ""))
-	return result
+	return strings.ToUpper(strings.ReplaceAll(iban, " ", ""))
+}
+
+// validateIBAN checks IBAN structure and MOD-97 checksum.
+func validateIBAN(iban string) bool {
+	if len(iban) < 15 || len(iban) > 34 {
+		return false
+	}
+	// Move first 4 chars to end, convert letters to digits (A=10 … Z=35)
+	rearranged := iban[4:] + iban[:4]
+	var numeric strings.Builder
+	for _, c := range rearranged {
+		if c >= 'A' && c <= 'Z' {
+			numeric.WriteString(fmt.Sprintf("%d", int(c-'A'+10)))
+		} else if c >= '0' && c <= '9' {
+			numeric.WriteByte(byte(c))
+		} else {
+			return false
+		}
+	}
+	// MOD-97 on large number processed in chunks
+	digits := numeric.String()
+	remainder := 0
+	for _, ch := range digits {
+		remainder = (remainder*10 + int(ch-'0')) % 97
+	}
+	return remainder == 1
 }
