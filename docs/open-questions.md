@@ -25,3 +25,22 @@ Im Einwilligungsbereich des Registrierungsformulars bestätigt das Mitglied, die
 Das Feld `privacy_version` und `privacy_accepted_at` deckt aktuell nur die Datenschutzerklärung ab. Bei Erweiterung auf mehrere Dokumente wäre ein eigenes Zustimmungsmodell notwendig.
 
 **Status:** Ungeklärt — vor Implementierung mit Fachverantwortlichen abstimmen.
+
+---
+
+## OQ-2: Formelle Anforderungen an das SEPA-Lastschriftmandat
+
+**Kontext:**
+Die aktuelle Implementierung erfasst die Zustimmung zum SEPA-Lastschriftmandat als einfache Checkbox im Registrierungsformular. Es ist unklar, ob das den formellen Anforderungen für ein gültiges SEPA-Mandat entspricht.
+
+**Offene Fragen:**
+- Genügt eine digitale Checkbox-Zustimmung als rechtsgültiges SEPA-Mandat?
+- Welche Pflichtangaben muss ein SEPA-Mandat enthalten (z.B. Gläubiger-ID, Mandatsreferenz)?
+- Muss das Mandat dem Mitglied zugestellt werden (z.B. per E-Mail)?
+- Muss eine Mandatsreferenz pro Mitglied vergeben und gespeichert werden?
+- Gibt es Anforderungen an die Aufbewahrung des Mandats?
+
+**Auswirkung auf bestehende Implementierung:**
+Die Felder `sepa_mandate_accepted` und `sepa_mandate_accepted_at` sind ein Mindestgerüst. Bei formellen Anforderungen wären zusätzliche Felder (Mandatsreferenz, Gläubiger-ID, Zustellungsnachweis) sowie ggf. ein eigener Prozessschritt notwendig.
+
+**Status:** Ungeklärt — rechtliche und bankfachliche Prüfung erforderlich.
