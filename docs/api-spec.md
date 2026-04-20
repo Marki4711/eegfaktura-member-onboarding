@@ -112,7 +112,6 @@ Legt einen neuen Antrag an.
   "privacyAccepted": true,
   "privacyVersion": "2026-01",
   "accuracyConfirmed": true,
-  "communicationConsent": false,
   "iban": "AT123456789012345678",
   "accountHolder": "Josef Brandstätter",
   "sepaMandateAccepted": true,

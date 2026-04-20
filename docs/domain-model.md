@@ -91,7 +91,6 @@ Felder:
 - `privacy_version`
 - `privacy_accepted_at`
 - `accuracy_confirmed`
-- `communication_consent`
 - `iban`
 - `account_holder`
 - `sepa_mandate_accepted`

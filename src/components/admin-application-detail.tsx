@@ -221,7 +221,6 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
               <Field label="Datenschutz-Version" value={application.privacyVersion} />
               <Field label="Akzeptiert am" value={formatDateTime(application.privacyAcceptedAt)} />
               <BoolField label="Richtigkeit bestätigt" value={application.accuracyConfirmed} />
-              <BoolField label="Kommunikations-Einwilligung" value={application.communicationConsent} />
             </dl>
           </CardContent>
         </Card>

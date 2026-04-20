@@ -24,7 +24,6 @@ type CreateApplicationRequest struct {
 	PrivacyAccepted      bool                        `json:"privacyAccepted" validate:"required"`
 	PrivacyVersion       string                      `json:"privacyVersion" validate:"required"`
 	AccuracyConfirmed    bool                        `json:"accuracyConfirmed" validate:"required"`
-	CommunicationConsent bool                        `json:"communicationConsent"`
 	IBAN                 string                      `json:"iban" validate:"required,min=15,max=34"`
 	AccountHolder        string                      `json:"accountHolder" validate:"required,min=1,max=255"`
 	SepaMandateAccepted  bool                        `json:"sepaMandateAccepted" validate:"required"`
@@ -52,7 +51,6 @@ type UpdateApplicationRequest struct {
 	PrivacyAccepted      *bool                       `json:"privacyAccepted,omitempty"`
 	PrivacyVersion       *string                     `json:"privacyVersion,omitempty"`
 	AccuracyConfirmed    *bool                       `json:"accuracyConfirmed,omitempty"`
-	CommunicationConsent *bool                       `json:"communicationConsent,omitempty"`
 	IBAN                 *string                     `json:"iban,omitempty" validate:"omitempty,min=15,max=34"`
 	AccountHolder        *string                     `json:"accountHolder,omitempty" validate:"omitempty,min=1,max=255"`
 	SepaMandateAccepted  *bool                       `json:"sepaMandateAccepted,omitempty"`

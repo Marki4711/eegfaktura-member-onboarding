@@ -138,7 +138,6 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
         privacyAccepted: values.privacyAccepted,
         privacyVersion: PRIVACY_VERSION,
         accuracyConfirmed: values.accuracyConfirmed,
-        communicationConsent: false,
         iban: values.iban,
         accountHolder: values.accountHolder,
         sepaMandateAccepted: values.sepaMandateAccepted,

@@ -38,7 +38,6 @@ export interface CreateApplicationRequest {
   privacyAccepted: boolean;
   privacyVersion: string;
   accuracyConfirmed: boolean;
-  communicationConsent: boolean;
   iban: string;
   accountHolder: string;
   sepaMandateAccepted: boolean;
@@ -197,7 +196,6 @@ export interface AdminApplicationDetail {
   privacyVersion: string | null;
   privacyAcceptedAt: string | null;
   accuracyConfirmed: boolean;
-  communicationConsent: boolean;
   iban: string | null;
   accountHolder: string | null;
   sepaMandateAccepted: boolean;
