@@ -3,9 +3,7 @@ FROM node:20-alpine AS deps
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-# npm install (not npm ci) so platform-specific native bindings locked from Windows
-# (e.g. @rolldown/binding-win32-x64-msvc) are re-evaluated for the actual OS and skipped.
-RUN npm install
+RUN npm ci
 
 FROM node:20-alpine AS builder
 
