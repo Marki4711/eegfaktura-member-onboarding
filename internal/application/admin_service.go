@@ -19,6 +19,9 @@ type ApplicationListFilters struct {
 	MeteringPoint   *string
 	SubmittedFrom   *time.Time
 	SubmittedTo     *time.Time
+	// RCNumbers restricts results to a specific set of RC numbers (tenant-admin scope).
+	// When nil, no restriction is applied (superuser scope).
+	RCNumbers *[]string
 }
 
 // adminTransitions defines which status changes the admin endpoint may perform.

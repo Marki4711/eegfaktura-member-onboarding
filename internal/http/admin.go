@@ -16,16 +16,39 @@ import (
 
 // AdminHandler handles admin-facing HTTP requests.
 type AdminHandler struct {
-	adminService *application.AdminApplicationService
-	validate     *validator.Validate
+	adminService   *application.AdminApplicationService
+	entrypointRepo *application.RegistrationEntrypointRepository
+	validate       *validator.Validate
 }
 
 // NewAdminHandler creates a new AdminHandler.
-func NewAdminHandler(adminService *application.AdminApplicationService) *AdminHandler {
+func NewAdminHandler(adminService *application.AdminApplicationService, entrypointRepo *application.RegistrationEntrypointRepository) *AdminHandler {
 	return &AdminHandler{
-		adminService: adminService,
-		validate:     validator.New(),
+		adminService:   adminService,
+		entrypointRepo: entrypointRepo,
+		validate:       validator.New(),
 	}
+}
+
+// SyncEntrypoints handles POST /api/admin/sync
+// Called once per session after login to ensure registration_entrypoint rows exist
+// for all RC numbers in the Tenant-Admin's token. No-op for superusers.
+func (h *AdminHandler) SyncEntrypoints(w http.ResponseWriter, r *http.Request) {
+	claims := ClaimsFromContext(r.Context())
+	if claims == nil || claims.IsSuperuser() {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	if err := h.entrypointRepo.UpsertForRCNumbers(claims.Tenant); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{
+			"code":    "internal_error",
+			"message": "Sync fehlgeschlagen.",
+		})
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // ListApplications handles GET /api/admin/applications
@@ -61,6 +84,11 @@ func (h *AdminHandler) ListApplications(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
+	// Apply tenant scope: superuser sees everything; tenant-admin only sees own RC numbers.
+	if claims := ClaimsFromContext(r.Context()); claims != nil && !claims.IsSuperuser() {
+		filters.RCNumbers = &claims.Tenant
+	}
+
 	page := intQueryParam(q.Get("page"), 1)
 	pageSize := intQueryParam(q.Get("page_size"), 20)
 
@@ -84,6 +112,17 @@ func (h *AdminHandler) GetApplicationDetail(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		h.handleServiceError(w, err)
 		return
+	}
+
+	// Tenant-admins may only access applications within their allowed RC numbers.
+	if claims := ClaimsFromContext(r.Context()); claims != nil && !claims.IsSuperuser() {
+		if !containsRC(claims.Tenant, resp.RCNumber) {
+			writeJSON(w, http.StatusForbidden, map[string]string{
+				"code":    "forbidden",
+				"message": "Kein Zugriff auf diesen Antrag.",
+			})
+			return
+		}
 	}
 
 	h.writeJSON(w, http.StatusOK, resp)
@@ -143,8 +182,10 @@ func (h *AdminHandler) ChangeStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// actorID is empty until PROJ-4 adds Keycloak authentication.
 	actorID := ""
+	if claims := ClaimsFromContext(r.Context()); claims != nil {
+		actorID = claims.Subject
+	}
 
 	toStatus := shared.ApplicationStatus(req.ToStatus)
 	resp, err := h.adminService.ChangeStatus(id, toStatus, req.Reason, actorID)
@@ -220,6 +261,15 @@ func intQueryParam(s string, defaultVal int) int {
 		return defaultVal
 	}
 	return v
+}
+
+func containsRC(tenants []string, rc string) bool {
+	for _, t := range tenants {
+		if t == rc {
+			return true
+		}
+	}
+	return false
 }
 
 func isKnownStatus(s string) bool {
