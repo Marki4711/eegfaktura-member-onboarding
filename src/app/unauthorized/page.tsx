@@ -1,7 +1,14 @@
+"use client";
+
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 
 export default function UnauthorizedPage() {
+  const { data: session } = useSession();
+  const email = (session as { user?: { email?: string; name?: string } } | null)
+    ?.user?.email ?? (session as { user?: { name?: string } } | null)?.user?.name;
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="text-center space-y-4 max-w-md px-6">
@@ -15,6 +22,11 @@ export default function UnauthorizedPage() {
           Ihr Konto hat keine Berechtigung für den Admin-Bereich. Bitte wenden Sie
           sich an Ihren Administrator.
         </p>
+        {email && (
+          <p className="text-sm text-muted-foreground bg-muted rounded px-3 py-2">
+            Angemeldet als: <span className="font-medium text-foreground">{email}</span>
+          </p>
+        )}
         <div className="flex gap-3 justify-center pt-2">
           <Button asChild variant="outline">
             <Link href="/api/auth/signin">Anderes Konto verwenden</Link>
