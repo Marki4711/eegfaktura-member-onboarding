@@ -21,6 +21,7 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, account }) {
       if (account?.access_token) {
         token.accessToken = account.access_token;
+        token.idToken = account.id_token;
         token.refreshToken = account.refresh_token;
         token.expiresAt = account.expires_at;
         // Decode access token — realm_access and tenant are in the access token,
@@ -47,6 +48,7 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       session.accessToken = token.accessToken as string;
+      session.idToken = token.idToken as string;
       session.roles = (token.roles as string[]) ?? [];
       session.tenant = (token.tenant as string[]) ?? [];
       session.userId = token.sub ?? "";
