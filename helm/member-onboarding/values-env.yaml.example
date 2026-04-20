@@ -1,0 +1,74 @@
+# Umgebungsspezifische Konfiguration für member-onboarding.
+#
+# Kopiere diese Datei nach values-env.yaml und passe die Werte an.
+# values-env.yaml ist gitignored und wird NICHT committed.
+#
+# Verwendung:
+#   helm install eegfaktura-member-onboarding ./helm/member-onboarding \
+#     -f helm/member-onboarding/values-env.yaml \
+#     -f helm/member-onboarding/values-secret.yaml
+
+# ── Namespace ──────────────────────────────────────────────────────────────────
+namespace: eegfaktura-member-onboarding
+
+# ── Ingress ────────────────────────────────────────────────────────────────────
+ingress:
+  host: member-onboarding.example.at
+  className: nginx
+  # Timeout in Sekunden für lange Requests (z.B. Datei-Uploads)
+  # proxyReadTimeout: "60"
+  # proxySendTimeout: "60"
+
+# ── Images ─────────────────────────────────────────────────────────────────────
+images:
+  backend:
+    repository: marki4711/eegfaktura-member-onboarding-backend
+    tag: latest
+    # Always: immer vom Registry laden (empfohlen für latest-Tags)
+    # IfNotPresent: nur laden wenn nicht lokal vorhanden
+    pullPolicy: Always
+  frontend:
+    repository: marki4711/eegfaktura-member-onboarding-frontend
+    tag: latest
+    pullPolicy: Always
+
+# ── PostgreSQL ─────────────────────────────────────────────────────────────────
+postgres:
+  user: postgres
+  database: member_onboarding
+  # StorageClass des Kubernetes-Clusters (kubectl get storageclass)
+  storageClassName: csi-rbd-sc
+  storageSize: 5Gi
+
+# ── Backend ────────────────────────────────────────────────────────────────────
+backend:
+  # Anzahl der Backend-Pods (horizontal scaling)
+  replicas: 1
+
+  # Log-Level: DEBUG | INFO | WARN | ERROR
+  # DEBUG: alle Details inkl. DB-Queries (nur für Fehleranalyse)
+  # INFO:  normaler Betrieb (empfohlen für Produktion)
+  # WARN:  nur Warnungen und Fehler
+  # ERROR: nur Fehler
+  logLevel: "INFO"
+
+  # Erlaubte Origins für CORS (kommagetrennt für mehrere)
+  corsAllowedOrigins: "https://member-onboarding.example.at"
+
+  # SMTP-Konfiguration für E-Mail-Benachrichtigungen
+  # Auskommentiert lassen = Mail deaktiviert (NoOpMailService)
+  # smtp:
+  #   host: smtp.example.com
+  #   port: "587"
+  #   # Leer lassen bei open relay (kein Auth erforderlich)
+  #   user: noreply@example.com
+  #   # Pflichtfeld wenn host gesetzt — Absenderadresse
+  #   from: noreply@example.com
+
+# ── Seed data ──────────────────────────────────────────────────────────────────
+# Wird einmalig als post-install Hook ausgeführt.
+# Legt einen initialen Registrierungseinstiegspunkt an.
+# Mehrfaches Ausführen ist sicher (ON CONFLICT DO NOTHING).
+seed:
+  rcNumber: RC123456
+  eegId: "00000000-0000-0000-0000-000000000001"
