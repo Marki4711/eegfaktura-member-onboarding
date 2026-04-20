@@ -32,11 +32,12 @@ export const authOptions: NextAuthOptions = {
           ) as Record<string, unknown>;
           const realmAccess = payload["realm_access"] as { roles?: string[] } | undefined;
           token.roles = realmAccess?.roles ?? [];
-          token.tenant = (payload["tenant"] as string[]) ?? [];
+          token.tenant = parseTenant(payload["tenant"]);
           const ts = new Date().toISOString();
           console.log(`[auth] ${ts} JWT payload keys:`, Object.keys(payload));
           console.log(`[auth] ${ts} realm_access:`, JSON.stringify(realmAccess));
-          console.log(`[auth] ${ts} tenant:`, JSON.stringify(payload["tenant"]));
+          console.log(`[auth] ${ts} tenant raw:`, JSON.stringify(payload["tenant"]));
+          console.log(`[auth] ${ts} tenant parsed:`, JSON.stringify(token.tenant));
           console.log(`[auth] ${ts} roles resolved:`, JSON.stringify(token.roles));
         } catch (e) {
           console.error("[auth] Failed to decode access token:", e);
@@ -59,6 +60,23 @@ export const authOptions: NextAuthOptions = {
     error: "/unauthorized",
   },
 };
+
+// Keycloak stores the tenant attribute as a JSON array string e.g. '["RC101665","RC101294"]'.
+// The mapper emits it as a plain string claim — parse it here into a proper string array.
+function parseTenant(raw: unknown): string[] {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.map(String);
+  if (typeof raw === "string") {
+    if (raw.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed.map(String);
+      } catch { /* fall through */ }
+    }
+    return [raw];
+  }
+  return [];
+}
 
 export function isSuperuser(roles: string[]): boolean {
   return roles.includes("superuser");
