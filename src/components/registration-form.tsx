@@ -24,8 +24,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { MeteringPointFields } from "./metering-point-fields";
 import { MaskedInput } from "@/components/ui/masked-input";
 import { isValidIBAN } from "ibantools";
@@ -41,10 +46,11 @@ import {
 const PRIVACY_VERSION = "2026-01";
 
 const MEMBER_TYPE_OPTIONS: { value: MemberType; label: string; hint: string }[] = [
-  { value: "private",      label: "Privat / Kleinunternehmer", hint: "0 % USt." },
+  { value: "private",      label: "Privatperson",              hint: "0 % USt." },
   { value: "farmer",       label: "Pauschalierter Landwirt",   hint: "13 % USt." },
-  { value: "municipality", label: "Gemeinde",                  hint: "variabel" },
-  { value: "company",      label: "Unternehmen / Verein",      hint: "20 % USt." },
+  { value: "municipality", label: "Gemeinde / öffentl. Körperschaft", hint: "variabel" },
+  { value: "company",      label: "Unternehmen",               hint: "20 % USt." },
+  { value: "association",  label: "Verein / Kleinunternehmer", hint: "variabel" },
 ];
 
 // ---------- Zod schema ----------
@@ -60,7 +66,7 @@ const meteringPointSchema = z.object({
 
 const formSchema = z
   .object({
-    memberType: z.enum(["private", "farmer", "municipality", "company"] as const),
+    memberType: z.enum(["private", "farmer", "municipality", "company", "association"] as const),
     firstname: z.string().trim().max(255).optional(),
     lastname: z.string().trim().max(255).optional(),
     birthDate: z.string().optional(),
@@ -106,7 +112,9 @@ const formSchema = z
         ctx.addIssue({ code: "custom", path: ["birthDate"], message: "Geburtsdatum ist erforderlich" });
       }
     } else {
-      const orgLabel = data.memberType === "municipality" ? "Organisationsname" : "Firmenname";
+      const orgLabel = data.memberType === "municipality" ? "Organisationsname"
+        : data.memberType === "association" ? "Vereinsname"
+        : "Firmenname";
       if (!data.companyName?.trim()) {
         ctx.addIssue({ code: "custom", path: ["companyName"], message: `${orgLabel} ist erforderlich` });
       }
@@ -115,7 +123,12 @@ const formSchema = z
           ctx.addIssue({ code: "custom", path: ["uidNumber"], message: "UID-Nummer ist erforderlich" });
         }
         if (!data.registerNumber?.trim()) {
-          ctx.addIssue({ code: "custom", path: ["registerNumber"], message: "Firmenbuch-/Vereinsnummer ist erforderlich" });
+          ctx.addIssue({ code: "custom", path: ["registerNumber"], message: "Firmenbuchnummer ist erforderlich" });
+        }
+      }
+      if (data.memberType === "association") {
+        if (!data.registerNumber?.trim()) {
+          ctx.addIssue({ code: "custom", path: ["registerNumber"], message: "Vereinsnummer ist erforderlich" });
         }
       }
     }
@@ -314,35 +327,25 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
               name="memberType"
               render={({ field }) => (
                 <FormItem>
-                  <FormControl>
-                    <RadioGroup
-                      value={field.value}
-                      onValueChange={(v) => onMemberTypeChange(v as MemberType)}
-                      className="grid grid-cols-1 sm:grid-cols-2 gap-3"
-                    >
+                  <FormLabel>Mitgliedstyp *</FormLabel>
+                  <Select
+                    value={field.value}
+                    onValueChange={(v) => onMemberTypeChange(v as MemberType)}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Bitte auswählen …" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
                       {MEMBER_TYPE_OPTIONS.map((opt) => (
-                        <Label
-                          key={opt.value}
-                          htmlFor={`mt-${opt.value}`}
-                          className={`flex items-start gap-3 rounded-lg border p-4 cursor-pointer transition-colors ${
-                            field.value === opt.value
-                              ? "border-primary bg-primary/5"
-                              : "border-border hover:bg-muted/50"
-                          }`}
-                        >
-                          <RadioGroupItem
-                            id={`mt-${opt.value}`}
-                            value={opt.value}
-                            className="mt-0.5 shrink-0"
-                          />
-                          <div>
-                            <span className="text-sm font-medium">{opt.label}</span>
-                            <span className="block text-xs text-muted-foreground">{opt.hint}</span>
-                          </div>
-                        </Label>
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                          <span className="ml-2 text-xs text-muted-foreground">({opt.hint})</span>
+                        </SelectItem>
                       ))}
-                    </RadioGroup>
-                  </FormControl>
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -412,11 +415,21 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>
-                        {memberType === "municipality" ? "Organisationsname *" : "Firmenname *"}
+                        {memberType === "municipality"
+                          ? "Organisationsname *"
+                          : memberType === "association"
+                          ? "Vereinsname *"
+                          : "Firmenname *"}
                       </FormLabel>
                       <FormControl>
                         <Input
-                          placeholder={memberType === "municipality" ? "Gemeinde Musterort" : "Muster GmbH"}
+                          placeholder={
+                            memberType === "municipality"
+                              ? "Gemeinde Musterort"
+                              : memberType === "association"
+                              ? "Musterverein"
+                              : "Muster GmbH"
+                          }
                           autoComplete="organization"
                           {...field}
                         />
@@ -426,30 +439,37 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                   )}
                 />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="uidNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          UID-Nummer{memberType === "company" ? " *" : ""}
-                        </FormLabel>
-                        <FormControl>
-                          <Input placeholder="ATU12345678" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  {memberType === "company" && (
+                  {(memberType === "company" || memberType === "association") && (
+                    <FormField
+                      control={form.control}
+                      name="uidNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            UID-Nummer{memberType === "company" ? " *" : ""}
+                          </FormLabel>
+                          <FormControl>
+                            <Input placeholder="ATU12345678" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                  {(memberType === "company" || memberType === "association") && (
                     <FormField
                       control={form.control}
                       name="registerNumber"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Firmenbuch-/Vereinsnummer *</FormLabel>
+                          <FormLabel>
+                            {memberType === "association" ? "Vereinsnummer *" : "Firmenbuchnummer *"}
+                          </FormLabel>
                           <FormControl>
-                            <Input placeholder="FN 123456 a" {...field} />
+                            <Input
+                              placeholder={memberType === "association" ? "ZVR 123456789" : "FN 123456 a"}
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

@@ -453,7 +453,7 @@ func clearMemberTypeFields(app *shared.Application) {
 		app.CompanyName = nil
 		app.UIDNumber = nil
 		app.RegisterNumber = nil
-	case shared.MemberTypeMunicipality, shared.MemberTypeCompany:
+	case shared.MemberTypeMunicipality, shared.MemberTypeCompany, shared.MemberTypeAssociation:
 		app.Firstname = nil
 		app.Lastname = nil
 		app.BirthDate = nil
@@ -483,6 +483,17 @@ func validateMemberTypeFields(app *shared.Application) error {
 		if app.CompanyName == nil || strings.TrimSpace(*app.CompanyName) == "" {
 			return shared.NewValidationError("Validation failed", map[string]string{
 				"companyName": "Organisationsname ist erforderlich",
+			})
+		}
+	case shared.MemberTypeAssociation:
+		if app.CompanyName == nil || strings.TrimSpace(*app.CompanyName) == "" {
+			return shared.NewValidationError("Validation failed", map[string]string{
+				"companyName": "Vereinsname ist erforderlich",
+			})
+		}
+		if app.RegisterNumber == nil || strings.TrimSpace(*app.RegisterNumber) == "" {
+			return shared.NewValidationError("Validation failed", map[string]string{
+				"registerNumber": "Vereinsnummer ist erforderlich",
 			})
 		}
 	case shared.MemberTypeCompany:
