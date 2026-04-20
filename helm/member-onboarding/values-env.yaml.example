@@ -40,6 +40,14 @@ postgres:
   storageClassName: csi-rbd-sc
   storageSize: 5Gi
 
+# ── Frontend ───────────────────────────────────────────────────────────────────
+frontend:
+  # Anzahl der Frontend-Pods (horizontal scaling)
+  replicas: 1
+
+  # Log-Level für den Next.js Node.js Server-Prozess: debug | info | warn | error
+  logLevel: "info"
+
 # ── Backend ────────────────────────────────────────────────────────────────────
 backend:
   # Anzahl der Backend-Pods (horizontal scaling)
