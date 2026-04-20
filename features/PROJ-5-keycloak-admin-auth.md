@@ -1,6 +1,6 @@
 # PROJ-5: Keycloak-gesicherte Admin-Oberfläche
 
-## Status: Approved
+## Status: Deployed
 **Created:** 2026-04-19
 **Last Updated:** 2026-04-20
 
@@ -19,36 +19,36 @@
 ## Acceptance Criteria
 
 ### Authentifizierung
-- [ ] Der Admin-Bereich (`/admin`) ist ohne gültigen Keycloak-Token nicht zugänglich
-- [ ] Nicht eingeloggte Benutzer werden automatisch zum Keycloak-Login-Screen weitergeleitet
-- [ ] Nach erfolgreichem Login werden Benutzer zurück zur Admin-Oberfläche geleitet
-- [ ] Ein Logout-Button beendet die Session und leitet zum Keycloak-Logout weiter
+- [x] Der Admin-Bereich (`/admin`) ist ohne gültigen Keycloak-Token nicht zugänglich
+- [x] Nicht eingeloggte Benutzer werden automatisch zum Keycloak-Login-Screen weitergeleitet
+- [x] Nach erfolgreichem Login werden Benutzer zurück zur Admin-Oberfläche geleitet
+- [x] Ein Logout-Button beendet die Session und leitet zum Keycloak-Logout weiter
 
 ### Autorisierung — Tenant-Admin
-- [ ] Ein Benutzer mit nicht-leerem `tenant`-Attribut im JWT gilt als Tenant-Admin
-- [ ] Tenant-Admins sehen ausschließlich Anträge von EEGs, deren RC-Nummern in ihrem `tenant`-Array stehen
-- [ ] Die Filterliste der Admin-Oberfläche ist auf die eigenen EEGs eingeschränkt
-- [ ] Direktzugriff auf einen Antrag einer fremden EEG via URL liefert HTTP 403
+- [x] Ein Benutzer mit nicht-leerem `tenant`-Attribut im JWT gilt als Tenant-Admin
+- [x] Tenant-Admins sehen ausschließlich Anträge von EEGs, deren RC-Nummern in ihrem `tenant`-Array stehen
+- [x] Die Filterliste der Admin-Oberfläche ist auf die eigenen EEGs eingeschränkt
+- [ ] Direktzugriff auf einen Antrag einer fremden EEG via URL liefert HTTP 403 (nicht explizit getestet)
 
 ### Autorisierung — Superuser
-- [ ] Ein Benutzer mit der Realm Role `superuser` sieht Anträge aller EEGs ohne Einschränkung
-- [ ] Superuser haben kein `tenant`-Attribut (oder es wird ignoriert)
+- [x] Ein Benutzer mit der Realm Role `superuser` sieht Anträge aller EEGs ohne Einschränkung
+- [x] Superuser haben kein `tenant`-Attribut (oder es wird ignoriert)
 
 ### Kein Zugriff
-- [ ] Benutzer ohne `superuser`-Rolle und ohne `tenant`-Attribut erhalten HTTP 403
-- [ ] Die Admin-Oberfläche zeigt eine verständliche Fehlermeldung bei 403
+- [x] Benutzer ohne `superuser`-Rolle und ohne `tenant`-Attribut erhalten HTTP 403
+- [x] Die Admin-Oberfläche zeigt eine verständliche Fehlermeldung bei 403
 
 ### Sync-Logik (Tenant-Admin)
-- [ ] Nach dem Login eines Tenant-Admins wird für jede RC-Nummer in seinem `tenant`-Array geprüft, ob ein Eintrag in `registration_entrypoint` existiert
-- [ ] Fehlende Einträge werden per `INSERT ... ON CONFLICT DO NOTHING` automatisch angelegt
-- [ ] Die Sync-Logik läuft einmalig pro Session, nicht bei jedem Request
-- [ ] Für Superuser wird keine Sync-Logik ausgeführt
-- [ ] Bestehende Einträge werden nicht gelöscht, wenn eine RC-Nummer aus dem `tenant`-Attribut entfernt wird
+- [x] Nach dem Login eines Tenant-Admins wird für jede RC-Nummer in seinem `tenant`-Array geprüft, ob ein Eintrag in `registration_entrypoint` existiert
+- [x] Fehlende Einträge werden per `INSERT ... ON CONFLICT DO NOTHING` automatisch angelegt (bestätigt via DB-Query: RC101665 und RC101294 wurden beim ersten Login angelegt)
+- [x] Die Sync-Logik läuft einmalig pro Session, nicht bei jedem Request
+- [x] Für Superuser wird keine Sync-Logik ausgeführt
+- [x] Bestehende Einträge werden nicht gelöscht, wenn eine RC-Nummer aus dem `tenant`-Attribut entfernt wird
 
 ### Token-Struktur
-- [ ] Das `tenant`-Attribut ist als Multivalued User Attribute via Client Scope Mapper im Access Token enthalten
-- [ ] Die App liest `realm_access.roles` für die Superuser-Prüfung
-- [ ] Die App liest `tenant` (String-Array) für die Tenant-Admin-Prüfung
+- [x] Das `tenant`-Attribut ist via Client Scope Mapper (User Attribute, Multivalued OFF) im Access Token enthalten
+- [x] Die App liest `realm_access.roles` für die Superuser-Prüfung
+- [x] Die App liest `tenant` (String-Array) für die Tenant-Admin-Prüfung
 
 ## Edge Cases
 
@@ -298,12 +298,29 @@ Added to `helm/member-onboarding/`:
 **New Kubernetes Secret:** `<release>-frontend-secret` holds `NEXTAUTH_SECRET` and `KEYCLOAK_CLIENT_SECRET`.
 
 ### Pre-Production Checklist
-- [ ] Keycloak realm `EEGFaktura` created
-- [ ] Keycloak client `eegfaktura-member-onboarding` created (Confidential, Authorization Code flow)
-- [ ] Valid Redirect URI configured in Keycloak: `https://<host>/api/auth/callback/keycloak`
-- [ ] Web Origin configured in Keycloak: `https://<host>`
-- [ ] Client Scope Mapper for `tenant` attribute (User Attribute → Multivalued → Claim name: `tenant`)
-- [ ] Realm Role `superuser` created
-- [ ] Tenant-Admin users configured with `tenant` user attribute
-- [ ] `values-env.yaml` and `values-secret.yaml` filled in
-- [ ] Manual E2E verification of full auth flow against live Keycloak
+- [x] Keycloak realm `EEGFaktura` created
+- [x] Keycloak client `eegfaktura-member-onboarding` created (Confidential, Authorization Code flow)
+- [x] Valid Redirect URI configured in Keycloak: `https://<host>/api/auth/callback/keycloak`
+- [x] Web Origin configured in Keycloak: `https://<host>`
+- [x] Client Scope Mapper for `tenant` attribute (User Attribute, **Multivalued OFF**, Claim name: `tenant`)
+- [x] Realm Role `superuser` created
+- [x] Tenant-Admin users configured with `tenant` user attribute
+- [x] `values-env.yaml` and `values-secret.yaml` filled in
+- [x] Manual E2E verification of full auth flow against live Keycloak
+
+### Production Fixes (discovered during live testing)
+
+The following issues were found and fixed during production testing on 2026-04-20:
+
+| # | Issue | Root Cause | Fix |
+|---|-------|-----------|-----|
+| P-1 | 502 Bad Gateway on OAuth callback | nginx default buffer (4k/8k) too small for NextAuth cookies (JWT with access+id+refresh token) | Added `proxy-buffer-size: 128k` / `proxy-buffers-number: 4` to ingress annotations |
+| P-2 | Keycloak SSO session not terminated on logout | `signOut()` only clears NextAuth cookie; does not call Keycloak `end_session` | Store `id_token` in session; call Keycloak `end_session` endpoint with `id_token_hint` after `signOut({ redirect: false })` |
+| P-3 | Keycloak 400 "Ungültige Redirect URI" on logout | `post_logout_redirect_uri` not whitelisted in Keycloak | Add `https://<host>/*` (with wildcard) to "Valid post logout redirect URIs" in Keycloak |
+| P-4 | Tenant-Admin JWT claim `tenant: undefined` in frontend | Keycloak emits tenant as JSON-array string `"[\"RC1\",\"RC2\"]"` not a real array | Added `parseTenant()` in `auth.ts` that detects and parses the JSON-array string format |
+| P-5 | Backend 401 for all Tenant-Admin requests | `golang-jwt` fails to unmarshal JSON-array string into `[]string` field → parse error | Added `TenantClaim` custom type with `UnmarshalJSON` in `auth_middleware.go` |
+| P-6 | Public registration returns 404 (HTML) | `/api/public` path missing from ingress — requests went to Next.js instead of Go backend | Added `/api/public` path to `ingress.yaml` |
+
+**Key Keycloak lesson:** The `tenant` User Attribute must be stored as a JSON array string `["RC101665","RC101294"]` (shared format with other eegFaktura apps). The Client Scope Mapper must have **Multivalued OFF** — otherwise Keycloak wraps the string in another array. Both frontend (`parseTenant()`) and backend (`TenantClaim`) handle this format explicitly.
+
+See `docs/keycloak-setup.md` for the full Keycloak configuration reference.
