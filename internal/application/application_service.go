@@ -474,6 +474,11 @@ func validateMemberTypeFields(app *shared.Application) error {
 				"lastname": "Nachname ist erforderlich",
 			})
 		}
+		if app.BirthDate == nil {
+			return shared.NewValidationError("Validation failed", map[string]string{
+				"birthDate": "Geburtsdatum ist erforderlich",
+			})
+		}
 	case shared.MemberTypeMunicipality:
 		if app.CompanyName == nil || strings.TrimSpace(*app.CompanyName) == "" {
 			return shared.NewValidationError("Validation failed", map[string]string{

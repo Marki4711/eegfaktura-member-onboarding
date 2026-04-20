@@ -1,6 +1,6 @@
 # PROJ-7: Mitgliedstypen
 
-**Status:** 🔴 In Review
+**Status:** 🟢 Approved
 **Created:** 2026-04-20
 **Last Updated:** 2026-04-20
 
@@ -416,9 +416,7 @@ PUT /api/admin/applications/{id}
 
 ### Production-Ready Decision
 
-**NOT READY** — 2 Medium-Bugs müssen zuerst behoben werden:
-- BUG-1: `birth_date` serverseitig als Pflichtfeld für `private`/`farmer`
-- BUG-2: `validateMemberTypeFields` in AdminUpdateApplication fehlt
+**READY** — beide Medium-Bugs behoben (2026-04-20), alle 20 Go-Tests und TS-Build grün.
 
 ---
 

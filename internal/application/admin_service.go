@@ -195,6 +195,9 @@ func (s *AdminApplicationService) AdminUpdateApplication(id uuid.UUID, req share
 		app.AdminNote = req.AdminNote
 	}
 	clearMemberTypeFields(app)
+	if err = validateMemberTypeFields(app); err != nil {
+		return nil, err
+	}
 
 	tx, err := s.db.Begin()
 	if err != nil {
