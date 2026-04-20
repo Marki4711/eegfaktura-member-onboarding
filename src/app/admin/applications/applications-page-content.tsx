@@ -41,7 +41,7 @@ export function ApplicationsPageContent() {
     } finally {
       setLoading(false);
     }
-  }, [searchParams, page, pageSize]);
+  }, [searchParams, page, pageSize, session?.accessToken]);
 
   useEffect(() => {
     fetchApplications();
