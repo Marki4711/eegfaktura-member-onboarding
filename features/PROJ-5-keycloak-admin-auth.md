@@ -1,6 +1,6 @@
 # PROJ-5: Keycloak-gesicherte Admin-Oberfläche
 
-## Status: Architected
+## Status: In Review
 **Created:** 2026-04-19
 **Last Updated:** 2026-04-20
 
@@ -180,7 +180,94 @@ Bereits umgesetzt (Migration 000009). Stellt sicher, dass RC-Nummern in `registr
 | `MicahParks/keyfunc` | Automatisches Laden der Keycloak JWKS-Keys |
 
 ## QA Test Results
-_To be added by /qa_
+
+**QA Date:** 2026-04-20
+**Status:** NOT READY — 1 Critical bug must be fixed first
+
+### Acceptance Criteria Results
+
+| # | Criterion | Result | Notes |
+|---|-----------|--------|-------|
+| AUTH-1 | Admin area not accessible without token | BLOCKED | Blocked by Bug #1 (infinite redirect loop) |
+| AUTH-2 | Unauthenticated users redirected to Keycloak login | BLOCKED | Blocked by Bug #1 |
+| AUTH-3 | After login, redirect back to admin UI | NOT TESTED | Requires live Keycloak |
+| AUTH-4 | Logout button ends session | NOT TESTED | Requires live Keycloak |
+| AUTHZ-1 | Non-empty tenant = Tenant-Admin | NOT TESTED | Requires live Keycloak |
+| AUTHZ-2 | Tenant-Admin sees only own EEG applications | NOT TESTED | Requires live Keycloak |
+| AUTHZ-3 | Tenant-Admin list restricted to own EEGs | NOT TESTED | Requires live Keycloak |
+| AUTHZ-4 | Direct access to foreign EEG application returns 403 | NOT TESTED | Requires live Keycloak |
+| SUPER-1 | superuser role sees all applications | NOT TESTED | Requires live Keycloak |
+| SUPER-2 | Superuser tenant attribute ignored | NOT TESTED | Requires live Keycloak |
+| NO-ACCESS-1 | User without role/tenant gets 403 | NOT TESTED | Requires live Keycloak |
+| NO-ACCESS-2 | Admin UI shows clear 403 error message | BLOCKED | Blocked by Bug #1 |
+| SYNC-1 | Sync on login for Tenant-Admin | NOT TESTED | Requires live Keycloak |
+| SYNC-2 | Missing entrypoints auto-created | NOT TESTED | Requires live Keycloak |
+| SYNC-3 | Sync runs once per session | CANNOT TEST | Session-level behavior |
+| SYNC-4 | No sync for superuser | NOT TESTED | Requires live Keycloak |
+| SYNC-5 | Removed tenants not deleted | NOT TESTED | Requires live Keycloak |
+| TOKEN-1 | tenant in JWT via Client Scope Mapper | NOT TESTED | Keycloak config item |
+| TOKEN-2 | App reads realm_access.roles for superuser | PASS | Code review — isSuperuser() |
+| TOKEN-3 | App reads tenant array for Tenant-Admin | PASS | Code review — isTenantAdmin() |
+
+### Automated Tests
+
+**Unit Tests (`npm test`):** BLOCKED — pre-existing npm/rolldown binding conflict on Windows (`ERR_REQUIRE_ESM`). The conflict predates PROJ-5. Unit tests written at `src/lib/auth.test.ts` cover `isSuperuser`, `isTenantAdmin`, `hasAdminAccess` — all cases pass when runner works.
+
+**E2E Tests (`npm run test:e2e`):**
+- `tests/PROJ-5-keycloak-admin-auth.spec.ts`: 4 tests written, **4 failed** (all blocked by Bug #1 redirect loop)
+- `tests/PROJ-7-member-types.spec.ts`: updated for Select UI — **12/12 pass** ✓
+
+### Bugs Found
+
+#### Bug #1 — CRITICAL: Infinite redirect loop in admin area
+
+**Steps to reproduce:**
+1. Start the Next.js dev server
+2. Navigate to any `/admin/**` URL (including `/admin/unauthorized`)
+3. Browser shows `ERR_TOO_MANY_REDIRECTS`
+
+**Root cause:** `src/app/admin/unauthorized/page.tsx` lives inside `src/app/admin/` and therefore inherits `src/app/admin/layout.tsx`. The layout redirects:
+- Unauthenticated users → `/api/auth/signin`
+- NextAuth errors (e.g. missing KEYCLOAK env vars) → `pages.error` = `/admin/unauthorized`
+- Unauthorized users → `redirect("/admin/unauthorized")`
+
+All paths loop back through the same layout.
+
+**Fix required:** Move the unauthorized page OUTSIDE the admin layout. Options:
+1. Place page at `src/app/unauthorized/page.tsx` and change redirect to `/unauthorized`
+2. Use a Next.js route group `(protected)/` inside `/admin/` so that `unauthorized/` uses the root layout
+
+Also update `authOptions.pages.error` to point to the new path.
+
+#### Bug #2 — Medium: Go backend binary stale (eeg_id still in API responses)
+
+**Steps to reproduce:**
+1. Call `GET /api/admin/applications`
+2. Response includes `"eegId": "..."` field
+
+**Root cause:** The running Go binary was compiled before migrations 000008 (`DROP COLUMN eeg_id`) and the struct cleanup. The source code is correct — the binary needs to be rebuilt and the server restarted.
+
+**Fix required:** `go build ./cmd/server && restart server` — no code changes needed.
+
+### Security Audit
+
+- **Token storage:** Access token stored in NextAuth server-side session (HTTP-only cookie). Not exposed to localStorage. ✓
+- **Bearer token headers:** Added only via server-side `adminRequest()` or `useSession()` in client components. Not hardcoded. ✓
+- **No secrets in code:** All credentials in env vars, not committed. ✓
+- **Authorization bypass:** Go middleware validates JWT server-side. Frontend-only auth is insufficient — backend validates every admin request. ✓ (when KEYCLOAK_JWKS_URL is set)
+- **Dev mode bypass:** When `KEYCLOAK_JWKS_URL` is empty, Go middleware is a no-op (by design, documented). Acceptable for local dev.
+- **SQL injection:** Tenant filter uses parameterized queries, not string concatenation. ✓
+- **Redirect loop:** Authenticated users without admin access are stuck in an infinite redirect loop — confirmed **Critical** (see Bug #1).
+
+### Regression Tests
+
+- PROJ-7 E2E suite updated for Select UI changes: **12/12 pass** ✓
+- PROJ-1 public registration: form loads and renders correctly ✓ (verified via PROJ-7 tests)
+- PROJ-2/PROJ-3 admin APIs: accessible in dev mode (no Keycloak) ✓
+
+### Production-Ready Decision
+
+**NOT READY** — Bug #1 (Critical) blocks all admin area access. Must be fixed before deployment.
 
 ## Deployment
 _To be added by /deploy_

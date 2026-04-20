@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { AdminFilterPanel } from "@/components/admin-filter-panel";
 import { AdminApplicationTable } from "@/components/admin-application-table";
 import { listApplications } from "@/lib/api";
@@ -9,6 +10,7 @@ import type { ApplicationListItem } from "@/lib/api";
 
 export function ApplicationsPageContent() {
   const searchParams = useSearchParams();
+  const { data: session } = useSession();
   const [items, setItems] = useState<ApplicationListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -30,7 +32,7 @@ export function ApplicationsPageContent() {
         submitted_to: searchParams.get("submitted_to") ?? undefined,
         page,
         page_size: pageSize,
-      });
+      }, session?.accessToken);
       setItems(result.items);
       setTotal(result.total);
     } catch (err: unknown) {

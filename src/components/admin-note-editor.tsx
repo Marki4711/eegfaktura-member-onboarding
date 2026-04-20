@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export function AdminNoteEditor({ application, onRefresh }: Props) {
+  const { data: session } = useSession();
   const [editing, setEditing] = useState(false);
   const [note, setNote] = useState(application.adminNote ?? "");
   const [saving, setSaving] = useState(false);
@@ -48,7 +50,7 @@ export function AdminNoteEditor({ application, onRefresh }: Props) {
           meteringPoint: mp.meteringPoint,
           direction: mp.direction,
         })),
-      });
+      }, session?.accessToken);
       toast.success("Notiz gespeichert");
       setEditing(false);
       onRefresh();

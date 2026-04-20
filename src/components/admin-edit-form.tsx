@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,6 +50,7 @@ function toDateInputValue(iso: string | null | undefined): string {
 let mpKeyCounter = 0;
 
 export function AdminEditForm({ open, application, onClose, onRefresh }: Props) {
+  const { data: session } = useSession();
   const [memberType, setMemberType] = useState<MemberType>(application.memberType ?? "private");
   const [firstname, setFirstname] = useState(application.firstname ?? "");
   const [lastname, setLastname] = useState(application.lastname ?? "");
@@ -168,7 +170,7 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
         residentCity: residentCity.trim(),
         adminNote: adminNote,
         meteringPoints: payload,
-      });
+      }, session?.accessToken);
       toast.success("Änderungen gespeichert");
       onClose();
       onRefresh();
