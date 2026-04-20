@@ -58,10 +58,6 @@ const formSchema = z.object({
   residentStreetNumber: z.string().trim().min(1, "Hausnummer ist erforderlich").max(50),
   residentZip: z.string().trim().min(1, "PLZ ist erforderlich").max(20),
   residentCity: z.string().trim().min(1, "Ort ist erforderlich").max(255),
-  residentCountry: z
-    .string()
-    .trim()
-    .length(2, "Ländercode muss genau 2 Zeichen haben (z.B. AT)"),
   iban: z
     .string()
     .min(1, "IBAN ist erforderlich")
@@ -115,7 +111,6 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
       residentStreetNumber: "",
       residentZip: "",
       residentCity: "",
-      residentCountry: "AT",
       iban: "",
       accountHolder: "",
       privacyAccepted: false,
@@ -141,7 +136,6 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
         residentStreetNumber: values.residentStreetNumber,
         residentZip: values.residentZip,
         residentCity: values.residentCity,
-        residentCountry: values.residentCountry,
         privacyAccepted: values.privacyAccepted,
         privacyVersion: PRIVACY_VERSION,
         accuracyConfirmed: values.accuracyConfirmed,
@@ -401,27 +395,6 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
               </div>
             </div>
 
-            <FormField
-              control={form.control}
-              name="residentCountry"
-              render={({ field }) => (
-                <FormItem className="max-w-28">
-                  <FormLabel>Land *</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="AT"
-                      maxLength={2}
-                      autoComplete="country"
-                      {...field}
-                      onChange={(e) =>
-                        field.onChange(e.target.value.toUpperCase())
-                      }
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
           </CardContent>
         </Card>
 

@@ -34,7 +34,6 @@ export interface CreateApplicationRequest {
   residentStreetNumber: string;
   residentZip: string;
   residentCity: string;
-  residentCountry: string;
   privacyAccepted: boolean;
   privacyVersion: string;
   accuracyConfirmed: boolean;
@@ -191,7 +190,6 @@ export interface AdminApplicationDetail {
   residentStreetNumber: string;
   residentZip: string;
   residentCity: string;
-  residentCountry: string;
   privacyAccepted: boolean;
   privacyVersion: string | null;
   privacyAcceptedAt: string | null;
@@ -222,7 +220,6 @@ export interface AdminUpdateApplicationRequest {
   residentStreetNumber: string;
   residentZip: string;
   residentCity: string;
-  residentCountry: string;
   adminNote?: string;
   meteringPoints: MeteringPointRequest[];
 }

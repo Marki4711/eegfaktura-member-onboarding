@@ -107,7 +107,6 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 		ResidentStreetNumber:  strings.TrimSpace(req.ResidentStreetNumber),
 		ResidentZip:           strings.TrimSpace(req.ResidentZip),
 		ResidentCity:          strings.TrimSpace(req.ResidentCity),
-		ResidentCountry:       strings.TrimSpace(req.ResidentCountry),
 		PrivacyAccepted:       req.PrivacyAccepted,
 		PrivacyVersion:        &req.PrivacyVersion,
 		PrivacyAcceptedAt:     &privacyAcceptedAt,
@@ -205,9 +204,6 @@ func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateAp
 	}
 	if req.ResidentCity != nil {
 		app.ResidentCity = strings.TrimSpace(*req.ResidentCity)
-	}
-	if req.ResidentCountry != nil {
-		app.ResidentCountry = strings.TrimSpace(*req.ResidentCountry)
 	}
 	if req.PrivacyAccepted != nil {
 		app.PrivacyAccepted = *req.PrivacyAccepted

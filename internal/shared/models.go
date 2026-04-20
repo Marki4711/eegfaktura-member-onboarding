@@ -61,7 +61,6 @@ type Application struct {
 	ResidentStreetNumber string            `json:"residentStreetNumber" db:"resident_street_number"`
 	ResidentZip          string            `json:"residentZip" db:"resident_zip"`
 	ResidentCity         string            `json:"residentCity" db:"resident_city"`
-	ResidentCountry      string            `json:"residentCountry" db:"resident_country"`
 	PrivacyAccepted      bool              `json:"privacyAccepted" db:"privacy_accepted"`
 	PrivacyVersion       *string           `json:"privacyVersion,omitempty" db:"privacy_version"`
 	PrivacyAcceptedAt    *time.Time        `json:"privacyAcceptedAt,omitempty" db:"privacy_accepted_at"`
