@@ -53,6 +53,15 @@ frontend:
   # Beispiel: http://eegfaktura-member-onboarding-backend:8080
   backendUrl: "http://RELEASE-NAME-backend:8080"
 
+  # NextAuth — Öffentliche URL der App (muss exakt mit dem Browser-Aufruf übereinstimmen)
+  nextauthUrl: "https://member-onboarding.example.at"
+
+  # Keycloak Issuer URL (Realm-URL ohne trailing slash)
+  keycloakIssuer: "https://keycloak.example.at/realms/EEGFaktura"
+
+  # Keycloak Client ID (entspricht dem konfigurierten Client in Keycloak)
+  keycloakClientId: "eegfaktura-member-onboarding"
+
 # ── Backend ────────────────────────────────────────────────────────────────────
 backend:
   # Anzahl der Backend-Pods (horizontal scaling)
@@ -67,6 +76,11 @@ backend:
 
   # Erlaubte Origins für CORS (kommagetrennt für mehrere)
   corsAllowedOrigins: "https://member-onboarding.example.at"
+
+  # Keycloak JWT-Validierung (JWKS-Endpoint und Issuer)
+  # Leer lassen = Dev-Modus (kein Auth, alle Admin-Requests durchgelassen)
+  keycloakJwksUrl: "https://keycloak.example.at/realms/EEGFaktura/protocol/openid-connect/certs"
+  keycloakIssuer: "https://keycloak.example.at/realms/EEGFaktura"
 
   # SMTP-Konfiguration für E-Mail-Benachrichtigungen
   # Auskommentiert lassen = Mail deaktiviert (NoOpMailService)

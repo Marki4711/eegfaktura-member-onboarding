@@ -274,4 +274,36 @@ Also update `authOptions.pages.error` to point to the new path.
 **READY** (with note: Keycloak-specific acceptance criteria require manual verification against a live Keycloak server before the first production deployment).
 
 ## Deployment
-_To be added by /deploy_
+
+**Deployed:** 2026-04-20
+**Chart version:** 1.3.0
+
+### Helm Chart Changes (PROJ-5)
+
+Added to `helm/member-onboarding/`:
+
+**Frontend env vars** (non-secret, `values-env.yaml`):
+- `NEXTAUTH_URL` — public app URL
+- `KEYCLOAK_ISSUER` — Keycloak realm URL
+- `KEYCLOAK_CLIENT_ID` — Keycloak client name
+
+**Frontend secrets** (`values-secret.yaml`):
+- `NEXTAUTH_SECRET` — NextAuth session encryption key (`openssl rand -base64 32`)
+- `KEYCLOAK_CLIENT_SECRET` — from Keycloak Admin Console → Clients → Credentials
+
+**Backend env vars** (`values-env.yaml`):
+- `KEYCLOAK_JWKS_URL` — JWKS endpoint for JWT signature verification
+- `KEYCLOAK_ISSUER` — for issuer claim validation
+
+**New Kubernetes Secret:** `<release>-frontend-secret` holds `NEXTAUTH_SECRET` and `KEYCLOAK_CLIENT_SECRET`.
+
+### Pre-Production Checklist
+- [ ] Keycloak realm `EEGFaktura` created
+- [ ] Keycloak client `eegfaktura-member-onboarding` created (Confidential, Authorization Code flow)
+- [ ] Valid Redirect URI configured in Keycloak: `https://<host>/api/auth/callback/keycloak`
+- [ ] Web Origin configured in Keycloak: `https://<host>`
+- [ ] Client Scope Mapper for `tenant` attribute (User Attribute → Multivalued → Claim name: `tenant`)
+- [ ] Realm Role `superuser` created
+- [ ] Tenant-Admin users configured with `tenant` user attribute
+- [ ] `values-env.yaml` and `values-secret.yaml` filled in
+- [ ] Manual E2E verification of full auth flow against live Keycloak

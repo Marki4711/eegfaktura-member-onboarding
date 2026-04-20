@@ -34,6 +34,22 @@ spec:
               value: {{ .Values.frontend.logLevel | default "info" | quote }}
             - name: BACKEND_URL
               value: {{ .Values.frontend.backendUrl | quote }}
+            - name: NEXTAUTH_URL
+              value: {{ .Values.frontend.nextauthUrl | quote }}
+            - name: KEYCLOAK_ISSUER
+              value: {{ .Values.frontend.keycloakIssuer | quote }}
+            - name: KEYCLOAK_CLIENT_ID
+              value: {{ .Values.frontend.keycloakClientId | quote }}
+            - name: NEXTAUTH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "member-onboarding.fullname" . }}-frontend-secret
+                  key: NEXTAUTH_SECRET
+            - name: KEYCLOAK_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "member-onboarding.fullname" . }}-frontend-secret
+                  key: KEYCLOAK_CLIENT_SECRET
           readinessProbe:
             httpGet:
               path: /

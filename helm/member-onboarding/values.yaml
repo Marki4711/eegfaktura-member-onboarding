@@ -51,11 +51,24 @@ backend:
     port: "587"
     user: ""       # leer = kein SMTP-Auth (open relay)
     from: ""       # Pflicht wenn smtp.host gesetzt
+  # Keycloak JWT-Validierung — leer = Dev-Modus (kein Auth)
+  keycloakJwksUrl: ""    # z.B. https://keycloak.example.at/realms/EEGFaktura/protocol/openid-connect/certs
+  keycloakIssuer: ""     # z.B. https://keycloak.example.at/realms/EEGFaktura
 
 # ── Seed data ──────────────────────────────────────────────────────────────────
 seed:
   rcNumber: ""
   eegId: ""
+
+# ── Frontend ───────────────────────────────────────────────────────────────────
+frontend:
+  replicas: 1
+  logLevel: "info"
+  backendUrl: ""
+  # NextAuth / Keycloak — via values-env.yaml setzen
+  nextauthUrl: ""          # Öffentliche URL der App, z.B. https://member-onboarding.example.at
+  keycloakIssuer: ""       # z.B. https://keycloak.example.at/realms/EEGFaktura
+  keycloakClientId: ""
 
 # ── Secrets ────────────────────────────────────────────────────────────────────
 # Niemals echte Werte hier eintragen — immer via values-secret.yaml übergeben.
@@ -63,3 +76,7 @@ secrets:
   postgresPassword: ""
   dbPassword: ""
   smtpPassword: ""
+  # NextAuth session encryption key (generieren: openssl rand -base64 32)
+  nextauthSecret: ""
+  # Keycloak Client Secret
+  keycloakClientSecret: ""
