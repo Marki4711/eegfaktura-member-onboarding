@@ -69,7 +69,6 @@ const formSchema = z.object({
   accuracyConfirmed: z.boolean().refine((v) => v === true, {
     message: "Richtigkeit der Angaben muss bestätigt werden",
   }),
-  communicationConsent: z.boolean(),
   sepaMandateAccepted: z.boolean().refine((v) => v === true, {
     message: "Zustimmung zum SEPA-Lastschriftmandat ist erforderlich",
   }),
@@ -114,7 +113,6 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
       accountHolder: "",
       privacyAccepted: false,
       accuracyConfirmed: false,
-      communicationConsent: false,
       sepaMandateAccepted: false,
       meteringPoints: [{ meteringPoint: "", direction: "CONSUMPTION" }],
     },
@@ -140,7 +138,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
         privacyAccepted: values.privacyAccepted,
         privacyVersion: PRIVACY_VERSION,
         accuracyConfirmed: values.accuracyConfirmed,
-        communicationConsent: values.communicationConsent,
+        communicationConsent: false,
         iban: values.iban,
         accountHolder: values.accountHolder,
         sepaMandateAccepted: values.sepaMandateAccepted,
@@ -545,25 +543,6 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                       angegebenen Konto zu. *
                     </FormLabel>
                     <FormMessage />
-                  </div>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="communicationConsent"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start gap-3 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <div className="leading-none">
-                    <FormLabel className="font-normal cursor-pointer">
-                      Ich stimme der Kontaktaufnahme per E-Mail zu. (optional)
-                    </FormLabel>
                   </div>
                 </FormItem>
               )}
