@@ -13,7 +13,6 @@ import (
 // ApplicationListFilters holds optional filter parameters for the admin list endpoint.
 type ApplicationListFilters struct {
 	Status          *string
-	EEGID           *string
 	ReferenceNumber *string
 	Lastname        *string
 	Email           *string

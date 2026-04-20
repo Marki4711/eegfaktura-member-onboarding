@@ -36,9 +36,6 @@ func (h *AdminHandler) ListApplications(w http.ResponseWriter, r *http.Request) 
 	if v := q.Get("status"); v != "" {
 		filters.Status = &v
 	}
-	if v := q.Get("eeg_id"); v != "" {
-		filters.EEGID = &v
-	}
 	if v := q.Get("reference_number"); v != "" {
 		filters.ReferenceNumber = &v
 	}

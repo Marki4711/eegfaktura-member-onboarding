@@ -13,7 +13,6 @@ const API_URL = getBaseUrl();
 
 export interface RegistrationConfig {
   rcNumber: string;
-  eegId: string;
   title: string;
   active: boolean;
 }
@@ -146,7 +145,6 @@ export type ApplicationStatus =
 export interface ApplicationListItem {
   id: string;
   referenceNumber: string;
-  eegId: string;
   status: ApplicationStatus;
   memberType: MemberType;
   firstname?: string | null;
@@ -181,7 +179,6 @@ export interface StatusLogEntry {
 export interface AdminApplicationDetail {
   id: string;
   referenceNumber: string;
-  eegId: string;
   rcNumber: string;
   status: ApplicationStatus;
   startedAt: string | null;
@@ -257,7 +254,7 @@ export interface ChangeStatusResponse {
 
 export interface ListApplicationsParams {
   status?: string;
-  eeg_id?: string;
+
   reference_number?: string;
   lastname?: string;
   email?: string;
@@ -275,7 +272,7 @@ export function listApplications(
 ): Promise<ApplicationListResponse> {
   const qs = new URLSearchParams();
   if (params.status) qs.set("status", params.status);
-  if (params.eeg_id) qs.set("eeg_id", params.eeg_id);
+
   if (params.reference_number) qs.set("reference_number", params.reference_number);
   if (params.lastname) qs.set("lastname", params.lastname);
   if (params.email) qs.set("email", params.email);

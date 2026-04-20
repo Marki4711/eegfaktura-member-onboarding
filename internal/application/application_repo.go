@@ -25,7 +25,7 @@ func NewApplicationRepository(db *sql.DB) *ApplicationRepository {
 func (r *ApplicationRepository) Create(app *shared.Application) error {
 	query := `
 		INSERT INTO member_onboarding.application (
-			reference_number, eeg_id, rc_number, status, started_at,
+			reference_number, rc_number, status, started_at,
 			member_type, firstname, lastname, birth_date,
 			company_name, uid_number, register_number,
 			email, phone,
@@ -34,19 +34,19 @@ func (r *ApplicationRepository) Create(app *shared.Application) error {
 			iban, account_holder, sepa_mandate_accepted, sepa_mandate_accepted_at,
 			created_at, updated_at
 		) VALUES (
-			$1, $2, $3, $4, $5,
-			$6, $7, $8, $9,
-			$10, $11, $12,
-			$13, $14,
-			$15, $16, $17, $18,
-			$19, $20, $21, $22,
-			$23, $24, $25, $26,
-			$27, $28
+			$1, $2, $3, $4,
+			$5, $6, $7, $8,
+			$9, $10, $11,
+			$12, $13,
+			$14, $15, $16, $17,
+			$18, $19, $20, $21,
+			$22, $23, $24, $25,
+			$26, $27
 		) RETURNING id`
 
 	now := app.CreatedAt
 	args := []interface{}{
-		app.ReferenceNumber, app.EEGID, app.RCNumber, app.Status, app.StartedAt,
+		app.ReferenceNumber, app.RCNumber, app.Status, app.StartedAt,
 		app.MemberType, app.Firstname, app.Lastname, app.BirthDate,
 		app.CompanyName, app.UIDNumber, app.RegisterNumber,
 		app.Email, app.Phone,
@@ -68,7 +68,7 @@ func (r *ApplicationRepository) Create(app *shared.Application) error {
 func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) error {
 	query := `
 		INSERT INTO member_onboarding.application (
-			reference_number, eeg_id, rc_number, status, started_at,
+			reference_number, rc_number, status, started_at,
 			member_type, firstname, lastname, birth_date,
 			company_name, uid_number, register_number,
 			email, phone,
@@ -77,19 +77,19 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 			iban, account_holder, sepa_mandate_accepted, sepa_mandate_accepted_at,
 			created_at, updated_at
 		) VALUES (
-			$1, $2, $3, $4, $5,
-			$6, $7, $8, $9,
-			$10, $11, $12,
-			$13, $14,
-			$15, $16, $17, $18,
-			$19, $20, $21, $22,
-			$23, $24, $25, $26,
-			$27, $28
+			$1, $2, $3, $4,
+			$5, $6, $7, $8,
+			$9, $10, $11,
+			$12, $13,
+			$14, $15, $16, $17,
+			$18, $19, $20, $21,
+			$22, $23, $24, $25,
+			$26, $27
 		) RETURNING id`
 
 	now := app.CreatedAt
 	args := []interface{}{
-		app.ReferenceNumber, app.EEGID, app.RCNumber, app.Status, app.StartedAt,
+		app.ReferenceNumber, app.RCNumber, app.Status, app.StartedAt,
 		app.MemberType, app.Firstname, app.Lastname, app.BirthDate,
 		app.CompanyName, app.UIDNumber, app.RegisterNumber,
 		app.Email, app.Phone,
@@ -109,7 +109,7 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 // GetByID gets an application by ID
 func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, error) {
 	query := `
-		SELECT id, reference_number, eeg_id, rc_number, status, started_at, submitted_at,
+		SELECT id, reference_number, rc_number, status, started_at, submitted_at,
 		       approved_at, rejected_at, imported_at,
 		       member_type, firstname, lastname, birth_date,
 		       company_name, uid_number, register_number,
@@ -123,12 +123,12 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		WHERE id = $1`
 
 	app := &shared.Application{}
-	var eegID, phone, privacyVersion, iban, accountHolder, reviewedByUserID, adminNote, needsInfoReason, targetParticipantID, importErrorMessage sql.NullString
+	var phone, privacyVersion, iban, accountHolder, reviewedByUserID, adminNote, needsInfoReason, targetParticipantID, importErrorMessage sql.NullString
 	var firstname, lastname, companyName, uidNumber, registerNumber sql.NullString
 	var birthDate, startedAt, submittedAt, approvedAt, rejectedAt, importedAt, privacyAcceptedAt, sepaMandateAcceptedAt, importStartedAt, importFinishedAt sql.NullTime
 
 	err := r.db.QueryRow(query, id).Scan(
-		&app.ID, &app.ReferenceNumber, &eegID, &app.RCNumber, &app.Status, &startedAt,
+		&app.ID, &app.ReferenceNumber, &app.RCNumber, &app.Status, &startedAt,
 		&submittedAt, &approvedAt, &rejectedAt, &importedAt,
 		&app.MemberType, &firstname, &lastname, &birthDate,
 		&companyName, &uidNumber, &registerNumber,
@@ -146,9 +146,6 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		return nil, fmt.Errorf("failed to get application: %w", err)
 	}
 
-	if eegID.Valid {
-		app.EEGID = &eegID.String
-	}
 	if firstname.Valid {
 		app.Firstname = &firstname.String
 	}
@@ -314,11 +311,6 @@ func (r *ApplicationRepository) List(filters ApplicationListFilters, page, pageS
 		args = append(args, *filters.Status)
 		n++
 	}
-	if filters.EEGID != nil {
-		conditions = append(conditions, fmt.Sprintf("a.eeg_id = $%d", n))
-		args = append(args, *filters.EEGID)
-		n++
-	}
 	if filters.ReferenceNumber != nil {
 		conditions = append(conditions, fmt.Sprintf("a.reference_number ILIKE $%d", n))
 		args = append(args, "%"+*filters.ReferenceNumber+"%")
@@ -366,7 +358,7 @@ func (r *ApplicationRepository) List(filters ApplicationListFilters, page, pageS
 	offset := (page - 1) * pageSize
 	listArgs := append(args, pageSize, offset)
 	listQuery := fmt.Sprintf(`
-		SELECT a.id, a.reference_number, a.eeg_id, a.rc_number, a.status,
+		SELECT a.id, a.reference_number, a.rc_number, a.status,
 		       a.member_type, a.firstname, a.lastname, a.company_name, a.email, a.submitted_at
 		FROM member_onboarding.application a
 		%s
@@ -382,16 +374,13 @@ func (r *ApplicationRepository) List(filters ApplicationListFilters, page, pageS
 	items := []shared.ApplicationListItem{}
 	for rows.Next() {
 		var item shared.ApplicationListItem
-		var eegID, firstname, lastname, companyName sql.NullString
+		var firstname, lastname, companyName sql.NullString
 		var submittedAt sql.NullTime
 		if err := rows.Scan(
-			&item.ID, &item.ReferenceNumber, &eegID, &item.RCNumber, &item.Status,
+			&item.ID, &item.ReferenceNumber, &item.RCNumber, &item.Status,
 			&item.MemberType, &firstname, &lastname, &companyName, &item.Email, &submittedAt,
 		); err != nil {
 			return nil, 0, fmt.Errorf("failed to scan application list item: %w", err)
-		}
-		if eegID.Valid {
-			item.EEGID = &eegID.String
 		}
 		if firstname.Valid {
 			item.Firstname = &firstname.String

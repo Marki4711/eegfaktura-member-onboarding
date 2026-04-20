@@ -68,7 +68,6 @@ type UpdateApplicationRequest struct {
 // RegistrationConfig represents the response for the registration entry point endpoint
 type RegistrationConfig struct {
 	RCNumber string `json:"rcNumber"`
-	EEGID    string `json:"eegId"`
 	Title    string `json:"title"`
 	Active   bool   `json:"active"`
 }
@@ -125,7 +124,6 @@ type ChangeStatusRequest struct {
 type ApplicationListItem struct {
 	ID              uuid.UUID  `json:"id"`
 	ReferenceNumber string     `json:"referenceNumber"`
-	EEGID           *string    `json:"eegId"`
 	RCNumber        string     `json:"rcNumber"`
 	Status          string     `json:"status"`
 	MemberType      string     `json:"memberType"`

@@ -258,7 +258,6 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
           <CardContent>
             <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <Field label="Referenznummer" value={application.referenceNumber} />
-              <Field label="EEG-ID" value={application.eegId} />
               <Field label="RC-Nummer" value={application.rcNumber} />
               <Field label="Erstellt am" value={formatDateTime(application.createdAt)} />
               <Field label="Angelegt am" value={formatDateTime(application.startedAt)} />
