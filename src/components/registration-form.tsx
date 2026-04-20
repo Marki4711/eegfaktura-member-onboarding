@@ -439,8 +439,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                   )}
                 />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {(memberType === "company" || memberType === "association") && (
-                    <FormField
+                  <FormField
                       control={form.control}
                       name="uidNumber"
                       render={({ field }) => (
@@ -455,7 +454,6 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                         </FormItem>
                       )}
                     />
-                  )}
                   {(memberType === "company" || memberType === "association") && (
                     <FormField
                       control={form.control}
