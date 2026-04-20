@@ -64,7 +64,7 @@ export default async function AdminLayout({
               Anträge
             </Link>
           </nav>
-          <AdminLogoutButton username={username} keycloakIssuer={process.env.KEYCLOAK_ISSUER!} />
+          <AdminLogoutButton username={username} />
         </div>
       </header>
       <main className="max-w-7xl mx-auto px-6 py-8">{children}</main>
