@@ -14,10 +14,11 @@ import (
 // and does nothing without panicking.
 func TestNoOpMailService_Noop(t *testing.T) {
 	var svc MailService = &NoOpMailService{}
+	fn, ln := "Josef", "Muster"
 	app := &shared.Application{
 		ID:              uuid.New(),
-		Firstname:       "Josef",
-		Lastname:        "Muster",
+		Firstname:       &fn,
+		Lastname:        &ln,
 		Email:           "max.mustermann@example.org",
 		ReferenceNumber: "REF-2026-001",
 	}
@@ -211,11 +212,12 @@ func newTestService(t *testing.T, spy *spySender) *SMTPMailService {
 }
 
 func testApp() *shared.Application {
+	fn, ln := "Josef", "Muster"
 	return &shared.Application{
 		ID:              uuid.New(),
 		RCNumber:        "RC123456",
-		Firstname:       "Josef",
-		Lastname:        "Muster",
+		Firstname:       &fn,
+		Lastname:        &ln,
 		Email:           "max.mustermann@example.org",
 		ReferenceNumber: "REF-2026-001",
 	}
