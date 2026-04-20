@@ -32,7 +32,8 @@ yarn-error.log*
 # local env files
 .env*.local
 
-# Helm secret overrides — never commit real passwords
+# Helm environment and secret overrides — never commit environment-specific or secret values
+helm/**/values-env.yaml
 helm/**/values-secret.yaml
 
 # vercel

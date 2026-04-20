@@ -1,12 +1,24 @@
-# Default values for member-onboarding.
-# Override with: helm install ... -f values-secret.yaml --set key=value
+# Default values for the member-onboarding Helm chart.
+#
+# Diese Datei enthält technische Defaults, die für alle Umgebungen gelten.
+# Umgebungsspezifische Werte (Namespace, Ingress, Images) gehören in values-env.yaml.
+# Secrets (Passwörter) gehören in values-secret.yaml.
+#
+# Beide Dateien sind gitignored. Verwende die .example-Dateien als Vorlage:
+#   cp helm/member-onboarding/values-env.yaml.example helm/member-onboarding/values-env.yaml
+#   cp helm/member-onboarding/values-secret.yaml.example helm/member-onboarding/values-secret.yaml
+#
+# Verwendung:
+#   helm install eegfaktura-member-onboarding ./helm/member-onboarding \
+#     -f helm/member-onboarding/values-env.yaml \
+#     -f helm/member-onboarding/values-secret.yaml
 
 # ── Namespace ──────────────────────────────────────────────────────────────────
-namespace: eegfaktura-member-onboarding-test
+namespace: default
 
 # ── Ingress ────────────────────────────────────────────────────────────────────
 ingress:
-  host: member-onboarding-test.eegfaktura.at
+  host: ""
   className: nginx
   proxyReadTimeout: "60"
   proxySendTimeout: "60"
@@ -14,43 +26,40 @@ ingress:
 # ── Images ─────────────────────────────────────────────────────────────────────
 images:
   backend:
-    repository: marki4711/eegfaktura-member-onboarding-backend
+    repository: ""
     tag: latest
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
   frontend:
-    repository: marki4711/eegfaktura-member-onboarding-frontend
+    repository: ""
     tag: latest
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
 
 # ── PostgreSQL ─────────────────────────────────────────────────────────────────
 postgres:
   user: postgres
   database: member_onboarding
-  storageClassName: csi-rbd-sc
+  storageClassName: standard
   storageSize: 5Gi
 
 # ── Backend ────────────────────────────────────────────────────────────────────
 backend:
   replicas: 1
-  corsAllowedOrigins: "https://member-onboarding-test.eegfaktura.at"
   logLevel: "INFO"   # DEBUG | INFO | WARN | ERROR
+  corsAllowedOrigins: ""
   smtp:
-    host: ""       # leave empty to disable mail sending (NoOpMailService)
+    host: ""       # leer = Mail deaktiviert (NoOpMailService)
     port: "587"
-    user: ""       # leave empty for open-relay / no-auth servers
-    from: ""       # required when smtp.host is set
+    user: ""       # leer = kein SMTP-Auth (open relay)
+    from: ""       # Pflicht wenn smtp.host gesetzt
 
 # ── Seed data ──────────────────────────────────────────────────────────────────
-# Applied once as a post-install Helm hook. Re-running is safe (ON CONFLICT DO NOTHING).
 seed:
-  rcNumber: RC123456
-  eegId: "00000000-0000-0000-0000-000000000001"
+  rcNumber: ""
+  eegId: ""
 
 # ── Secrets ────────────────────────────────────────────────────────────────────
-# Do NOT commit real values here.
-# Pass them via: helm install ... -f values-secret.yaml
-# or:           helm install ... --set secrets.postgresPassword=... --set secrets.dbPassword=...
+# Niemals echte Werte hier eintragen — immer via values-secret.yaml übergeben.
 secrets:
-  postgresPassword: ""   # password for the in-cluster PostgreSQL
-  dbPassword: ""         # must match postgresPassword
-  smtpPassword: ""       # SMTP auth password (ignored when smtp.host is empty)
+  postgresPassword: ""
+  dbPassword: ""
+  smtpPassword: ""
