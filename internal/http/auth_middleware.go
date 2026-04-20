@@ -14,15 +14,41 @@ type contextKey string
 
 const keycloakClaimsKey contextKey = "keycloak_claims"
 
+// TenantClaim handles the Keycloak tenant attribute which is stored as a
+// JSON-array string e.g. `["RC101665","RC101294"]` and emitted by the
+// non-multivalued mapper as a plain string claim in the JWT.
+type TenantClaim []string
+
+func (t *TenantClaim) UnmarshalJSON(data []byte) error {
+	// Happy path: already a proper JSON array.
+	var arr []string
+	if err := json.Unmarshal(data, &arr); err == nil {
+		*t = arr
+		return nil
+	}
+	// Fallback: the value is a JSON string that itself encodes a JSON array.
+	var str string
+	if err := json.Unmarshal(data, &str); err != nil {
+		return err
+	}
+	if err := json.Unmarshal([]byte(str), &arr); err != nil {
+		// Not a JSON array — treat the whole string as a single tenant.
+		*t = []string{str}
+		return nil
+	}
+	*t = arr
+	return nil
+}
+
 // KeycloakClaims holds the JWT claims we care about from Keycloak.
 type KeycloakClaims struct {
 	jwt.RegisteredClaims
 	RealmAccess struct {
 		Roles []string `json:"roles"`
 	} `json:"realm_access"`
-	// tenant is a multivalued user attribute mapped via Client Scope Mapper.
-	// It contains the RC numbers the user is allowed to manage.
-	Tenant []string `json:"tenant"`
+	// Tenant contains the RC numbers the user is allowed to manage.
+	// Uses TenantClaim to handle both proper arrays and JSON-array strings.
+	Tenant TenantClaim `json:"tenant"`
 }
 
 // IsSuperuser returns true when the token carries the superuser realm role.
