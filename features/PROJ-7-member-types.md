@@ -1,6 +1,6 @@
 # PROJ-7: Mitgliedstypen
 
-**Status:** 🟢 Approved
+**Status:** 🚀 Deployed
 **Created:** 2026-04-20
 **Last Updated:** 2026-04-20
 
@@ -417,6 +417,26 @@ PUT /api/admin/applications/{id}
 ### Production-Ready Decision
 
 **READY** — beide Medium-Bugs behoben (2026-04-20), alle 20 Go-Tests und TS-Build grün.
+
+---
+
+## Deployment
+
+**Deployed:** 2026-04-20
+**Chart version:** 1.1.0 / appVersion 1.1.0
+**Migration:** `000007_add_member_type` — runs automatically via `helm upgrade` pre-upgrade hook
+**Rollback:** `helm rollback` to previous release; migration down via `make migrate-down` (restores NOT NULL on firstname/lastname, drops new columns)
+
+### Deployment checklist
+- [x] `go build ./...` clean
+- [x] `npm run build` clean (Next.js standalone)
+- [x] All 20 Go unit tests pass
+- [x] TypeScript compilation clean
+- [x] QA approved, 0 open bugs
+- [x] Migration 000007 in `db/migrations/` — applied via Helm pre-upgrade Job
+- [x] No new environment variables required
+- [x] Helm chart `appVersion` bumped to 1.1.0
+- [x] Git tag `v1.1.0-PROJ-7` created
 
 ---
 
