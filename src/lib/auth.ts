@@ -32,10 +32,11 @@ export const authOptions: NextAuthOptions = {
           const realmAccess = payload["realm_access"] as { roles?: string[] } | undefined;
           token.roles = realmAccess?.roles ?? [];
           token.tenant = (payload["tenant"] as string[]) ?? [];
-          console.log("[auth] JWT payload keys:", Object.keys(payload));
-          console.log("[auth] realm_access:", JSON.stringify(realmAccess));
-          console.log("[auth] tenant:", JSON.stringify(payload["tenant"]));
-          console.log("[auth] roles resolved:", JSON.stringify(token.roles));
+          const ts = new Date().toISOString();
+          console.log(`[auth] ${ts} JWT payload keys:`, Object.keys(payload));
+          console.log(`[auth] ${ts} realm_access:`, JSON.stringify(realmAccess));
+          console.log(`[auth] ${ts} tenant:`, JSON.stringify(payload["tenant"]));
+          console.log(`[auth] ${ts} roles resolved:`, JSON.stringify(token.roles));
         } catch (e) {
           console.error("[auth] Failed to decode access token:", e);
           token.roles = [];
