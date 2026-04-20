@@ -285,7 +285,16 @@ The backend image ships two binaries (`/app/server`, `/app/migrate`) and the mig
 
 #### First-time setup
 
-**1. Secrets file**
+**1. Environment config file**
+
+```bash
+cp helm/member-onboarding/values-env.yaml.example helm/member-onboarding/values-env.yaml
+# Edit values-env.yaml — set namespace, ingress host, image tags, storage class, CORS origin, etc.
+```
+
+`values-env.yaml` is listed in `.helmignore` and never committed. It contains all non-secret, environment-specific overrides (hostname, log level, replica count, seed data, …).
+
+**2. Secrets file**
 
 ```bash
 cp helm/member-onboarding/values-secret.yaml.example helm/member-onboarding/values-secret.yaml
@@ -294,11 +303,12 @@ cp helm/member-onboarding/values-secret.yaml.example helm/member-onboarding/valu
 
 `values-secret.yaml` is listed in `.helmignore` and never committed.
 
-**2. Install**
+**3. Install**
 
 ```bash
 helm install eegfaktura-member-onboarding ./helm/member-onboarding \
   --create-namespace \
+  -f helm/member-onboarding/values-env.yaml \
   -f helm/member-onboarding/values-secret.yaml
 ```
 
@@ -311,6 +321,7 @@ Helm will:
 
 ```bash
 helm upgrade eegfaktura-member-onboarding ./helm/member-onboarding \
+  -f helm/member-onboarding/values-env.yaml \
   -f helm/member-onboarding/values-secret.yaml
 ```
 
@@ -318,7 +329,7 @@ On upgrade, the migration Job runs automatically before the backend is updated (
 
 #### SMTP aktivieren
 
-In `values-secret.yaml` ergänzen:
+In `values-env.yaml` ergänzen:
 
 ```yaml
 backend:
@@ -327,11 +338,16 @@ backend:
     port: "587"
     user: noreply@example.com
     from: noreply@example.com
+```
+
+In `values-secret.yaml` ergänzen:
+
+```yaml
 secrets:
   smtpPassword: "FILL_IN"
 ```
 
-Dann `helm upgrade` ausführen.
+Dann `helm upgrade` mit beiden `-f`-Flags ausführen.
 
 #### Rollback
 
