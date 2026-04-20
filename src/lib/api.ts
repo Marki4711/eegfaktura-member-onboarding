@@ -18,7 +18,7 @@ export interface RegistrationConfig {
   active: boolean;
 }
 
-export type MemberType = "private" | "farmer" | "municipality" | "company";
+export type MemberType = "private" | "farmer" | "municipality" | "company" | "association";
 
 export interface MeteringPointRequest {
   meteringPoint: string;

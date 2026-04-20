@@ -40,6 +40,7 @@ const (
 	MemberTypeFarmer       MemberType = "farmer"
 	MemberTypeMunicipality MemberType = "municipality"
 	MemberTypeCompany      MemberType = "company"
+	MemberTypeAssociation  MemberType = "association"
 )
 
 // MeterDirection represents the direction of a metering point

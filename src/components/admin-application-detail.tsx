@@ -16,10 +16,11 @@ import { getApplicationDetail, ApiResponseError } from "@/lib/api";
 import type { AdminApplicationDetail, MemberType } from "@/lib/api";
 
 const MEMBER_TYPE_LABELS: Record<MemberType, string> = {
-  private:      "Privat / Kleinunternehmer",
+  private:      "Privatperson",
   farmer:       "Pauschalierter Landwirt",
-  municipality: "Gemeinde",
-  company:      "Unternehmen / Verein",
+  municipality: "Gemeinde / öffentl. Körperschaft",
+  company:      "Unternehmen",
+  association:  "Verein / Kleinunternehmer",
 };
 
 interface Props {

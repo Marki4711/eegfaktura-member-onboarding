@@ -113,11 +113,16 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
       if (!firstname.trim()) return "Vorname ist erforderlich.";
       if (!lastname.trim()) return "Nachname ist erforderlich.";
     } else {
-      const orgLabel = memberType === "municipality" ? "Organisationsname" : "Firmenname";
+      const orgLabel = memberType === "municipality" ? "Organisationsname"
+        : memberType === "association" ? "Vereinsname"
+        : "Firmenname";
       if (!companyName.trim()) return `${orgLabel} ist erforderlich.`;
       if (memberType === "company") {
         if (!uidNumber.trim()) return "UID-Nummer ist erforderlich.";
-        if (!registerNumber.trim()) return "Firmenbuch-/Vereinsnummer ist erforderlich.";
+        if (!registerNumber.trim()) return "Firmenbuchnummer ist erforderlich.";
+      }
+      if (memberType === "association") {
+        if (!registerNumber.trim()) return "Vereinsnummer ist erforderlich.";
       }
     }
     if (!residentStreet.trim()) return "Straße ist erforderlich.";
@@ -191,10 +196,11 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="private">Privat / Kleinunternehmer</SelectItem>
+                <SelectItem value="private">Privatperson</SelectItem>
                 <SelectItem value="farmer">Pauschalierter Landwirt</SelectItem>
-                <SelectItem value="municipality">Gemeinde</SelectItem>
-                <SelectItem value="company">Unternehmen / Verein</SelectItem>
+                <SelectItem value="municipality">Gemeinde / öffentl. Körperschaft</SelectItem>
+                <SelectItem value="company">Unternehmen</SelectItem>
+                <SelectItem value="association">Verein / Kleinunternehmer</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -238,7 +244,11 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1 col-span-2">
                   <Label htmlFor="edit-company-name">
-                    {memberType === "municipality" ? "Organisationsname *" : "Firmenname *"}
+                    {memberType === "municipality"
+                      ? "Organisationsname *"
+                      : memberType === "association"
+                      ? "Vereinsname *"
+                      : "Firmenname *"}
                   </Label>
                   <Input
                     id="edit-company-name"
@@ -246,19 +256,23 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
                     onChange={(e) => setCompanyName(e.target.value)}
                   />
                 </div>
-                <div className="space-y-1">
-                  <Label htmlFor="edit-uid">
-                    UID-Nummer{memberType === "company" ? " *" : ""}
-                  </Label>
-                  <Input
-                    id="edit-uid"
-                    value={uidNumber}
-                    onChange={(e) => setUidNumber(e.target.value)}
-                  />
-                </div>
-                {memberType === "company" && (
+                {(memberType === "company" || memberType === "association") && (
                   <div className="space-y-1">
-                    <Label htmlFor="edit-register">Firmenbuch-/Vereinsnummer *</Label>
+                    <Label htmlFor="edit-uid">
+                      UID-Nummer{memberType === "company" ? " *" : ""}
+                    </Label>
+                    <Input
+                      id="edit-uid"
+                      value={uidNumber}
+                      onChange={(e) => setUidNumber(e.target.value)}
+                    />
+                  </div>
+                )}
+                {(memberType === "company" || memberType === "association") && (
+                  <div className="space-y-1">
+                    <Label htmlFor="edit-register">
+                      {memberType === "association" ? "Vereinsnummer *" : "Firmenbuchnummer *"}
+                    </Label>
                     <Input
                       id="edit-register"
                       value={registerNumber}
