@@ -1,7 +1,7 @@
 "use client";
 
 import { useFieldArray, type UseFormReturn } from "react-hook-form";
-import { PlusCircle, Trash2 } from "lucide-react";
+import { Info, PlusCircle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MaskedInput } from "@/components/ui/masked-input";
@@ -19,6 +19,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { RegistrationFormValues } from "./registration-form";
 
 interface MeteringPointFieldsProps {
@@ -94,7 +100,19 @@ export function MeteringPointFields({ form }: MeteringPointFieldsProps) {
                 name={`meteringPoints.${index}.participationFactor`}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Faktor</FormLabel>
+                    <FormLabel className="flex items-center gap-1">
+                      Faktor
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger type="button" className="cursor-help">
+                            <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-60">
+                            Der Teilnahmefaktor gibt an, mit welchem prozentualen Anteil dieser Zählpunkt an der Energiegemeinschaft teilnimmt. Standardmäßig 100 %.
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Input
