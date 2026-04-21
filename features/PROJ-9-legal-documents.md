@@ -34,6 +34,7 @@
 
 - Was passiert, wenn eine EEG keine eigenen Dokumente hinterlegt hat? → Nur die zentrale Datenschutzerklärung wird angezeigt, Formular bleibt funktionsfähig.
 - Was passiert, wenn ein Dokument-Link nicht erreichbar ist? → Das Formular zeigt den Link trotzdem an; die Erreichbarkeit wird nicht geprüft.
+- **Offener Punkt — Dokumentenversionen:** Da nur die URL gespeichert wird, kann nachträglich nicht nachgewiesen werden, welche Version des Dokuments zum Zeitpunkt der Zustimmung abrufbar war. Mögliche Lösungsansätze: (1) Inhalt des Dokuments zum Zeitpunkt der Einreichung archivieren, (2) EEGs verpflichten, versionierte URLs zu verwenden (z.B. `/datenschutz-v2.pdf`), (3) Hash des Dokumenteninhalts speichern. Dieser Aspekt muss vor der Implementierung entschieden werden.
 - Was passiert, wenn ein Dokument nach Einreichung eines Antrags geändert oder gelöscht wird? → Bereits gespeicherte Zustimmungen bleiben unverändert (Snapshot zum Zeitpunkt der Einreichung).
 - Was passiert, wenn ein optionales Dokument nicht angehakt wird? → Antrag kann trotzdem eingereicht werden; keine Zustimmung wird für dieses Dokument gespeichert.
 - Was passiert, wenn die URL eines Dokuments sehr lang ist? → URL wird vollständig gespeichert, im Formular aber nur der Titel verlinkt angezeigt.
