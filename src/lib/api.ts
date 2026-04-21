@@ -352,3 +352,7 @@ export function changeApplicationStatus(
 export function syncEntrypoints(token?: string): Promise<void> {
   return adminRequest<void>("/api/admin/sync", token, { method: "POST" });
 }
+
+export function resendMemberConfirmation(id: string, token?: string): Promise<void> {
+  return adminRequest<void>(`/api/admin/applications/${id}/resend-confirmation`, token, { method: "POST" });
+}

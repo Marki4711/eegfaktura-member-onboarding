@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/your-org/eegfaktura-member-onboarding/internal/mail"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/shared"
 )
 
@@ -39,6 +40,7 @@ type AdminApplicationService struct {
 	appRepo       *ApplicationRepository
 	meteringRepo  *MeteringPointRepository
 	statusLogRepo *StatusLogRepository
+	mailService   mail.MailService
 }
 
 // NewAdminApplicationService creates an AdminApplicationService.
@@ -47,13 +49,24 @@ func NewAdminApplicationService(
 	appRepo *ApplicationRepository,
 	meteringRepo *MeteringPointRepository,
 	statusLogRepo *StatusLogRepository,
+	mailService mail.MailService,
 ) *AdminApplicationService {
 	return &AdminApplicationService{
 		db:            db,
 		appRepo:       appRepo,
 		meteringRepo:  meteringRepo,
 		statusLogRepo: statusLogRepo,
+		mailService:   mailService,
 	}
+}
+
+// ResendMemberConfirmation re-sends the member confirmation email for any application.
+func (s *AdminApplicationService) ResendMemberConfirmation(id uuid.UUID) error {
+	app, err := s.appRepo.GetByID(id)
+	if err != nil {
+		return err
+	}
+	return s.mailService.SendMemberConfirmation(app)
 }
 
 // ListApplications returns a paginated, filtered list of applications for admin review.
