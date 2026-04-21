@@ -2,6 +2,7 @@ package http
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 
@@ -23,7 +24,7 @@ func NewRegistrationHandler(registrationService *application.RegistrationService
 
 // GetRegistrationConfig handles GET /api/public/registration/{rc_number}
 func (h *RegistrationHandler) GetRegistrationConfig(w http.ResponseWriter, r *http.Request) {
-	rcNumber := chi.URLParam(r, "rc_number")
+	rcNumber := strings.ToUpper(chi.URLParam(r, "rc_number"))
 	if rcNumber == "" {
 		h.writeError(w, shared.NewErrorResponse(shared.ErrNotFound))
 		return
