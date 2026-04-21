@@ -32,7 +32,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MeteringPointFields } from "./metering-point-fields";
-import { MaskedInput } from "@/components/ui/masked-input";
 import { isValidIBAN } from "ibantools";
 import {
   createApplication,
@@ -603,17 +602,13 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                   <FormItem>
                     <FormLabel>IBAN *</FormLabel>
                     <FormControl>
-                      <MaskedInput
-                        mask="aa00 0000 0000 0000 0000"
-                        lazy={false}
-                        prepareChar={(str: string) => str.toUpperCase()}
+                      <Input
+                        {...field}
                         placeholder="AT12 3456 7890 1234 5678"
                         autoComplete="off"
-                        value={field.value}
-                        onAccept={(value: string) => field.onChange(value)}
-                        onBlur={field.onBlur}
-                        inputRef={field.ref}
-                        name={field.name}
+                        onChange={(e) =>
+                          field.onChange(e.target.value.toUpperCase())
+                        }
                       />
                     </FormControl>
                     <FormMessage />
