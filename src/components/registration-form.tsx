@@ -65,8 +65,7 @@ const meteringPointSchema = z.object({
     .number()
     .int()
     .min(1, "Mindestens 1%")
-    .max(100, "Maximal 100%")
-    .default(100),
+    .max(100, "Maximal 100%"),
 });
 
 const formSchema = z
