@@ -62,7 +62,7 @@ const meteringPointSchema = z.object({
     .refine((v) => v.length <= 33, { message: "Maximal 33 Zeichen" }),
   direction: z.enum(["CONSUMPTION", "PRODUCTION"]),
   participationFactor: z.coerce
-    .number({ invalid_type_error: "Zahl erforderlich" })
+    .number()
     .int()
     .min(1, "Mindestens 1%")
     .max(100, "Maximal 100%")
