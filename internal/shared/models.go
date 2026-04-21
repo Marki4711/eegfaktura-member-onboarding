@@ -95,12 +95,13 @@ type Application struct {
 
 // MeteringPoint represents a metering point entity
 type MeteringPoint struct {
-	ID            uuid.UUID      `json:"id" db:"id"`
-	ApplicationID uuid.UUID      `json:"applicationId" db:"application_id"`
-	MeteringPoint string         `json:"meteringPoint" db:"metering_point"`
-	Direction     MeterDirection `json:"direction" db:"direction"`
-	CreatedAt     time.Time      `json:"createdAt" db:"created_at"`
-	UpdatedAt     time.Time      `json:"updatedAt" db:"updated_at"`
+	ID                  uuid.UUID      `json:"id" db:"id"`
+	ApplicationID       uuid.UUID      `json:"applicationId" db:"application_id"`
+	MeteringPoint       string         `json:"meteringPoint" db:"metering_point"`
+	Direction           MeterDirection `json:"direction" db:"direction"`
+	ParticipationFactor int            `json:"participationFactor" db:"participation_factor"`
+	CreatedAt           time.Time      `json:"createdAt" db:"created_at"`
+	UpdatedAt           time.Time      `json:"updatedAt" db:"updated_at"`
 }
 
 // StatusLogEntry represents a status log entry

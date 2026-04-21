@@ -3,6 +3,7 @@
 import { useFieldArray, type UseFormReturn } from "react-hook-form";
 import { PlusCircle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { MaskedInput } from "@/components/ui/masked-input";
 import {
   FormControl,
@@ -87,6 +88,33 @@ export function MeteringPointFields({ form }: MeteringPointFieldsProps) {
               />
             </div>
 
+            <div className="w-24">
+              <FormField
+                control={form.control}
+                name={`meteringPoints.${index}.participationFactor`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Faktor</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          min={1}
+                          max={100}
+                          className="pr-7"
+                          {...field}
+                        />
+                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                          %
+                        </span>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <Button
               type="button"
               variant="ghost"
@@ -107,7 +135,7 @@ export function MeteringPointFields({ form }: MeteringPointFieldsProps) {
           type="button"
           variant="outline"
           size="sm"
-          onClick={() => append({ meteringPoint: "", direction: "CONSUMPTION" })}
+          onClick={() => append({ meteringPoint: "", direction: "CONSUMPTION", participationFactor: 100 })}
         >
           <PlusCircle className="h-4 w-4 mr-2" />
           Zählpunkt hinzufügen
