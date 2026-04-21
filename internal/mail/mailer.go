@@ -2,6 +2,7 @@ package mail
 
 import (
 	"fmt"
+	"time"
 
 	gomail "github.com/wneessen/go-mail"
 )
@@ -41,6 +42,7 @@ func (m *Mailer) Send(to, subject, htmlBody string) error {
 	opts := []gomail.Option{
 		gomail.WithPort(m.port),
 		gomail.WithTLSPolicy(gomail.TLSOpportunistic),
+		gomail.WithTimeout(10 * time.Second),
 	}
 	// Only configure SMTP auth when credentials are provided.
 	// Omitting auth allows open-relay / internal SMTP servers.
