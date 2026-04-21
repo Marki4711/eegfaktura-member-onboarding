@@ -31,26 +31,31 @@ Use `AskUserQuestion` for:
 - Do we need rate limiting for this feature?
 - What specific input validations are required?
 
-### 3. Create Database Schema
-- Write SQL for new tables in Supabase SQL Editor
-- Enable Row Level Security on EVERY table
-- Create RLS policies for all CRUD operations
+### 3. DB Schema Review
+- Read `docs/domain-model.md` as the authoritative reference
+- **No migrations yet:** derive initial schema from domain model
+- **Migrations exist:** verify consistency with domain model and check for drift
+- In both cases, apply DB design best practices: naming conventions, data types, indexes, constraints, foreign keys
+- Fix findings in a dedicated migration before adding feature-specific changes
+
+### 4. Create Database Schema
+- Write SQL migrations as files in `db/migrations/`
 - Add indexes on performance-critical columns (WHERE, ORDER BY, JOIN)
 - Use foreign keys with ON DELETE CASCADE where appropriate
 
-### 4. Create API Routes
+### 5. Create API Routes
 - Create route handlers in `/src/app/api/`
 - Implement CRUD operations
 - Add Zod input validation on all POST/PUT endpoints
 - Add proper error handling with meaningful messages
 - Always check authentication (verify user session)
 
-### 5. Connect Frontend
+### 6. Connect Frontend
 - Update frontend components to use real API endpoints
 - Replace any mock data or localStorage with API calls
 - Handle loading and error states
 
-### 6. Write Integration Tests
+### 7. Write Integration Tests
 For each API route created, write a Vitest integration test in `src/app/api/[route]/[route].test.ts`:
 - Test the happy path (valid input → expected response)
 - Test validation errors (invalid input → 400 with error message)
@@ -58,7 +63,7 @@ For each API route created, write a Vitest integration test in `src/app/api/[rou
 - Test authorization (wrong user → 403)
 - Run tests: `npm test`
 
-### 7. User Review
+### 8. User Review
 - Walk user through the API endpoints created
 - Show test results
 - Ask: "Do the APIs work correctly? Any edge cases to test?"
