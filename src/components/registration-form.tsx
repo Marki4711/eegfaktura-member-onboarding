@@ -61,6 +61,12 @@ const meteringPointSchema = z.object({
     .refine((v) => v.length >= 1, { message: "Zählpunkt ist erforderlich" })
     .refine((v) => v.length <= 33, { message: "Maximal 33 Zeichen" }),
   direction: z.enum(["CONSUMPTION", "PRODUCTION"]),
+  participationFactor: z.coerce
+    .number({ invalid_type_error: "Zahl erforderlich" })
+    .int()
+    .min(1, "Mindestens 1%")
+    .max(100, "Maximal 100%")
+    .default(100),
 });
 
 const formSchema = z
@@ -172,7 +178,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
       privacyAccepted: false,
       accuracyConfirmed: false,
       sepaMandateAccepted: false,
-      meteringPoints: [{ meteringPoint: "", direction: "CONSUMPTION" }],
+      meteringPoints: [{ meteringPoint: "", direction: "CONSUMPTION", participationFactor: 100 }],
     },
   });
 

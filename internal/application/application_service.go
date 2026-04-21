@@ -57,10 +57,11 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 	var meteringPoints []shared.MeteringPoint
 	for _, mpReq := range req.MeteringPoints {
 		meteringPoints = append(meteringPoints, shared.MeteringPoint{
-			MeteringPoint: mpReq.MeteringPoint,
-			Direction:     shared.MeterDirection(mpReq.Direction),
-			CreatedAt:     time.Now(),
-			UpdatedAt:     time.Now(),
+			MeteringPoint:       mpReq.MeteringPoint,
+			Direction:           shared.MeterDirection(mpReq.Direction),
+			ParticipationFactor: mpReq.ParticipationFactor,
+			CreatedAt:           time.Now(),
+			UpdatedAt:           time.Now(),
 		})
 	}
 	if err = s.meteringRepo.ValidateUniqueMeteringPoints(uuid.Nil, meteringPoints); err != nil {
@@ -260,11 +261,12 @@ func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateAp
 	if req.MeteringPoints != nil {
 		for _, mpReq := range req.MeteringPoints {
 			meteringPoints = append(meteringPoints, shared.MeteringPoint{
-				ApplicationID: id,
-				MeteringPoint: mpReq.MeteringPoint,
-				Direction:     shared.MeterDirection(mpReq.Direction),
-				CreatedAt:     time.Now(),
-				UpdatedAt:     time.Now(),
+				ApplicationID:       id,
+				MeteringPoint:       mpReq.MeteringPoint,
+				Direction:           shared.MeterDirection(mpReq.Direction),
+				ParticipationFactor: mpReq.ParticipationFactor,
+				CreatedAt:           time.Now(),
+				UpdatedAt:           time.Now(),
 			})
 		}
 
