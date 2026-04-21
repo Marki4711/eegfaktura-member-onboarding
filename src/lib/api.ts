@@ -127,6 +127,8 @@ async function adminRequest<T>(
     throw new ApiResponseError(body as ApiError);
   }
 
+  if (res.status === 204) return undefined as T;
+
   return res.json().catch(() => {
     throw new ApiResponseError({
       code: "internal_error",
