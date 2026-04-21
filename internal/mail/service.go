@@ -16,6 +16,7 @@ var templateFS embed.FS
 // MailService defines the contract for sending submission notification emails.
 type MailService interface {
 	SendSubmissionEmails(app *shared.Application, meteringPoints []shared.MeteringPoint, entrypoint *shared.RegistrationEntrypoint)
+	SendMemberConfirmation(app *shared.Application) error
 }
 
 // NoOpMailService silently drops all mail calls. Used when SMTP is not configured.
@@ -23,6 +24,7 @@ type NoOpMailService struct{}
 
 func (n *NoOpMailService) SendSubmissionEmails(_ *shared.Application, _ []shared.MeteringPoint, _ *shared.RegistrationEntrypoint) {
 }
+func (n *NoOpMailService) SendMemberConfirmation(_ *shared.Application) error { return nil }
 
 // SMTPMailService sends HTML emails via SMTP.
 type SMTPMailService struct {
@@ -107,6 +109,20 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 	} else {
 		slog.Info("mail: EEG notification sent", "application_id", app.ID, "to", *entrypoint.ContactEmail)
 	}
+}
+
+// SendMemberConfirmation sends only the member confirmation email and returns any error.
+func (s *SMTPMailService) SendMemberConfirmation(app *shared.Application) error {
+	var buf bytes.Buffer
+	if err := s.memberTpl.Execute(&buf, memberTemplateData{
+		Firstname:       derefString(app.Firstname),
+		Lastname:        derefString(app.Lastname),
+		ReferenceNumber: app.ReferenceNumber,
+	}); err != nil {
+		return fmt.Errorf("render member template: %w", err)
+	}
+	subject := fmt.Sprintf("Ihre Beitrittserklärung wurde eingereicht (%s)", app.ReferenceNumber)
+	return s.sender.Send(app.Email, subject, buf.String())
 }
 
 func derefString(s *string) string {

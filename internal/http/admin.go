@@ -198,6 +198,19 @@ func (h *AdminHandler) ChangeStatus(w http.ResponseWriter, r *http.Request) {
 	h.writeJSON(w, http.StatusOK, resp)
 }
 
+// ResendMemberConfirmation handles POST /api/admin/applications/{id}/resend-confirmation
+func (h *AdminHandler) ResendMemberConfirmation(w http.ResponseWriter, r *http.Request) {
+	id, err := h.parseID(w, r)
+	if err != nil {
+		return
+	}
+	if err := h.adminService.ResendMemberConfirmation(id); err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // --- helpers ---
 
 func (h *AdminHandler) parseID(w http.ResponseWriter, r *http.Request) (uuid.UUID, error) {

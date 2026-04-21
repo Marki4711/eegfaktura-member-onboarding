@@ -76,7 +76,7 @@ func main() {
 	// Initialize services
 	registrationService := application.NewRegistrationService(entrypointRepo)
 	applicationService := application.NewApplicationService(db, appRepo, meteringRepo, statusLogRepo, entrypointRepo, mailService)
-	adminService := application.NewAdminApplicationService(db, appRepo, meteringRepo, statusLogRepo)
+	adminService := application.NewAdminApplicationService(db, appRepo, meteringRepo, statusLogRepo, mailService)
 
 	// Initialize handlers
 	registrationHandler := internalhttp.NewRegistrationHandler(registrationService)
@@ -123,6 +123,7 @@ func main() {
 				r.Get("/", adminHandler.GetApplicationDetail)
 				r.Put("/", adminHandler.UpdateApplication)
 				r.Post("/status", adminHandler.ChangeStatus)
+				r.Post("/resend-confirmation", adminHandler.ResendMemberConfirmation)
 			})
 		})
 	})

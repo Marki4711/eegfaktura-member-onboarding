@@ -13,7 +13,7 @@ import { AdminStatusLog } from "@/components/admin-status-log";
 import { AdminStatusActions } from "@/components/admin-status-actions";
 import { AdminNoteEditor } from "@/components/admin-note-editor";
 import { AdminEditForm } from "@/components/admin-edit-form";
-import { getApplicationDetail, ApiResponseError } from "@/lib/api";
+import { getApplicationDetail, resendMemberConfirmation, ApiResponseError } from "@/lib/api";
 import type { AdminApplicationDetail, MemberType } from "@/lib/api";
 
 const MEMBER_TYPE_LABELS: Record<MemberType, string> = {
@@ -78,6 +78,22 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendResult, setResendResult] = useState<"ok" | "error" | null>(null);
+
+  const handleResend = async () => {
+    if (!application) return;
+    setResending(true);
+    setResendResult(null);
+    try {
+      await resendMemberConfirmation(application.id, session?.accessToken);
+      setResendResult("ok");
+    } catch {
+      setResendResult("error");
+    } finally {
+      setResending(false);
+    }
+  };
 
   const fetchApplication = useCallback(async () => {
     setLoading(true);
@@ -166,7 +182,18 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
             {" · "}{application.email}
           </p>
         </div>
-        <Button onClick={() => setEditOpen(true)}>Bearbeiten</Button>
+        <div className="flex items-center gap-2">
+          {resendResult === "ok" && (
+            <span className="text-xs text-green-600">E-Mail gesendet</span>
+          )}
+          {resendResult === "error" && (
+            <span className="text-xs text-destructive">Fehler beim Senden</span>
+          )}
+          <Button variant="outline" size="sm" onClick={handleResend} disabled={resending}>
+            {resending ? "Wird gesendet…" : "Bestätigung erneut senden"}
+          </Button>
+          <Button onClick={() => setEditOpen(true)}>Bearbeiten</Button>
+        </div>
       </div>
 
       <div className="space-y-6">
