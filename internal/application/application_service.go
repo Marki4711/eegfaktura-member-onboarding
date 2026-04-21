@@ -45,7 +45,7 @@ func NewApplicationService(
 // If metering point insertion fails the application row is rolled back automatically.
 func (s *ApplicationService) CreateApplication(req shared.CreateApplicationRequest) (*shared.ApplicationResponse, error) {
 	// Resolve RC number via registration_entrypoint — never reads core tables
-	ep, err := s.entrypointRepo.GetByRCNumber(req.RCNumber)
+	ep, err := s.entrypointRepo.GetByRCNumber(strings.ToUpper(req.RCNumber))
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 	phone := trimStringPtr(req.Phone)
 	app := &shared.Application{
 		ReferenceNumber:       s.generateReferenceNumber(),
-		RCNumber:              strings.TrimSpace(req.RCNumber),
+		RCNumber:              strings.ToUpper(strings.TrimSpace(req.RCNumber)),
 		Status:                shared.StatusDraft,
 		StartedAt:             &now,
 		MemberType:            shared.MemberType(strings.TrimSpace(req.MemberType)),
