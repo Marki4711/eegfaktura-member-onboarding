@@ -35,7 +35,7 @@ This repository contains the **eegfaktura Member Onboarding** component, enablin
 | **Backend** | Go | REST API service |
 | **Database** | PostgreSQL | Schema `member_onboarding` |
 | **Auth** | Keycloak | Admin authentication |
-| **Deployment** | Vercel | Frontend hosting |
+| **Deployment** | Kubernetes / Helm | Self-hosted |
 
 ## Project Structure
 
@@ -153,13 +153,13 @@ Invoke-RestMethod -Uri http://localhost:8080/api/public/registration/RC123456
 # 2. Create an application
 $body = @{
     rcNumber             = "RC123456"
-    firstname            = "Josef"
-    lastname             = "Brandstatter"
-    email                = "josef@example.org"
-    residentStreet       = "Flurweg"
-    residentStreetNumber = "2"
-    residentZip          = "4331"
-    residentCity         = "Naarn"
+    firstname            = "Max"
+    lastname             = "Mustermann"
+    email                = "max.mustermann@example.org"
+    residentStreet       = "Musterstraße"
+    residentStreetNumber = "1"
+    residentZip          = "1010"
+    residentCity         = "Musterstadt"
     residentCountry      = "AT"
     privacyAccepted      = $true
     privacyVersion       = "2026-01"

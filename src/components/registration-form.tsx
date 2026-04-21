@@ -577,7 +577,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                     <FormItem>
                       <FormLabel>Ort *</FormLabel>
                       <FormControl>
-                        <Input placeholder="Linz" autoComplete="address-level2" {...field} />
+                        <Input placeholder="Musterstadt" autoComplete="address-level2" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

@@ -76,7 +76,6 @@ Am Ende des Feature-Dokuments fügt QA die Test-Ergebnisse hinzu:
 
 **Status:** ✅ Deployed
 **Deployed:** 2026-01-13
-**Production URL:** https://your-app.vercel.app
 **Git Tag:** v1.0.0-PROJ-1
 ```
 
