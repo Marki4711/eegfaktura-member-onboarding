@@ -33,8 +33,8 @@ export function MeteringPointFields({ form }: MeteringPointFieldsProps) {
   return (
     <div className="space-y-4">
       {fields.map((field, index) => (
-        <div key={field.id} className="flex gap-3 items-start">
-          <div className="flex-1">
+        <div key={field.id} className="flex flex-col sm:flex-row gap-3 sm:items-start">
+          <div className="flex-1 min-w-0">
             <FormField
               control={form.control}
               name={`meteringPoints.${index}.meteringPoint`}
@@ -59,34 +59,34 @@ export function MeteringPointFields({ form }: MeteringPointFieldsProps) {
             />
           </div>
 
-          <div className="w-44">
-            <FormField
-              control={form.control}
-              name={`meteringPoints.${index}.direction`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Richtung</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Richtung" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="CONSUMPTION">Verbraucher</SelectItem>
-                      <SelectItem value="PRODUCTION">Erzeuger</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+          <div className="flex gap-2 items-end">
+            <div className="flex-1 sm:w-44">
+              <FormField
+                control={form.control}
+                name={`meteringPoints.${index}.direction`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Richtung</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Richtung" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="CONSUMPTION">Verbraucher</SelectItem>
+                        <SelectItem value="PRODUCTION">Erzeuger</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-          <div className="pt-8">
             <Button
               type="button"
               variant="ghost"
@@ -94,6 +94,7 @@ export function MeteringPointFields({ form }: MeteringPointFieldsProps) {
               onClick={() => remove(index)}
               disabled={fields.length === 1}
               aria-label={`Zählpunkt ${index + 1} entfernen`}
+              className="shrink-0 mb-0.5"
             >
               <Trash2 className="h-4 w-4 text-destructive" />
             </Button>
