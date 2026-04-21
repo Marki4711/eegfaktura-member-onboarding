@@ -1,4 +1,3 @@
-import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
@@ -44,8 +43,7 @@ export default async function RegisterPage({ params }: PageProps) {
   const { rc_number } = await params;
 
   let config: RegistrationConfig | null = null;
-  let gone = false;
-  let backendError = false;
+  let errorKind: "not_found" | "gone" | "backend" | null = null;
 
   try {
     config = await getRegistrationConfig(rc_number);
@@ -53,18 +51,34 @@ export default async function RegisterPage({ params }: PageProps) {
     if (isApiResponseError(err)) {
       const code = err.apiError.code;
       if (code === "not_found") {
-        notFound();
+        errorKind = "not_found";
       } else if (code === "gone") {
-        gone = true;
+        errorKind = "gone";
       } else {
-        backendError = true;
+        errorKind = "backend";
       }
     } else {
-      backendError = true;
+      errorKind = "backend";
     }
   }
 
-  if (gone) {
+  if (errorKind === "not_found") {
+    return (
+      <PublicPageShell>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Registrierungslink ungültig</AlertTitle>
+          <AlertDescription>
+            Der Registrierungslink <strong>{rc_number.toUpperCase()}</strong> ist
+            nicht bekannt. Bitte überprüfen Sie den Link oder wenden Sie sich an
+            Ihren EEG-Administrator.
+          </AlertDescription>
+        </Alert>
+      </PublicPageShell>
+    );
+  }
+
+  if (errorKind === "gone") {
     return (
       <PublicPageShell>
         <Alert variant="destructive">
@@ -79,7 +93,7 @@ export default async function RegisterPage({ params }: PageProps) {
     );
   }
 
-  if (backendError || !config) {
+  if (errorKind === "backend" || !config) {
     return (
       <PublicPageShell>
         <Alert variant="destructive">
