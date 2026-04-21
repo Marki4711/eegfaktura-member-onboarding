@@ -61,10 +61,7 @@ const meteringPointSchema = z.object({
     .refine((v) => v.length >= 1, { message: "Zählpunkt ist erforderlich" })
     .refine((v) => v.length <= 33, { message: "Maximal 33 Zeichen" }),
   direction: z.enum(["CONSUMPTION", "PRODUCTION"]),
-  participationFactor: z.preprocess(
-    (v) => (v === "" || v === null || v === undefined ? 100 : Number(v)),
-    z.number().int().min(1, "Mindestens 1%").max(100, "Maximal 100%")
-  ),
+  participationFactor: z.number().int().min(1, "Mindestens 1%").max(100, "Maximal 100%"),
 });
 
 const formSchema = z

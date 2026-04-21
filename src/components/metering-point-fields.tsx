@@ -102,7 +102,11 @@ export function MeteringPointFields({ form }: MeteringPointFieldsProps) {
                           min={1}
                           max={100}
                           className="pr-7"
-                          {...field}
+                          value={field.value}
+                          onChange={(e) => field.onChange(isNaN(e.target.valueAsNumber) ? 100 : e.target.valueAsNumber)}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
                         />
                         <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
                           %
