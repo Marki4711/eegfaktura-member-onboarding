@@ -5,7 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"html/template"
-	"log"
+	"log/slog"
 
 	"github.com/your-org/eegfaktura-member-onboarding/internal/shared"
 )
@@ -61,6 +61,8 @@ type eegTemplateData struct {
 // SendSubmissionEmails sends the member confirmation and, if a contact email is
 // configured, the EEG notification. Errors are logged but never propagate to the caller.
 func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, meteringPoints []shared.MeteringPoint, entrypoint *shared.RegistrationEntrypoint) {
+	slog.Info("mail: sending submission emails", "application_id", app.ID, "ref", app.ReferenceNumber, "to", app.Email)
+
 	// Member confirmation
 	var memberBuf bytes.Buffer
 	if err := s.memberTpl.Execute(&memberBuf, memberTemplateData{
@@ -68,16 +70,19 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 		Lastname:        derefString(app.Lastname),
 		ReferenceNumber: app.ReferenceNumber,
 	}); err != nil {
-		log.Printf("mail: failed to render member template for application %s: %v", app.ID, err)
+		slog.Error("mail: failed to render member template", "application_id", app.ID, "error", err)
 	} else {
 		subject := fmt.Sprintf("Ihre Beitrittserklärung wurde eingereicht (%s)", app.ReferenceNumber)
 		if err := s.sender.Send(app.Email, subject, memberBuf.String()); err != nil {
-			log.Printf("mail: failed to send member confirmation for application %s: %v", app.ID, err)
+			slog.Error("mail: failed to send member confirmation", "application_id", app.ID, "to", app.Email, "error", err)
+		} else {
+			slog.Info("mail: member confirmation sent", "application_id", app.ID, "to", app.Email)
 		}
 	}
 
 	// EEG notification — only when contact_email is set
 	if entrypoint.ContactEmail == nil || *entrypoint.ContactEmail == "" {
+		slog.Info("mail: skipping EEG notification (no contact_email)", "application_id", app.ID, "rc_number", entrypoint.RCNumber)
 		return
 	}
 
@@ -92,13 +97,15 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 		ReferenceNumber: app.ReferenceNumber,
 		MeteringPoints:  meteringPoints,
 	}); err != nil {
-		log.Printf("mail: failed to render eeg template for application %s: %v", app.ID, err)
+		slog.Error("mail: failed to render EEG template", "application_id", app.ID, "error", err)
 		return
 	}
 
 	subject := fmt.Sprintf("Neuer Beitrittsantrag: %s %s (%s)", firstname, lastname, app.ReferenceNumber)
 	if err := s.sender.Send(*entrypoint.ContactEmail, subject, eegBuf.String()); err != nil {
-		log.Printf("mail: failed to send eeg notification for application %s: %v", app.ID, err)
+		slog.Error("mail: failed to send EEG notification", "application_id", app.ID, "to", *entrypoint.ContactEmail, "error", err)
+	} else {
+		slog.Info("mail: EEG notification sent", "application_id", app.ID, "to", *entrypoint.ContactEmail)
 	}
 }
 
