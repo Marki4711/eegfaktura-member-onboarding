@@ -36,12 +36,13 @@ Use `AskUserQuestion` for:
 - **No migrations yet:** derive initial schema from domain model
 - **Migrations exist:** verify consistency with domain model and check for drift
 - In both cases, apply DB design best practices: naming conventions (`snake_case`, schema prefix `member_onboarding.*`), data types, indexes, constraints, foreign keys
-- Fix findings in a dedicated migration before adding feature-specific changes
+- **Present findings to the user and wait for approval before writing any migration**
 
 ### 4. Create Database Schema
-- Write SQL migration files in `db/migrations/` (sequential numbering)
+- Write SQL migration files in `db/migrations/` (sequential numbering) only after user approval
 - Add indexes on performance-critical columns (WHERE, ORDER BY, JOIN)
 - Use foreign keys with ON DELETE CASCADE where appropriate
+- **Show the migration SQL to the user before applying it — never apply automatically**
 
 ### 5. Create API Routes
 - Create handlers in `internal/http/`, services in `internal/application/`, repositories in `internal/application/`
