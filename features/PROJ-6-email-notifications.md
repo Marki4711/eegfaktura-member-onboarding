@@ -1,8 +1,8 @@
 # PROJ-6: E-Mail-Benachrichtigungen bei Antragseinreichung
 
-## Status: Approved
+## Status: Deployed
 **Created:** 2026-04-19
-**Last Updated:** 2026-04-19 (Backend implementiert)
+**Last Updated:** 2026-04-21
 
 ## Dependencies
 - Requires: PROJ-1 (Public Registration) — liefert den Einreichungs-Trigger (submit endpoint)
@@ -269,60 +269,47 @@ Alle 8 Tests bestanden. `go vet` sauber.
 
 ## Deployment
 
-**Deployed:** 2026-04-19
-**Commit:** a33d50a
+**Deployed:** 2026-04-21 (vollständig inkl. SMTP-Konfiguration und Resend-Funktion)
 **Image tag:** `latest` (built by GitHub Actions on push to main)
 
-### Cluster-Schritte für den Test-Cluster
+### Produktiv verifizierte SMTP-Konfiguration
 
-PROJ-6 liefert nur Backend-Änderungen (neues `internal/mail`-Paket + Migration 000003). Das neue Backend-Image wird automatisch von GitHub Actions gebaut und auf Docker Hub (`marki4711/eegfaktura-member-onboarding-backend:latest`) publiziert.
+Der Cluster hat keinen Zugriff auf Port 587 (von Firewall geblockt). **Port 25** verwenden:
 
-**1. Migration 000003 einspielen**
+```yaml
+# values-env.yaml
+backend:
+  smtp:
+    host: atvipostal.vfeeg.org
+    port: "25"
+    user: <credential-name-aus-postal>
+    from: noreply@eegfaktura.at
 
-```bash
-# Alten Migration-Job löschen (Jobs sind einmalig und können nicht erneut ausgeführt werden)
-kubectl delete job migrate-up -n eegfaktura-member-onboarding-test --ignore-not-found
-
-# Neuen Migration-Job anwenden
-kubectl apply -f k8s/test/03-migrate-job.yaml
-kubectl wait --for=condition=complete job/migrate-up \
-  -n eegfaktura-member-onboarding-test --timeout=120s
-kubectl logs job/migrate-up -n eegfaktura-member-onboarding-test
+# values-secret.yaml
+secrets:
+  smtpPassword: "<key-aus-postal-credentials>"
 ```
 
-Erwartete Ausgabe: `migrating up ... 000003/u add_contact_email_to_registration_entrypoint`
+Postal verwendet den Credential-Namen als SMTP-Login und den Key als Passwort.
 
-**2. Backend neu starten (neues Image ziehen)**
-
-```bash
-kubectl rollout restart deployment/backend -n eegfaktura-member-onboarding-test
-kubectl rollout status deployment/backend -n eegfaktura-member-onboarding-test
+**Startup-Verifikation:** Nach `helm upgrade` muss der Backend-Log zeigen:
+```json
+{"level":"INFO","msg":"mail service enabled","smtp_host":"atvipostal.vfeeg.org"}
 ```
 
-**3. SMTP-Konfiguration (optional)**
+Ohne `SMTP_HOST` startet der Server mit `NoOpMailService` — keine E-Mails, kein Fehler.
 
-Wenn E-Mail-Versand aktiviert werden soll, SMTP-Variablen in das Backend-Secret eintragen:
+### Zusätzliche Features (nach initialer Deployment-Doku ergänzt)
 
-```bash
-kubectl edit secret backend-secret -n eegfaktura-member-onboarding-test
-```
+- **Resend-Funktion:** Admin-Detailansicht enthält Button "Bestätigung erneut senden" (`POST /api/admin/applications/{id}/resend-confirmation`). Sendet nur die Mitglieds-Bestätigungsmail, unabhängig vom aktuellen Antragsstatus.
+- **EEG-Benachrichtigung:** Wird automatisch übersprungen wenn `contact_email` in `registration_entrypoint` NULL ist — kein manueller Eingriff nötig.
+- **SMTP-Timeout:** 10 Sekunden (verhindert lange Request-Hänger bei falschem Host).
 
-Folgende Keys hinzufügen (base64-kodiert):
-- `SMTP_HOST`
-- `SMTP_PORT` (Standard: `587`)
-- `SMTP_USER`
-- `SMTP_PASSWORD`
-- `SMTP_FROM`
+### Production Fixes (discovered during live testing 2026-04-21)
 
-Danach in `k8s/test/05-backend.yaml` die Env-Vars aus dem Secret mounten und Backend erneut neu starten.
-
-Ohne SMTP-Konfiguration startet der Server mit `NoOpMailService` — keine E-Mails, kein Fehler.
-
-**4. Smoke Test**
-
-```bash
-# Antrag einreichen und prüfen, dass Endpoint 200 zurückgibt
-# (E-Mail-Versand ist async und blockiert nicht)
-curl -s -o /dev/null -w "%{http_code}" \
-  -X POST https://member-onboarding-test.eegfaktura.at/api/public/applications/{id}/submit
-```
+| # | Issue | Root Cause | Fix |
+|---|-------|-----------|-----|
+| P-1 | Port 587 geblockt → 15s Timeout + 500/502 | Cluster-Firewall blockiert Port 587 ausgehend | Port 25 verwenden |
+| P-2 | `adminRequest` wirft Fehler bei 204 No Content | `res.json()` schlägt auf leerem Body fehl | 204-Check vor `res.json()` in `adminRequest` |
+| P-3 | 15s Hänger bei falschem SMTP-Host | Kein Timeout im Mailer konfiguriert | `gomail.WithTimeout(10 * time.Second)` |
+| P-4 | Health-Endpoint flutet Backend-Log | `/health` wurde wie normale Requests geloggt | `/health`-Requests im `SlogRequestLogger` überspringen |
