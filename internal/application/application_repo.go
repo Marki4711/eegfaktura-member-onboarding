@@ -32,6 +32,9 @@ func (r *ApplicationRepository) Create(app *shared.Application) error {
 			resident_street, resident_street_number, resident_zip, resident_city,
 			privacy_accepted, privacy_version, privacy_accepted_at, accuracy_confirmed,
 			iban, account_holder, sepa_mandate_accepted, sepa_mandate_accepted_at,
+			membership_start_date, persons_in_household, consumption_previous_year,
+			consumption_forecast, feed_in_forecast, pv_power_kwp,
+			heat_pump, electric_vehicle, electric_hot_water,
 			created_at, updated_at
 		) VALUES (
 			$1, $2, $3, $4,
@@ -41,7 +44,10 @@ func (r *ApplicationRepository) Create(app *shared.Application) error {
 			$14, $15, $16, $17,
 			$18, $19, $20, $21,
 			$22, $23, $24, $25,
-			$26, $27
+			$26, $27, $28,
+			$29, $30, $31,
+			$32, $33, $34,
+			$35, $36
 		) RETURNING id`
 
 	now := app.CreatedAt
@@ -53,6 +59,9 @@ func (r *ApplicationRepository) Create(app *shared.Application) error {
 		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity,
 		app.PrivacyAccepted, app.PrivacyVersion, &now, app.AccuracyConfirmed,
 		app.IBAN, app.AccountHolder, app.SepaMandateAccepted, app.SepaMandateAcceptedAt,
+		app.MembershipStartDate, app.PersonsInHousehold, app.ConsumptionPreviousYear,
+		app.ConsumptionForecast, app.FeedInForecast, app.PvPowerKwp,
+		app.HeatPump, app.ElectricVehicle, app.ElectricHotWater,
 		app.CreatedAt, app.UpdatedAt,
 	}
 
@@ -75,6 +84,9 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 			resident_street, resident_street_number, resident_zip, resident_city,
 			privacy_accepted, privacy_version, privacy_accepted_at, accuracy_confirmed,
 			iban, account_holder, sepa_mandate_accepted, sepa_mandate_accepted_at,
+			membership_start_date, persons_in_household, consumption_previous_year,
+			consumption_forecast, feed_in_forecast, pv_power_kwp,
+			heat_pump, electric_vehicle, electric_hot_water,
 			created_at, updated_at
 		) VALUES (
 			$1, $2, $3, $4,
@@ -84,7 +96,10 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 			$14, $15, $16, $17,
 			$18, $19, $20, $21,
 			$22, $23, $24, $25,
-			$26, $27
+			$26, $27, $28,
+			$29, $30, $31,
+			$32, $33, $34,
+			$35, $36
 		) RETURNING id`
 
 	now := app.CreatedAt
@@ -96,6 +111,9 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity,
 		app.PrivacyAccepted, app.PrivacyVersion, &now, app.AccuracyConfirmed,
 		app.IBAN, app.AccountHolder, app.SepaMandateAccepted, app.SepaMandateAcceptedAt,
+		app.MembershipStartDate, app.PersonsInHousehold, app.ConsumptionPreviousYear,
+		app.ConsumptionForecast, app.FeedInForecast, app.PvPowerKwp,
+		app.HeatPump, app.ElectricVehicle, app.ElectricHotWater,
 		app.CreatedAt, app.UpdatedAt,
 	}
 
@@ -118,7 +136,11 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		       privacy_accepted, privacy_version, privacy_accepted_at, accuracy_confirmed,
 		       iban, account_holder, sepa_mandate_accepted, sepa_mandate_accepted_at,
 		       reviewed_by_user_id, admin_note, needs_info_reason, target_participant_id,
-		       import_started_at, import_finished_at, import_error_message, created_at, updated_at
+		       import_started_at, import_finished_at, import_error_message,
+		       membership_start_date, persons_in_household, consumption_previous_year,
+		       consumption_forecast, feed_in_forecast, pv_power_kwp,
+		       heat_pump, electric_vehicle, electric_hot_water,
+		       created_at, updated_at
 		FROM member_onboarding.application
 		WHERE id = $1`
 
@@ -126,6 +148,10 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	var phone, privacyVersion, iban, accountHolder, reviewedByUserID, adminNote, needsInfoReason, targetParticipantID, importErrorMessage sql.NullString
 	var firstname, lastname, companyName, uidNumber, registerNumber sql.NullString
 	var birthDate, startedAt, submittedAt, approvedAt, rejectedAt, importedAt, privacyAcceptedAt, sepaMandateAcceptedAt, importStartedAt, importFinishedAt sql.NullTime
+	var membershipStartDate sql.NullTime
+	var personsInHousehold, consumptionPreviousYear, consumptionForecast, feedInForecast sql.NullInt64
+	var pvPowerKwp sql.NullFloat64
+	var heatPump, electricVehicle, electricHotWater sql.NullBool
 
 	err := r.db.QueryRow(query, id).Scan(
 		&app.ID, &app.ReferenceNumber, &app.RCNumber, &app.Status, &startedAt,
@@ -137,7 +163,11 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		&app.PrivacyAccepted, &privacyVersion, &privacyAcceptedAt, &app.AccuracyConfirmed,
 		&iban, &accountHolder, &app.SepaMandateAccepted, &sepaMandateAcceptedAt,
 		&reviewedByUserID, &adminNote, &needsInfoReason, &targetParticipantID, &importStartedAt, &importFinishedAt,
-		&importErrorMessage, &app.CreatedAt, &app.UpdatedAt,
+		&importErrorMessage,
+		&membershipStartDate, &personsInHousehold, &consumptionPreviousYear,
+		&consumptionForecast, &feedInForecast, &pvPowerKwp,
+		&heatPump, &electricVehicle, &electricHotWater,
+		&app.CreatedAt, &app.UpdatedAt,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -218,6 +248,37 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	if importFinishedAt.Valid {
 		app.ImportFinishedAt = &importFinishedAt.Time
 	}
+	if membershipStartDate.Valid {
+		app.MembershipStartDate = &membershipStartDate.Time
+	}
+	if personsInHousehold.Valid {
+		v := int(personsInHousehold.Int64)
+		app.PersonsInHousehold = &v
+	}
+	if consumptionPreviousYear.Valid {
+		v := int(consumptionPreviousYear.Int64)
+		app.ConsumptionPreviousYear = &v
+	}
+	if consumptionForecast.Valid {
+		v := int(consumptionForecast.Int64)
+		app.ConsumptionForecast = &v
+	}
+	if feedInForecast.Valid {
+		v := int(feedInForecast.Int64)
+		app.FeedInForecast = &v
+	}
+	if pvPowerKwp.Valid {
+		app.PvPowerKwp = &pvPowerKwp.Float64
+	}
+	if heatPump.Valid {
+		app.HeatPump = &heatPump.Bool
+	}
+	if electricVehicle.Valid {
+		app.ElectricVehicle = &electricVehicle.Bool
+	}
+	if electricHotWater.Valid {
+		app.ElectricHotWater = &electricHotWater.Bool
+	}
 
 	return app, nil
 }
@@ -234,8 +295,11 @@ func (r *ApplicationRepository) Update(app *shared.Application) error {
 			resident_city = $13, privacy_accepted = $14,
 			privacy_version = $15, accuracy_confirmed = $16,
 			iban = $17, account_holder = $18, sepa_mandate_accepted = $19, sepa_mandate_accepted_at = $20,
+			membership_start_date = $21, persons_in_household = $22, consumption_previous_year = $23,
+			consumption_forecast = $24, feed_in_forecast = $25, pv_power_kwp = $26,
+			heat_pump = $27, electric_vehicle = $28, electric_hot_water = $29,
 			updated_at = NOW()
-		WHERE id = $21`
+		WHERE id = $30`
 
 	_, err := r.db.Exec(query,
 		app.MemberType,
@@ -245,6 +309,9 @@ func (r *ApplicationRepository) Update(app *shared.Application) error {
 		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity,
 		app.PrivacyAccepted, app.PrivacyVersion, app.AccuracyConfirmed,
 		app.IBAN, app.AccountHolder, app.SepaMandateAccepted, app.SepaMandateAcceptedAt,
+		app.MembershipStartDate, app.PersonsInHousehold, app.ConsumptionPreviousYear,
+		app.ConsumptionForecast, app.FeedInForecast, app.PvPowerKwp,
+		app.HeatPump, app.ElectricVehicle, app.ElectricHotWater,
 		app.ID,
 	)
 	if err != nil {
@@ -266,8 +333,11 @@ func (r *ApplicationRepository) UpdateTx(tx *sql.Tx, app *shared.Application) er
 			resident_city = $13, privacy_accepted = $14,
 			privacy_version = $15, accuracy_confirmed = $16,
 			iban = $17, account_holder = $18, sepa_mandate_accepted = $19, sepa_mandate_accepted_at = $20,
+			membership_start_date = $21, persons_in_household = $22, consumption_previous_year = $23,
+			consumption_forecast = $24, feed_in_forecast = $25, pv_power_kwp = $26,
+			heat_pump = $27, electric_vehicle = $28, electric_hot_water = $29,
 			updated_at = NOW()
-		WHERE id = $21`
+		WHERE id = $30`
 
 	_, err := tx.Exec(query,
 		app.MemberType,
@@ -277,6 +347,9 @@ func (r *ApplicationRepository) UpdateTx(tx *sql.Tx, app *shared.Application) er
 		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity,
 		app.PrivacyAccepted, app.PrivacyVersion, app.AccuracyConfirmed,
 		app.IBAN, app.AccountHolder, app.SepaMandateAccepted, app.SepaMandateAcceptedAt,
+		app.MembershipStartDate, app.PersonsInHousehold, app.ConsumptionPreviousYear,
+		app.ConsumptionForecast, app.FeedInForecast, app.PvPowerKwp,
+		app.HeatPump, app.ElectricVehicle, app.ElectricHotWater,
 		app.ID,
 	)
 	if err != nil {

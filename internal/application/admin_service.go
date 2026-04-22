@@ -36,11 +36,12 @@ var adminTransitions = map[shared.ApplicationStatus][]shared.ApplicationStatus{
 
 // AdminApplicationService implements admin review business logic.
 type AdminApplicationService struct {
-	db            *sql.DB
-	appRepo       *ApplicationRepository
-	meteringRepo  *MeteringPointRepository
-	statusLogRepo *StatusLogRepository
-	mailService   mail.MailService
+	db              *sql.DB
+	appRepo         *ApplicationRepository
+	meteringRepo    *MeteringPointRepository
+	statusLogRepo   *StatusLogRepository
+	fieldConfigRepo *FieldConfigRepository
+	mailService     mail.MailService
 }
 
 // NewAdminApplicationService creates an AdminApplicationService.
@@ -49,15 +50,27 @@ func NewAdminApplicationService(
 	appRepo *ApplicationRepository,
 	meteringRepo *MeteringPointRepository,
 	statusLogRepo *StatusLogRepository,
+	fieldConfigRepo *FieldConfigRepository,
 	mailService mail.MailService,
 ) *AdminApplicationService {
 	return &AdminApplicationService{
-		db:            db,
-		appRepo:       appRepo,
-		meteringRepo:  meteringRepo,
-		statusLogRepo: statusLogRepo,
-		mailService:   mailService,
+		db:              db,
+		appRepo:         appRepo,
+		meteringRepo:    meteringRepo,
+		statusLogRepo:   statusLogRepo,
+		fieldConfigRepo: fieldConfigRepo,
+		mailService:     mailService,
 	}
+}
+
+// GetFieldConfig returns the field configuration for a given RC number.
+func (s *AdminApplicationService) GetFieldConfig(rcNumber string) (map[string]string, error) {
+	return s.fieldConfigRepo.Get(rcNumber)
+}
+
+// SaveFieldConfig replaces the field configuration for a given RC number.
+func (s *AdminApplicationService) SaveFieldConfig(rcNumber string, config map[string]string) error {
+	return s.fieldConfigRepo.Save(rcNumber, config)
 }
 
 // ResendMemberConfirmation re-sends the member confirmation email for any application.

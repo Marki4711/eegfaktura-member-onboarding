@@ -60,13 +60,14 @@ func TestValidateMemberTypeFields_Private_MissingLastname(t *testing.T) {
 	}
 }
 
-func TestValidateMemberTypeFields_Private_MissingBirthDate(t *testing.T) {
+func TestValidateMemberTypeFields_Private_NoBirthDateRequired(t *testing.T) {
+	// Birth date is configurable (PROJ-8) — validateMemberTypeFields must not enforce it.
 	app := baseApp(shared.MemberTypePrivate)
 	app.Firstname = strPtr("Max")
 	app.Lastname = strPtr("Mustermann")
-	// BirthDate intentionally nil
-	if err := validateMemberTypeFields(app); err == nil {
-		t.Fatal("expected validation error for missing birthDate (BUG-1 regression)")
+	// BirthDate intentionally nil — should pass structural validation
+	if err := validateMemberTypeFields(app); err != nil {
+		t.Fatalf("expected no error for missing birthDate (now configurable): %v", err)
 	}
 }
 

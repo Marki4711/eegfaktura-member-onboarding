@@ -41,15 +41,21 @@ func (r *MeteringPointRepository) CreateBulk(applicationID uuid.UUID, points []s
 	// Insert new metering points
 	stmt, err := tx.Prepare(`
 		INSERT INTO member_onboarding.metering_point (
-			application_id, metering_point, direction, participation_factor, created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6)`)
+			application_id, metering_point, direction, participation_factor,
+			transformer, installation_number, installation_name,
+			created_at, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`)
 	if err != nil {
 		return fmt.Errorf("failed to prepare statement: %w", err)
 	}
 	defer stmt.Close()
 
 	for _, point := range points {
-		_, err = stmt.Exec(applicationID, point.MeteringPoint, point.Direction, point.ParticipationFactor, point.CreatedAt, point.UpdatedAt)
+		_, err = stmt.Exec(
+			applicationID, point.MeteringPoint, point.Direction, point.ParticipationFactor,
+			point.Transformer, point.InstallationNumber, point.InstallationName,
+			point.CreatedAt, point.UpdatedAt,
+		)
 		if err != nil {
 			return fmt.Errorf("failed to insert metering point: %w", err)
 		}
@@ -67,15 +73,21 @@ func (r *MeteringPointRepository) CreateBulkTx(tx *sql.Tx, applicationID uuid.UU
 
 	stmt, err := tx.Prepare(`
 		INSERT INTO member_onboarding.metering_point (
-			application_id, metering_point, direction, participation_factor, created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6)`)
+			application_id, metering_point, direction, participation_factor,
+			transformer, installation_number, installation_name,
+			created_at, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`)
 	if err != nil {
 		return fmt.Errorf("failed to prepare statement: %w", err)
 	}
 	defer stmt.Close()
 
 	for _, point := range points {
-		if _, err = stmt.Exec(applicationID, point.MeteringPoint, point.Direction, point.ParticipationFactor, point.CreatedAt, point.UpdatedAt); err != nil {
+		if _, err = stmt.Exec(
+			applicationID, point.MeteringPoint, point.Direction, point.ParticipationFactor,
+			point.Transformer, point.InstallationNumber, point.InstallationName,
+			point.CreatedAt, point.UpdatedAt,
+		); err != nil {
 			return fmt.Errorf("failed to insert metering point: %w", err)
 		}
 	}
@@ -85,7 +97,9 @@ func (r *MeteringPointRepository) CreateBulkTx(tx *sql.Tx, applicationID uuid.UU
 // GetByApplicationID gets all metering points for an application
 func (r *MeteringPointRepository) GetByApplicationID(applicationID uuid.UUID) ([]shared.MeteringPoint, error) {
 	query := `
-		SELECT id, application_id, metering_point, direction, participation_factor, created_at, updated_at
+		SELECT id, application_id, metering_point, direction, participation_factor,
+		       transformer, installation_number, installation_name,
+		       created_at, updated_at
 		FROM member_onboarding.metering_point
 		WHERE application_id = $1
 		ORDER BY created_at`
@@ -99,9 +113,23 @@ func (r *MeteringPointRepository) GetByApplicationID(applicationID uuid.UUID) ([
 	var points []shared.MeteringPoint
 	for rows.Next() {
 		var point shared.MeteringPoint
-		err := rows.Scan(&point.ID, &point.ApplicationID, &point.MeteringPoint, &point.Direction, &point.ParticipationFactor, &point.CreatedAt, &point.UpdatedAt)
+		var transformer, installationNumber, installationName sql.NullString
+		err := rows.Scan(
+			&point.ID, &point.ApplicationID, &point.MeteringPoint, &point.Direction, &point.ParticipationFactor,
+			&transformer, &installationNumber, &installationName,
+			&point.CreatedAt, &point.UpdatedAt,
+		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan metering point: %w", err)
+		}
+		if transformer.Valid {
+			point.Transformer = &transformer.String
+		}
+		if installationNumber.Valid {
+			point.InstallationNumber = &installationNumber.String
+		}
+		if installationName.Valid {
+			point.InstallationName = &installationName.String
 		}
 		points = append(points, point)
 	}

@@ -31,13 +31,27 @@ type CreateApplicationRequest struct {
 	AccountHolder        string                      `json:"accountHolder" validate:"required,min=1,max=255"`
 	SepaMandateAccepted  bool                        `json:"sepaMandateAccepted" validate:"required"`
 	MeteringPoints       []CreateMeteringPointRequest `json:"meteringPoints" validate:"required,min=1,max=10,dive"`
+	// Configurable application-level fields (PROJ-8)
+	MembershipStartDate     *string  `json:"membershipStartDate,omitempty"`
+	PersonsInHousehold      *int     `json:"personsInHousehold,omitempty" validate:"omitempty,min=0"`
+	ConsumptionPreviousYear *int     `json:"consumptionPreviousYear,omitempty" validate:"omitempty,min=0"`
+	ConsumptionForecast     *int     `json:"consumptionForecast,omitempty" validate:"omitempty,min=0"`
+	FeedInForecast          *int     `json:"feedInForecast,omitempty" validate:"omitempty,min=0"`
+	PvPowerKwp              *float64 `json:"pvPowerKwp,omitempty" validate:"omitempty,min=0"`
+	HeatPump                *bool    `json:"heatPump,omitempty"`
+	ElectricVehicle         *bool    `json:"electricVehicle,omitempty"`
+	ElectricHotWater        *bool    `json:"electricHotWater,omitempty"`
 }
 
 // CreateMeteringPointRequest represents a metering point in create request
 type CreateMeteringPointRequest struct {
-	MeteringPoint       string `json:"meteringPoint" validate:"required,max=33"`
-	Direction           string `json:"direction" validate:"required,oneof=CONSUMPTION PRODUCTION"`
-	ParticipationFactor int    `json:"participationFactor" validate:"required,min=1,max=100"`
+	MeteringPoint       string  `json:"meteringPoint" validate:"required,max=33"`
+	Direction           string  `json:"direction" validate:"required,oneof=CONSUMPTION PRODUCTION"`
+	ParticipationFactor int     `json:"participationFactor" validate:"required,min=1,max=100"`
+	// Configurable metering-point-level fields (PROJ-8)
+	Transformer        *string `json:"transformer,omitempty" validate:"omitempty,max=100"`
+	InstallationNumber *string `json:"installationNumber,omitempty" validate:"omitempty,max=50"`
+	InstallationName   *string `json:"installationName,omitempty" validate:"omitempty,max=100"`
 }
 
 // UpdateApplicationRequest represents the request to update an application
@@ -68,9 +82,10 @@ type UpdateApplicationRequest struct {
 
 // RegistrationConfig represents the response for the registration entry point endpoint
 type RegistrationConfig struct {
-	RCNumber string `json:"rcNumber"`
-	Title    string `json:"title"`
-	Active   bool   `json:"active"`
+	RCNumber    string            `json:"rcNumber"`
+	Title       string            `json:"title"`
+	Active      bool              `json:"active"`
+	FieldConfig map[string]string `json:"fieldConfig"`
 }
 
 // ApplicationResponse represents the response for application operations

@@ -30,6 +30,61 @@ func NewAdminHandler(adminService *application.AdminApplicationService, entrypoi
 	}
 }
 
+// GetFieldConfig handles GET /api/admin/settings/fields?rc_number=...
+func (h *AdminHandler) GetFieldConfig(w http.ResponseWriter, r *http.Request) {
+	rcNumber := r.URL.Query().Get("rc_number")
+	if rcNumber == "" {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string]string{
+			"rc_number": "rc_number query parameter is required",
+		})))
+		return
+	}
+
+	claims := ClaimsFromContext(r.Context())
+	if claims != nil && !claims.IsSuperuser() && !containsRC(claims.Tenant, rcNumber) {
+		h.writeError(w, shared.NewErrorResponse(shared.ErrForbidden))
+		return
+	}
+
+	config, err := h.adminService.GetFieldConfig(rcNumber)
+	if err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+
+	h.writeJSON(w, http.StatusOK, map[string]interface{}{"rcNumber": rcNumber, "fieldConfig": config})
+}
+
+// SaveFieldConfig handles PUT /api/admin/settings/fields?rc_number=...
+func (h *AdminHandler) SaveFieldConfig(w http.ResponseWriter, r *http.Request) {
+	rcNumber := r.URL.Query().Get("rc_number")
+	if rcNumber == "" {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string]string{
+			"rc_number": "rc_number query parameter is required",
+		})))
+		return
+	}
+
+	claims := ClaimsFromContext(r.Context())
+	if claims != nil && !claims.IsSuperuser() && !containsRC(claims.Tenant, rcNumber) {
+		h.writeError(w, shared.NewErrorResponse(shared.ErrForbidden))
+		return
+	}
+
+	var config map[string]string
+	if err := json.NewDecoder(r.Body).Decode(&config); err != nil {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Invalid JSON", nil)))
+		return
+	}
+
+	if err := h.adminService.SaveFieldConfig(rcNumber, config); err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // SyncEntrypoints handles POST /api/admin/sync
 // Called once per session after login to ensure registration_entrypoint rows exist
 // for all RC numbers in the Tenant-Admin's token. No-op for superusers.

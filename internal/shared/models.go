@@ -91,6 +91,16 @@ type Application struct {
 	ImportErrorMessage   *string           `json:"importErrorMessage,omitempty" db:"import_error_message"`
 	CreatedAt            time.Time         `json:"createdAt" db:"created_at"`
 	UpdatedAt            time.Time         `json:"updatedAt" db:"updated_at"`
+	// Configurable application-level fields (PROJ-8)
+	MembershipStartDate     *time.Time `json:"membershipStartDate,omitempty" db:"membership_start_date"`
+	PersonsInHousehold      *int       `json:"personsInHousehold,omitempty" db:"persons_in_household"`
+	ConsumptionPreviousYear *int       `json:"consumptionPreviousYear,omitempty" db:"consumption_previous_year"`
+	ConsumptionForecast     *int       `json:"consumptionForecast,omitempty" db:"consumption_forecast"`
+	FeedInForecast          *int       `json:"feedInForecast,omitempty" db:"feed_in_forecast"`
+	PvPowerKwp              *float64   `json:"pvPowerKwp,omitempty" db:"pv_power_kwp"`
+	HeatPump                *bool      `json:"heatPump,omitempty" db:"heat_pump"`
+	ElectricVehicle         *bool      `json:"electricVehicle,omitempty" db:"electric_vehicle"`
+	ElectricHotWater        *bool      `json:"electricHotWater,omitempty" db:"electric_hot_water"`
 }
 
 // MeteringPoint represents a metering point entity
@@ -102,6 +112,10 @@ type MeteringPoint struct {
 	ParticipationFactor int            `json:"participationFactor" db:"participation_factor"`
 	CreatedAt           time.Time      `json:"createdAt" db:"created_at"`
 	UpdatedAt           time.Time      `json:"updatedAt" db:"updated_at"`
+	// Configurable metering-point-level fields (PROJ-8)
+	Transformer        *string `json:"transformer,omitempty" db:"transformer"`
+	InstallationNumber *string `json:"installationNumber,omitempty" db:"installation_number"`
+	InstallationName   *string `json:"installationName,omitempty" db:"installation_name"`
 }
 
 // StatusLogEntry represents a status log entry
