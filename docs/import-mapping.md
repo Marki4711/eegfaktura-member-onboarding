@@ -3,15 +3,15 @@
 
 ## 1. Goal
 
-Ein freigegebener Onboarding-Antrag wird beim Import in ein Participant-Payload transformiert, das sich an der bestehenden eegFaktura-Teilnehmerstruktur orientiert.
+An approved onboarding application is transformed on import into a participant payload that aligns with the existing eegFaktura participant structure.
 
-Wichtig:
-- das Onboarding-Modell bleibt reduziert
-- das Participant-Modell darf umfangreicher sein
-- nicht gepflegte Felder werden leer oder mit Defaultwerten befüllt
-- Tarife, Rollen und Kontoinformationen werden in V1 nicht im Onboarding gepflegt
+Important:
+- the onboarding model remains reduced
+- the participant model may be more extensive
+- fields not managed in onboarding are filled with empty values or defaults
+- tariffs, roles, and account information are not managed in onboarding in V1
 
-Die bestehende Participant-Struktur enthält u. a.:
+The existing participant structure contains, among others:
 - `firstname`
 - `lastname`
 - `residentAddress`
@@ -34,75 +34,75 @@ Die bestehende Participant-Struktur enthält u. a.:
 
 ## 3. Field mapping table
 
-| Source | Target | Pflicht | Default / Regel | Kommentar |
+| Source | Target | Required | Default / Rule | Comment |
 |---|---|---:|---|---|
-| `application.firstname` | `firstname` | ja | – | direkt |
-| `application.lastname` | `lastname` | ja | – | direkt |
-| `application.email` | `contact.email` | ja | – | direkt |
-| `application.phone` | `contact.phone` | nein | `""` | direkt |
-| `application.resident_street` | `residentAddress.street` | ja | – | direkt |
-| `application.resident_street_number` | `residentAddress.streetNumber` | ja | – | direkt |
-| `application.resident_zip` | `residentAddress.zip` | ja | – | direkt |
-| `application.resident_city` | `residentAddress.city` | ja | – | direkt |
-| `application.resident_street` | `billingAddress.street` | ja | identisch zu Wohnadresse | V1-Regel |
-| `application.resident_street_number` | `billingAddress.streetNumber` | ja | identisch zu Wohnadresse | V1-Regel |
-| `application.resident_zip` | `billingAddress.zip` | ja | identisch zu Wohnadresse | V1-Regel |
-| `application.resident_city` | `billingAddress.city` | ja | identisch zu Wohnadresse | V1-Regel |
-| – | `residentAddress.type` | ja | `RESIDENCE` | technisch gesetzt |
-| – | `billingAddress.type` | ja | `BILLING` | technisch gesetzt |
-| `metering_point.metering_point` | `meters[].meteringPoint` | ja | – | pro Datensatz |
-| `metering_point.direction` | `meters[].direction` | ja | – | pro Datensatz |
-| `application.resident_street` | `meters[].street` | ja | Mitgliedsadresse | V1-Regel |
-| `application.resident_street_number` | `meters[].streetNumber` | ja | Mitgliedsadresse | V1-Regel |
-| `application.resident_zip` | `meters[].zip` | ja | Mitgliedsadresse | V1-Regel |
-| `application.resident_city` | `meters[].city` | ja | Mitgliedsadresse | V1-Regel |
-| `application.privacy_accepted` | `consents.privacyAccepted` | nein | optional im Adapter | nur falls Core-Service es nutzt |
-| `application.privacy_version` | `consents.privacyVersion` | nein | optional im Adapter | nur falls Core-Service es nutzt |
-| `application.privacy_accepted_at` | `consents.privacyAcceptedAt` | nein | optional im Adapter | nur falls Core-Service es nutzt |
-| `application.accuracy_confirmed` | `consents.accuracyConfirmed` | nein | optional im Adapter | nur falls Core-Service es nutzt |
-| `application.communication_consent` | `consents.communicationConsent` | nein | optional im Adapter | nur falls Core-Service es nutzt |
+| `application.firstname` | `firstname` | yes | – | direct |
+| `application.lastname` | `lastname` | yes | – | direct |
+| `application.email` | `contact.email` | yes | – | direct |
+| `application.phone` | `contact.phone` | no | `""` | direct |
+| `application.resident_street` | `residentAddress.street` | yes | – | direct |
+| `application.resident_street_number` | `residentAddress.streetNumber` | yes | – | direct |
+| `application.resident_zip` | `residentAddress.zip` | yes | – | direct |
+| `application.resident_city` | `residentAddress.city` | yes | – | direct |
+| `application.resident_street` | `billingAddress.street` | yes | identical to resident address | V1 rule |
+| `application.resident_street_number` | `billingAddress.streetNumber` | yes | identical to resident address | V1 rule |
+| `application.resident_zip` | `billingAddress.zip` | yes | identical to resident address | V1 rule |
+| `application.resident_city` | `billingAddress.city` | yes | identical to resident address | V1 rule |
+| – | `residentAddress.type` | yes | `RESIDENCE` | set technically |
+| – | `billingAddress.type` | yes | `BILLING` | set technically |
+| `metering_point.metering_point` | `meters[].meteringPoint` | yes | – | per record |
+| `metering_point.direction` | `meters[].direction` | yes | – | per record |
+| `application.resident_street` | `meters[].street` | yes | member address | V1 rule |
+| `application.resident_street_number` | `meters[].streetNumber` | yes | member address | V1 rule |
+| `application.resident_zip` | `meters[].zip` | yes | member address | V1 rule |
+| `application.resident_city` | `meters[].city` | yes | member address | V1 rule |
+| `application.privacy_accepted` | `consents.privacyAccepted` | no | optional in adapter | only if core service uses it |
+| `application.privacy_version` | `consents.privacyVersion` | no | optional in adapter | only if core service uses it |
+| `application.privacy_accepted_at` | `consents.privacyAcceptedAt` | no | optional in adapter | only if core service uses it |
+| `application.accuracy_confirmed` | `consents.accuracyConfirmed` | no | optional in adapter | only if core service uses it |
+| `application.communication_consent` | `consents.communicationConsent` | no | optional in adapter | only if core service uses it |
 
 ---
 
 ## 4. Technical defaults
 
-Diese Felder werden nicht im Onboarding gepflegt, aber beim Import technisch gesetzt.
+These fields are not managed in onboarding but are set technically during import.
 
-| Target | Default / Regel | Kommentar |
+| Target | Default / Rule | Comment |
 |---|---|---|
-| `id` | leer | Core erzeugt ID |
-| `participantNumber` | leer oder Core-generiert | noch final mit Core klären |
-| `participantSince` | aktueller Importzeitpunkt | technisch gesetzt |
-| `status` | `NEW` | passend zur bestehenden Struktur |
-| `titleBefore` | `""` | V1 nicht gepflegt |
-| `titleAfter` | `""` | V1 nicht gepflegt |
-| `optionals.website` | `""` | V1 nicht gepflegt |
-| `meters[].status` | `INIT` | technischer Default |
-| `meters[].processState` | `NEW` | technischer Default |
-| `meters[].participantId` | leer | wird nach Core-Anlage gesetzt |
-| `meters[].registeredSince` | aktueller Importzeitpunkt | technisch gesetzt |
-| `meters[].partFact` | `100` | technischer Default, falls erforderlich |
-| `meters[].participantState` | `{}` oder Core-Default | final mit Core klären |
+| `id` | empty | core generates ID |
+| `participantNumber` | empty or core-generated | to be confirmed with core |
+| `participantSince` | current import timestamp | set technically |
+| `status` | `NEW` | aligned with existing structure |
+| `titleBefore` | `""` | not managed in V1 |
+| `titleAfter` | `""` | not managed in V1 |
+| `optionals.website` | `""` | not managed in V1 |
+| `meters[].status` | `INIT` | technical default |
+| `meters[].processState` | `NEW` | technical default |
+| `meters[].participantId` | empty | set after core creation |
+| `meters[].registeredSince` | current import timestamp | set technically |
+| `meters[].partFact` | `100` | technical default, if required |
+| `meters[].participantState` | `{}` or core default | to be confirmed with core |
 
 ---
 
 ## 5. Intentionally not managed in V1
 
-Diese Felder werden im Member Onboarding nicht gepflegt.
+These fields are not managed in Member Onboarding.
 
-| Target field | Verhalten in V1 |
+| Target field | Behavior in V1 |
 |---|---|
-| `accountInfo.*` | leer/default |
-| `businessRole` | leer/default oder Core-Default |
-| `role` | leer/default oder Core-Default |
-| `taxNumber` | leer |
-| `vatNumber` | leer |
-| `tariffId` | leer |
+| `accountInfo.*` | empty/default |
+| `businessRole` | empty/default or core default |
+| `role` | empty/default or core default |
+| `taxNumber` | empty |
+| `vatNumber` | empty |
+| `tariffId` | empty |
 | `meters[].tariff_id` | `null` |
-| `meters[].gridOperatorName` | leer |
-| `meters[].gridOperatorId` | leer |
+| `meters[].gridOperatorName` | empty |
+| `meters[].gridOperatorId` | empty |
 
-Diese Felder werden nach dem Import direkt in eegFaktura ergänzt oder durch Core-Defaultlogik gesetzt.
+These fields are added directly in eegFaktura after import or set by core default logic.
 
 ---
 
@@ -175,17 +175,17 @@ Diese Felder werden nach dem Import direkt in eegFaktura ergänzt oder durch Cor
 }
 ```
 
-Dieses Zielpayload ist bewusst nah an der sichtbaren participant-Struktur gehalten.
+This target payload is deliberately kept close to the visible participant structure.
 
 ---
 
 ## 7. Open points to confirm with eegFaktura Core
 
-Diese Punkte sollten vor der finalen Implementierung geklärt werden:
+These points should be clarified before the final implementation:
 
-1. Wird `participantNumber` vom Core generiert?
-2. Dürfen `businessRole` und `role` leer bleiben?
-3. Dürfen `accountInfo`-Felder leer bleiben?
-4. Sind `meters[].gridOperatorName` und `meters[].gridOperatorId` Pflicht?
-5. Muss `participantState` explizit geliefert werden oder setzt der Core das selbst?
-6. Ist `partFact = 100` der richtige technische Default?
+1. Is `participantNumber` generated by the core?
+2. May `businessRole` and `role` be empty?
+3. May `accountInfo` fields be empty?
+4. Are `meters[].gridOperatorName` and `meters[].gridOperatorId` required?
+5. Must `participantState` be explicitly provided or does the core set it itself?
+6. Is `partFact = 100` the correct technical default?

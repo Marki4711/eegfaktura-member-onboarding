@@ -1,140 +1,140 @@
 # Build Plan
 ## eegfaktura Member Onboarding
 
-## Ziel
+## Goal
 
-Dieses Dokument beschreibt die empfohlene Reihenfolge der technischen Umsetzung für Claude Code.
+This document describes the recommended implementation sequence for Claude Code.
 
-## Phase 1: Repository-Grundgerüst
+## Phase 1: Repository Foundation
 
-Ziel:
-- lauffähiges Grundgerüst für Backend und Dokumentation
+Goal:
+- a runnable foundation for backend and documentation
 
-Umfang:
-- Repository-Struktur anlegen
-- `docs/`-Ordner anlegen
-- Go-Service-Grundgerüst erstellen
-- Konfigurationsstruktur
-- HTTP-Router
-- Health-Endpoint
-- DB-Verbindung
-- Migrationsordner
+Scope:
+- set up repository structure
+- create `docs/` folder
+- create Go service skeleton
+- configuration structure
+- HTTP router
+- health endpoint
+- DB connection
+- migrations folder
 
 Definition of Done:
-- Service startet lokal
-- Health-Endpoint antwortet
-- DB-Verbindung ist konfigurierbar
-- Projektstruktur ist dokumentiert
+- service starts locally
+- health endpoint responds
+- DB connection is configurable
+- project structure is documented
 
-## Phase 2: Datenbankschema
+## Phase 2: Database Schema
 
-Ziel:
-- Schema `member_onboarding` und drei Tabellen technisch anlegen
+Goal:
+- technically create schema `member_onboarding` and all tables
 
-Umfang:
-- Migration `create schema member_onboarding`
-- Tabellen:
+Scope:
+- migration `create schema member_onboarding`
+- tables:
   - `member_onboarding.application`
   - `member_onboarding.metering_point`
   - `member_onboarding.status_log`
-- Constraints
-- Indizes
-- `updated_at`-Strategie festlegen
+- constraints
+- indexes
+- define `updated_at` strategy
 
 Definition of Done:
-- Migration läuft lokal erfolgreich
-- Tabellen sind vorhanden
-- Foreign Keys und Indizes sind gesetzt
+- migration runs successfully locally
+- tables are present
+- foreign keys and indexes are set
 
 ## Phase 3: Public API
 
-Ziel:
-- öffentliche Registrierung technisch verfügbar machen
+Goal:
+- make public registration technically available
 
-Umfang:
+Scope:
 - `GET /api/public/registration/{rc_number}`
 - `POST /api/public/applications`
 - `PUT /api/public/applications/{id}`
 - `POST /api/public/applications/{id}/submit`
-- Validierung
-- Persistenz in `application`, `metering_point`, `status_log`
+- validation
+- persistence in `application`, `metering_point`, `status_log`
 
 Definition of Done:
-- Antrag kann angelegt werden
-- Antrag kann geändert werden
-- Antrag kann validiert und submitted werden
-- Statushistorie wird geschrieben
+- application can be created
+- application can be updated
+- application can be validated and submitted
+- status history is written
 
 ## Phase 4: Admin API
 
-Ziel:
-- Review und Bearbeitung durch Admins
+Goal:
+- review and editing by admins
 
-Umfang:
+Scope:
 - `GET /api/admin/applications`
 - `GET /api/admin/applications/{id}`
 - `PUT /api/admin/applications/{id}`
 - `POST /api/admin/applications/{id}/status`
-- Filter und Pagination
-- EEG-Berechtigungsprüfung im Backend
+- filtering and pagination
+- EEG authorization check in the backend
 
 Definition of Done:
-- Liste funktioniert
-- Detailansicht funktioniert
-- Statusübergänge werden geprüft und protokolliert
-- Admin-Notiz ist bearbeitbar
+- list works
+- detail view works
+- status transitions are validated and logged
+- admin note is editable
 
 ## Phase 5: Import
 
-Ziel:
-- freigegebene Anträge in eegFaktura importieren
+Goal:
+- import approved applications into eegFaktura
 
-Umfang:
+Scope:
 - `POST /api/admin/applications/{id}/import`
-- Import-Mapping von Onboarding nach Participant-Payload
-- interner Core-Client
-- Erfolg-/Fehlerbehandlung
-- Importstatus in `application` aktualisieren
-- `status_log` schreiben
+- import mapping from onboarding to participant payload
+- internal core client
+- success/error handling
+- update import status in `application`
+- write `status_log`
 
 Definition of Done:
-- Import ist nur bei `approved` erlaubt
-- Payload wird korrekt aufgebaut
-- Erfolg und Fehler werden gespeichert
-- `target_participant_id` wird bei Erfolg gesetzt
+- import is only allowed at status `approved`
+- payload is correctly constructed
+- success and failure are stored
+- `target_participant_id` is set on success
 
-## Phase 6: Auth und Härtung
+## Phase 6: Auth and Hardening
 
-Ziel:
-- produktionsnahe Absicherung
+Goal:
+- production-ready security
 
-Umfang:
-- Keycloak-Anbindung im Admin-Bereich
-- Rollen-/EEG-Prüfung
-- Fehlerhandling vereinheitlichen
-- Logging
-- Basis-Tests
-- API-Dokumentation vervollständigen
+Scope:
+- Keycloak integration in the admin area
+- role/EEG authorization check
+- unify error handling
+- logging
+- basic tests
+- complete API documentation
 
 Definition of Done:
-- Admin-Endpunkte sind abgesichert
-- Fehler sind konsistent
-- wichtigste Flows sind getestet
+- admin endpoints are secured
+- errors are consistent
+- most important flows are tested
 
-## Prompting-Empfehlung für Claude Code
+## Prompting Recommendation for Claude Code
 
-Claude Code sollte immer in kleinen Paketen arbeiten.
+Claude Code should always work in small packages.
 
-Empfohlene Reihenfolge:
-1. Phase 1 implementieren
-2. Phase 2 implementieren
-3. Phase 3 implementieren
-4. Phase 4 implementieren
-5. Phase 5 implementieren
-6. Phase 6 implementieren
+Recommended sequence:
+1. implement Phase 1
+2. implement Phase 2
+3. implement Phase 3
+4. implement Phase 4
+5. implement Phase 5
+6. implement Phase 6
 
-Empfohlener Arbeitsstil:
-- immer zuerst relevante Dateien in `docs/` lesen
-- nur eine Phase oder ein kleines Teilpaket gleichzeitig umsetzen
-- Architektur- und Domain-Regeln strikt einhalten
-- keine zusätzlichen Features ohne explizite Freigabe einführen
+Recommended working style:
+- always read relevant files in `docs/` first
+- only implement one phase or one small sub-package at a time
+- strictly follow architecture and domain rules
+- do not introduce additional features without explicit approval

@@ -1,75 +1,73 @@
 # Domain Model
 ## eegfaktura Member Onboarding
 
-## 1. Ziel
+## 1. Goal
 
-Das Datenmodell für `eegfaktura Member Onboarding` ist bewusst einfach gehalten und verwendet möglichst wenige Tabellen.
+The data model for `eegfaktura Member Onboarding` is deliberately kept simple and uses as few tables as possible.
 
-Es unterstützt:
-- Selbstregistrierung neuer Mitglieder
-- mehrere Zählpunkte pro Antrag
-- Admin-Prüfung und Freigabe
-- nachvollziehbare Statushistorie
-- späteren Import nach eegFaktura
+It supports:
+- self-registration of new members
+- multiple metering points per application
+- admin review and approval
+- traceable status history
+- later import into eegFaktura
 
-Nicht Teil des Modells:
-- Dokumente
-- Tarife
-- Rollenpflege
-- abweichende Zählpunktadressen
-- JSON-Felder
+Not part of the model:
+- documents
+- tariffs
+- role management
+- separate metering point addresses
+- JSON fields
 
 ## 2. Schema
 
-Alle Tabellen liegen im PostgreSQL-Schema:
+All tables reside in the PostgreSQL schema:
 
 - `member_onboarding`
 
-## 3. Tabellen
+## 3. Tables
 
 ### 3.1 `member_onboarding.registration_entrypoint`
 
-Lokale Zuordnungstabelle zwischen RC-Nummer und EEG.
+Local mapping table between RC number and EEG.
 
-Zweck:
-- Auflösung der öffentlich verwendeten RC-Nummer zur internen EEG-ID
-- kein direkter Zugriff auf eegFaktura-Core-Tabellen zur Laufzeit
-- steuert, ob eine Registrierung aktiv ist
+Purpose:
+- resolving the publicly used RC number to the internal EEG identifier
+- no direct access to eegFaktura core tables at runtime
+- controls whether a registration is active
 
-Felder:
+Fields:
 - `id`
-- `eeg_id`
 - `rc_number`
 - `is_active`
 - `created_at`
 - `updated_at`
 
-Regeln:
-- `rc_number` ist eindeutig
-- nur Einträge mit `is_active = true` erlauben eine Registrierung
-- Pflege erfolgt durch Admins oder durch Deployment-Konfiguration
+Rules:
+- `rc_number` is unique
+- only entries with `is_active = true` allow a registration
+- maintenance is performed by admins or through deployment configuration
 
 ---
 
 ### 3.2 `member_onboarding.application`
 
-Zentrale Haupttabelle für einen Onboarding-Antrag.
+Central main table for an onboarding application.
 
-Enthält:
-- Identifikation
-- EEG-Zuordnung
-- Status
-- Person
-- Kontakt
-- Adresse
-- Einwilligungen
-- Admin-Notiz
-- Importstatus
+Contains:
+- identification
+- EEG assignment (via `rc_number`)
+- status
+- person data
+- contact data
+- address data
+- consents
+- admin note
+- import status
 
-Felder:
+Fields:
 - `id`
 - `reference_number`
-- `eeg_id`
 - `rc_number`
 - `status`
 - `started_at`
@@ -107,9 +105,9 @@ Felder:
 
 ### 3.3 `member_onboarding.metering_point`
 
-Speichert die Zählpunkte eines Antrags.
+Stores the metering points of an application.
 
-Felder:
+Fields:
 - `id`
 - `application_id`
 - `metering_point`
@@ -117,16 +115,16 @@ Felder:
 - `created_at`
 - `updated_at`
 
-Regeln:
-- ein Antrag kann mehrere Zählpunkte haben
-- `metering_point` ist innerhalb eines Antrags eindeutig
-- alle Zählpunkte übernehmen im Onboarding dieselbe Adresse wie das Mitglied
+Rules:
+- one application can have multiple metering points
+- `metering_point` is unique within an application
+- all metering points use the same address as the member in onboarding
 
 ### 3.4 `member_onboarding.status_log`
 
-Historisiert Statuswechsel eines Antrags.
+Records status changes of an application.
 
-Felder:
+Fields:
 - `id`
 - `application_id`
 - `from_status`
@@ -135,9 +133,9 @@ Felder:
 - `reason`
 - `created_at`
 
-## 4. Statusmodell
+## 4. Status Model
 
-Erlaubte Statuswerte:
+Allowed status values:
 - `draft`
 - `submitted`
 - `under_review`
@@ -147,7 +145,7 @@ Erlaubte Statuswerte:
 - `imported`
 - `import_failed`
 
-Erlaubte Übergänge:
+Allowed transitions:
 - `draft -> submitted`
 - `submitted -> under_review`
 - `under_review -> needs_info`
@@ -158,15 +156,15 @@ Erlaubte Übergänge:
 - `approved -> import_failed`
 - `import_failed -> approved`
 
-## 5. Fachregeln
+## 5. Business Rules
 
-- Ein Antrag enthält genau ein Mitglied.
-- Ein Antrag gehört genau zu einer EEG.
-- Ein Antrag wird über die RC-Nummer der EEG gestartet.
-- Die RC-Nummer wird über `member_onboarding.registration_entrypoint` aufgelöst; kein direkter Zugriff auf eegFaktura-Core-Tabellen.
-- Das Feld `rc_number` in `application` speichert die RC-Nummer, über die der Antrag gestartet wurde.
-- Ist `registration_entrypoint.is_active = false`, wird die Registrierung abgewiesen (HTTP 410).
-- Ein Antrag kann mehrere Zählpunkte enthalten.
-- Alle Zählpunkte haben im Onboarding dieselbe Adresse wie das Mitglied.
-- Tarife, Rollen und Kontoinformationen werden erst nach dem Import in eegFaktura gepflegt.
-- Nur Anträge im Status `approved` dürfen importiert werden.
+- One application contains exactly one member.
+- One application belongs to exactly one EEG.
+- An application is started via the EEG's RC number.
+- The RC number is resolved via `member_onboarding.registration_entrypoint`; no direct access to eegFaktura core tables.
+- The field `rc_number` in `application` stores the RC number through which the application was started.
+- If `registration_entrypoint.is_active = false`, the registration is rejected (HTTP 410).
+- One application can contain multiple metering points.
+- All metering points use the same address as the member in onboarding.
+- Tariffs, roles, and account information are only maintained after import into eegFaktura.
+- Only applications in status `approved` may be imported.

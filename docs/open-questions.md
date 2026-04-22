@@ -1,46 +1,46 @@
 # Open Questions
 
-Offene Punkte, die noch geklärt werden müssen, bevor sie als Feature spezifiziert werden können.
+Open points that still need to be clarified before they can be specified as features.
 
 ---
 
-## OQ-1: Dokumente im Registrierungsformular
+## OQ-1: Documents in the Registration Form
 
-**Kontext:**
-Im Einwilligungsbereich des Registrierungsformulars bestätigt das Mitglied, die Datenschutzerklärung gelesen zu haben. Daneben existieren weitere Dokumente, die einem neuen Mitglied vor oder bei der Registrierung zugänglich gemacht werden müssen — z.B.:
+**Context:**
+In the consent section of the registration form, the member confirms having read the privacy policy. In addition, there are other documents that must be made accessible to a new member before or during registration, for example:
 
-- Statuten der EEG
-- Lieferantenverpflichtungen
-- Datenschutzbestimmungen
-- ggf. weitere rechtliche Dokumente
+- EEG statutes
+- supplier obligations
+- privacy policy
+- potentially further legal documents
 
-**Offene Fragen:**
-- Welche Dokumente sind konkret erforderlich?
-- Müssen alle EEGs dieselben Dokumente verwenden, oder gibt es EEG-spezifische Dokumente?
-- Wie werden die Dokumente bereitgestellt? (Direktlink, Upload, statische URL, CMS?)
-- Muss die Zustimmung zu jedem Dokument einzeln erfasst werden?
-- Muss der Zeitpunkt der Zustimmung je Dokument gespeichert werden?
+**Open questions:**
+- Which documents are specifically required?
+- Must all EEGs use the same documents, or are there EEG-specific documents?
+- How are the documents provided? (Direct link, upload, static URL, CMS?)
+- Must consent to each document be recorded individually?
+- Must the timestamp of consent per document be stored?
 
-**Auswirkung auf bestehende Implementierung:**
-Das Feld `privacy_version` und `privacy_accepted_at` deckt aktuell nur die Datenschutzerklärung ab. Bei Erweiterung auf mehrere Dokumente wäre ein eigenes Zustimmungsmodell notwendig.
+**Impact on existing implementation:**
+The fields `privacy_version` and `privacy_accepted_at` currently cover only the privacy policy. If extended to multiple documents, a dedicated consent model would be required.
 
-**Status:** Ungeklärt — vor Implementierung mit Fachverantwortlichen abstimmen.
+**Status:** Unresolved — must be coordinated with the business owner before implementation.
 
 ---
 
-## OQ-2: Formelle Anforderungen an das SEPA-Lastschriftmandat
+## OQ-2: Formal Requirements for the SEPA Direct Debit Mandate
 
-**Kontext:**
-Die aktuelle Implementierung erfasst die Zustimmung zum SEPA-Lastschriftmandat als einfache Checkbox im Registrierungsformular. Es ist unklar, ob das den formellen Anforderungen für ein gültiges SEPA-Mandat entspricht.
+**Context:**
+The current implementation captures consent to the SEPA direct debit mandate as a simple checkbox in the registration form. It is unclear whether this meets the formal requirements for a valid SEPA mandate.
 
-**Offene Fragen:**
-- Genügt eine digitale Checkbox-Zustimmung als rechtsgültiges SEPA-Mandat?
-- Welche Pflichtangaben muss ein SEPA-Mandat enthalten (z.B. Gläubiger-ID, Mandatsreferenz)?
-- Muss das Mandat dem Mitglied zugestellt werden (z.B. per E-Mail)?
-- Muss eine Mandatsreferenz pro Mitglied vergeben und gespeichert werden?
-- Gibt es Anforderungen an die Aufbewahrung des Mandats?
+**Open questions:**
+- Does a digital checkbox consent constitute a legally valid SEPA mandate?
+- What mandatory details must a SEPA mandate contain (e.g. creditor ID, mandate reference)?
+- Must the mandate be delivered to the member (e.g. by email)?
+- Must a mandate reference be assigned and stored per member?
+- Are there requirements for the retention of the mandate?
 
-**Auswirkung auf bestehende Implementierung:**
-Die Felder `sepa_mandate_accepted` und `sepa_mandate_accepted_at` sind ein Mindestgerüst. Bei formellen Anforderungen wären zusätzliche Felder (Mandatsreferenz, Gläubiger-ID, Zustellungsnachweis) sowie ggf. ein eigener Prozessschritt notwendig.
+**Impact on existing implementation:**
+The fields `sepa_mandate_accepted` and `sepa_mandate_accepted_at` are a minimal skeleton. If formal requirements apply, additional fields (mandate reference, creditor ID, delivery confirmation) as well as a dedicated process step would be necessary.
 
-**Status:** Ungeklärt — rechtliche und bankfachliche Prüfung erforderlich.
+**Status:** Unresolved — legal and banking review required.

@@ -3,17 +3,17 @@
 
 ## 1. Scope
 
-Diese API spezifiziert die Schnittstellen für:
+This API specifies the interfaces for:
 
 - Public Registration API
 - Admin API
-- internen Import-Flow Richtung eegFaktura Core
+- internal import flow toward eegFaktura Core
 
-Nicht Teil dieser API:
-- direkte Core-APIs
-- Keycloak-Konfiguration
-- Tarif-/Rollenpflege
-- Dokumenten-Uploads
+Not part of this API:
+- direct core APIs
+- Keycloak configuration
+- tariff/role management
+- document uploads
 
 ## 2. General Rules
 
@@ -22,7 +22,7 @@ Nicht Teil dieser API:
 - UTF-8
 - Timestamps: ISO-8601 / RFC3339
 - DB schema: `member_onboarding`
-- Tabellen:
+- Tables:
   - `member_onboarding.registration_entrypoint`
   - `member_onboarding.application`
   - `member_onboarding.metering_point`
@@ -31,18 +31,18 @@ Nicht Teil dieser API:
 ## 3. Authentication
 
 ### Public API
-Kein Login erforderlich.
+No login required.
 
 ### Admin API
-Authentifizierung über bestehenden eegFaktura-/Keycloak-Mechanismus.
-Die Fachlogik prüft zusätzlich die EEG-Berechtigung im Backend.
+Authentication via the existing eegFaktura/Keycloak mechanism.
+The business logic additionally validates the EEG authorization in the backend.
 
 ---
 
 ## 4. Domain Types
 
 ### Status
-Erlaubte Werte:
+Allowed values:
 - `draft`
 - `submitted`
 - `under_review`
@@ -53,7 +53,7 @@ Erlaubte Werte:
 - `import_failed`
 
 ### Meter Direction
-Erlaubte Werte:
+Allowed values:
 - `CONSUMPTION`
 - `PRODUCTION`
 
@@ -65,27 +65,26 @@ Erlaubte Werte:
 
 ### GET `/api/public/registration/{rc_number}`
 
-Lädt die Grundkonfiguration für einen festen Registrierungslink anhand der RC-Nummer der EEG.
+Loads the basic configuration for a fixed registration link based on the EEG's RC number.
 
-Die RC-Nummer wird gegen `member_onboarding.registration_entrypoint` geprüft.
-Es erfolgt kein direkter Zugriff auf eegFaktura-Core-Tabellen.
+The RC number is validated against `member_onboarding.registration_entrypoint`.
+No direct access to eegFaktura core tables takes place.
 
 ### Path params
-- `rc_number: string` — RC-Nummer der EEG
+- `rc_number: string` — RC number of the EEG
 
 ### Response 200
 ```json
 {
   "rcNumber": "RC123456",
-  "eegId": "9f3d5f0d-....",
-  "title": "Mitglied werden",
+  "title": "Become a member",
   "active": true
 }
 ```
 
 ### Errors
-- `404` wenn `rc_number` in `registration_entrypoint` nicht gefunden
-- `410` wenn `registration_entrypoint.is_active = false`
+- `404` if `rc_number` is not found in `registration_entrypoint`
+- `410` if `registration_entrypoint.is_active = false`
 
 ---
 
@@ -93,7 +92,7 @@ Es erfolgt kein direkter Zugriff auf eegFaktura-Core-Tabellen.
 
 ### POST `/api/public/applications`
 
-Legt einen neuen Antrag an.
+Creates a new application.
 
 ### Request
 ```json
@@ -125,24 +124,24 @@ Legt einen neuen Antrag an.
 ```
 
 ### Rules
-- `rcNumber` Pflicht
-- `firstname` Pflicht
-- `lastname` Pflicht
-- `email` Pflicht
-- `residentStreet` Pflicht
-- `residentStreetNumber` Pflicht
-- `residentZip` Pflicht
-- `residentCity` Pflicht
-- `residentCountry` Pflicht
-- mindestens ein `meteringPoint`
-- `meteringPoint` innerhalb des Requests eindeutig
-- `direction` muss `CONSUMPTION` oder `PRODUCTION` sein
-- `privacyAccepted` muss `true` sein
-- `accuracyConfirmed` muss `true` sein
-- `privacyVersion` Pflicht, wenn `privacyAccepted = true`
-- `iban` Pflicht (15–34 Zeichen, Leerzeichen werden normalisiert)
-- `accountHolder` Pflicht
-- `sepaMandateAccepted` muss `true` sein
+- `rcNumber` required
+- `firstname` required
+- `lastname` required
+- `email` required
+- `residentStreet` required
+- `residentStreetNumber` required
+- `residentZip` required
+- `residentCity` required
+- `residentCountry` required
+- at least one `meteringPoint`
+- `meteringPoint` must be unique within the request
+- `direction` must be `CONSUMPTION` or `PRODUCTION`
+- `privacyAccepted` must be `true`
+- `accuracyConfirmed` must be `true`
+- `privacyVersion` required when `privacyAccepted = true`
+- `iban` required (15–34 characters, whitespace is normalized)
+- `accountHolder` required
+- `sepaMandateAccepted` must be `true`
 
 ### Response 201
 ```json
@@ -156,10 +155,10 @@ Legt einen neuen Antrag an.
 ```
 
 ### Errors
-- `400` Validierungsfehler
-- `404` unbekannte `rcNumber`
-- `410` Registrierung deaktiviert (`is_active = false`)
-- `409` doppelte Zählpunktnummer im selben Request
+- `400` validation error
+- `404` unknown `rcNumber`
+- `410` registration disabled (`is_active = false`)
+- `409` duplicate metering point number in the same request
 
 ---
 
@@ -167,17 +166,17 @@ Legt einen neuen Antrag an.
 
 ### PUT `/api/public/applications/{id}`
 
-Aktualisiert einen bestehenden Antrag im Status `draft` oder `needs_info`.
+Updates an existing application in status `draft` or `needs_info`.
 
 ### Path params
 - `id: uuid`
 
 ### Request
-Gleiches Modell wie Create.
+Same model as Create.
 
 ### Rules
-- nur erlaubt bei `draft` oder `needs_info`
-- vorhandene Zählpunkte werden vollständig durch den Request ersetzt
+- only allowed in status `draft` or `needs_info`
+- existing metering points are fully replaced by the request
 
 ### Response 200
 ```json
@@ -190,9 +189,9 @@ Gleiches Modell wie Create.
 ```
 
 ### Errors
-- `400` Validierungsfehler
-- `404` Antrag nicht gefunden
-- `409` Status erlaubt keine Bearbeitung
+- `400` validation error
+- `404` application not found
+- `409` status does not allow editing
 
 ---
 
@@ -200,16 +199,16 @@ Gleiches Modell wie Create.
 
 ### POST `/api/public/applications/{id}/submit`
 
-Sendet den Antrag final ab.
+Submits the application.
 
 ### Path params
 - `id: uuid`
 
 ### Request
-leer
+empty
 
 ### Rules
-Vor Submit müssen gesetzt sein:
+Before submit, the following must be set:
 - `firstname`
 - `lastname`
 - `email`
@@ -218,10 +217,10 @@ Vor Submit müssen gesetzt sein:
 - `residentZip`
 - `residentCity`
 - `residentCountry`
-- mindestens ein Zählpunkt
+- at least one metering point
 - `privacyAccepted = true`
-- `privacyVersion` gesetzt
-- `privacyAcceptedAt` wird serverseitig gesetzt
+- `privacyVersion` set
+- `privacyAcceptedAt` is set server-side
 - `accuracyConfirmed = true`
 
 ### Response 200
@@ -236,13 +235,13 @@ Vor Submit müssen gesetzt sein:
 
 ### Effects
 - `application.status = submitted`
-- `application.submitted_at` setzen
-- Eintrag in `status_log`
+- set `application.submitted_at`
+- write entry in `status_log`
 
 ### Errors
-- `400` Pflichtdaten fehlen
-- `404` Antrag nicht gefunden
-- `409` Antrag bereits submitted oder in nicht erlaubtem Status
+- `400` required fields missing
+- `404` application not found
+- `409` application already submitted or in a disallowed status
 
 ---
 
@@ -252,11 +251,11 @@ Vor Submit müssen gesetzt sein:
 
 ### GET `/api/admin/applications`
 
-Liefert die Admin-Liste.
+Returns the admin list.
 
 ### Query params
 - `status`
-- `eeg_id`
+- `rc_number`
 - `reference_number`
 - `lastname`
 - `email`
@@ -273,7 +272,7 @@ Liefert die Admin-Liste.
     {
       "id": "3f8c8c2d-....",
       "referenceNumber": "MO-2026-000001",
-      "eegId": "9f3d5f0d-....",
+      "rcNumber": "RC123456",
       "status": "submitted",
       "firstname": "Josef",
       "lastname": "Brandstätter",
@@ -291,7 +290,7 @@ Liefert die Admin-Liste.
 ```
 
 ### Rules
-- nur Anträge der EEGs, für die der Benutzer berechtigt ist
+- only applications for the EEGs the user is authorized for
 
 ---
 
@@ -304,7 +303,6 @@ Liefert die Admin-Liste.
 {
   "id": "3f8c8c2d-....",
   "referenceNumber": "MO-2026-000001",
-  "eegId": "9f3d5f0d-....",
   "rcNumber": "RC123456",
   "status": "submitted",
   "firstname": "Josef",
@@ -344,8 +342,8 @@ Liefert die Admin-Liste.
 ```
 
 ### Errors
-- `404` nicht gefunden
-- `403` keine Berechtigung für EEG
+- `404` not found
+- `403` not authorized for EEG
 
 ---
 
@@ -366,7 +364,7 @@ Liefert die Admin-Liste.
   "residentZip": "4331",
   "residentCity": "Naarn",
   "residentCountry": "AT",
-  "adminNote": "Telefonnummer geprüft",
+  "adminNote": "Phone number verified",
   "meteringPoints": [
     {
       "meteringPoint": "AT0031000000000000000000990022105",
@@ -377,8 +375,8 @@ Liefert die Admin-Liste.
 ```
 
 ### Rules
-- bearbeitbar in `submitted`, `under_review`, `needs_info`, `approved`, `import_failed`
-- Zählpunkte werden vollständig ersetzt
+- editable in `submitted`, `under_review`, `needs_info`, `approved`, `import_failed`
+- metering points are fully replaced
 
 ### Response 200
 ```json
@@ -398,7 +396,7 @@ Liefert die Admin-Liste.
 ```json
 {
   "toStatus": "approved",
-  "reason": "Antrag vollständig geprüft"
+  "reason": "Application fully reviewed"
 }
 ```
 
@@ -413,10 +411,10 @@ Liefert die Admin-Liste.
 - `import_failed -> approved`
 
 ### Side effects
-- bei `approved`: `approved_at` setzen, `reviewed_by_user_id` setzen
-- bei `rejected`: `rejected_at` setzen, `reviewed_by_user_id` setzen
-- bei `needs_info`: `needs_info_reason` setzen
-- immer Eintrag in `status_log`
+- on `approved`: set `approved_at`, set `reviewed_by_user_id`
+- on `rejected`: set `rejected_at`, set `reviewed_by_user_id`
+- on `needs_info`: set `needs_info_reason`
+- always write entry in `status_log`
 
 ### Response 200
 ```json
@@ -427,9 +425,9 @@ Liefert die Admin-Liste.
 ```
 
 ### Errors
-- `400` ungültiger Zielstatus
-- `403` keine Berechtigung
-- `409` unzulässiger Statusübergang
+- `400` invalid target status
+- `403` not authorized
+- `409` disallowed status transition
 
 ---
 
@@ -438,9 +436,9 @@ Liefert die Admin-Liste.
 ### POST `/api/admin/applications/{id}/import`
 
 ### Rules
-- nur Status `approved`
-- nur berechtigte Admins
-- Import läuft synchron für V1
+- only status `approved`
+- only authorized admins
+- import runs synchronously in V1
 
 ### Response 200
 ```json
@@ -463,19 +461,19 @@ Liefert die Admin-Liste.
 ```
 
 ### Side effects on success
-- `import_started_at` setzen
-- `import_finished_at` setzen
-- `imported_at` setzen
-- `target_participant_id` setzen
+- set `import_started_at`
+- set `import_finished_at`
+- set `imported_at`
+- set `target_participant_id`
 - `status = imported`
-- `status_log` schreiben
+- write `status_log`
 
 ### Side effects on failure
-- `import_started_at` setzen
-- `import_finished_at` setzen
-- `import_error_message` setzen
+- set `import_started_at`
+- set `import_finished_at`
+- set `import_error_message`
 - `status = import_failed`
-- `status_log` schreiben
+- write `status_log`
 
 ---
 
