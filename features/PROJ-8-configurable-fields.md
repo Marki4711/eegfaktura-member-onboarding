@@ -35,6 +35,9 @@
   | `consumption_forecast` | Zahl (kWh) | Verbrauch Prognose |
   | `feed_in_forecast` | Zahl (kWh) | Einspeisung Prognose |
   | `pv_power_kwp` | Zahl (kWp) | PV-Leistung |
+  | `transformer` | Text | Transformator |
+  | `installation_number` | Text | Anlagen-Nr. |
+  | `installation_name` | Text | Anlagenname |
 
   **Neue optionale Felder (Antrags-Ebene, Ja/Nein):**
   | Feldname | Typ | Beschreibung |
@@ -47,6 +50,11 @@
   | Feldname | Typ | Beschreibung |
   |---|---|---|
   | `persons_in_household` | Ganzzahl | Anzahl Personen im Haushalt |
+
+  **Neue optionale Felder (Antrags-Ebene, Datum):**
+  | Feldname | Typ | Beschreibung |
+  |---|---|---|
+  | `membership_start_date` | Datum | Aktiv am (gewünschtes Beitrittsdatum zur EEG) |
 - [ ] Jedes konfigurierbare Feld hat pro EEG drei Zustände: `hidden` (nicht angezeigt), `optional`, `required`
 - [ ] Der `/api/public/registration/{rc_number}` Endpunkt liefert die Feldkonfiguration der EEG mit
 - [ ] Das Registrierungsformular rendert Felder dynamisch entsprechend der Konfiguration
