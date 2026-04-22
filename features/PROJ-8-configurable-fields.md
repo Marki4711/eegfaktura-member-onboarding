@@ -1,6 +1,6 @@
 # PROJ-8: Konfigurierbare Felder pro EEG
 
-## Status: Approved
+## Status: Deployed
 **Created:** 2026-04-21
 **Last Updated:** 2026-04-22
 
@@ -290,4 +290,13 @@ Keine — alle UI-Komponenten (Switch, Card, Tabs) sind bereits vorhanden.
 **READY** — All acceptance criteria verified, no open bugs. 38/38 chromium E2E tests pass, 20/20 Go unit tests pass.
 
 ## Deployment
-_To be added by /deploy_
+
+**Deployed:** 2026-04-22
+**Tag:** `v1.8.0-PROJ-8`
+**Branch:** `main` (pushed to origin)
+
+**Deployment notes:**
+- Migration `000011_configurable_fields` runs automatically via Helm `pre-upgrade` migrate-job on next `helm upgrade`.
+- No Helm chart changes required — the chart already copies `db/migrations/` into the backend image.
+- No new environment variables.
+- Admin field config editor available at `/admin/settings` immediately after deployment.
