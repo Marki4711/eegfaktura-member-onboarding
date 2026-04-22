@@ -3,40 +3,40 @@
 Realm: **EEGFaktura**  
 Client: **eegfaktura-member-onboarding**
 
-## Client-Konfiguration (Access Settings)
+## Client Configuration (Access Settings)
 
-| Feld | Wert |
+| Field | Value |
 |------|------|
 | Root URL | `https://member-onboarding-test.eegfaktura.at/` |
 | Valid redirect URIs | `https://member-onboarding-test.eegfaktura.at/*` |
 | Valid post logout redirect URIs | `https://member-onboarding-test.eegfaktura.at/*` |
 | Web origins | `https://member-onboarding-test.eegfaktura.at` |
 
-> **Wichtig:** `Valid post logout redirect URIs` muss den Wildcard `/*` enthalten, sonst schlägt der Logout mit „Ungültige Redirect URI" (HTTP 400) fehl.
+> **Important:** `Valid post logout redirect URIs` must contain the wildcard `/*`, otherwise logout fails with "Invalid Redirect URI" (HTTP 400).
 
-## Benutzerrollen und Zugriffslogik
+## User Roles and Access Logic
 
 ### Superuser
-- Hat Realm Role `superuser`
-- Sieht alle Anträge aller EEGs
-- Kein `tenant`-Attribut erforderlich
+- Has Realm Role `superuser`
+- Can see all applications of all EEGs
+- No `tenant` attribute required
 
-### Tenant-Admin
-- Hat **keine** Realm Role
-- Hat User-Attribut `tenant` als JSON-Array von RC-Nummern, z.B. `["RC101665", "RC101294"]`
-- Sieht nur Anträge seiner EEGs
-- Das `tenant`-Attribut wird via Client Scope Mapper (User Attribute, Multivalued) in den JWT Access Token gemappt
+### Tenant Admin
+- Has **no** Realm Role
+- Has user attribute `tenant` as a JSON array of RC numbers, e.g. `["RC101665", "RC101294"]`
+- Can only see applications of their own EEGs
+- The `tenant` attribute is mapped into the JWT Access Token via a Client Scope Mapper (User Attribute, Multivalued)
 
-### Kein Zugriff
-- Benutzer ohne `superuser`-Rolle und ohne `tenant`-Attribut → 403 / Weiterleitung auf `/unauthorized`
+### No Access
+- Users without the `superuser` role and without a `tenant` attribute → 403 / redirect to `/unauthorized`
 
-## Client Scope Mapper für `tenant`
+## Client Scope Mapper for `tenant`
 
-Der `tenant`-Claim muss explizit in den Access Token gemappt werden.
+The `tenant` claim must be explicitly mapped into the Access Token.
 
-**Clients** → `eegfaktura-member-onboarding` → Tab **Client scopes** → Dedicated scope öffnen → **Configure a new mapper**:
+**Clients** → `eegfaktura-member-onboarding` → Tab **Client scopes** → Open dedicated scope → **Configure a new mapper**:
 
-| Feld | Wert |
+| Field | Value |
 |------|------|
 | Mapper Type | User Attribute |
 | Name | `tenant` |
@@ -47,21 +47,21 @@ Der `tenant`-Claim muss explizit in den Access Token gemappt werden.
 | Multivalued | **OFF** |
 | Aggregate attribute values | **OFF** |
 
-> **Wichtig: Multivalued muss OFF sein.** Der Attributwert ist bereits ein JSON-Array-String (z.B. `["RC101665","RC101294"]`) — das ist das Format das andere Applikationen verwenden und nicht geändert werden kann. Mit Multivalued ON würde Keycloak den String nochmals in ein Array einwickeln.
+> **Important: Multivalued must be OFF.** The attribute value is already a JSON array string (e.g. `["RC101665","RC101294"]`) — this is the format used by other applications and cannot be changed. With Multivalued ON, Keycloak would wrap the string into another array.
 
-Das Frontend parst den JSON-String in `auth.ts` automatisch zu einem `string[]`.
+The frontend parses the JSON string in `auth.ts` automatically into a `string[]`.
 
-> **Realm roles** (`realm_access`) sind automatisch im Access Token — kein eigener Mapper nötig.
+> **Realm roles** (`realm_access`) are automatically included in the Access Token — no separate mapper needed.
 
 ## Nginx Proxy Buffer
 
-NextAuth setzt beim OAuth-Callback mehrere große Cookies (JWT mit Access-Token, ID-Token, Refresh-Token). nginx's Standard-Puffergröße reicht dafür nicht aus.
+NextAuth sets several large cookies during the OAuth callback (JWT with Access Token, ID Token, Refresh Token). nginx's default buffer size is not sufficient for this.
 
-Konfiguration im Helm Chart (`values.yaml`):
+Configuration in the Helm Chart (`values.yaml`):
 ```yaml
 ingress:
   proxyBufferSize: "128k"
   proxyBuffersNumber: "4"
 ```
 
-Ohne diese Einstellung: `upstream sent too big header` → HTTP 502 beim Login-Callback.
+Without this configuration: `upstream sent too big header` → HTTP 502 during login callback.
