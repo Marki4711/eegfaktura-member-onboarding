@@ -575,7 +575,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                       name="uidNumber"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>UID-Nummer{req("uid_number")}</FormLabel>
+                          <FormLabel>UID-Nummer{memberType === "company" ? " *" : req("uid_number")}</FormLabel>
                           <FormControl>
                             <Input placeholder="ATU12345678" {...field} />
                           </FormControl>
