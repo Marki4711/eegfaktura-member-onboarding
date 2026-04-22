@@ -24,5 +24,6 @@ Central tracking for all features.
 | PROJ-7 | Mitgliedstypen | Deployed | `features/PROJ-7-member-types.md` | 2026-04-20 |
 | PROJ-8 | Konfigurierbare Felder pro EEG | Planned | `features/PROJ-8-configurable-fields.md` | 2026-04-21 |
 | PROJ-9 | EEG-spezifische Rechtsdokumente | Planned | `features/PROJ-9-legal-documents.md` | 2026-04-21 |
+| PROJ-10 | Admin Notifications | Planned | `features/PROJ-10-admin-notifications.md` | 2026-04-22 |
 
-## Next Available ID: PROJ-10
+## Next Available ID: PROJ-11
