@@ -85,7 +85,98 @@
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+
+### Feldkategorien
+
+**Kategorie 1 — Pflichtfelder (fix, immer sichtbar und required):**
+Name/Firmenname, E-Mail, Adresse, IBAN, SEPA-Mandat, Zählpunktnummer, Richtung, Teilnahmefaktor.
+Diese Felder haben keinen konfigurierbaren State und erscheinen nicht in der Einstellungsseite.
+
+**Kategorie 2 — Konfigurierbare Felder (state: `hidden` | `optional` | `required`):**
+Alle in den Acceptance Criteria gelisteten Felder. Standard für neue Felder: `hidden`.
+
+### Komponentenstruktur
+
+```
+Admin-Bereich
++-- Navigation (erweitert)
+|   +-- Anträge (bestehend)
+|   +-- Einstellungen (neu → /admin/settings)
++-- Einstellungsseite /admin/settings
+    +-- EEG-Auswahl (nur Superuser mit mehreren EEGs)
+    +-- Feldkonfigurations-Editor
+        +-- Abschnitt: Antragsteller-Felder
+        |   +-- Feldzeile: Label + Umschalter (hidden / optional / required)
+        |   +-- (eine Zeile pro konfigurierbarem Feld)
+        +-- Abschnitt: Zählpunkt-Felder
+            +-- Feldzeile: Label + Umschalter
+
+Registrierungsformular (bestehend, erweitert)
++-- Persönliche Daten
+|   +-- Pflichtfelder (immer sichtbar)
+|   +-- Konfigurierbare Antrags-Felder (je nach EEG-Konfiguration)
++-- Zählpunkte (je Block)
+    +-- Pflichtfelder (immer sichtbar)
+    +-- Konfigurierbare Zählpunkt-Felder (je nach EEG-Konfiguration)
+```
+
+### Datenhaltung
+
+**Neue Tabelle `member_onboarding.field_config`:**
+- `id` — UUID, Primärschlüssel
+- `rc_number` — Text, Verweis auf `registration_entrypoint`
+- `field_name` — Text (z.B. `heat_pump`, `transformer`)
+- `state` — Text: `hidden` | `optional` | `required`
+- `updated_at` — Zeitstempel
+- Eindeutiger Index auf `(rc_number, field_name)`
+
+Nur Abweichungen vom Standard werden gespeichert (sparse). Fehlt ein Eintrag, gilt: `hidden` für neue Felder, bisheriges Verhalten für bestehende Felder (`phone`, `birth_date`, `uid_number`).
+
+**Neue Spalten in `member_onboarding.application`:**
+- `membership_start_date` — Datum (nullable)
+- `persons_in_household` — Ganzzahl (nullable)
+- `consumption_previous_year`, `consumption_forecast`, `feed_in_forecast` — Ganzzahl kWh (nullable)
+- `pv_power_kwp` — Dezimalzahl kWp (nullable)
+- `heat_pump`, `electric_vehicle`, `electric_hot_water` — Boolean (nullable; `null` = keine Angabe)
+
+**Neue Spalten in `member_onboarding.metering_point`:**
+- `transformer`, `installation_number`, `installation_name` — Text (nullable)
+
+**Felddefinition im Go-Code (zentrale Registry):**
+Jedes konfigurierbare Feld ist im Code mit Name, Typ und Scope (`application` | `metering_point`) registriert. Neue Felder werden hier ergänzt — keine Schemaänderung an `field_config` nötig.
+
+### API
+
+**Bestehender Endpunkt erweitert:**
+`GET /api/public/registration/{rc_number}` liefert zusätzlich:
+```
+"fieldConfig": {
+  "phone": "optional",
+  "heat_pump": "required",
+  "transformer": "hidden",
+  ...
+}
+```
+
+**Neue Admin-Endpunkte:**
+- `GET /api/admin/settings/fields?rc_number=RC123456` — Feldkonfiguration lesen
+- `PUT /api/admin/settings/fields?rc_number=RC123456` — Feldkonfiguration speichern
+
+**Bestehende Antrags-Endpunkte:**
+`POST` und `PUT /api/public/applications/...` nehmen neue Felder entgegen. Die Pflichtfeld-Validierung liest den State aus der DB.
+
+### Tech-Entscheidungen
+
+| Entscheidung | Begründung |
+|---|---|
+| Pflichtfelder nicht konfigurierbar (Option B) | Kernfelder sind für den eegFaktura-Import zwingend erforderlich — Fehlkonfiguration würde den Prozess brechen |
+| Sparse-Tabelle | Neue Felder sind automatisch `hidden` für alle EEGs ohne DB-Einträge anlegen zu müssen |
+| Konfiguration im Registrierungs-Response gebündelt | Kein zweiter API-Aufruf im Frontend |
+| Felddefinition im Code | Kontrollierte Einführung neuer Felder; keine freie Konfiguration undokumentierter Felder |
+| Einstellungsseite `/admin/settings` | Trennung von Antragsverwaltung und EEG-Konfiguration; skaliert für PROJ-9 (Dokumente) u.a. |
+
+### Neue Pakete
+Keine — alle UI-Komponenten (Switch, Card, Tabs) sind bereits vorhanden.
 
 ## QA Test Results
 _To be added by /qa_

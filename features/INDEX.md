@@ -22,7 +22,7 @@ Central tracking for all features.
 | PROJ-5 | Keycloak-secured Admin Area | Deployed | `features/PROJ-5-keycloak-admin-auth.md` | 2026-04-19 |
 | PROJ-6 | E-Mail-Benachrichtigungen | Deployed | `features/PROJ-6-email-notifications.md` | 2026-04-19 |
 | PROJ-7 | Mitgliedstypen | Deployed | `features/PROJ-7-member-types.md` | 2026-04-20 |
-| PROJ-8 | Konfigurierbare Felder pro EEG | Planned | `features/PROJ-8-configurable-fields.md` | 2026-04-21 |
+| PROJ-8 | Konfigurierbare Felder pro EEG | Architected | `features/PROJ-8-configurable-fields.md` | 2026-04-21 |
 | PROJ-9 | EEG-spezifische Rechtsdokumente | Planned | `features/PROJ-9-legal-documents.md` | 2026-04-21 |
 | PROJ-10 | Admin Notifications | Planned | `features/PROJ-10-admin-notifications.md` | 2026-04-22 |
 
