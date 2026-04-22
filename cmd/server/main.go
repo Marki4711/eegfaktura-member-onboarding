@@ -122,6 +122,7 @@ func main() {
 			r.Route("/{id}", func(r chi.Router) {
 				r.Get("/", adminHandler.GetApplicationDetail)
 				r.Put("/", adminHandler.UpdateApplication)
+				r.Delete("/", adminHandler.DeleteApplication)
 				r.Post("/status", adminHandler.ChangeStatus)
 				r.Post("/resend-confirmation", adminHandler.ResendMemberConfirmation)
 			})

@@ -358,3 +358,7 @@ export function syncEntrypoints(token?: string): Promise<void> {
 export function resendMemberConfirmation(id: string, token?: string): Promise<void> {
   return adminRequest<void>(`/api/admin/applications/${id}/resend-confirmation`, token, { method: "POST" });
 }
+
+export function deleteApplication(id: string, token?: string): Promise<void> {
+  return adminRequest<void>(`/api/admin/applications/${id}`, token, { method: "DELETE" });
+}

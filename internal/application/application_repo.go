@@ -444,6 +444,18 @@ func (r *ApplicationRepository) UpdateAdminTx(tx *sql.Tx, app *shared.Applicatio
 
 // UpdateStatusAdminTx updates the status and related timestamp columns atomically.
 // Columns not applicable to the transition are preserved via COALESCE.
+func (r *ApplicationRepository) Delete(id uuid.UUID) error {
+	result, err := r.db.Exec(`DELETE FROM member_onboarding.application WHERE id = $1`, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete application: %w", err)
+	}
+	n, _ := result.RowsAffected()
+	if n == 0 {
+		return shared.ErrNotFound
+	}
+	return nil
+}
+
 func (r *ApplicationRepository) UpdateStatusAdminTx(
 	tx *sql.Tx,
 	id uuid.UUID,

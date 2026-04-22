@@ -211,6 +211,21 @@ func (h *AdminHandler) ResendMemberConfirmation(w http.ResponseWriter, r *http.R
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// DeleteApplication handles DELETE /api/admin/applications/{id}
+func (h *AdminHandler) DeleteApplication(w http.ResponseWriter, r *http.Request) {
+	id, err := h.parseID(w, r)
+	if err != nil {
+		return
+	}
+
+	if err := h.adminService.DeleteApplication(id); err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // --- helpers ---
 
 func (h *AdminHandler) parseID(w http.ResponseWriter, r *http.Request) (uuid.UUID, error) {

@@ -334,6 +334,27 @@ func (s *AdminApplicationService) ChangeStatus(id uuid.UUID, toStatus shared.App
 	}, nil
 }
 
+// DeleteApplication permanently removes an application.
+// Only draft and rejected applications may be deleted.
+func (s *AdminApplicationService) DeleteApplication(id uuid.UUID) error {
+	app, err := s.appRepo.GetByID(id)
+	if err != nil {
+		return err
+	}
+
+	deletable := map[shared.ApplicationStatus]bool{
+		shared.StatusDraft:    true,
+		shared.StatusRejected: true,
+	}
+	if !deletable[app.Status] {
+		return shared.NewConflictError(
+			fmt.Sprintf("applications in status %s cannot be deleted", app.Status),
+		)
+	}
+
+	return s.appRepo.Delete(id)
+}
+
 func isAdminTransitionAllowed(from, to shared.ApplicationStatus) bool {
 	allowed, ok := adminTransitions[from]
 	if !ok {

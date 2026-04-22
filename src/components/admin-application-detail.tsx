@@ -13,7 +13,18 @@ import { AdminStatusLog } from "@/components/admin-status-log";
 import { AdminStatusActions } from "@/components/admin-status-actions";
 import { AdminNoteEditor } from "@/components/admin-note-editor";
 import { AdminEditForm } from "@/components/admin-edit-form";
-import { getApplicationDetail, resendMemberConfirmation, ApiResponseError } from "@/lib/api";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { getApplicationDetail, resendMemberConfirmation, deleteApplication, ApiResponseError } from "@/lib/api";
 import type { AdminApplicationDetail, MemberType } from "@/lib/api";
 
 const MEMBER_TYPE_LABELS: Record<MemberType, string> = {
@@ -80,6 +91,18 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
   const [editOpen, setEditOpen] = useState(false);
   const [resending, setResending] = useState(false);
   const [resendResult, setResendResult] = useState<"ok" | "error" | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!application) return;
+    setDeleting(true);
+    try {
+      await deleteApplication(application.id, session?.accessToken);
+      router.push(returnTo);
+    } catch {
+      setDeleting(false);
+    }
+  };
 
   const handleResend = async () => {
     if (!application) return;
@@ -192,6 +215,30 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
           <Button variant="outline" size="sm" onClick={handleResend} disabled={resending}>
             {resending ? "Wird gesendet…" : "Bestätigung erneut senden"}
           </Button>
+          {(application.status === "draft" || application.status === "rejected") && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" disabled={deleting}>
+                  Löschen
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Antrag löschen?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Der Antrag <strong>{application.referenceNumber}</strong> wird unwiderruflich gelöscht.
+                    Diese Aktion kann nicht rückgängig gemacht werden.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Endgültig löschen
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
           <Button onClick={() => setEditOpen(true)}>Bearbeiten</Button>
         </div>
       </div>
