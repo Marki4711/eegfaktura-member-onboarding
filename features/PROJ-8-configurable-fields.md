@@ -1,6 +1,6 @@
 # PROJ-8: Konfigurierbare Felder pro EEG
 
-## Status: In Review
+## Status: Approved
 **Created:** 2026-04-21
 **Last Updated:** 2026-04-22
 
@@ -283,9 +283,11 @@ Keine — alle UI-Komponenten (Switch, Card, Tabs) sind bereits vorhanden.
   - Registration form renders successfully with valid RC
   - Phone and birthDate do not trigger required errors by default
 
+**BUG-PROJ8-1 fix (2026-04-22):** Restored `uidNumber` as structurally required for company type in `buildFormSchema` superRefine, independent of field config. This is option 1 per user decision: uid_number is always required for `Unternehmen`, regardless of EEG field configuration. PROJ-7 AC-11 regression resolved. All 38 chromium E2E tests now pass.
+
 ### Production-Ready Decision
 
-**NOT READY** — 1 Medium bug (BUG-PROJ8-1) must be fixed. The regression breaks a documented PROJ-7 acceptance criterion and creates a misleading UX for company-type registrations.
+**READY** — All acceptance criteria verified, no open bugs. 38/38 chromium E2E tests pass, 20/20 Go unit tests pass.
 
 ## Deployment
 _To be added by /deploy_

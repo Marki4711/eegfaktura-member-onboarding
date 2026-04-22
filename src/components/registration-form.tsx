@@ -144,6 +144,9 @@ function buildFormSchema(fieldConfig: FieldConfig | undefined) {
         ctx.addIssue({ code: "custom", path: ["companyName"], message: `${orgLabel} ist erforderlich` });
       }
       if (data.memberType === "company") {
+        if (!data.uidNumber?.trim()) {
+          ctx.addIssue({ code: "custom", path: ["uidNumber"], message: "UID-Nummer ist erforderlich" });
+        }
         if (!data.registerNumber?.trim()) {
           ctx.addIssue({ code: "custom", path: ["registerNumber"], message: "Firmenbuchnummer ist erforderlich" });
         }
