@@ -31,10 +31,6 @@
   **Neue optionale Felder (Zählpunkt-Ebene):**
   | Feldname | Typ | Beschreibung |
   |---|---|---|
-  | `consumption_previous_year` | Zahl (kWh) | Verbrauch Vorjahr |
-  | `consumption_forecast` | Zahl (kWh) | Verbrauch Prognose |
-  | `feed_in_forecast` | Zahl (kWh) | Einspeisung Prognose |
-  | `pv_power_kwp` | Zahl (kWp) | PV-Leistung |
   | `transformer` | Text | Transformator |
   | `installation_number` | Text | Anlagen-Nr. |
   | `installation_name` | Text | Anlagenname |
@@ -50,6 +46,10 @@
   | Feldname | Typ | Beschreibung |
   |---|---|---|
   | `persons_in_household` | Ganzzahl | Anzahl Personen im Haushalt |
+  | `consumption_previous_year` | Zahl (kWh) | Verbrauch Vorjahr |
+  | `consumption_forecast` | Zahl (kWh) | Verbrauch Prognose |
+  | `feed_in_forecast` | Zahl (kWh) | Einspeisung Prognose |
+  | `pv_power_kwp` | Zahl (kWp) | PV-Leistung |
 
   **Neue optionale Felder (Antrags-Ebene, Datum):**
   | Feldname | Typ | Beschreibung |
