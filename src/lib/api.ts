@@ -11,10 +11,49 @@ const API_URL = getBaseUrl();
 
 // ---------- response shapes ----------
 
+export type FieldState = "hidden" | "optional" | "required";
+export type FieldConfig = Record<string, FieldState>;
+
+export interface ConfigurableField {
+  name: string;
+  label: string;
+  defaultState: FieldState;
+}
+
+export const CONFIGURABLE_FIELDS: {
+  application: ConfigurableField[];
+  meteringPoint: ConfigurableField[];
+} = {
+  application: [
+    { name: "phone",                   label: "Telefonnummer",                   defaultState: "optional" },
+    { name: "birth_date",              label: "Geburtsdatum",                    defaultState: "optional" },
+    { name: "uid_number",              label: "UID-Nummer",                      defaultState: "optional" },
+    { name: "membership_start_date",   label: "Aktiv am (Beitrittsdatum)",       defaultState: "hidden"   },
+    { name: "persons_in_household",    label: "Anzahl Personen im Haushalt",     defaultState: "hidden"   },
+    { name: "consumption_previous_year", label: "Verbrauch Vorjahr (kWh)",       defaultState: "hidden"   },
+    { name: "consumption_forecast",    label: "Verbrauch Prognose (kWh)",        defaultState: "hidden"   },
+    { name: "feed_in_forecast",        label: "Einspeisung Prognose (kWh)",      defaultState: "hidden"   },
+    { name: "pv_power_kwp",            label: "PV-Leistung (kWp)",              defaultState: "hidden"   },
+    { name: "heat_pump",               label: "Wärmepumpe vorhanden",            defaultState: "hidden"   },
+    { name: "electric_vehicle",        label: "E-Auto vorhanden",               defaultState: "hidden"   },
+    { name: "electric_hot_water",      label: "Warmwasser elektrisch (Boiler)",  defaultState: "hidden"   },
+  ],
+  meteringPoint: [
+    { name: "transformer",        label: "Transformator", defaultState: "hidden" },
+    { name: "installation_number", label: "Anlagen-Nr.",  defaultState: "hidden" },
+    { name: "installation_name",  label: "Anlagenname",  defaultState: "hidden" },
+  ],
+};
+
+export function resolveFieldState(config: FieldConfig | undefined, fieldName: string, defaultState: FieldState): FieldState {
+  return config?.[fieldName] ?? defaultState;
+}
+
 export interface RegistrationConfig {
   rcNumber: string;
   title: string;
   active: boolean;
+  fieldConfig?: FieldConfig;
 }
 
 export type MemberType = "private" | "farmer" | "municipality" | "company" | "association";
@@ -22,6 +61,10 @@ export type MemberType = "private" | "farmer" | "municipality" | "company" | "as
 export interface MeteringPointRequest {
   meteringPoint: string;
   direction: "CONSUMPTION" | "PRODUCTION";
+  participationFactor?: number;
+  transformer?: string;
+  installationNumber?: string;
+  installationName?: string;
 }
 
 export interface CreateApplicationRequest {
@@ -46,6 +89,16 @@ export interface CreateApplicationRequest {
   accountHolder: string;
   sepaMandateAccepted: boolean;
   meteringPoints: MeteringPointRequest[];
+  // configurable application-level fields
+  membershipStartDate?: string;
+  personsInHousehold?: number;
+  consumptionPreviousYear?: number;
+  consumptionForecast?: number;
+  feedInForecast?: number;
+  pvPowerKwp?: number;
+  heatPump?: boolean | null;
+  electricVehicle?: boolean | null;
+  electricHotWater?: boolean | null;
 }
 
 export interface ApplicationResponse {
@@ -361,4 +414,16 @@ export function resendMemberConfirmation(id: string, token?: string): Promise<vo
 
 export function deleteApplication(id: string, token?: string): Promise<void> {
   return adminRequest<void>(`/api/admin/applications/${id}`, token, { method: "DELETE" });
+}
+
+export function getFieldConfig(rcNumber: string, token?: string): Promise<FieldConfig> {
+  return adminRequest<FieldConfig>(`/api/admin/settings/fields?rc_number=${encodeURIComponent(rcNumber)}`, token);
+}
+
+export function saveFieldConfig(rcNumber: string, config: FieldConfig, token?: string): Promise<void> {
+  return adminRequest<void>(
+    `/api/admin/settings/fields?rc_number=${encodeURIComponent(rcNumber)}`,
+    token,
+    { method: "PUT", body: JSON.stringify(config) }
+  );
 }

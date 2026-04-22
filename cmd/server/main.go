@@ -57,6 +57,7 @@ func main() {
 	meteringRepo := application.NewMeteringPointRepository(db)
 	statusLogRepo := application.NewStatusLogRepository(db)
 	entrypointRepo := application.NewRegistrationEntrypointRepository(db)
+	fieldConfigRepo := application.NewFieldConfigRepository(db)
 
 	// Initialize mail service
 	var mailService mail.MailService = &mail.NoOpMailService{}
@@ -74,9 +75,9 @@ func main() {
 	}
 
 	// Initialize services
-	registrationService := application.NewRegistrationService(entrypointRepo)
-	applicationService := application.NewApplicationService(db, appRepo, meteringRepo, statusLogRepo, entrypointRepo, mailService)
-	adminService := application.NewAdminApplicationService(db, appRepo, meteringRepo, statusLogRepo, mailService)
+	registrationService := application.NewRegistrationService(entrypointRepo, fieldConfigRepo)
+	applicationService := application.NewApplicationService(db, appRepo, meteringRepo, statusLogRepo, entrypointRepo, fieldConfigRepo, mailService)
+	adminService := application.NewAdminApplicationService(db, appRepo, meteringRepo, statusLogRepo, fieldConfigRepo, mailService)
 
 	// Initialize handlers
 	registrationHandler := internalhttp.NewRegistrationHandler(registrationService)
@@ -126,6 +127,10 @@ func main() {
 				r.Post("/status", adminHandler.ChangeStatus)
 				r.Post("/resend-confirmation", adminHandler.ResendMemberConfirmation)
 			})
+		})
+		r.Route("/settings", func(r chi.Router) {
+			r.Get("/fields", adminHandler.GetFieldConfig)
+			r.Put("/fields", adminHandler.SaveFieldConfig)
 		})
 	})
 

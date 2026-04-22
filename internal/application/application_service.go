@@ -14,12 +14,13 @@ import (
 
 // ApplicationService handles business logic for applications
 type ApplicationService struct {
-	db             *sql.DB
-	appRepo        *ApplicationRepository
-	meteringRepo   *MeteringPointRepository
-	statusLogRepo  *StatusLogRepository
-	entrypointRepo *RegistrationEntrypointRepository
-	mailService    mail.MailService
+	db              *sql.DB
+	appRepo         *ApplicationRepository
+	meteringRepo    *MeteringPointRepository
+	statusLogRepo   *StatusLogRepository
+	entrypointRepo  *RegistrationEntrypointRepository
+	fieldConfigRepo *FieldConfigRepository
+	mailService     mail.MailService
 }
 
 // NewApplicationService creates a new application service
@@ -29,15 +30,17 @@ func NewApplicationService(
 	meteringRepo *MeteringPointRepository,
 	statusLogRepo *StatusLogRepository,
 	entrypointRepo *RegistrationEntrypointRepository,
+	fieldConfigRepo *FieldConfigRepository,
 	mailService mail.MailService,
 ) *ApplicationService {
 	return &ApplicationService{
-		db:             db,
-		appRepo:        appRepo,
-		meteringRepo:   meteringRepo,
-		statusLogRepo:  statusLogRepo,
-		entrypointRepo: entrypointRepo,
-		mailService:    mailService,
+		db:              db,
+		appRepo:         appRepo,
+		meteringRepo:    meteringRepo,
+		statusLogRepo:   statusLogRepo,
+		entrypointRepo:  entrypointRepo,
+		fieldConfigRepo: fieldConfigRepo,
+		mailService:     mailService,
 	}
 }
 
@@ -53,6 +56,13 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 		return nil, shared.ErrGone
 	}
 
+	// Load field config (best-effort — fail open so a DB error doesn't block registrations)
+	fieldConfig, fcErr := s.fieldConfigRepo.Get(strings.ToUpper(req.RCNumber))
+	if fcErr != nil {
+		fmt.Printf("warning: failed to load field config for rc=%s: %v\n", req.RCNumber, fcErr)
+		fieldConfig = map[string]string{}
+	}
+
 	// Build metering point list and check for duplicates within the request
 	var meteringPoints []shared.MeteringPoint
 	for _, mpReq := range req.MeteringPoints {
@@ -60,6 +70,9 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 			MeteringPoint:       mpReq.MeteringPoint,
 			Direction:           shared.MeterDirection(mpReq.Direction),
 			ParticipationFactor: mpReq.ParticipationFactor,
+			Transformer:         trimStringPtr(mpReq.Transformer),
+			InstallationNumber:  trimStringPtr(mpReq.InstallationNumber),
+			InstallationName:    trimStringPtr(mpReq.InstallationName),
 			CreatedAt:           time.Now(),
 			UpdatedAt:           time.Now(),
 		})
@@ -74,6 +87,12 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 	if err != nil {
 		return nil, shared.NewValidationError("Validation failed", map[string]string{
 			"birthDate": err.Error(),
+		})
+	}
+	membershipStartDate, err := parseDateString(req.MembershipStartDate)
+	if err != nil {
+		return nil, shared.NewValidationError("Validation failed", map[string]string{
+			"membershipStartDate": err.Error(),
 		})
 	}
 
@@ -92,36 +111,51 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 
 	phone := trimStringPtr(req.Phone)
 	app := &shared.Application{
-		ReferenceNumber:       s.generateReferenceNumber(),
-		RCNumber:              strings.ToUpper(strings.TrimSpace(req.RCNumber)),
-		Status:                shared.StatusDraft,
-		StartedAt:             &now,
-		MemberType:            shared.MemberType(strings.TrimSpace(req.MemberType)),
-		Firstname:             trimStringPtr(req.Firstname),
-		Lastname:              trimStringPtr(req.Lastname),
-		BirthDate:             birthDate,
-		CompanyName:           trimStringPtr(req.CompanyName),
-		UIDNumber:             trimStringPtr(req.UIDNumber),
-		RegisterNumber:        trimStringPtr(req.RegisterNumber),
-		Email:                 strings.TrimSpace(req.Email),
-		Phone:                 phone,
-		ResidentStreet:        strings.TrimSpace(req.ResidentStreet),
-		ResidentStreetNumber:  strings.TrimSpace(req.ResidentStreetNumber),
-		ResidentZip:           strings.TrimSpace(req.ResidentZip),
-		ResidentCity:          strings.TrimSpace(req.ResidentCity),
-		PrivacyAccepted:       req.PrivacyAccepted,
-		PrivacyVersion:        &req.PrivacyVersion,
-		PrivacyAcceptedAt:     &privacyAcceptedAt,
-		AccuracyConfirmed:     req.AccuracyConfirmed,
-		IBAN:                  &iban,
-		AccountHolder:         func() *string { s := strings.TrimSpace(req.AccountHolder); return &s }(),
-		SepaMandateAccepted:   req.SepaMandateAccepted,
-		SepaMandateAcceptedAt: sepaMandateAcceptedAt,
-		CreatedAt:             now,
-		UpdatedAt:             now,
+		ReferenceNumber:         s.generateReferenceNumber(),
+		RCNumber:                strings.ToUpper(strings.TrimSpace(req.RCNumber)),
+		Status:                  shared.StatusDraft,
+		StartedAt:               &now,
+		MemberType:              shared.MemberType(strings.TrimSpace(req.MemberType)),
+		Firstname:               trimStringPtr(req.Firstname),
+		Lastname:                trimStringPtr(req.Lastname),
+		BirthDate:               birthDate,
+		CompanyName:             trimStringPtr(req.CompanyName),
+		UIDNumber:               trimStringPtr(req.UIDNumber),
+		RegisterNumber:          trimStringPtr(req.RegisterNumber),
+		Email:                   strings.TrimSpace(req.Email),
+		Phone:                   phone,
+		ResidentStreet:          strings.TrimSpace(req.ResidentStreet),
+		ResidentStreetNumber:    strings.TrimSpace(req.ResidentStreetNumber),
+		ResidentZip:             strings.TrimSpace(req.ResidentZip),
+		ResidentCity:            strings.TrimSpace(req.ResidentCity),
+		PrivacyAccepted:         req.PrivacyAccepted,
+		PrivacyVersion:          &req.PrivacyVersion,
+		PrivacyAcceptedAt:       &privacyAcceptedAt,
+		AccuracyConfirmed:       req.AccuracyConfirmed,
+		IBAN:                    &iban,
+		AccountHolder:           func() *string { s := strings.TrimSpace(req.AccountHolder); return &s }(),
+		SepaMandateAccepted:     req.SepaMandateAccepted,
+		SepaMandateAcceptedAt:   sepaMandateAcceptedAt,
+		CreatedAt:               now,
+		UpdatedAt:               now,
+		MembershipStartDate:     membershipStartDate,
+		PersonsInHousehold:      req.PersonsInHousehold,
+		ConsumptionPreviousYear: req.ConsumptionPreviousYear,
+		ConsumptionForecast:     req.ConsumptionForecast,
+		FeedInForecast:          req.FeedInForecast,
+		PvPowerKwp:              req.PvPowerKwp,
+		HeatPump:                req.HeatPump,
+		ElectricVehicle:         req.ElectricVehicle,
+		ElectricHotWater:        req.ElectricHotWater,
 	}
 	clearMemberTypeFields(app)
 	if err = validateMemberTypeFields(app); err != nil {
+		return nil, err
+	}
+	if err = validateConfigurableRequiredFields(app, fieldConfig); err != nil {
+		return nil, err
+	}
+	if err = validateConfigurableMeteringPointFields(meteringPoints, fieldConfig); err != nil {
 		return nil, err
 	}
 
@@ -352,6 +386,18 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID) (*shared.SubmitResp
 		})
 	}
 
+	fieldConfig, fcErr := s.fieldConfigRepo.Get(strings.ToUpper(app.RCNumber))
+	if fcErr != nil {
+		fmt.Printf("warning: failed to load field config for rc=%s: %v\n", app.RCNumber, fcErr)
+		fieldConfig = map[string]string{}
+	}
+	if err = validateConfigurableRequiredFields(app, fieldConfig); err != nil {
+		return nil, err
+	}
+	if err = validateConfigurableMeteringPointFields(meteringPoints, fieldConfig); err != nil {
+		return nil, err
+	}
+
 	now := time.Now()
 	oldStatus := string(app.Status)
 
@@ -445,6 +491,78 @@ func validateIBAN(iban string) bool {
 	return remainder == 1
 }
 
+// validateConfigurableRequiredFields checks application-level fields configured as "required".
+func validateConfigurableRequiredFields(app *shared.Application, fieldConfig map[string]string) error {
+	errs := map[string]string{}
+
+	checkStr := func(name, jsonKey string, val *string, label string) {
+		if effectiveState(fieldConfig, name) == "required" {
+			if val == nil || strings.TrimSpace(*val) == "" {
+				errs[jsonKey] = label + " ist erforderlich"
+			}
+		}
+	}
+	checkTime := func(name, jsonKey string, val *time.Time, label string) {
+		if effectiveState(fieldConfig, name) == "required" && val == nil {
+			errs[jsonKey] = label + " ist erforderlich"
+		}
+	}
+	checkInt := func(name, jsonKey string, val *int, label string) {
+		if effectiveState(fieldConfig, name) == "required" && val == nil {
+			errs[jsonKey] = label + " ist erforderlich"
+		}
+	}
+	checkFloat := func(name, jsonKey string, val *float64, label string) {
+		if effectiveState(fieldConfig, name) == "required" && val == nil {
+			errs[jsonKey] = label + " ist erforderlich"
+		}
+	}
+	checkBool := func(name, jsonKey string, val *bool, label string) {
+		if effectiveState(fieldConfig, name) == "required" && val == nil {
+			errs[jsonKey] = label + " ist erforderlich"
+		}
+	}
+
+	checkStr("phone", "phone", app.Phone, "Telefonnummer")
+	checkTime("birth_date", "birthDate", app.BirthDate, "Geburtsdatum")
+	checkStr("uid_number", "uidNumber", app.UIDNumber, "UID-Nummer")
+	checkTime("membership_start_date", "membershipStartDate", app.MembershipStartDate, "Beitrittsdatum")
+	checkInt("persons_in_household", "personsInHousehold", app.PersonsInHousehold, "Anzahl Personen im Haushalt")
+	checkInt("consumption_previous_year", "consumptionPreviousYear", app.ConsumptionPreviousYear, "Verbrauch Vorjahr")
+	checkInt("consumption_forecast", "consumptionForecast", app.ConsumptionForecast, "Verbrauch Prognose")
+	checkInt("feed_in_forecast", "feedInForecast", app.FeedInForecast, "Einspeisung Prognose")
+	checkFloat("pv_power_kwp", "pvPowerKwp", app.PvPowerKwp, "PV-Leistung")
+	checkBool("heat_pump", "heatPump", app.HeatPump, "Wärmepumpe vorhanden")
+	checkBool("electric_vehicle", "electricVehicle", app.ElectricVehicle, "E-Auto vorhanden")
+	checkBool("electric_hot_water", "electricHotWater", app.ElectricHotWater, "Warmwasser elektrisch")
+
+	if len(errs) > 0 {
+		return shared.NewValidationError("Validation failed", errs)
+	}
+	return nil
+}
+
+// validateConfigurableMeteringPointFields checks metering-point-level fields configured as "required".
+func validateConfigurableMeteringPointFields(points []shared.MeteringPoint, fieldConfig map[string]string) error {
+	for i, mp := range points {
+		errs := map[string]string{}
+		checkStr := func(name, label string, val *string) {
+			if effectiveState(fieldConfig, name) == "required" {
+				if val == nil || strings.TrimSpace(*val) == "" {
+					errs[fmt.Sprintf("meteringPoints.%d.%s", i, name)] = label + " ist erforderlich"
+				}
+			}
+		}
+		checkStr("transformer", "Transformator", mp.Transformer)
+		checkStr("installation_number", "Anlagen-Nr.", mp.InstallationNumber)
+		checkStr("installation_name", "Anlagenname", mp.InstallationName)
+		if len(errs) > 0 {
+			return shared.NewValidationError("Validation failed", errs)
+		}
+	}
+	return nil
+}
+
 // clearMemberTypeFields nils out fields not applicable to the current member type.
 func clearMemberTypeFields(app *shared.Application) {
 	switch app.MemberType {
@@ -459,7 +577,8 @@ func clearMemberTypeFields(app *shared.Application) {
 	}
 }
 
-// validateMemberTypeFields checks that all required fields for the member type are present.
+// validateMemberTypeFields checks that structurally required fields for the member type are present.
+// Birth date is no longer enforced here — it is a configurable field (PROJ-8).
 func validateMemberTypeFields(app *shared.Application) error {
 	switch app.MemberType {
 	case shared.MemberTypePrivate, shared.MemberTypeFarmer:
@@ -471,11 +590,6 @@ func validateMemberTypeFields(app *shared.Application) error {
 		if app.Lastname == nil || strings.TrimSpace(*app.Lastname) == "" {
 			return shared.NewValidationError("Validation failed", map[string]string{
 				"lastname": "Nachname ist erforderlich",
-			})
-		}
-		if app.BirthDate == nil {
-			return shared.NewValidationError("Validation failed", map[string]string{
-				"birthDate": "Geburtsdatum ist erforderlich",
 			})
 		}
 	case shared.MemberTypeMunicipality:

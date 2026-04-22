@@ -63,6 +63,12 @@ export default async function AdminLayout({
             >
               Anträge
             </Link>
+            <Link
+              href="/admin/settings"
+              className="text-sm text-muted-foreground hover:text-primary transition-colors"
+            >
+              Einstellungen
+            </Link>
           </nav>
           <AdminLogoutButton username={username} keycloakIssuer={process.env.KEYCLOAK_ISSUER!} />
         </div>

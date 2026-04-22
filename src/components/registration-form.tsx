@@ -37,8 +37,12 @@ import {
   createApplication,
   submitApplication,
   ApiResponseError,
+  resolveFieldState,
+  CONFIGURABLE_FIELDS,
   type RegistrationConfig,
   type MemberType,
+  type FieldConfig,
+  type FieldState,
 } from "@/lib/api";
 
 // Hardcoded for MVP — matches backend default
@@ -62,54 +66,75 @@ const meteringPointSchema = z.object({
     .refine((v) => v.length <= 33, { message: "Maximal 33 Zeichen" }),
   direction: z.enum(["CONSUMPTION", "PRODUCTION"]),
   participationFactor: z.number().int().min(1, "Mindestens 1%").max(100, "Maximal 100%"),
+  transformer: z.string().trim().max(100).optional(),
+  installationNumber: z.string().trim().max(50).optional(),
+  installationName: z.string().trim().max(100).optional(),
 });
 
-const formSchema = z
-  .object({
-    memberType: z.enum(["private", "farmer", "municipality", "company", "association"] as const),
-    firstname: z.string().trim().max(255).optional(),
-    lastname: z.string().trim().max(255).optional(),
-    birthDate: z.string().optional(),
-    companyName: z.string().trim().max(255).optional(),
-    uidNumber: z.string().trim().max(50).optional(),
-    registerNumber: z.string().trim().max(50).optional(),
-    email: z.string().trim().email("Ungültige E-Mail-Adresse"),
-    phone: z.string().trim().optional(),
-    residentStreet: z.string().trim().min(1, "Straße ist erforderlich").max(255),
-    residentStreetNumber: z.string().trim().min(1, "Hausnummer ist erforderlich").max(50),
-    residentZip: z.string().trim().min(1, "PLZ ist erforderlich").max(20),
-    residentCity: z.string().trim().min(1, "Ort ist erforderlich").max(255),
-    iban: z
-      .string()
-      .min(1, "IBAN ist erforderlich")
-      .transform((v) => v.replace(/\s/g, "").toUpperCase())
-      .refine((v) => isValidIBAN(v), { message: "Ungültige IBAN" }),
-    accountHolder: z.string().trim().min(1, "Kontoinhaber:in ist erforderlich").max(255),
-    privacyAccepted: z.boolean().refine((v) => v === true, {
-      message: "Datenschutzerklärung muss akzeptiert werden",
-    }),
-    accuracyConfirmed: z.boolean().refine((v) => v === true, {
-      message: "Richtigkeit der Angaben muss bestätigt werden",
-    }),
-    sepaMandateAccepted: z.boolean().refine((v) => v === true, {
-      message: "Zustimmung zum SEPA-Lastschriftmandat ist erforderlich",
-    }),
-    meteringPoints: z
-      .array(meteringPointSchema)
-      .min(1, "Mindestens ein Zählpunkt ist erforderlich")
-      .max(10, "Maximal 10 Zählpunkte erlaubt"),
-  })
-  .superRefine((data, ctx) => {
+const baseSchema = z.object({
+  memberType: z.enum(["private", "farmer", "municipality", "company", "association"] as const),
+  firstname: z.string().trim().max(255).optional(),
+  lastname: z.string().trim().max(255).optional(),
+  birthDate: z.string().optional(),
+  companyName: z.string().trim().max(255).optional(),
+  uidNumber: z.string().trim().max(50).optional(),
+  registerNumber: z.string().trim().max(50).optional(),
+  email: z.string().trim().email("Ungültige E-Mail-Adresse"),
+  phone: z.string().trim().optional(),
+  residentStreet: z.string().trim().min(1, "Straße ist erforderlich").max(255),
+  residentStreetNumber: z.string().trim().min(1, "Hausnummer ist erforderlich").max(50),
+  residentZip: z.string().trim().min(1, "PLZ ist erforderlich").max(20),
+  residentCity: z.string().trim().min(1, "Ort ist erforderlich").max(255),
+  iban: z
+    .string()
+    .min(1, "IBAN ist erforderlich")
+    .transform((v) => v.replace(/\s/g, "").toUpperCase())
+    .refine((v) => isValidIBAN(v), { message: "Ungültige IBAN" }),
+  accountHolder: z.string().trim().min(1, "Kontoinhaber:in ist erforderlich").max(255),
+  privacyAccepted: z.boolean().refine((v) => v === true, {
+    message: "Datenschutzerklärung muss akzeptiert werden",
+  }),
+  accuracyConfirmed: z.boolean().refine((v) => v === true, {
+    message: "Richtigkeit der Angaben muss bestätigt werden",
+  }),
+  sepaMandateAccepted: z.boolean().refine((v) => v === true, {
+    message: "Zustimmung zum SEPA-Lastschriftmandat ist erforderlich",
+  }),
+  meteringPoints: z
+    .array(meteringPointSchema)
+    .min(1, "Mindestens ein Zählpunkt ist erforderlich")
+    .max(10, "Maximal 10 Zählpunkte erlaubt"),
+  // configurable application-level fields
+  membershipStartDate: z.string().optional(),
+  personsInHousehold: z.number().int().min(0).optional(),
+  consumptionPreviousYear: z.number().int().min(0).optional(),
+  consumptionForecast: z.number().int().min(0).optional(),
+  feedInForecast: z.number().int().min(0).optional(),
+  pvPowerKwp: z.number().min(0).optional(),
+  heatPump: z.boolean().nullable().optional(),
+  electricVehicle: z.boolean().nullable().optional(),
+  electricHotWater: z.boolean().nullable().optional(),
+});
+
+export type RegistrationFormValues = z.infer<typeof baseSchema>;
+
+function buildFormSchema(fieldConfig: FieldConfig | undefined) {
+  const appFields = CONFIGURABLE_FIELDS.application;
+  const resolve = (name: string): FieldState => {
+    const f = appFields.find((x) => x.name === name);
+    return resolveFieldState(fieldConfig, name, f?.defaultState ?? "hidden");
+  };
+
+  return baseSchema.superRefine((data, ctx) => {
     const isPerson = data.memberType === "private" || data.memberType === "farmer";
+
+    // fixed required: person fields
     if (isPerson) {
       if (!data.firstname?.trim()) {
         ctx.addIssue({ code: "custom", path: ["firstname"], message: "Vorname ist erforderlich" });
       }
       if (!data.lastname?.trim()) {
         ctx.addIssue({ code: "custom", path: ["lastname"], message: "Nachname ist erforderlich" });
-      }
-      if (!data.birthDate) {
-        ctx.addIssue({ code: "custom", path: ["birthDate"], message: "Geburtsdatum ist erforderlich" });
       }
     } else {
       const orgLabel = data.memberType === "municipality" ? "Organisationsname"
@@ -119,9 +144,6 @@ const formSchema = z
         ctx.addIssue({ code: "custom", path: ["companyName"], message: `${orgLabel} ist erforderlich` });
       }
       if (data.memberType === "company") {
-        if (!data.uidNumber?.trim()) {
-          ctx.addIssue({ code: "custom", path: ["uidNumber"], message: "UID-Nummer ist erforderlich" });
-        }
         if (!data.registerNumber?.trim()) {
           ctx.addIssue({ code: "custom", path: ["registerNumber"], message: "Firmenbuchnummer ist erforderlich" });
         }
@@ -132,9 +154,38 @@ const formSchema = z
         }
       }
     }
-  });
 
-export type RegistrationFormValues = z.infer<typeof formSchema>;
+    // configurable required fields
+    const requireText = (name: string, path: keyof RegistrationFormValues, label: string) => {
+      if (resolve(name) === "required") {
+        const v = data[path];
+        if (!v && v !== 0) {
+          ctx.addIssue({ code: "custom", path: [path], message: `${label} ist erforderlich` });
+        }
+      }
+    };
+    const requireNum = (name: string, path: keyof RegistrationFormValues, label: string) => {
+      if (resolve(name) === "required") {
+        if (data[path] === undefined || data[path] === null) {
+          ctx.addIssue({ code: "custom", path: [path], message: `${label} ist erforderlich` });
+        }
+      }
+    };
+
+    requireText("phone", "phone", "Telefonnummer");
+    requireText("birth_date", "birthDate", "Geburtsdatum");
+    requireText("uid_number", "uidNumber", "UID-Nummer");
+    requireText("membership_start_date", "membershipStartDate", "Beitrittsdatum");
+    requireNum("persons_in_household", "personsInHousehold", "Anzahl Personen im Haushalt");
+    requireNum("consumption_previous_year", "consumptionPreviousYear", "Verbrauch Vorjahr");
+    requireNum("consumption_forecast", "consumptionForecast", "Verbrauch Prognose");
+    requireNum("feed_in_forecast", "feedInForecast", "Einspeisung Prognose");
+    requireNum("pv_power_kwp", "pvPowerKwp", "PV-Leistung");
+    requireNum("heat_pump", "heatPump", "Wärmepumpe vorhanden");
+    requireNum("electric_vehicle", "electricVehicle", "E-Auto vorhanden");
+    requireNum("electric_hot_water", "electricHotWater", "Warmwasser elektrisch");
+  });
+}
 
 // ---------- component ----------
 
@@ -152,8 +203,18 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
   const [apiError, setApiError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const fieldConfig = config.fieldConfig;
+
+  // returns the resolved FieldState for an application-level configurable field
+  function fs(name: string): FieldState {
+    const field = CONFIGURABLE_FIELDS.application.find((f) => f.name === name);
+    return resolveFieldState(fieldConfig, name, field?.defaultState ?? "hidden");
+  }
+
+  const req = (name: string) => fs(name) === "required" ? " *" : "";
+
   const form = useForm<RegistrationFormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(buildFormSchema(fieldConfig)),
     defaultValues: {
       memberType: "private",
       firstname: "",
@@ -174,15 +235,31 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
       accuracyConfirmed: false,
       sepaMandateAccepted: false,
       meteringPoints: [{ meteringPoint: "", direction: "CONSUMPTION", participationFactor: 100 }],
+      membershipStartDate: "",
+      personsInHousehold: undefined,
+      consumptionPreviousYear: undefined,
+      consumptionForecast: undefined,
+      feedInForecast: undefined,
+      pvPowerKwp: undefined,
+      heatPump: undefined,
+      electricVehicle: undefined,
+      electricHotWater: undefined,
     },
   });
 
   const memberType = form.watch("memberType");
   const isPerson = memberType === "private" || memberType === "farmer";
 
+  // extra configurable fields that default to "hidden"
+  const extraFieldNames = [
+    "membership_start_date", "persons_in_household", "consumption_previous_year",
+    "consumption_forecast", "feed_in_forecast", "pv_power_kwp",
+    "heat_pump", "electric_vehicle", "electric_hot_water",
+  ];
+  const hasExtraFields = extraFieldNames.some((n) => fs(n) !== "hidden");
+
   function onMemberTypeChange(value: MemberType) {
     form.setValue("memberType", value);
-    // Clear fields from the other group so stale data is not submitted
     if (value === "private" || value === "farmer") {
       form.setValue("companyName", "");
       form.setValue("uidNumber", "");
@@ -194,6 +271,18 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
       form.setValue("birthDate", "");
       form.clearErrors(["firstname", "lastname", "birthDate"]);
     }
+  }
+
+  function parseBoolSelect(v: string): boolean | null {
+    if (v === "true") return true;
+    if (v === "false") return false;
+    return null;
+  }
+
+  function boolSelectValue(v: boolean | null | undefined): string {
+    if (v === true) return "true";
+    if (v === false) return "false";
+    return "";
   }
 
   async function onSubmit(values: RegistrationFormValues) {
@@ -210,7 +299,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
         lastname: isPersonType ? values.lastname || undefined : undefined,
         birthDate: isPersonType ? values.birthDate || undefined : undefined,
         companyName: !isPersonType ? values.companyName || undefined : undefined,
-        uidNumber: !isPersonType ? values.uidNumber || undefined : undefined,
+        uidNumber: values.uidNumber || undefined,
         registerNumber: !isPersonType ? values.registerNumber || undefined : undefined,
         email: values.email,
         phone: values.phone || undefined,
@@ -224,7 +313,23 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
         iban: values.iban,
         accountHolder: values.accountHolder,
         sepaMandateAccepted: values.sepaMandateAccepted,
-        meteringPoints: values.meteringPoints,
+        membershipStartDate: values.membershipStartDate || undefined,
+        personsInHousehold: values.personsInHousehold,
+        consumptionPreviousYear: values.consumptionPreviousYear,
+        consumptionForecast: values.consumptionForecast,
+        feedInForecast: values.feedInForecast,
+        pvPowerKwp: values.pvPowerKwp,
+        heatPump: values.heatPump ?? null,
+        electricVehicle: values.electricVehicle ?? null,
+        electricHotWater: values.electricHotWater ?? null,
+        meteringPoints: values.meteringPoints.map((mp) => ({
+          meteringPoint: mp.meteringPoint,
+          direction: mp.direction,
+          participationFactor: mp.participationFactor,
+          transformer: mp.transformer || undefined,
+          installationNumber: mp.installationNumber || undefined,
+          installationName: mp.installationName || undefined,
+        })),
       });
 
       const submitted = await submitApplication(app.id);
@@ -391,21 +496,23 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                     )}
                   />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="birthDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Geburtsdatum *</FormLabel>
-                        <FormControl>
-                          <Input type="date" autoComplete="bday" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                {fs("birth_date") !== "hidden" && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="birthDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Geburtsdatum{req("birth_date")}</FormLabel>
+                          <FormControl>
+                            <Input type="date" autoComplete="bday" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
               </>
             ) : (
               <>
@@ -459,21 +566,21 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                       )}
                     />
                   )}
-                  <FormField
-                    control={form.control}
-                    name="uidNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          UID-Nummer{memberType === "company" ? " *" : ""}
-                        </FormLabel>
-                        <FormControl>
-                          <Input placeholder="ATU12345678" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {fs("uid_number") !== "hidden" && (
+                    <FormField
+                      control={form.control}
+                      name="uidNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>UID-Nummer{req("uid_number")}</FormLabel>
+                          <FormControl>
+                            <Input placeholder="ATU12345678" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </div>
               </>
             )}
@@ -497,24 +604,26 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Telefon</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="tel"
-                        placeholder="0664 / 1234567"
-                        autoComplete="tel"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {fs("phone") !== "hidden" && (
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Telefon{req("phone")}</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="tel"
+                          placeholder="0664 / 1234567"
+                          autoComplete="tel"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
             </div>
           </CardContent>
         </Card>
@@ -633,13 +742,243 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
           </CardContent>
         </Card>
 
+        {/* Extra configurable fields */}
+        {hasExtraFields && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Weitere Angaben</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {fs("membership_start_date") !== "hidden" && (
+                  <FormField
+                    control={form.control}
+                    name="membershipStartDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Aktiv am (Beitrittsdatum){req("membership_start_date")}</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                {fs("persons_in_household") !== "hidden" && (
+                  <FormField
+                    control={form.control}
+                    name="personsInHousehold"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Personen im Haushalt{req("persons_in_household")}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={0}
+                            placeholder="3"
+                            value={field.value ?? ""}
+                            onChange={(e) => field.onChange(isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber)}
+                            onBlur={field.onBlur}
+                            name={field.name}
+                            ref={field.ref}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                {fs("consumption_previous_year") !== "hidden" && (
+                  <FormField
+                    control={form.control}
+                    name="consumptionPreviousYear"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Verbrauch Vorjahr (kWh){req("consumption_previous_year")}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={0}
+                            placeholder="3500"
+                            value={field.value ?? ""}
+                            onChange={(e) => field.onChange(isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber)}
+                            onBlur={field.onBlur}
+                            name={field.name}
+                            ref={field.ref}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                {fs("consumption_forecast") !== "hidden" && (
+                  <FormField
+                    control={form.control}
+                    name="consumptionForecast"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Verbrauch Prognose (kWh){req("consumption_forecast")}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={0}
+                            placeholder="3500"
+                            value={field.value ?? ""}
+                            onChange={(e) => field.onChange(isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber)}
+                            onBlur={field.onBlur}
+                            name={field.name}
+                            ref={field.ref}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                {fs("feed_in_forecast") !== "hidden" && (
+                  <FormField
+                    control={form.control}
+                    name="feedInForecast"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Einspeisung Prognose (kWh){req("feed_in_forecast")}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={0}
+                            placeholder="2000"
+                            value={field.value ?? ""}
+                            onChange={(e) => field.onChange(isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber)}
+                            onBlur={field.onBlur}
+                            name={field.name}
+                            ref={field.ref}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                {fs("pv_power_kwp") !== "hidden" && (
+                  <FormField
+                    control={form.control}
+                    name="pvPowerKwp"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>PV-Leistung (kWp){req("pv_power_kwp")}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={0}
+                            step={0.1}
+                            placeholder="5.0"
+                            value={field.value ?? ""}
+                            onChange={(e) => field.onChange(isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber)}
+                            onBlur={field.onBlur}
+                            name={field.name}
+                            ref={field.ref}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                {fs("heat_pump") !== "hidden" && (
+                  <FormField
+                    control={form.control}
+                    name="heatPump"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Wärmepumpe vorhanden{req("heat_pump")}</FormLabel>
+                        <Select
+                          value={boolSelectValue(field.value)}
+                          onValueChange={(v) => field.onChange(v === "" ? null : parseBoolSelect(v))}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Bitte auswählen …" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="">Keine Angabe</SelectItem>
+                            <SelectItem value="true">Ja</SelectItem>
+                            <SelectItem value="false">Nein</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                {fs("electric_vehicle") !== "hidden" && (
+                  <FormField
+                    control={form.control}
+                    name="electricVehicle"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>E-Auto vorhanden{req("electric_vehicle")}</FormLabel>
+                        <Select
+                          value={boolSelectValue(field.value)}
+                          onValueChange={(v) => field.onChange(v === "" ? null : parseBoolSelect(v))}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Bitte auswählen …" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="">Keine Angabe</SelectItem>
+                            <SelectItem value="true">Ja</SelectItem>
+                            <SelectItem value="false">Nein</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                {fs("electric_hot_water") !== "hidden" && (
+                  <FormField
+                    control={form.control}
+                    name="electricHotWater"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Warmwasser elektrisch (Boiler){req("electric_hot_water")}</FormLabel>
+                        <Select
+                          value={boolSelectValue(field.value)}
+                          onValueChange={(v) => field.onChange(v === "" ? null : parseBoolSelect(v))}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Bitte auswählen …" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="">Keine Angabe</SelectItem>
+                            <SelectItem value="true">Ja</SelectItem>
+                            <SelectItem value="false">Nein</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Metering points */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Zählpunkte</CardTitle>
           </CardHeader>
           <CardContent>
-            <MeteringPointFields form={form} />
+            <MeteringPointFields form={form} fieldConfig={fieldConfig} />
             {form.formState.errors.meteringPoints?.message && (
               <p className="text-sm font-medium text-destructive mt-3">
                 {form.formState.errors.meteringPoints.message}
