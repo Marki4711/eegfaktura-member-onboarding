@@ -19,7 +19,31 @@
 
 ## Acceptance Criteria
 
-- [ ] Es existiert eine zentrale Liste konfigurierbarer Felder (z.B. `phone`, `uid_number`, `iban`, `birth_date`)
+- [ ] Es existiert eine zentrale Liste konfigurierbarer Felder mit folgendem Inhalt:
+
+  **Bestehende Felder (bereits im Formular, aber konfigurierbar):**
+  | Feldname | Typ | Beschreibung |
+  |---|---|---|
+  | `phone` | Text | Telefonnummer |
+  | `birth_date` | Datum | Geburtsdatum |
+  | `uid_number` | Text | UID-Nummer (Unternehmen) |
+
+  **Neue optionale Felder (Zählpunkt-Ebene):**
+  | Feldname | Typ | Beschreibung |
+  |---|---|---|
+  | `consumption_previous_year` | Zahl (kWh) | Verbrauch Vorjahr |
+  | `consumption_forecast` | Zahl (kWh) | Verbrauch Prognose |
+  | `feed_in_forecast` | Zahl (kWh) | Einspeisung Prognose |
+  | `pv_power_kwp` | Zahl (kWp) | PV-Leistung |
+
+  **Neue optionale Felder (Antrags-Ebene, Ja/Nein):**
+  | Feldname | Typ | Beschreibung |
+  |---|---|---|
+  | `heat_pump` | Boolean | Wärmepumpe vorhanden |
+  | `electric_vehicle` | Boolean | E-Auto vorhanden |
+  | `electric_hot_water` | Boolean | Warmwasser elektrisch (Boiler) |
+
+  **Offene Frage:** `persons_in_household` — im bisherigen Entwurf als Ja/Nein vorgesehen, aber "Anzahl" legt einen numerischen Wert nahe. Vor der Implementierung klären: Ganzzahl (z.B. 1–10) oder Bool (Mehrpersonenhaushalt Ja/Nein)?
 - [ ] Jedes konfigurierbare Feld hat pro EEG drei Zustände: `hidden` (nicht angezeigt), `optional`, `required`
 - [ ] Der `/api/public/registration/{rc_number}` Endpunkt liefert die Feldkonfiguration der EEG mit
 - [ ] Das Registrierungsformular rendert Felder dynamisch entsprechend der Konfiguration
@@ -35,6 +59,9 @@
 - Was passiert, wenn ein Admin ein Pflichtfeld deaktiviert, das in alten Anträgen belegt ist? → Konfigurationsänderung wird gespeichert, historische Daten bleiben erhalten.
 - Was passiert, wenn das IBAN-Feld deaktiviert wird, aber ein Antrag bereits eine IBAN enthält? → IBAN bleibt im Antrag gespeichert, wird aber im Formular nicht mehr abgefragt.
 - Was passiert, wenn zwei Admins desselben Tenants gleichzeitig die Konfiguration ändern? → Last-write-wins, keine Konflikterkennung nötig.
+- Zahlenfelder (kWh, kWp): Welcher Wertebereich ist gültig? → Positive Ganzzahl oder Dezimalzahl; Validierung bei Einreichung gemäß Feldtyp.
+- Boolean-Felder: Wird ein nicht ausgefülltes optionales Bool-Feld als `false` oder als `null` (keine Angabe) gespeichert? → Bei optionalen Feldern `null`, bei Pflichtfeld explizite Auswahl erzwingen.
+- Zählpunkt-Felder vs. Antrags-Felder: Verbrauchs- und Einspeisewerte sowie PV-Leistung sind pro Zählpunkt relevant; Haushaltsdaten (Wärmepumpe, E-Auto, Boiler) gehören zum Antrag. Die Feldkonfiguration muss diese Zuordnung kennen.
 
 ## Technical Requirements
 
