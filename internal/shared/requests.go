@@ -86,6 +86,7 @@ type RegistrationConfig struct {
 	Title       string            `json:"title"`
 	Active      bool              `json:"active"`
 	FieldConfig map[string]string `json:"fieldConfig"`
+	IntroText   *string           `json:"introText"`
 }
 
 // ApplicationResponse represents the response for application operations

@@ -558,6 +558,78 @@ Allowed states: `hidden`, `optional`, `required`
 
 ---
 
+## 6.8 Get intro text
+
+### GET `/api/admin/settings/intro-text?rc_number={rc_number}`
+
+Returns the stored intro text for an EEG. Returns `null` when no text is configured.
+
+### Query params
+- `rc_number` — required
+
+### Response 200
+```json
+{
+  "rcNumber": "RC123456",
+  "introText": "<p>Willkommen bei unserer Energiegemeinschaft!</p>"
+}
+```
+
+`introText` is `null` when no text has been saved yet.
+
+### Errors
+- `400` missing `rc_number`
+- `403` not authorized for this EEG
+- `404` RC number not found
+
+---
+
+## 6.9 Save intro text
+
+### PUT `/api/admin/settings/intro-text?rc_number={rc_number}`
+
+Saves the intro text for an EEG. The text is sanitized server-side (only `p`, `br`, `strong`, `b`, `em`, `i`, `ul`, `ol`, `li`, `a[href]` are allowed). Send `null` or empty string to clear the text.
+
+### Query params
+- `rc_number` — required
+
+### Request body
+```json
+{
+  "introText": "<p>Willkommen! Bitte füllen Sie das Formular aus.</p>"
+}
+```
+
+Send `{ "introText": null }` to clear the text (public form will show default text).
+
+### Response
+- `204 No Content` on success
+
+### Errors
+- `400` missing `rc_number` or invalid JSON
+- `403` not authorized for this EEG
+- `404` RC number not found
+
+---
+
+## 6.10 Public registration config — introText field
+
+`GET /api/public/registration/{rc_number}` now includes `introText` in the response:
+
+```json
+{
+  "rcNumber": "RC123456",
+  "title": "Mitglied werden",
+  "active": true,
+  "fieldConfig": { ... },
+  "introText": "<p>Willkommen!</p>"
+}
+```
+
+`introText` is `null` when no text is configured. The frontend displays a default text in that case.
+
+---
+
 ## 7. Error model
 
 ### Validation error

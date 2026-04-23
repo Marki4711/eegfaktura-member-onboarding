@@ -131,6 +131,8 @@ func main() {
 		r.Route("/settings", func(r chi.Router) {
 			r.Get("/fields", adminHandler.GetFieldConfig)
 			r.Put("/fields", adminHandler.SaveFieldConfig)
+			r.Get("/intro-text", adminHandler.GetIntroText)
+			r.Put("/intro-text", adminHandler.SaveIntroText)
 		})
 	})
 

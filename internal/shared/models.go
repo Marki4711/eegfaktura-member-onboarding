@@ -13,6 +13,7 @@ type RegistrationEntrypoint struct {
 	RCNumber     string    `json:"rcNumber"     db:"rc_number"`
 	IsActive     bool      `json:"isActive"     db:"is_active"`
 	ContactEmail *string   `json:"contactEmail" db:"contact_email"`
+	IntroText    *string   `json:"introText"    db:"intro_text"`
 	CreatedAt    time.Time `json:"createdAt"    db:"created_at"`
 	UpdatedAt    time.Time `json:"updatedAt"    db:"updated_at"`
 }
