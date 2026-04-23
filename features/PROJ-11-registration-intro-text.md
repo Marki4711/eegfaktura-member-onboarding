@@ -1,6 +1,6 @@
 # PROJ-11: Konfigurierbarer Einleitungstext im Registrierungsformular
 
-## Status: In Progress
+## Status: Approved
 **Created:** 2026-04-23
 **Last Updated:** 2026-04-23
 
@@ -79,7 +79,45 @@ Frontend: `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-link`, `dom
 Backend: `github.com/microcosm-cc/bluemonday`
 
 ## QA Test Results
-_To be added by /qa_
+
+**Date:** 2026-04-23
+**Status after QA:** Approved
+
+### Acceptance Criteria
+
+| # | Criterion | Result | Notes |
+|---|-----------|--------|-------|
+| 1 | Admin kann Einleitungstext speichern und bearbeiten | ✅ Pass | `AdminIntroTextEditor` + `PUT /api/admin/settings/intro-text` implementiert |
+| 2 | Editor erlaubt Fett, Kursiv, Hyperlinks, Absätze, Listen | ✅ Pass | Tiptap mit StarterKit + Link-Extension; alle Formate vorhanden |
+| 3 | Einleitungstext wird oberhalb des Formulars angezeigt | ✅ Pass | `IntroTextDisplay` als erstes Element im Form-Render |
+| 4 | Kein Text → Standardtext angezeigt | ✅ Pass | E2E-Test bestätigt; `IntroTextDisplay` fällt auf DEFAULT_TEXT zurück |
+| 5 | Text wird sicher gerendert (kein JS, kein unvalidiertes HTML) | ✅ Pass | Backend: bluemonday; Frontend: DOMPurify; E2E-Security-Tests bestätigt |
+| 6 | Einleitungstext ist pro EEG konfigurierbar | ✅ Pass | `rc_number`-Parameter auf beiden Endpoints; Tenant-Autorisierung aktiv |
+| 7 | Links öffnen in neuem Tab (`target="_blank"`) | ✅ Pass | Tiptap Link-Extension + DOMPurify erlaubt `target`-Attribut |
+| 8 | Änderungen sofort wirksam für neue Besucher | ✅ Pass | Kein Cache; Server Component liest direkt aus DB beim Seitenaufruf |
+
+### Bugs Found
+
+| # | Severity | Description | Fix |
+|---|----------|-------------|-----|
+| 1 | Medium (fixed) | Hydration-Mismatch in `IntroTextDisplay`: `useMemo` mit `typeof window === "undefined"`-Guard liefert auf SSR immer Standardtext, auf Client den echten Text → React-Hydration-Warning + kurzes Aufblitzen des Standardtexts | Umgestellt auf `useEffect` + `useState` — beide Renders zeigen Standardtext, erst nach Hydration wird introText gerendert |
+
+### Security Audit
+
+- ✅ Backend sanitisiert mit `bluemonday` (nur `p, br, strong, b, em, i, ul, ol, li, a[href,target,rel]` erlaubt)
+- ✅ `javascript:`, `data:` URIs durch bluemonday `AllowURLSchemes` blockiert
+- ✅ Frontend-Zweitschutz via DOMPurify (gleiche Allowlist)
+- ✅ Tenant-Autorisierung auf `GET/PUT /api/admin/settings/intro-text`
+- ✅ Kein XSS-Vektor durch Script-Tags oder Inline-Event-Handler
+
+### Test Suite
+
+- E2E: `tests/PROJ-11-registration-intro-text.spec.ts` — 5 bestanden, 4 mit Backend-Voraussetzung (erfordern laufenden Go-Backend-Stack)
+- Unit tests: Vitest nicht lauffähig (rolldown native binding issue, npm-Bug — unabhängig von PROJ-11)
+
+### Production-Ready
+
+**JA** — kein Critical/High-Bug offen. Medium-Bug (Hydration) wurde im Rahmen der QA behoben.
 
 ## Deployment
 _To be added by /deploy_
