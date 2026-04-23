@@ -44,4 +44,9 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(0.7);
+    cursor: pointer;
+  }
 }
