@@ -40,7 +40,15 @@ Fields:
 - `id`
 - `rc_number`
 - `is_active`
+- `contact_email` — nullable, EEG notification email address
 - `intro_text` — nullable, sanitized HTML string for the public registration form
+- `eeg_name` — nullable, official name of the energy community
+- `eeg_street` — nullable, street of the EEG address
+- `eeg_street_number` — nullable, house number of the EEG address
+- `eeg_zip` — nullable, postal code of the EEG address
+- `eeg_city` — nullable, city of the EEG address
+- `creditor_id` — nullable, SEPA creditor ID (max 35 chars)
+- `sepa_mandate_enabled` — boolean, default false; controls whether SEPA mandate PDF is attached to welcome email
 - `created_at`
 - `updated_at`
 

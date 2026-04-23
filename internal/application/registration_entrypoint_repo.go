@@ -37,13 +37,19 @@ func (r *RegistrationEntrypointRepository) UpsertForRCNumbers(rcNumbers []string
 // Returns shared.ErrNotFound when no row matches.
 func (r *RegistrationEntrypointRepository) GetByRCNumber(rcNumber string) (*shared.RegistrationEntrypoint, error) {
 	query := `
-		SELECT id, rc_number, is_active, contact_email, intro_text, created_at, updated_at
+		SELECT id, rc_number, is_active, contact_email, intro_text,
+		       eeg_name, eeg_street, eeg_street_number, eeg_zip, eeg_city,
+		       creditor_id, sepa_mandate_enabled,
+		       created_at, updated_at
 		FROM member_onboarding.registration_entrypoint
 		WHERE rc_number = $1`
 
 	ep := &shared.RegistrationEntrypoint{}
 	err := r.db.QueryRow(query, rcNumber).Scan(
-		&ep.ID, &ep.RCNumber, &ep.IsActive, &ep.ContactEmail, &ep.IntroText, &ep.CreatedAt, &ep.UpdatedAt,
+		&ep.ID, &ep.RCNumber, &ep.IsActive, &ep.ContactEmail, &ep.IntroText,
+		&ep.EEGName, &ep.EEGStreet, &ep.EEGStreetNumber, &ep.EEGZip, &ep.EEGCity,
+		&ep.CreditorID, &ep.SEPAMandateEnabled,
+		&ep.CreatedAt, &ep.UpdatedAt,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -52,6 +58,33 @@ func (r *RegistrationEntrypointRepository) GetByRCNumber(rcNumber string) (*shar
 		return nil, fmt.Errorf("failed to get registration entrypoint: %w", err)
 	}
 	return ep, nil
+}
+
+// SaveEEGSettings persists the EEG master data and SEPA mandate toggle for the given RC number.
+func (r *RegistrationEntrypointRepository) SaveEEGSettings(
+	rcNumber string,
+	eegName, eegStreet, eegStreetNumber, eegZip, eegCity, creditorID *string,
+	sepaMandateEnabled bool,
+) error {
+	result, err := r.db.Exec(`
+		UPDATE member_onboarding.registration_entrypoint
+		SET eeg_name = $1, eeg_street = $2, eeg_street_number = $3,
+		    eeg_zip = $4, eeg_city = $5, creditor_id = $6,
+		    sepa_mandate_enabled = $7, updated_at = NOW()
+		WHERE rc_number = $8`,
+		eegName, eegStreet, eegStreetNumber, eegZip, eegCity, creditorID,
+		sepaMandateEnabled, rcNumber)
+	if err != nil {
+		return fmt.Errorf("failed to save EEG settings for %s: %w", rcNumber, err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check rows affected: %w", err)
+	}
+	if rows == 0 {
+		return shared.ErrNotFound
+	}
+	return nil
 }
 
 // SaveIntroText persists the sanitized intro_text for the given RC number.

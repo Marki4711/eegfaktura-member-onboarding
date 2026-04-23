@@ -15,14 +15,14 @@ var templateFS embed.FS
 
 // MailService defines the contract for sending submission notification emails.
 type MailService interface {
-	SendSubmissionEmails(app *shared.Application, meteringPoints []shared.MeteringPoint, entrypoint *shared.RegistrationEntrypoint)
+	SendSubmissionEmails(app *shared.Application, meteringPoints []shared.MeteringPoint, entrypoint *shared.RegistrationEntrypoint, attachment []byte)
 	SendMemberConfirmation(app *shared.Application) error
 }
 
 // NoOpMailService silently drops all mail calls. Used when SMTP is not configured.
 type NoOpMailService struct{}
 
-func (n *NoOpMailService) SendSubmissionEmails(_ *shared.Application, _ []shared.MeteringPoint, _ *shared.RegistrationEntrypoint) {
+func (n *NoOpMailService) SendSubmissionEmails(_ *shared.Application, _ []shared.MeteringPoint, _ *shared.RegistrationEntrypoint, _ []byte) {
 }
 func (n *NoOpMailService) SendMemberConfirmation(_ *shared.Application) error { return nil }
 
@@ -62,7 +62,8 @@ type eegTemplateData struct {
 
 // SendSubmissionEmails sends the member confirmation and, if a contact email is
 // configured, the EEG notification. Errors are logged but never propagate to the caller.
-func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, meteringPoints []shared.MeteringPoint, entrypoint *shared.RegistrationEntrypoint) {
+// If attachment is non-nil it is appended to the member confirmation email as sepa-lastschriftmandat.pdf.
+func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, meteringPoints []shared.MeteringPoint, entrypoint *shared.RegistrationEntrypoint, attachment []byte) {
 	slog.Info("mail: sending submission emails", "application_id", app.ID, "ref", app.ReferenceNumber, "to", app.Email)
 
 	// Member confirmation
@@ -75,10 +76,16 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 		slog.Error("mail: failed to render member template", "application_id", app.ID, "error", err)
 	} else {
 		subject := fmt.Sprintf("Ihre Beitrittserklärung wurde eingereicht (%s)", app.ReferenceNumber)
-		if err := s.sender.Send(app.Email, subject, memberBuf.String()); err != nil {
-			slog.Error("mail: failed to send member confirmation", "application_id", app.ID, "to", app.Email, "error", err)
+		var sendErr error
+		if len(attachment) > 0 {
+			sendErr = s.sender.SendWithAttachment(app.Email, subject, memberBuf.String(), "sepa-lastschriftmandat.pdf", attachment)
 		} else {
-			slog.Info("mail: member confirmation sent", "application_id", app.ID, "to", app.Email)
+			sendErr = s.sender.Send(app.Email, subject, memberBuf.String())
+		}
+		if sendErr != nil {
+			slog.Error("mail: failed to send member confirmation", "application_id", app.ID, "to", app.Email, "error", sendErr)
+		} else {
+			slog.Info("mail: member confirmation sent", "application_id", app.ID, "to", app.Email, "has_attachment", len(attachment) > 0)
 		}
 	}
 

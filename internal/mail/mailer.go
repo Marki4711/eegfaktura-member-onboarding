@@ -1,6 +1,7 @@
 package mail
 
 import (
+	"bytes"
 	"fmt"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 // Extracting it as an interface allows test doubles to be injected.
 type Sender interface {
 	Send(to, subject, htmlBody string) error
+	SendWithAttachment(to, subject, htmlBody, attachmentName string, attachmentData []byte) error
 }
 
 // Mailer wraps SMTP credentials and implements Sender.
@@ -61,6 +63,44 @@ func (m *Mailer) Send(to, subject, htmlBody string) error {
 
 	if err := client.DialAndSend(msg); err != nil {
 		return fmt.Errorf("failed to send mail: %w", err)
+	}
+	return nil
+}
+
+// SendWithAttachment delivers an HTML email with a single binary attachment.
+func (m *Mailer) SendWithAttachment(to, subject, htmlBody, attachmentName string, attachmentData []byte) error {
+	msg := gomail.NewMsg()
+	if err := msg.From(m.from); err != nil {
+		return fmt.Errorf("invalid from address: %w", err)
+	}
+	if err := msg.To(to); err != nil {
+		return fmt.Errorf("invalid to address: %w", err)
+	}
+	msg.Subject(subject)
+	msg.SetBodyString(gomail.TypeTextHTML, htmlBody)
+	if err := msg.AttachReader(attachmentName, bytes.NewReader(attachmentData)); err != nil {
+		return fmt.Errorf("failed to attach file: %w", err)
+	}
+
+	opts := []gomail.Option{
+		gomail.WithPort(m.port),
+		gomail.WithTLSPolicy(gomail.TLSOpportunistic),
+		gomail.WithTimeout(10 * time.Second),
+	}
+	if m.user != "" {
+		opts = append(opts,
+			gomail.WithSMTPAuth(gomail.SMTPAuthPlain),
+			gomail.WithUsername(m.user),
+			gomail.WithPassword(m.password),
+		)
+	}
+
+	client, err := gomail.NewClient(m.host, opts...)
+	if err != nil {
+		return fmt.Errorf("failed to create mail client: %w", err)
+	}
+	if err := client.DialAndSend(msg); err != nil {
+		return fmt.Errorf("failed to send mail with attachment: %w", err)
 	}
 	return nil
 }
