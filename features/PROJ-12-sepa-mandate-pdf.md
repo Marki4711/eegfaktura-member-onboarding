@@ -1,6 +1,6 @@
 # PROJ-12: SEPA-Lastschriftmandat als PDF-Anhang im Willkommensmail
 
-## Status: Architected
+## Status: In Progress
 **Created:** 2026-04-23
 **Last Updated:** 2026-04-23
 

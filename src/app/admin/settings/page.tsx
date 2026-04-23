@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { AdminFieldConfigEditor } from "@/components/admin-field-config-editor";
 import { AdminIntroTextEditor } from "@/components/admin-intro-text-editor";
+import { AdminEEGSettingsEditor } from "@/components/admin-eeg-settings-editor";
 import { Separator } from "@/components/ui/separator";
 import { getFieldConfig, type FieldConfig } from "@/lib/api";
 
@@ -101,6 +102,20 @@ export default function SettingsPage() {
             Leer lassen für den Standardtext.
           </p>
           <AdminIntroTextEditor rcNumber={selectedRc} />
+        </div>
+      )}
+
+      <Separator />
+
+      {/* EEG-Stammdaten & SEPA-Mandat */}
+      {selectedRc && (
+        <div>
+          <h2 className="text-base font-medium mb-1">EEG-Stammdaten &amp; SEPA-Mandat</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Stammdaten der Energiegemeinschaft für das SEPA-Lastschriftmandat. Aktivieren Sie den Schalter,
+            damit das Mandat als PDF-Anhang im Willkommensmail verschickt wird.
+          </p>
+          <AdminEEGSettingsEditor rcNumber={selectedRc} />
         </div>
       )}
 

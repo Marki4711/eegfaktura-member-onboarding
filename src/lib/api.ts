@@ -428,6 +428,29 @@ export function saveFieldConfig(rcNumber: string, config: FieldConfig, token?: s
   );
 }
 
+export interface EEGSettings {
+  rcNumber: string;
+  eegName: string | null;
+  eegStreet: string | null;
+  eegStreetNumber: string | null;
+  eegZip: string | null;
+  eegCity: string | null;
+  creditorId: string | null;
+  sepaMandateEnabled: boolean;
+}
+
+export function getEEGSettings(rcNumber: string, token?: string): Promise<EEGSettings> {
+  return adminRequest<EEGSettings>(`/api/admin/settings/eeg?rc_number=${encodeURIComponent(rcNumber)}`, token);
+}
+
+export function saveEEGSettings(rcNumber: string, settings: Omit<EEGSettings, "rcNumber">, token?: string): Promise<void> {
+  return adminRequest<void>(
+    `/api/admin/settings/eeg?rc_number=${encodeURIComponent(rcNumber)}`,
+    token,
+    { method: "PUT", body: JSON.stringify(settings) }
+  );
+}
+
 export function getIntroText(rcNumber: string, token?: string): Promise<{ rcNumber: string; introText: string | null }> {
   return adminRequest(`/api/admin/settings/intro-text?rc_number=${encodeURIComponent(rcNumber)}`, token);
 }
