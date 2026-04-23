@@ -26,6 +26,6 @@ Central tracking for all features.
 | PROJ-9 | EEG-spezifische Rechtsdokumente | Planned | `features/PROJ-9-legal-documents.md` | 2026-04-21 |
 | PROJ-10 | Admin Notifications | Planned | `features/PROJ-10-admin-notifications.md` | 2026-04-22 |
 | PROJ-11 | Konfigurierbarer Einleitungstext | Deployed | `features/PROJ-11-registration-intro-text.md` | 2026-04-23 |
-| PROJ-12 | SEPA-Lastschriftmandat PDF | Planned | `features/PROJ-12-sepa-mandate-pdf.md` | 2026-04-23 |
+| PROJ-12 | SEPA-Lastschriftmandat PDF | Architected | `features/PROJ-12-sepa-mandate-pdf.md` | 2026-04-23 |
 
 ## Next Available ID: PROJ-13
