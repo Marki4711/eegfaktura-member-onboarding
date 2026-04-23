@@ -478,7 +478,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                       <FormItem>
                         <FormLabel>Vorname *</FormLabel>
                         <FormControl>
-                          <Input placeholder="Max" autoComplete="given-name" {...field} />
+                          <Input autoComplete="given-name" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -491,7 +491,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                       <FormItem>
                         <FormLabel>Nachname *</FormLabel>
                         <FormControl>
-                          <Input placeholder="Mustermann" autoComplete="family-name" {...field} />
+                          <Input autoComplete="family-name" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -531,17 +531,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                           : "Firmenname *"}
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder={
-                            memberType === "municipality"
-                              ? "Gemeinde Musterort"
-                              : memberType === "association"
-                              ? "Musterverein"
-                              : "Muster GmbH"
-                          }
-                          autoComplete="organization"
-                          {...field}
-                        />
+                        <Input autoComplete="organization" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -558,10 +548,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                             {memberType === "association" ? "Vereinsnummer *" : "Firmenbuchnummer *"}
                           </FormLabel>
                           <FormControl>
-                            <Input
-                              placeholder={memberType === "association" ? "ZVR 123456789" : "FN 123456 a"}
-                              {...field}
-                            />
+                            <Input {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -576,7 +563,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                         <FormItem>
                           <FormLabel>UID-Nummer{memberType === "company" ? " *" : ""}</FormLabel>
                           <FormControl>
-                            <Input placeholder="ATU12345678" {...field} />
+                            <Input {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -595,12 +582,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                   <FormItem>
                     <FormLabel>E-Mail *</FormLabel>
                     <FormControl>
-                      <Input
-                        type="email"
-                        placeholder="max@example.at"
-                        autoComplete="email"
-                        {...field}
-                      />
+                      <Input type="email" autoComplete="email" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -614,12 +596,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                     <FormItem>
                       <FormLabel>Telefon{req("phone")}</FormLabel>
                       <FormControl>
-                        <Input
-                          type="tel"
-                          placeholder="0664 / 1234567"
-                          autoComplete="tel"
-                          {...field}
-                        />
+                        <Input type="tel" autoComplete="tel" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -645,7 +622,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                     <FormItem>
                       <FormLabel>Straße *</FormLabel>
                       <FormControl>
-                        <Input placeholder="Musterstraße" autoComplete="address-line1" {...field} />
+                        <Input autoComplete="address-line1" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -659,7 +636,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                   <FormItem>
                     <FormLabel>Nr. *</FormLabel>
                     <FormControl>
-                      <Input placeholder="1a" {...field} />
+                      <Input {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -675,7 +652,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                   <FormItem>
                     <FormLabel>PLZ *</FormLabel>
                     <FormControl>
-                      <Input placeholder="4020" autoComplete="postal-code" {...field} />
+                      <Input autoComplete="postal-code" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -689,7 +666,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                     <FormItem>
                       <FormLabel>Ort *</FormLabel>
                       <FormControl>
-                        <Input placeholder="Musterstadt" autoComplete="address-level2" {...field} />
+                        <Input autoComplete="address-level2" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -716,7 +693,6 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                     <FormControl>
                       <Input
                         {...field}
-                        placeholder="AT12 3456 7890 1234 5678"
                         autoComplete="off"
                         onChange={(e) =>
                           field.onChange(e.target.value.toUpperCase())
@@ -734,7 +710,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                   <FormItem>
                     <FormLabel>Kontoinhaber:in *</FormLabel>
                     <FormControl>
-                      <Input placeholder="Max Mustermann" autoComplete="name" {...field} />
+                      <Input autoComplete="name" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -778,7 +754,6 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                           <Input
                             type="number"
                             min={0}
-                            placeholder="3"
                             value={field.value ?? ""}
                             onChange={(e) => field.onChange(isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber)}
                             onBlur={field.onBlur}
@@ -802,7 +777,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                           <Input
                             type="number"
                             min={0}
-                            placeholder="3500"
+
                             value={field.value ?? ""}
                             onChange={(e) => field.onChange(isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber)}
                             onBlur={field.onBlur}
@@ -826,7 +801,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                           <Input
                             type="number"
                             min={0}
-                            placeholder="3500"
+
                             value={field.value ?? ""}
                             onChange={(e) => field.onChange(isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber)}
                             onBlur={field.onBlur}
@@ -850,7 +825,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                           <Input
                             type="number"
                             min={0}
-                            placeholder="2000"
+
                             value={field.value ?? ""}
                             onChange={(e) => field.onChange(isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber)}
                             onBlur={field.onBlur}
@@ -875,7 +850,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                             type="number"
                             min={0}
                             step={0.1}
-                            placeholder="5.0"
+
                             value={field.value ?? ""}
                             onChange={(e) => field.onChange(isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber)}
                             onBlur={field.onBlur}
