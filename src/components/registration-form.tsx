@@ -415,6 +415,9 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6" noValidate>
+        <p className="text-muted-foreground -mt-2">
+          Füllen Sie das Formular aus, um Ihre Mitgliedschaft zu beantragen.
+        </p>
         {apiError && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
