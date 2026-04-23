@@ -50,6 +50,25 @@ Rules:
 
 ---
 
+### 3.1a `member_onboarding.field_config`
+
+Per-EEG configuration of optional form fields. Only explicitly configured values are stored (sparse table); missing entries fall back to system defaults.
+
+Fields:
+- `id`
+- `rc_number` — references `registration_entrypoint(rc_number)`, ON DELETE CASCADE
+- `field_name` — name of the configurable field (e.g. `heat_pump`, `transformer`)
+- `state` — `hidden` | `optional` | `required`
+- `updated_at`
+
+Rules:
+- `(rc_number, field_name)` is unique
+- `field_name` must be one of the centrally registered configurable fields (enforced in application code)
+- `state` is constrained to `hidden`, `optional`, `required` (DB CHECK constraint)
+- missing entries default to `hidden` for new fields; `optional` for `phone`, `birth_date`, `uid_number`
+
+---
+
 ### 3.2 `member_onboarding.application`
 
 Central main table for an onboarding application.
@@ -78,6 +97,10 @@ Fields:
 - `firstname`
 - `lastname`
 - `birth_date`
+- `company_name`
+- `uid_number`
+- `register_number`
+- `member_type`
 - `email`
 - `phone`
 - `resident_street`
@@ -102,6 +125,15 @@ Fields:
 - `import_error_message`
 - `created_at`
 - `updated_at`
+- `membership_start_date` *(nullable, configurable)*
+- `persons_in_household` *(nullable integer, configurable)*
+- `consumption_previous_year` *(nullable integer kWh, configurable)*
+- `consumption_forecast` *(nullable integer kWh, configurable)*
+- `feed_in_forecast` *(nullable integer kWh, configurable)*
+- `pv_power_kwp` *(nullable decimal kWp, configurable)*
+- `heat_pump` *(nullable boolean, configurable)*
+- `electric_vehicle` *(nullable boolean, configurable)*
+- `electric_hot_water` *(nullable boolean, configurable)*
 
 ### 3.3 `member_onboarding.metering_point`
 
@@ -112,6 +144,10 @@ Fields:
 - `application_id`
 - `metering_point`
 - `direction`
+- `participation_factor`
+- `transformer` *(nullable, configurable)*
+- `installation_number` *(nullable, configurable)*
+- `installation_name` *(nullable, configurable)*
 - `created_at`
 - `updated_at`
 

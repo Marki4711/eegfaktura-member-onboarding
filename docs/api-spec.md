@@ -78,9 +78,17 @@ No direct access to eegFaktura core tables takes place.
 {
   "rcNumber": "RC123456",
   "title": "Become a member",
-  "active": true
+  "active": true,
+  "fieldConfig": {
+    "phone": "optional",
+    "birth_date": "optional",
+    "heat_pump": "required",
+    "transformer": "hidden"
+  }
 }
 ```
+
+`fieldConfig` contains only explicitly configured fields. Missing fields fall back to system defaults (`hidden` for new fields, `optional` for `phone`, `birth_date`, `uid_number`). The frontend uses this to show/hide/require fields dynamically.
 
 ### Errors
 - `404` if `rc_number` is not found in `registration_entrypoint`
@@ -117,11 +125,26 @@ Creates a new application.
   "meteringPoints": [
     {
       "meteringPoint": "AT0031000000000000000000990022105",
-      "direction": "CONSUMPTION"
+      "direction": "CONSUMPTION",
+      "participationFactor": 1.0,
+      "transformer": "T1",
+      "installationNumber": "12345",
+      "installationName": "PV Dach"
     }
-  ]
+  ],
+  "membershipStartDate": "2026-05-01",
+  "personsInHousehold": 3,
+  "consumptionPreviousYear": 4200,
+  "consumptionForecast": 4000,
+  "feedInForecast": 6000,
+  "pvPowerKwp": 9.9,
+  "heatPump": true,
+  "electricVehicle": false,
+  "electricHotWater": null
 }
 ```
+
+All fields under `meteringPoints[].transformer/installationNumber/installationName` and the application-level energy/household fields are optional by default. Whether they are required is determined by the EEG's `fieldConfig` (see 5.1). Fields not relevant to the current `memberType` are ignored.
 
 ### Rules
 - `rcNumber` required
@@ -474,6 +497,64 @@ Returns the admin list.
 - set `import_error_message`
 - `status = import_failed`
 - write `status_log`
+
+---
+
+## 6.6 Get field config
+
+### GET `/api/admin/settings/fields?rc_number={rc_number}`
+
+Returns the stored field configuration for an EEG. Only explicitly saved overrides are returned; the frontend applies defaults for missing fields.
+
+### Query params
+- `rc_number` — required
+
+### Response 200
+```json
+{
+  "rcNumber": "RC123456",
+  "fieldConfig": {
+    "heat_pump": "required",
+    "transformer": "optional"
+  }
+}
+```
+
+### Errors
+- `400` missing `rc_number`
+- `403` not authorized for this EEG
+
+---
+
+## 6.7 Save field config
+
+### PUT `/api/admin/settings/fields?rc_number={rc_number}`
+
+Replaces the field configuration for an EEG atomically. Unknown field names and invalid states are silently skipped.
+
+### Query params
+- `rc_number` — required
+
+### Request body
+```json
+{
+  "phone": "required",
+  "birth_date": "optional",
+  "heat_pump": "required",
+  "transformer": "hidden"
+}
+```
+
+Allowed field names: `phone`, `birth_date`, `uid_number`, `membership_start_date`, `persons_in_household`, `consumption_previous_year`, `consumption_forecast`, `feed_in_forecast`, `pv_power_kwp`, `heat_pump`, `electric_vehicle`, `electric_hot_water`, `transformer`, `installation_number`, `installation_name`
+
+Allowed states: `hidden`, `optional`, `required`
+
+### Response
+- `204 No Content` on success
+
+### Errors
+- `400` missing `rc_number` or invalid JSON
+- `403` not authorized for this EEG
 
 ---
 
