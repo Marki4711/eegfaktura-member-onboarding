@@ -11,7 +11,6 @@ import (
 var knownConfigurableFields = map[string]string{
 	"phone":                    "optional",
 	"birth_date":               "optional",
-	"uid_number":               "optional",
 	"membership_start_date":    "hidden",
 	"persons_in_household":     "hidden",
 	"consumption_previous_year": "hidden",
