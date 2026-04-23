@@ -34,7 +34,7 @@ export function IntroTextDisplay({ introText }: Props) {
 
   return (
     <div
-      className="prose prose-sm dark:prose-invert max-w-none text-foreground [&_a]:text-primary [&_a]:underline"
+      className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground [&_a]:text-primary [&_a]:underline"
       dangerouslySetInnerHTML={{ __html: sanitized }}
     />
   );
