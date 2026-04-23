@@ -1,8 +1,9 @@
 # PROJ-11: Konfigurierbarer Einleitungstext im Registrierungsformular
 
-## Status: Approved
+## Status: Deployed
 **Created:** 2026-04-23
 **Last Updated:** 2026-04-23
+**Deployed:** 2026-04-23
 
 ## Dependencies
 - Requires: PROJ-1 (Public Registration) — Einleitungstext wird im öffentlichen Formular angezeigt
@@ -120,4 +121,19 @@ Backend: `github.com/microcosm-cc/bluemonday`
 **JA** — kein Critical/High-Bug offen. Medium-Bug (Hydration) wurde im Rahmen der QA behoben.
 
 ## Deployment
-_To be added by /deploy_
+
+**Date:** 2026-04-23
+**Tag:** `v1.9.0-PROJ-11`
+
+### DB Migration
+Migration `000012_add_intro_text` must be applied in production:
+```
+migrate -path db/migrations -database "$DATABASE_URL" up
+```
+Adds column `intro_text TEXT NULL` to `member_onboarding.registration_entrypoint`.
+
+### Deployment Notes
+- No new environment variables required
+- Migration is backward-compatible (nullable column, no default needed)
+- Admin intro text editor available at `/admin/settings`
+- Public registration form falls back to default text when `intro_text` is NULL
