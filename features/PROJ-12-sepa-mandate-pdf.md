@@ -1,6 +1,6 @@
 # PROJ-12: SEPA-Lastschriftmandat als PDF-Anhang im Willkommensmail
 
-## Status: Planned
+## Status: Architected
 **Created:** 2026-04-23
 **Last Updated:** 2026-04-23
 
@@ -76,3 +76,89 @@
 
 ---
 <!-- Sections below are added by subsequent skills -->
+
+## Tech Design (Solution Architect)
+
+### Betroffene Komponenten
+
+Sowohl Backend als auch Frontend — folgt dem gleichen Muster wie PROJ-11 (Einleitungstext).
+
+```
+Admin-Bereich
+└── Settings Page (bestehend)
+    ├── Einleitungstext-Editor (bestehend, PROJ-11)
+    ├── [NEU] AdminEEGSettingsEditor
+    │   ├── EEG-Name (Texteingabe)
+    │   ├── EEG-Anschrift (Texteingabe, einzeilig)
+    │   ├── Creditor-ID (Texteingabe)
+    │   ├── Toggle: „SEPA-Lastschriftmandat anhängen"
+    │   ├── Warnung wenn Toggle aktiv aber Felder unvollständig
+    │   └── Speichern-Button
+    └── Formular-Felder-Editor (bestehend, PROJ-8)
+
+Backend
+├── internal/pdf/                  ← neu
+│   └── generator.go               ← Interface + SEPA-Mandat-Implementierung
+├── internal/application/
+│   └── registration_entrypoint_repo.go  ← erweitert: neue Felder lesen/schreiben
+├── internal/http/
+│   └── admin.go                   ← erweitert: 2 neue Endpunkte
+├── internal/mail/
+│   └── service.go                 ← erweitert: optionaler PDF-Anhang
+├── internal/shared/
+│   └── models.go                  ← erweitert: 4 neue Felder in RegistrationEntrypoint
+└── db/migrations/
+    ├── 000013_add_sepa_fields.up.sql    ← neu
+    └── 000013_add_sepa_fields.down.sql  ← neu
+```
+
+### Datenmodell-Erweiterung
+
+`registration_entrypoint` erhält vier neue Felder:
+
+| Feld | Typ | Pflicht | Bedeutung |
+|------|-----|---------|-----------|
+| `eeg_name` | TEXT | nein (NULL) | Offizieller Name der Energiegemeinschaft |
+| `eeg_address` | TEXT | nein (NULL) | Anschrift als einzeiliger Freitext |
+| `creditor_id` | VARCHAR(35) | nein (NULL) | SEPA Creditor-ID (max. 35 Zeichen, AT-Format: AT28ZZZ...) |
+| `sepa_mandate_enabled` | BOOLEAN | ja, DEFAULT FALSE | Steuert ob PDF-Anhang gesendet wird |
+
+PDF wird nur generiert wenn: `sepa_mandate_enabled = true` UND alle drei Textfelder befüllt sind.
+
+### API-Änderungen
+
+Zwei neue Admin-Endpunkte (folgen exakt dem Muster der bestehenden `/settings/intro-text`-Endpunkte):
+
+- `GET /api/admin/settings/eeg?rc_number=...` — liefert aktuelle EEG-Stammdaten + SEPA-Toggle
+- `PUT /api/admin/settings/eeg?rc_number=...` — speichert alle vier Felder in einem Request
+
+Beide Endpunkte: Keycloak-gesichert, Tenant-Autorisierung (nur eigene RC-Nummer).
+
+### PDF-Generierung
+
+Neues Package `internal/pdf/`:
+- **Interface** `SEPAMandateGenerator` für Testbarkeit (Mock in Tests)
+- **Implementierung** mit `github.com/go-pdf/fpdf` (reines Go, kein CGO, DIN A4)
+- Eingabe: EEG-Daten (Name, Anschrift, Creditor-ID) + Mitgliedsdaten (Name, Anschrift, IBAN) aus dem Antrag
+- Ausgabe: PDF als Byte-Array (`[]byte`) oder Fehler
+- Layout: strukturierte Tabelle wie das Vorlage-Formular — Zahlungsempfänger, Ermächtigungstext, Zahlungsart (wiederkehrend), Zahlungspflichtiger, Unterschriftsfeld, BIC-Fußnote
+
+Entscheidungslogik sitzt in `application_service.go` (wo die Entrypoint-Daten bekannt sind):
+```
+Ersteinreichung (draft → submitted)?
+  → sepa_mandate_enabled = true UND alle drei EEG-Felder befüllt?
+      JA  → PDF generieren → als Anhang an Mitglieds-E-Mail
+      NEIN → kein Anhang, kein Fehler (Log-Eintrag wenn Felder fehlen)
+  → PDF-Fehler → loggen, E-Mail ohne Anhang senden
+```
+
+### E-Mail-Integration
+
+`internal/mail/service.go` wird minimal erweitert:
+- `SendSubmissionEmails` erhält einen optionalen Parameter `attachment []byte`
+- Ist `attachment` nicht nil, wird es als `sepa-lastschriftmandat.pdf` angehängt
+- Die Mail-Service-Schicht selbst trifft keine PDF-Entscheidungen — sie hängt nur an, was sie bekommt
+
+### Neue Pakete
+
+Backend: `github.com/go-pdf/fpdf` — reines Go, keine externen Systemabhängigkeiten, aktiv gewartet
