@@ -23,7 +23,7 @@ func TestNoOpMailService_Noop(t *testing.T) {
 		ReferenceNumber: "REF-2026-001",
 	}
 	ep := &shared.RegistrationEntrypoint{}
-	svc.SendSubmissionEmails(app, nil, ep) // must not panic
+	svc.SendSubmissionEmails(app, nil, ep, nil) // must not panic
 }
 
 // TestNewSMTPMailService_ParsesTemplates verifies that embedded HTML templates
@@ -202,6 +202,11 @@ func (s *spySender) Send(to, subject, htmlBody string) error {
 	return nil
 }
 
+func (s *spySender) SendWithAttachment(to, subject, htmlBody, _ string, _ []byte) error {
+	s.calls = append(s.calls, spyCall{to: to, subject: subject, body: htmlBody})
+	return nil
+}
+
 func newTestService(t *testing.T, spy *spySender) *SMTPMailService {
 	t.Helper()
 	svc, err := NewSMTPMailService(spy)
@@ -235,7 +240,7 @@ func TestSendSubmissionEmails_MemberAlwaysSent(t *testing.T) {
 	svc := newTestService(t, spy)
 	ep := &shared.RegistrationEntrypoint{}
 
-	svc.SendSubmissionEmails(testApp(), testMeteringPoints(), ep)
+	svc.SendSubmissionEmails(testApp(), testMeteringPoints(), ep, nil)
 
 	if len(spy.calls) != 1 {
 		t.Fatalf("expected 1 send call, got %d", len(spy.calls))
@@ -256,7 +261,7 @@ func TestSendSubmissionEmails_EEGSentWhenContactEmailSet(t *testing.T) {
 	contactEmail := "eeg@example.at"
 	ep := &shared.RegistrationEntrypoint{ContactEmail: &contactEmail}
 
-	svc.SendSubmissionEmails(testApp(), testMeteringPoints(), ep)
+	svc.SendSubmissionEmails(testApp(), testMeteringPoints(), ep, nil)
 
 	if len(spy.calls) != 2 {
 		t.Fatalf("expected 2 send calls, got %d", len(spy.calls))
@@ -276,7 +281,7 @@ func TestSendSubmissionEmails_EEGSkippedWhenNoContactEmail(t *testing.T) {
 	svc := newTestService(t, spy)
 	ep := &shared.RegistrationEntrypoint{ContactEmail: nil}
 
-	svc.SendSubmissionEmails(testApp(), testMeteringPoints(), ep)
+	svc.SendSubmissionEmails(testApp(), testMeteringPoints(), ep, nil)
 
 	if len(spy.calls) != 1 {
 		t.Errorf("expected only 1 send call (member), got %d", len(spy.calls))
@@ -291,7 +296,7 @@ func TestSendSubmissionEmails_EEGSkippedWhenContactEmailEmpty(t *testing.T) {
 	empty := ""
 	ep := &shared.RegistrationEntrypoint{ContactEmail: &empty}
 
-	svc.SendSubmissionEmails(testApp(), testMeteringPoints(), ep)
+	svc.SendSubmissionEmails(testApp(), testMeteringPoints(), ep, nil)
 
 	if len(spy.calls) != 1 {
 		t.Errorf("expected only 1 send call (member), got %d", len(spy.calls))

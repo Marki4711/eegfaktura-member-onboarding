@@ -355,6 +355,95 @@ func (h *AdminHandler) SaveIntroText(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// GetEEGSettings handles GET /api/admin/settings/eeg?rc_number=...
+func (h *AdminHandler) GetEEGSettings(w http.ResponseWriter, r *http.Request) {
+	rcNumber := r.URL.Query().Get("rc_number")
+	if rcNumber == "" {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string]string{
+			"rc_number": "rc_number query parameter is required",
+		})))
+		return
+	}
+
+	claims := ClaimsFromContext(r.Context())
+	if claims != nil && !claims.IsSuperuser() && !containsRC(claims.Tenant, rcNumber) {
+		h.writeError(w, shared.NewErrorResponse(shared.ErrForbidden))
+		return
+	}
+
+	ep, err := h.entrypointRepo.GetByRCNumber(rcNumber)
+	if err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+
+	h.writeJSON(w, http.StatusOK, map[string]interface{}{
+		"rcNumber":           rcNumber,
+		"eegName":            ep.EEGName,
+		"eegStreet":          ep.EEGStreet,
+		"eegStreetNumber":    ep.EEGStreetNumber,
+		"eegZip":             ep.EEGZip,
+		"eegCity":            ep.EEGCity,
+		"creditorId":         ep.CreditorID,
+		"sepaMandateEnabled": ep.SEPAMandateEnabled,
+	})
+}
+
+// SaveEEGSettings handles PUT /api/admin/settings/eeg?rc_number=...
+func (h *AdminHandler) SaveEEGSettings(w http.ResponseWriter, r *http.Request) {
+	rcNumber := r.URL.Query().Get("rc_number")
+	if rcNumber == "" {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string]string{
+			"rc_number": "rc_number query parameter is required",
+		})))
+		return
+	}
+
+	claims := ClaimsFromContext(r.Context())
+	if claims != nil && !claims.IsSuperuser() && !containsRC(claims.Tenant, rcNumber) {
+		h.writeError(w, shared.NewErrorResponse(shared.ErrForbidden))
+		return
+	}
+
+	var body struct {
+		EEGName            *string `json:"eegName"`
+		EEGStreet          *string `json:"eegStreet"`
+		EEGStreetNumber    *string `json:"eegStreetNumber"`
+		EEGZip             *string `json:"eegZip"`
+		EEGCity            *string `json:"eegCity"`
+		CreditorID         *string `json:"creditorId"`
+		SEPAMandateEnabled bool    `json:"sepaMandateEnabled"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Invalid JSON", nil)))
+		return
+	}
+
+	// Normalise: empty string → nil
+	nilIfEmpty := func(s *string) *string {
+		if s == nil || *s == "" {
+			return nil
+		}
+		return s
+	}
+
+	if err := h.entrypointRepo.SaveEEGSettings(
+		rcNumber,
+		nilIfEmpty(body.EEGName),
+		nilIfEmpty(body.EEGStreet),
+		nilIfEmpty(body.EEGStreetNumber),
+		nilIfEmpty(body.EEGZip),
+		nilIfEmpty(body.EEGCity),
+		nilIfEmpty(body.CreditorID),
+		body.SEPAMandateEnabled,
+	); err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // --- helpers ---
 
 func (h *AdminHandler) parseID(w http.ResponseWriter, r *http.Request) (uuid.UUID, error) {

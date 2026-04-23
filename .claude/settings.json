@@ -19,7 +19,35 @@
       "Bash(cat:*)",
       "Bash(xargs grep *)",
       "Bash(go get *)",
-      "Bash(npx playwright *)"
+      "Bash(npx playwright *)",
+      "Bash(gh run *)",
+      "Edit(/.claude/skills/backend/**)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" run list --limit 3 --json databaseId,status,name,conclusion)",
+      "Bash(cmd.exe /c \"gh run list --limit 3 --json databaseId,status,name,conclusion\")",
+      "Bash(where gh.exe)",
+      "Read(//c/Users/**)",
+      "Bash(curl -s http://localhost:8080/api/v1/admin/applications)",
+      "Bash(psql \"postgres://postgres:password@localhost:5432/member_onboarding?sslmode=disable\" -c \"SELECT rc_number FROM member_onboarding.registration_entrypoint LIMIT 5;\")",
+      "Bash(curl -s \"http://localhost:8080/api/v1/public/register/RC123456\")",
+      "Bash(curl -s \"http://localhost:8080/api/public/registration/RC123456\")",
+      "Bash(echo \"PID: $!\")",
+      "Bash(RC_NUMBER=RC123456 npx tsx scripts/generate-screenshots.ts)",
+      "Bash(node_modules/.bin/tsx --version)",
+      "Bash(node_modules/.bin/playwright test *)",
+      "Bash(grep -v \"_test\\\\|//\")",
+      "PowerShell(helm lint c:\\\\opt\\\\repos\\\\eegfaktura-member-onboarding\\\\helm\\\\member-onboarding\\\\ 2>&1)",
+      "PowerShell(gh run list --repo Marki4711/eegfaktura-member-onboarding --limit 5 --workflow=docker-publish.yml 2>&1)",
+      "PowerShell(winget install GitHub.cli 2>&1)",
+      "PowerShell(winget install Helm.Helm 2>&1)",
+      "PowerShell(winget install GitHub.cli --source winget --accept-source-agreements --accept-package-agreements 2>&1)",
+      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"User\"\\); gh --version 2>&1; helm version --short 2>&1)",
+      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"User\"\\); gh run list --repo Marki4711/eegfaktura-member-onboarding --limit 5 --workflow=docker-publish.yml 2>&1)",
+      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"User\"\\); gh run list --repo Marki4711/eegfaktura-member-onboarding --limit 3 --workflow=docker-publish.yml 2>&1)",
+      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"User\"\\); gh run list --repo Marki4711/eegfaktura-member-onboarding --limit 1 --workflow=docker-publish.yml 2>&1)",
+      "PowerShell(cd c:\\\\opt\\\\repos\\\\eegfaktura-member-onboarding; go build ./... 2>&1; Write-Host \"Go build: $LASTEXITCODE\")"
+    ],
+    "additionalDirectories": [
+      "C:\\opt\\repos\\ai-coding-starter-kit\\.claude\\skills\\backend"
     ]
   }
 }

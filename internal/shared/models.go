@@ -12,10 +12,17 @@ type RegistrationEntrypoint struct {
 	ID           uuid.UUID `json:"id"           db:"id"`
 	RCNumber     string    `json:"rcNumber"     db:"rc_number"`
 	IsActive     bool      `json:"isActive"     db:"is_active"`
-	ContactEmail *string   `json:"contactEmail" db:"contact_email"`
-	IntroText    *string   `json:"introText"    db:"intro_text"`
-	CreatedAt    time.Time `json:"createdAt"    db:"created_at"`
-	UpdatedAt    time.Time `json:"updatedAt"    db:"updated_at"`
+	ContactEmail       *string   `json:"contactEmail"       db:"contact_email"`
+	IntroText          *string   `json:"introText"          db:"intro_text"`
+	EEGName            *string   `json:"eegName"            db:"eeg_name"`
+	EEGStreet          *string   `json:"eegStreet"          db:"eeg_street"`
+	EEGStreetNumber    *string   `json:"eegStreetNumber"    db:"eeg_street_number"`
+	EEGZip             *string   `json:"eegZip"             db:"eeg_zip"`
+	EEGCity            *string   `json:"eegCity"            db:"eeg_city"`
+	CreditorID         *string   `json:"creditorId"         db:"creditor_id"`
+	SEPAMandateEnabled bool      `json:"sepaMandateEnabled" db:"sepa_mandate_enabled"`
+	CreatedAt          time.Time `json:"createdAt"          db:"created_at"`
+	UpdatedAt          time.Time `json:"updatedAt"          db:"updated_at"`
 }
 
 // ApplicationStatus represents the status of an application

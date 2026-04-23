@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/your-org/eegfaktura-member-onboarding/internal/mail"
+	"github.com/your-org/eegfaktura-member-onboarding/internal/pdf"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/shared"
 )
 
@@ -21,6 +22,7 @@ type ApplicationService struct {
 	entrypointRepo  *RegistrationEntrypointRepository
 	fieldConfigRepo *FieldConfigRepository
 	mailService     mail.MailService
+	pdfGenerator   pdf.SEPAMandateGenerator
 }
 
 // NewApplicationService creates a new application service
@@ -32,6 +34,7 @@ func NewApplicationService(
 	entrypointRepo *RegistrationEntrypointRepository,
 	fieldConfigRepo *FieldConfigRepository,
 	mailService mail.MailService,
+	pdfGenerator pdf.SEPAMandateGenerator,
 ) *ApplicationService {
 	return &ApplicationService{
 		db:              db,
@@ -41,6 +44,7 @@ func NewApplicationService(
 		entrypointRepo:  entrypointRepo,
 		fieldConfigRepo: fieldConfigRepo,
 		mailService:     mailService,
+		pdfGenerator:    pdfGenerator,
 	}
 }
 
@@ -421,7 +425,16 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID) (*shared.SubmitResp
 		if epErr != nil {
 			fmt.Printf("mail: failed to load entrypoint for rc=%s: %v\n", app.RCNumber, epErr)
 		} else {
-			go s.mailService.SendSubmissionEmails(app, meteringPoints, entrypoint)
+			var attachment []byte
+			if mandate := buildSEPAMandateData(app, entrypoint); mandate != nil {
+				pdfBytes, pdfErr := s.pdfGenerator.Generate(*mandate)
+				if pdfErr != nil {
+					fmt.Printf("pdf: failed to generate SEPA mandate for rc=%s: %v\n", app.RCNumber, pdfErr)
+				} else {
+					attachment = pdfBytes
+				}
+			}
+			go s.mailService.SendSubmissionEmails(app, meteringPoints, entrypoint, attachment)
 		}
 	}
 
@@ -631,4 +644,39 @@ func validateMemberTypeFields(app *shared.Application) error {
 		})
 	}
 	return nil
+}
+
+// buildSEPAMandateData returns a SEPAMandateData struct when all required EEG fields
+// are set and SEPA mandate sending is enabled. Returns nil otherwise.
+func buildSEPAMandateData(app *shared.Application, ep *shared.RegistrationEntrypoint) *pdf.SEPAMandateData {
+	if !ep.SEPAMandateEnabled ||
+		ep.EEGName == nil || ep.EEGStreet == nil || ep.EEGStreetNumber == nil ||
+		ep.EEGZip == nil || ep.EEGCity == nil || ep.CreditorID == nil {
+		return nil
+	}
+	name := derefStr(app.Firstname) + " " + derefStr(app.Lastname)
+	if name == " " && app.CompanyName != nil && *app.CompanyName != "" {
+		name = *app.CompanyName
+	}
+	return &pdf.SEPAMandateData{
+		EEGName:            *ep.EEGName,
+		EEGStreet:          *ep.EEGStreet,
+		EEGStreetNumber:    *ep.EEGStreetNumber,
+		EEGZip:             *ep.EEGZip,
+		EEGCity:            *ep.EEGCity,
+		CreditorID:         *ep.CreditorID,
+		MemberName:         name,
+		MemberStreet:       app.ResidentStreet,
+		MemberStreetNumber: app.ResidentStreetNumber,
+		MemberZip:          app.ResidentZip,
+		MemberCity:         app.ResidentCity,
+		IBAN:               derefStr(app.IBAN),
+	}
+}
+
+func derefStr(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }

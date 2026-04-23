@@ -15,6 +15,7 @@ import (
 	"github.com/your-org/eegfaktura-member-onboarding/internal/config"
 	internalhttp "github.com/your-org/eegfaktura-member-onboarding/internal/http"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/mail"
+	"github.com/your-org/eegfaktura-member-onboarding/internal/pdf"
 )
 
 func main() {
@@ -75,8 +76,9 @@ func main() {
 	}
 
 	// Initialize services
+	pdfGenerator := pdf.NewFPDFGenerator()
 	registrationService := application.NewRegistrationService(entrypointRepo, fieldConfigRepo)
-	applicationService := application.NewApplicationService(db, appRepo, meteringRepo, statusLogRepo, entrypointRepo, fieldConfigRepo, mailService)
+	applicationService := application.NewApplicationService(db, appRepo, meteringRepo, statusLogRepo, entrypointRepo, fieldConfigRepo, mailService, pdfGenerator)
 	adminService := application.NewAdminApplicationService(db, appRepo, meteringRepo, statusLogRepo, fieldConfigRepo, mailService)
 
 	// Initialize handlers
@@ -133,6 +135,8 @@ func main() {
 			r.Put("/fields", adminHandler.SaveFieldConfig)
 			r.Get("/intro-text", adminHandler.GetIntroText)
 			r.Put("/intro-text", adminHandler.SaveIntroText)
+			r.Get("/eeg", adminHandler.GetEEGSettings)
+			r.Put("/eeg", adminHandler.SaveEEGSettings)
 		})
 	})
 
