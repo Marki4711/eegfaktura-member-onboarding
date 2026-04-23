@@ -53,8 +53,8 @@ export function MeteringPointFields({ form, fieldConfig }: MeteringPointFieldsPr
     <div className="space-y-4">
       {fields.map((field, index) => (
         <div key={field.id} className="border border-border rounded-md p-3 space-y-3">
-          <div className="flex gap-3 items-end">
-            <div className="flex-1 min-w-0">
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
+            <div className="w-full sm:flex-1 sm:min-w-0">
               <FormField
                 control={form.control}
                 name={`meteringPoints.${index}.meteringPoint`}
