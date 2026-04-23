@@ -110,14 +110,9 @@ export default async function RegisterPage({ params }: PageProps) {
 
   return (
     <PublicPageShell>
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          {config.title}
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Füllen Sie das Formular aus, um Ihre Mitgliedschaft zu beantragen.
-        </p>
-      </div>
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">
+        {config.title}
+      </h1>
       <RegistrationForm config={config} />
     </PublicPageShell>
   );
