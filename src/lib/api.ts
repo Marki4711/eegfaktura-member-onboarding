@@ -53,6 +53,7 @@ export interface RegistrationConfig {
   title: string;
   active: boolean;
   fieldConfig?: FieldConfig;
+  introText?: string | null;
 }
 
 export type MemberType = "private" | "farmer" | "municipality" | "company" | "association";
@@ -424,5 +425,17 @@ export function saveFieldConfig(rcNumber: string, config: FieldConfig, token?: s
     `/api/admin/settings/fields?rc_number=${encodeURIComponent(rcNumber)}`,
     token,
     { method: "PUT", body: JSON.stringify(config) }
+  );
+}
+
+export function getIntroText(rcNumber: string, token?: string): Promise<{ rcNumber: string; introText: string | null }> {
+  return adminRequest(`/api/admin/settings/intro-text?rc_number=${encodeURIComponent(rcNumber)}`, token);
+}
+
+export function saveIntroText(rcNumber: string, introText: string | null, token?: string): Promise<void> {
+  return adminRequest<void>(
+    `/api/admin/settings/intro-text?rc_number=${encodeURIComponent(rcNumber)}`,
+    token,
+    { method: "PUT", body: JSON.stringify({ introText }) }
   );
 }

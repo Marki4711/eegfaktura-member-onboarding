@@ -12,6 +12,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AdminFieldConfigEditor } from "@/components/admin-field-config-editor";
+import { AdminIntroTextEditor } from "@/components/admin-intro-text-editor";
+import { Separator } from "@/components/ui/separator";
 import { getFieldConfig, type FieldConfig } from "@/lib/api";
 
 export default function SettingsPage() {
@@ -89,6 +91,20 @@ export default function SettingsPage() {
           <span className="text-sm text-muted-foreground">{selectedRc}</span>
         )}
       </div>
+
+      {/* Einleitungstext */}
+      {selectedRc && (
+        <div>
+          <h2 className="text-base font-medium mb-1">Einleitungstext</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Wird oberhalb des Registrierungsformulars angezeigt. Unterstützt Fett, Kursiv, Listen und Links.
+            Leer lassen für den Standardtext.
+          </p>
+          <AdminIntroTextEditor rcNumber={selectedRc} />
+        </div>
+      )}
+
+      <Separator />
 
       <div>
         <h2 className="text-base font-medium mb-1">Formular-Felder</h2>
