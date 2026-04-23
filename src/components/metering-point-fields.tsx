@@ -176,7 +176,7 @@ export function MeteringPointFields({ form, fieldConfig }: MeteringPointFieldsPr
                         Transformator{mpfs("transformer") === "required" ? " *" : ""}
                       </FormLabel>
                       <FormControl>
-                        <Input placeholder="TR-01" {...field} value={field.value ?? ""} />
+                        <Input {...field} value={field.value ?? ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
