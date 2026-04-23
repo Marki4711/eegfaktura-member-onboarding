@@ -1,6 +1,6 @@
 # PROJ-11: Konfigurierbarer Einleitungstext im Registrierungsformular
 
-## Status: Architected
+## Status: In Progress
 **Created:** 2026-04-23
 **Last Updated:** 2026-04-23
 

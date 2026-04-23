@@ -48,5 +48,6 @@ func (s *RegistrationService) GetRegistrationConfig(rcNumber string) (*shared.Re
 		Title:       "Mitglied werden",
 		Active:      ep.IsActive,
 		FieldConfig: fieldConfig,
+		IntroText:   ep.IntroText,
 	}, nil
 }

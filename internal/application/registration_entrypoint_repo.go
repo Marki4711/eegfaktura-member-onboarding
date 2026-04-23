@@ -37,13 +37,13 @@ func (r *RegistrationEntrypointRepository) UpsertForRCNumbers(rcNumbers []string
 // Returns shared.ErrNotFound when no row matches.
 func (r *RegistrationEntrypointRepository) GetByRCNumber(rcNumber string) (*shared.RegistrationEntrypoint, error) {
 	query := `
-		SELECT id, rc_number, is_active, contact_email, created_at, updated_at
+		SELECT id, rc_number, is_active, contact_email, intro_text, created_at, updated_at
 		FROM member_onboarding.registration_entrypoint
 		WHERE rc_number = $1`
 
 	ep := &shared.RegistrationEntrypoint{}
 	err := r.db.QueryRow(query, rcNumber).Scan(
-		&ep.ID, &ep.RCNumber, &ep.IsActive, &ep.ContactEmail, &ep.CreatedAt, &ep.UpdatedAt,
+		&ep.ID, &ep.RCNumber, &ep.IsActive, &ep.ContactEmail, &ep.IntroText, &ep.CreatedAt, &ep.UpdatedAt,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -52,4 +52,24 @@ func (r *RegistrationEntrypointRepository) GetByRCNumber(rcNumber string) (*shar
 		return nil, fmt.Errorf("failed to get registration entrypoint: %w", err)
 	}
 	return ep, nil
+}
+
+// SaveIntroText persists the sanitized intro_text for the given RC number.
+// Returns shared.ErrNotFound when no row matches.
+func (r *RegistrationEntrypointRepository) SaveIntroText(rcNumber string, introText *string) error {
+	result, err := r.db.Exec(`
+		UPDATE member_onboarding.registration_entrypoint
+		SET intro_text = $1, updated_at = NOW()
+		WHERE rc_number = $2`, introText, rcNumber)
+	if err != nil {
+		return fmt.Errorf("failed to save intro text for %s: %w", rcNumber, err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check rows affected: %w", err)
+	}
+	if rows == 0 {
+		return shared.ErrNotFound
+	}
+	return nil
 }

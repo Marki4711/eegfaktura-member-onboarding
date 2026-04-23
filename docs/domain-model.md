@@ -40,6 +40,7 @@ Fields:
 - `id`
 - `rc_number`
 - `is_active`
+- `intro_text` — nullable, sanitized HTML string for the public registration form
 - `created_at`
 - `updated_at`
 

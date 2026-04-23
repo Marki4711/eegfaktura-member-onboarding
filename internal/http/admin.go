@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
+	"github.com/microcosm-cc/bluemonday"
 
 	"github.com/your-org/eegfaktura-member-onboarding/internal/application"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/shared"
@@ -19,14 +20,20 @@ type AdminHandler struct {
 	adminService   *application.AdminApplicationService
 	entrypointRepo *application.RegistrationEntrypointRepository
 	validate       *validator.Validate
+	sanitizer      *bluemonday.Policy
 }
 
 // NewAdminHandler creates a new AdminHandler.
 func NewAdminHandler(adminService *application.AdminApplicationService, entrypointRepo *application.RegistrationEntrypointRepository) *AdminHandler {
+	p := bluemonday.NewPolicy()
+	p.AllowElements("p", "br", "strong", "b", "em", "i", "ul", "ol", "li")
+	p.AllowAttrs("href", "target", "rel").OnElements("a")
+	p.AllowURLSchemes("http", "https", "mailto")
 	return &AdminHandler{
 		adminService:   adminService,
 		entrypointRepo: entrypointRepo,
 		validate:       validator.New(),
+		sanitizer:      p,
 	}
 }
 
@@ -274,6 +281,73 @@ func (h *AdminHandler) DeleteApplication(w http.ResponseWriter, r *http.Request)
 	}
 
 	if err := h.adminService.DeleteApplication(id); err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// GetIntroText handles GET /api/admin/settings/intro-text?rc_number=...
+func (h *AdminHandler) GetIntroText(w http.ResponseWriter, r *http.Request) {
+	rcNumber := r.URL.Query().Get("rc_number")
+	if rcNumber == "" {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string]string{
+			"rc_number": "rc_number query parameter is required",
+		})))
+		return
+	}
+
+	claims := ClaimsFromContext(r.Context())
+	if claims != nil && !claims.IsSuperuser() && !containsRC(claims.Tenant, rcNumber) {
+		h.writeError(w, shared.NewErrorResponse(shared.ErrForbidden))
+		return
+	}
+
+	ep, err := h.entrypointRepo.GetByRCNumber(rcNumber)
+	if err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+
+	h.writeJSON(w, http.StatusOK, map[string]interface{}{"rcNumber": rcNumber, "introText": ep.IntroText})
+}
+
+// SaveIntroText handles PUT /api/admin/settings/intro-text?rc_number=...
+func (h *AdminHandler) SaveIntroText(w http.ResponseWriter, r *http.Request) {
+	rcNumber := r.URL.Query().Get("rc_number")
+	if rcNumber == "" {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string]string{
+			"rc_number": "rc_number query parameter is required",
+		})))
+		return
+	}
+
+	claims := ClaimsFromContext(r.Context())
+	if claims != nil && !claims.IsSuperuser() && !containsRC(claims.Tenant, rcNumber) {
+		h.writeError(w, shared.NewErrorResponse(shared.ErrForbidden))
+		return
+	}
+
+	var body struct {
+		IntroText *string `json:"introText"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Invalid JSON", nil)))
+		return
+	}
+
+	var sanitized *string
+	if body.IntroText != nil {
+		s := h.sanitizer.Sanitize(*body.IntroText)
+		if s == "" {
+			sanitized = nil
+		} else {
+			sanitized = &s
+		}
+	}
+
+	if err := h.entrypointRepo.SaveIntroText(rcNumber, sanitized); err != nil {
 		h.handleServiceError(w, err)
 		return
 	}
