@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import DOMPurify from "dompurify";
 
 const DEFAULT_TEXT = "Füllen Sie das Formular aus, um Ihre Mitgliedschaft zu beantragen.";
@@ -10,14 +10,20 @@ interface Props {
 }
 
 export function IntroTextDisplay({ introText }: Props) {
-  const sanitized = useMemo(() => {
-    if (typeof window === "undefined") return null;
-    if (!introText || introText.trim() === "") return null;
-    return DOMPurify.sanitize(introText, {
-      ALLOWED_TAGS: ["p", "br", "strong", "b", "em", "i", "ul", "ol", "li", "a"],
-      ALLOWED_ATTR: ["href", "target", "rel"],
-      FORCE_BODY: true,
-    });
+  const [sanitized, setSanitized] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!introText || introText.trim() === "") {
+      setSanitized(null);
+      return;
+    }
+    setSanitized(
+      DOMPurify.sanitize(introText, {
+        ALLOWED_TAGS: ["p", "br", "strong", "b", "em", "i", "ul", "ol", "li", "a"],
+        ALLOWED_ATTR: ["href", "target", "rel"],
+        FORCE_BODY: true,
+      })
+    );
   }, [introText]);
 
   if (!sanitized) {
