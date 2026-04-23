@@ -1,6 +1,6 @@
 # PROJ-11: Konfigurierbarer Einleitungstext im Registrierungsformular
 
-## Status: Planned
+## Status: Architected
 **Created:** 2026-04-23
 **Last Updated:** 2026-04-23
 
@@ -48,7 +48,35 @@
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+
+### Speicherformat
+Sanitized HTML-String. Tiptap gibt HTML aus; dieses wird serverseitig mit `bluemonday` (Go) bereinigt bevor es gespeichert wird. Im Frontend rendert DOMPurify als zweite Schutzschicht. Kein proprietäres JSON-Format nötig.
+
+### Speicherort
+Neues Feld `intro_text TEXT NULL` in `member_onboarding.registration_entrypoint`. NULL = kein Text konfiguriert = Standardtext im Frontend.
+
+### Komponenten-Struktur
+```
+Admin-Bereich
+└── AdminIntroTextEditor (neu)
+    ├── Tiptap-Toolbar (Fett, Kursiv, Listen, Link)
+    ├── Tiptap-Eingabebereich (WYSIWYG)
+    └── Speichern-Button
+
+Öffentliches Registrierungsformular
+└── RegistrationForm (bestehend)
+    └── IntroTextDisplay (neu)
+        ├── introText vorhanden → sicher gerendertes HTML (DOMPurify)
+        └── leer/null → Standardtext „Füllen Sie das Formular aus, um Ihre Mitgliedschaft zu beantragen."
+```
+
+### API-Änderungen
+- `GET /api/public/registration/{rc_number}` — Response erhält neues Feld `introText` (string | null)
+- `PUT /api/admin/entrypoints/{rc_number}/intro-text` — speichert Einleitungstext (Keycloak-gesichert, Backend sanitized)
+
+### Neue Pakete
+Frontend: `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-link`, `dompurify`, `@types/dompurify`
+Backend: `github.com/microcosm-cc/bluemonday`
 
 ## QA Test Results
 _To be added by /qa_
