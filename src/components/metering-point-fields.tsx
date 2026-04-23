@@ -78,7 +78,7 @@ export function MeteringPointFields({ form, fieldConfig }: MeteringPointFieldsPr
             />
 
             <div className="flex gap-2 items-end">
-              <div className="flex-1 sm:w-44">
+              <div className="w-44">
                 <FormField
                   control={form.control}
                   name={`meteringPoints.${index}.direction`}
