@@ -53,32 +53,34 @@ export function MeteringPointFields({ form, fieldConfig }: MeteringPointFieldsPr
     <div className="space-y-4">
       {fields.map((field, index) => (
         <div key={field.id} className="border border-border rounded-md p-3 space-y-3">
-          <div className="flex flex-col gap-3">
-            <FormField
-              control={form.control}
-              name={`meteringPoints.${index}.meteringPoint`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Zählpunkt {index + 1}</FormLabel>
-                  <FormControl>
-                    <MaskedInput
-                      mask="AT 000000 00000 000000000000 00000000"
-                      lazy={false}
-                      prepareChar={(str: string) => str.toUpperCase()}
-                      value={field.value}
-                      onAccept={(value: string) => field.onChange(value)}
-                      onBlur={field.onBlur}
-                      inputRef={field.ref}
-                      name={field.name}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <div className="flex gap-3 items-end">
+            <div className="flex-1 min-w-0">
+              <FormField
+                control={form.control}
+                name={`meteringPoints.${index}.meteringPoint`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Zählpunkt {index + 1}</FormLabel>
+                    <FormControl>
+                      <MaskedInput
+                        mask="AT 000000 00000 000000000000 00000000"
+                        lazy={false}
+                        prepareChar={(str: string) => str.toUpperCase()}
+                        value={field.value}
+                        onAccept={(value: string) => field.onChange(value)}
+                        onBlur={field.onBlur}
+                        inputRef={field.ref}
+                        name={field.name}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="flex gap-2 items-end">
-              <div className="w-44">
+              <div className="w-36 shrink-0">
                 <FormField
                   control={form.control}
                   name={`meteringPoints.${index}.direction`}
