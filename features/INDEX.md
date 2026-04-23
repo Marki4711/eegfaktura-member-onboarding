@@ -25,5 +25,6 @@ Central tracking for all features.
 | PROJ-8 | Konfigurierbare Felder pro EEG | Deployed | `features/PROJ-8-configurable-fields.md` | 2026-04-21 |
 | PROJ-9 | EEG-spezifische Rechtsdokumente | Planned | `features/PROJ-9-legal-documents.md` | 2026-04-21 |
 | PROJ-10 | Admin Notifications | Planned | `features/PROJ-10-admin-notifications.md` | 2026-04-22 |
+| PROJ-11 | Konfigurierbarer Einleitungstext | Planned | `features/PROJ-11-registration-intro-text.md` | 2026-04-23 |
 
-## Next Available ID: PROJ-11
+## Next Available ID: PROJ-12
