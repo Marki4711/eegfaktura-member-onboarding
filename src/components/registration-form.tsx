@@ -177,7 +177,6 @@ function buildFormSchema(fieldConfig: FieldConfig | undefined) {
 
     requireText("phone", "phone", "Telefonnummer");
     requireText("birth_date", "birthDate", "Geburtsdatum");
-    requireText("uid_number", "uidNumber", "UID-Nummer");
     requireText("membership_start_date", "membershipStartDate", "Beitrittsdatum");
     requireNum("persons_in_household", "personsInHousehold", "Anzahl Personen im Haushalt");
     requireNum("consumption_previous_year", "consumptionPreviousYear", "Verbrauch Vorjahr");
@@ -569,13 +568,13 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                       )}
                     />
                   )}
-                  {fs("uid_number") !== "hidden" && (
+                  {(memberType === "company" || memberType === "municipality") && (
                     <FormField
                       control={form.control}
                       name="uidNumber"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>UID-Nummer{memberType === "company" ? " *" : req("uid_number")}</FormLabel>
+                          <FormLabel>UID-Nummer{memberType === "company" ? " *" : ""}</FormLabel>
                           <FormControl>
                             <Input placeholder="ATU12345678" {...field} />
                           </FormControl>
