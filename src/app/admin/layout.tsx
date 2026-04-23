@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { Toaster } from "@/components/ui/sonner";
 import { AdminLogoutButton } from "@/components/admin-logout-button";
+import { SessionRefreshGuard } from "@/components/session-refresh-guard";
 import { authOptions, hasAdminAccess, isSuperuser } from "@/lib/auth";
 
 function getBaseUrl(): string {
@@ -75,6 +76,7 @@ export default async function AdminLayout({
       </header>
       <main className="max-w-7xl mx-auto px-6 py-8">{children}</main>
       <Toaster />
+      <SessionRefreshGuard />
     </div>
   );
 }

@@ -8,6 +8,7 @@ declare module "next-auth" {
     roles: string[];
     tenant: string[];
     userId: string;
+    error?: string;
   }
 }
 
@@ -19,5 +20,6 @@ declare module "next-auth/jwt" {
     expiresAt?: number;
     roles?: string[];
     tenant?: string[];
+    error?: string;
   }
 }

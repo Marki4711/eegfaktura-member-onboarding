@@ -1,4 +1,5 @@
 import type { NextAuthOptions } from "next-auth";
+import type { JWT } from "next-auth/jwt";
 import KeycloakProvider from "next-auth/providers/keycloak";
 
 export interface KeycloakToken {
@@ -7,6 +8,47 @@ export interface KeycloakToken {
   sub: string;
   name?: string;
   email?: string;
+}
+
+async function refreshAccessToken(token: JWT): Promise<JWT> {
+  const tokenUrl = `${process.env.KEYCLOAK_ISSUER}/protocol/openid-connect/token`;
+  const response = await fetch(tokenUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      client_id: process.env.KEYCLOAK_CLIENT_ID!,
+      client_secret: process.env.KEYCLOAK_CLIENT_SECRET!,
+      refresh_token: token.refreshToken ?? "",
+    }),
+  });
+
+  const refreshed = await response.json() as Record<string, unknown>;
+  if (!response.ok) {
+    throw new Error((refreshed.error as string) ?? "refresh_failed");
+  }
+
+  let roles: string[] = token.roles ?? [];
+  let tenant: string[] = token.tenant ?? [];
+  try {
+    const payload = JSON.parse(
+      Buffer.from((refreshed.access_token as string).split(".")[1], "base64url").toString()
+    ) as Record<string, unknown>;
+    const realmAccess = payload["realm_access"] as { roles?: string[] } | undefined;
+    roles = realmAccess?.roles ?? [];
+    tenant = parseTenant(payload["tenant"]);
+  } catch { /* keep existing values */ }
+
+  return {
+    ...token,
+    accessToken: refreshed.access_token as string,
+    idToken: (refreshed.id_token as string | undefined) ?? token.idToken,
+    refreshToken: (refreshed.refresh_token as string | undefined) ?? token.refreshToken,
+    expiresAt: Math.floor(Date.now() / 1000) + (refreshed.expires_in as number),
+    roles,
+    tenant,
+    error: undefined,
+  };
 }
 
 export const authOptions: NextAuthOptions = {
@@ -44,8 +86,21 @@ export const authOptions: NextAuthOptions = {
           token.roles = [];
           token.tenant = [];
         }
+        return token;
       }
-      return token;
+
+      // Token still valid (30s buffer to avoid edge-case expiry mid-request)
+      if (Date.now() < (token.expiresAt ?? 0) * 1000 - 30_000) {
+        return token;
+      }
+
+      // Access token expired — try silent refresh via refresh token
+      try {
+        return await refreshAccessToken(token);
+      } catch (e) {
+        console.error("[auth] Token refresh failed:", e);
+        return { ...token, error: "RefreshAccessTokenError" };
+      }
     },
     async session({ session, token }) {
       session.accessToken = token.accessToken as string;
@@ -53,6 +108,7 @@ export const authOptions: NextAuthOptions = {
       session.roles = (token.roles as string[]) ?? [];
       session.tenant = (token.tenant as string[]) ?? [];
       session.userId = token.sub ?? "";
+      if (token.error) session.error = token.error;
       return session;
     },
   },
