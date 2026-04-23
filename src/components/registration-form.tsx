@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MeteringPointFields } from "./metering-point-fields";
+import { IntroTextDisplay } from "./intro-text-display";
 import { isValidIBAN } from "ibantools";
 import {
   createApplication,
@@ -415,9 +416,9 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6" noValidate>
-        <p className="text-muted-foreground -mt-2">
-          Füllen Sie das Formular aus, um Ihre Mitgliedschaft zu beantragen.
-        </p>
+        <div className="-mt-2">
+          <IntroTextDisplay introText={config.introText} />
+        </div>
         {apiError && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
