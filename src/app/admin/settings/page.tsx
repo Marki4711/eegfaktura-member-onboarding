@@ -49,7 +49,7 @@ export default function SettingsPage() {
   if (isSuperuser && rcNumbers.length === 0) {
     return (
       <div className="space-y-6">
-        <h1 className="text-xl font-semibold">Einstellungen</h1>
+        <h1 className="text-2xl font-bold">Einstellungen</h1>
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground text-sm">
             Als Superuser bitte RC-Nummer direkt in der URL angeben:<br />
@@ -63,7 +63,7 @@ export default function SettingsPage() {
   if (!isSuperuser && rcNumbers.length === 0) {
     return (
       <div className="space-y-6">
-        <h1 className="text-xl font-semibold">Einstellungen</h1>
+        <h1 className="text-2xl font-bold">Einstellungen</h1>
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground text-sm">
             Ihrem Account sind keine EEGs zugewiesen.
@@ -76,7 +76,7 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-4">
-        <h1 className="text-xl font-semibold">Einstellungen</h1>
+        <h1 className="text-2xl font-bold">Einstellungen</h1>
         {rcNumbers.length > 1 && (
           <Select value={selectedRc} onValueChange={setSelectedRc}>
             <SelectTrigger className="w-48">
@@ -97,7 +97,7 @@ export default function SettingsPage() {
       {/* Einleitungstext */}
       {selectedRc && (
         <div>
-          <h2 className="text-base font-medium mb-1">Einleitungstext</h2>
+          <h2 className="text-xl font-semibold mb-1">Einleitungstext</h2>
           <p className="text-sm text-muted-foreground mb-4">
             Wird oberhalb des Registrierungsformulars angezeigt. Unterstützt Fett, Kursiv, Listen und Links.
             Leer lassen für den Standardtext.
@@ -111,7 +111,7 @@ export default function SettingsPage() {
       {/* EEG-Stammdaten & SEPA-Mandat */}
       {selectedRc && (
         <div>
-          <h2 className="text-base font-medium mb-1">EEG-Stammdaten &amp; SEPA-Mandat</h2>
+          <h2 className="text-xl font-semibold mb-1">EEG-Stammdaten &amp; SEPA-Mandat</h2>
           <p className="text-sm text-muted-foreground mb-4">
             Stammdaten der Energiegemeinschaft für das SEPA-Lastschriftmandat. Aktivieren Sie den Schalter,
             damit das Mandat als PDF-Anhang im Willkommensmail verschickt wird.
@@ -125,7 +125,7 @@ export default function SettingsPage() {
       {/* Externe API */}
       {selectedRc && (
         <div>
-          <h2 className="text-base font-medium mb-1">Externe API</h2>
+          <h2 className="text-xl font-semibold mb-1">Externe API</h2>
           <p className="text-sm text-muted-foreground mb-4">
             API-Key für die externe Registrierungs-API. Der Key ermöglicht das Einreichen von Mitgliedsanträgen
             über eine eigene Integration (z.B. eigenes Formular auf Ihrer Website).
@@ -138,7 +138,7 @@ export default function SettingsPage() {
       <Separator />
 
       <div>
-        <h2 className="text-base font-medium mb-1">Formular-Felder</h2>
+        <h2 className="text-xl font-semibold mb-1">Formular-Felder</h2>
         <p className="text-sm text-muted-foreground mb-4">
           Legen Sie fest, welche optionalen Felder im Registrierungsformular für Ihre EEG angezeigt werden.
         </p>
