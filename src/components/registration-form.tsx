@@ -742,6 +742,10 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                         <FormControl>
                           <Input type="date" {...field} />
                         </FormControl>
+                        <p className="text-xs text-muted-foreground">
+                          Datum, ab dem die Aktivierung der angegebenen Zählpunkte für die EEG erfolgen soll.
+                          Nützlich wenn die Aktivierung nicht sofort, sondern zu einem fest definierten Zeitpunkt stattfinden soll.
+                        </p>
                         <FormMessage />
                       </FormItem>
                     )}

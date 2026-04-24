@@ -16,7 +16,7 @@ import { AdminIntroTextEditor } from "@/components/admin-intro-text-editor";
 import { AdminEEGSettingsEditor } from "@/components/admin-eeg-settings-editor";
 import { AdminApiKeyEditor } from "@/components/admin-api-key-editor";
 import { Separator } from "@/components/ui/separator";
-import { getFieldConfig, type FieldConfig } from "@/lib/api";
+import { getFieldConfig, type AdminFieldConfig } from "@/lib/api";
 
 export default function SettingsPage() {
   const { data: session } = useSession();
@@ -25,7 +25,7 @@ export default function SettingsPage() {
   const isSuperuser = ((session as unknown as { roles?: string[] })?.roles ?? []).includes("superuser");
 
   const [selectedRc, setSelectedRc] = useState<string>("");
-  const [fieldConfig, setFieldConfig] = useState<FieldConfig | null>(null);
+  const [fieldConfig, setFieldConfig] = useState<AdminFieldConfig | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,7 +41,7 @@ export default function SettingsPage() {
     setError(null);
     setFieldConfig(null);
     getFieldConfig(selectedRc, session?.accessToken)
-      .then(setFieldConfig)
+      .then((res) => setFieldConfig(res.fieldConfig ?? {}))
       .catch(() => setError("Konfiguration konnte nicht geladen werden. Bitte später erneut versuchen."))
       .finally(() => setLoading(false));
   }, [selectedRc, session?.accessToken]);

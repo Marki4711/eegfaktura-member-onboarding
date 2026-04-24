@@ -4,75 +4,90 @@ import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import {
   CONFIGURABLE_FIELDS,
   saveFieldConfig,
-  type FieldConfig,
+  type AdminFieldConfig,
+  type AdminFieldConfigEntry,
   type FieldState,
   type ConfigurableField,
 } from "@/lib/api";
 
 const STATE_OPTIONS: { value: FieldState; label: string }[] = [
-  { value: "hidden",   label: "Ausblenden" },
-  { value: "optional", label: "Optional" },
-  { value: "required", label: "Pflichtfeld" },
+  { value: "hidden",     label: "Ausblenden" },
+  { value: "optional",   label: "Optional" },
+  { value: "required",   label: "Pflichtfeld" },
+  { value: "admin_only", label: "Admin-Vorgabe" },
 ];
 
 function FieldRow({
   field,
-  state,
+  entry,
   onChange,
 }: {
   field: ConfigurableField;
-  state: FieldState;
-  onChange: (state: FieldState) => void;
+  entry: AdminFieldConfigEntry;
+  onChange: (entry: AdminFieldConfigEntry) => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-2">
-      <span className="text-sm">{field.label}</span>
-      <div className="flex rounded-md border border-border overflow-hidden shrink-0">
-        {STATE_OPTIONS.map((opt) => (
-          <button
-            key={opt.value}
-            type="button"
-            onClick={() => onChange(opt.value)}
-            className={[
-              "px-3 py-1.5 text-xs font-medium transition-colors",
-              state === opt.value
-                ? "bg-primary text-primary-foreground"
-                : "bg-background text-muted-foreground hover:bg-muted",
-              "border-r border-border last:border-r-0",
-            ].join(" ")}
-          >
-            {opt.label}
-          </button>
-        ))}
+    <div className="py-2 space-y-1.5">
+      <div className="flex items-center justify-between gap-4">
+        <span className="text-sm">{field.label}</span>
+        <div className="flex rounded-md border border-border overflow-hidden shrink-0">
+          {STATE_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => onChange({ ...entry, state: opt.value })}
+              className={[
+                "px-3 py-1.5 text-xs font-medium transition-colors",
+                entry.state === opt.value
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-background text-muted-foreground hover:bg-muted",
+                "border-r border-border last:border-r-0",
+              ].join(" ")}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
+      {entry.state === "admin_only" && (
+        <div className="pl-0 pr-0">
+          <Input
+            value={entry.adminValue ?? ""}
+            onChange={(e) => onChange({ ...entry, adminValue: e.target.value || undefined })}
+            placeholder="Standardwert (wird automatisch auf neue Anträge angewendet)"
+            className="h-8 text-xs"
+          />
+        </div>
+      )}
     </div>
   );
 }
 
 interface Props {
   rcNumber: string;
-  initialConfig: FieldConfig;
+  initialConfig: AdminFieldConfig;
 }
 
 export function AdminFieldConfigEditor({ rcNumber, initialConfig }: Props) {
   const { data: session } = useSession();
-  const [config, setConfig] = useState<FieldConfig>(() => {
-    const merged: FieldConfig = {};
+  const [config, setConfig] = useState<AdminFieldConfig>(() => {
+    const merged: AdminFieldConfig = {};
     for (const f of [...CONFIGURABLE_FIELDS.application, ...CONFIGURABLE_FIELDS.meteringPoint]) {
-      merged[f.name] = initialConfig[f.name] ?? f.defaultState;
+      merged[f.name] = initialConfig[f.name] ?? { state: f.defaultState };
     }
     return merged;
   });
   const [saving, setSaving] = useState(false);
   const [saveResult, setSaveResult] = useState<"ok" | "error" | null>(null);
 
-  const setField = (name: string, state: FieldState) => {
+  const setField = (name: string, entry: AdminFieldConfigEntry) => {
     setSaveResult(null);
-    setConfig((prev) => ({ ...prev, [name]: state }));
+    setConfig((prev) => ({ ...prev, [name]: entry }));
   };
 
   const handleSave = async () => {
@@ -96,12 +111,12 @@ export function AdminFieldConfigEditor({ rcNumber, initialConfig }: Props) {
         </CardHeader>
         <CardContent>
           <div className="divide-y divide-border">
-            {CONFIGURABLE_FIELDS.application.map((field, i) => (
+            {CONFIGURABLE_FIELDS.application.map((field) => (
               <FieldRow
                 key={field.name}
                 field={field}
-                state={config[field.name] ?? field.defaultState}
-                onChange={(s) => setField(field.name, s)}
+                entry={config[field.name] ?? { state: field.defaultState }}
+                onChange={(e) => setField(field.name, e)}
               />
             ))}
           </div>
@@ -118,8 +133,8 @@ export function AdminFieldConfigEditor({ rcNumber, initialConfig }: Props) {
               <FieldRow
                 key={field.name}
                 field={field}
-                state={config[field.name] ?? field.defaultState}
-                onChange={(s) => setField(field.name, s)}
+                entry={config[field.name] ?? { state: field.defaultState }}
+                onChange={(e) => setField(field.name, e)}
               />
             ))}
           </div>

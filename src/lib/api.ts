@@ -11,8 +11,16 @@ const API_URL = getBaseUrl();
 
 // ---------- response shapes ----------
 
-export type FieldState = "hidden" | "optional" | "required";
+export type FieldState = "hidden" | "optional" | "required" | "admin_only";
+// Public registration form uses the simpler map (backend maps admin_only → hidden).
 export type FieldConfig = Record<string, FieldState>;
+
+// Admin field config uses the richer format with optional admin-provided default value.
+export interface AdminFieldConfigEntry {
+  state: FieldState;
+  adminValue?: string;
+}
+export type AdminFieldConfig = Record<string, AdminFieldConfigEntry>;
 
 export interface ConfigurableField {
   name: string;
@@ -416,11 +424,11 @@ export function deleteApplication(id: string, token?: string): Promise<void> {
   return adminRequest<void>(`/api/admin/applications/${id}`, token, { method: "DELETE" });
 }
 
-export function getFieldConfig(rcNumber: string, token?: string): Promise<FieldConfig> {
-  return adminRequest<FieldConfig>(`/api/admin/settings/fields?rc_number=${encodeURIComponent(rcNumber)}`, token);
+export function getFieldConfig(rcNumber: string, token?: string): Promise<{ fieldConfig: AdminFieldConfig }> {
+  return adminRequest<{ fieldConfig: AdminFieldConfig }>(`/api/admin/settings/fields?rc_number=${encodeURIComponent(rcNumber)}`, token);
 }
 
-export function saveFieldConfig(rcNumber: string, config: FieldConfig, token?: string): Promise<void> {
+export function saveFieldConfig(rcNumber: string, config: AdminFieldConfig, token?: string): Promise<void> {
   return adminRequest<void>(
     `/api/admin/settings/fields?rc_number=${encodeURIComponent(rcNumber)}`,
     token,
@@ -437,6 +445,7 @@ export interface EEGSettings {
   eegCity: string | null;
   creditorId: string | null;
   sepaMandateEnabled: boolean;
+  useCompanySEPAMandate: boolean;
 }
 
 export function getEEGSettings(rcNumber: string, token?: string): Promise<EEGSettings> {

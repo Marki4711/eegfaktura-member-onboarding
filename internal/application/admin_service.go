@@ -64,12 +64,12 @@ func NewAdminApplicationService(
 }
 
 // GetFieldConfig returns the field configuration for a given RC number.
-func (s *AdminApplicationService) GetFieldConfig(rcNumber string) (map[string]string, error) {
+func (s *AdminApplicationService) GetFieldConfig(rcNumber string) (map[string]FieldConfigEntry, error) {
 	return s.fieldConfigRepo.Get(rcNumber)
 }
 
 // SaveFieldConfig replaces the field configuration for a given RC number.
-func (s *AdminApplicationService) SaveFieldConfig(rcNumber string, config map[string]string) error {
+func (s *AdminApplicationService) SaveFieldConfig(rcNumber string, config map[string]FieldConfigEntry) error {
 	return s.fieldConfigRepo.Save(rcNumber, config)
 }
 

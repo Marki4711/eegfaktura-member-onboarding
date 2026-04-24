@@ -44,6 +44,7 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
   const [eegCity, setEegCity] = useState("");
   const [creditorId, setCreditorId] = useState("");
   const [sepaMandateEnabled, setSepaMandateEnabled] = useState(false);
+  const [useCompanySEPAMandate, setUseCompanySEPAMandate] = useState(false);
 
   useEffect(() => {
     if (!rcNumber || !session?.accessToken) return;
@@ -57,6 +58,7 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
         setEegCity(s.eegCity ?? "");
         setCreditorId(s.creditorId ?? "");
         setSepaMandateEnabled(s.sepaMandateEnabled);
+        setUseCompanySEPAMandate(s.useCompanySEPAMandate ?? false);
         setLoaded(true);
       })
       .catch(() => setLoaded(true));
@@ -79,6 +81,7 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
           eegCity: eegCity.trim() || null,
           creditorId: creditorId.trim() || null,
           sepaMandateEnabled,
+          useCompanySEPAMandate,
         },
         session?.accessToken
       );
@@ -177,12 +180,26 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
             <Switch
               id="sepa-mandate-enabled"
               checked={sepaMandateEnabled}
-              onCheckedChange={(v) => { setSepaMandateEnabled(v); setSaveResult(null); }}
+              onCheckedChange={(v) => { setSepaMandateEnabled(v); if (!v) setUseCompanySEPAMandate(false); setSaveResult(null); }}
             />
             <Label htmlFor="sepa-mandate-enabled" className="text-sm cursor-pointer">
               SEPA-Lastschriftmandat dem Willkommensmail anhängen
             </Label>
           </div>
+
+          {/* Company SEPA Toggle — only when SEPA is enabled */}
+          {sepaMandateEnabled && (
+            <div className="flex items-center gap-3 pl-10">
+              <Switch
+                id="use-company-sepa-mandate"
+                checked={useCompanySEPAMandate}
+                onCheckedChange={(v) => { setUseCompanySEPAMandate(v); setSaveResult(null); }}
+              />
+              <Label htmlFor="use-company-sepa-mandate" className="text-sm cursor-pointer">
+                Firmenlastschrift (B2B) für Unternehmen und Verbände verwenden
+              </Label>
+            </div>
+          )}
 
           {showWarning && (
             <Alert variant="destructive" className="py-2">

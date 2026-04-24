@@ -36,11 +36,21 @@ func (s *RegistrationService) GetRegistrationConfig(rcNumber string) (*shared.Re
 		return nil, shared.ErrGone
 	}
 
-	fieldConfig, err := s.fieldConfigRepo.Get(rcNumber)
+	rawConfig, err := s.fieldConfigRepo.Get(rcNumber)
 	if err != nil {
 		// Non-fatal: log and fall back to empty config (frontend uses defaults)
 		fmt.Printf("warning: failed to load field config for rc=%s: %v\n", rcNumber, err)
-		fieldConfig = map[string]string{}
+		rawConfig = map[string]FieldConfigEntry{}
+	}
+
+	// Map to public format: admin_only fields are hidden from members.
+	fieldConfig := make(map[string]string, len(rawConfig))
+	for name, entry := range rawConfig {
+		if entry.State == "admin_only" {
+			fieldConfig[name] = "hidden"
+		} else {
+			fieldConfig[name] = entry.State
+		}
 	}
 
 	return &shared.RegistrationConfig{

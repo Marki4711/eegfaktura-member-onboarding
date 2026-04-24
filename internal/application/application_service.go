@@ -64,7 +64,7 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 	fieldConfig, fcErr := s.fieldConfigRepo.Get(strings.ToUpper(req.RCNumber))
 	if fcErr != nil {
 		fmt.Printf("warning: failed to load field config for rc=%s: %v\n", req.RCNumber, fcErr)
-		fieldConfig = map[string]string{}
+		fieldConfig = map[string]FieldConfigEntry{}
 	}
 
 	// Build metering point list and check for duplicates within the request
@@ -152,6 +152,7 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 		ElectricVehicle:         req.ElectricVehicle,
 		ElectricHotWater:        req.ElectricHotWater,
 	}
+	applyAdminValues(app, fieldConfig)
 	clearMemberTypeFields(app)
 	if err = validateMemberTypeFields(app); err != nil {
 		return nil, err
@@ -393,7 +394,7 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID) (*shared.SubmitResp
 	fieldConfig, fcErr := s.fieldConfigRepo.Get(strings.ToUpper(app.RCNumber))
 	if fcErr != nil {
 		fmt.Printf("warning: failed to load field config for rc=%s: %v\n", app.RCNumber, fcErr)
-		fieldConfig = map[string]string{}
+		fieldConfig = map[string]FieldConfigEntry{}
 	}
 	if err = validateConfigurableRequiredFields(app, fieldConfig); err != nil {
 		return nil, err
@@ -427,7 +428,15 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID) (*shared.SubmitResp
 		} else {
 			var attachment []byte
 			if mandate := buildSEPAMandateData(app, entrypoint); mandate != nil {
-				pdfBytes, pdfErr := s.pdfGenerator.Generate(*mandate)
+				useCompany := entrypoint.UseCompanySEPAMandate &&
+					(app.MemberType == shared.MemberTypeCompany || app.MemberType == shared.MemberTypeAssociation)
+				var pdfBytes []byte
+				var pdfErr error
+				if useCompany {
+					pdfBytes, pdfErr = s.pdfGenerator.GenerateCompany(*mandate)
+				} else {
+					pdfBytes, pdfErr = s.pdfGenerator.Generate(*mandate)
+				}
 				if pdfErr != nil {
 					fmt.Printf("pdf: failed to generate SEPA mandate for rc=%s: %v\n", app.RCNumber, pdfErr)
 				} else {
@@ -504,8 +513,85 @@ func validateIBAN(iban string) bool {
 	return remainder == 1
 }
 
+// applyAdminValues sets application fields from admin-configured default values for admin_only fields.
+// Only fields that the caller left as nil (not provided) are overwritten.
+func applyAdminValues(app *shared.Application, fieldConfig map[string]FieldConfigEntry) {
+	apply := func(name string, setter func(string)) {
+		entry, ok := fieldConfig[name]
+		if !ok || entry.State != "admin_only" || entry.AdminValue == nil || *entry.AdminValue == "" {
+			return
+		}
+		setter(*entry.AdminValue)
+	}
+	apply("membership_start_date", func(v string) {
+		if app.MembershipStartDate == nil {
+			if t, err := parseDateString(&v); err == nil {
+				app.MembershipStartDate = t
+			}
+		}
+	})
+	apply("persons_in_household", func(v string) {
+		if app.PersonsInHousehold == nil {
+			var n int
+			if _, err := fmt.Sscanf(v, "%d", &n); err == nil {
+				app.PersonsInHousehold = &n
+			}
+		}
+	})
+	apply("consumption_previous_year", func(v string) {
+		if app.ConsumptionPreviousYear == nil {
+			var n int
+			if _, err := fmt.Sscanf(v, "%d", &n); err == nil {
+				app.ConsumptionPreviousYear = &n
+			}
+		}
+	})
+	apply("consumption_forecast", func(v string) {
+		if app.ConsumptionForecast == nil {
+			var n int
+			if _, err := fmt.Sscanf(v, "%d", &n); err == nil {
+				app.ConsumptionForecast = &n
+			}
+		}
+	})
+	apply("feed_in_forecast", func(v string) {
+		if app.FeedInForecast == nil {
+			var n int
+			if _, err := fmt.Sscanf(v, "%d", &n); err == nil {
+				app.FeedInForecast = &n
+			}
+		}
+	})
+	apply("pv_power_kwp", func(v string) {
+		if app.PvPowerKwp == nil {
+			var f float64
+			if _, err := fmt.Sscanf(v, "%f", &f); err == nil {
+				app.PvPowerKwp = &f
+			}
+		}
+	})
+	apply("heat_pump", func(v string) {
+		if app.HeatPump == nil {
+			b := v == "true"
+			app.HeatPump = &b
+		}
+	})
+	apply("electric_vehicle", func(v string) {
+		if app.ElectricVehicle == nil {
+			b := v == "true"
+			app.ElectricVehicle = &b
+		}
+	})
+	apply("electric_hot_water", func(v string) {
+		if app.ElectricHotWater == nil {
+			b := v == "true"
+			app.ElectricHotWater = &b
+		}
+	})
+}
+
 // validateConfigurableRequiredFields checks application-level fields configured as "required".
-func validateConfigurableRequiredFields(app *shared.Application, fieldConfig map[string]string) error {
+func validateConfigurableRequiredFields(app *shared.Application, fieldConfig map[string]FieldConfigEntry) error {
 	errs := map[string]string{}
 
 	checkStr := func(name, jsonKey string, val *string, label string) {
@@ -556,7 +642,7 @@ func validateConfigurableRequiredFields(app *shared.Application, fieldConfig map
 }
 
 // validateConfigurableMeteringPointFields checks metering-point-level fields configured as "required".
-func validateConfigurableMeteringPointFields(points []shared.MeteringPoint, fieldConfig map[string]string) error {
+func validateConfigurableMeteringPointFields(points []shared.MeteringPoint, fieldConfig map[string]FieldConfigEntry) error {
 	for i, mp := range points {
 		errs := map[string]string{}
 		checkStr := func(name, label string, val *string) {

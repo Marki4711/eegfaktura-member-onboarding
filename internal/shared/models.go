@@ -20,8 +20,9 @@ type RegistrationEntrypoint struct {
 	EEGZip             *string   `json:"eegZip"             db:"eeg_zip"`
 	EEGCity            *string   `json:"eegCity"            db:"eeg_city"`
 	CreditorID         *string   `json:"creditorId"         db:"creditor_id"`
-	SEPAMandateEnabled bool      `json:"sepaMandateEnabled" db:"sepa_mandate_enabled"`
-	CreatedAt          time.Time `json:"createdAt"          db:"created_at"`
+	SEPAMandateEnabled         bool      `json:"sepaMandateEnabled"         db:"sepa_mandate_enabled"`
+	UseCompanySEPAMandate      bool      `json:"useCompanySEPAMandate"      db:"use_company_sepa_mandate"`
+	CreatedAt                  time.Time `json:"createdAt"                  db:"created_at"`
 	UpdatedAt          time.Time `json:"updatedAt"          db:"updated_at"`
 }
 

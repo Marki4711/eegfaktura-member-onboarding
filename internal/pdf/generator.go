@@ -27,6 +27,7 @@ type SEPAMandateData struct {
 // SEPAMandateGenerator generates a SEPA direct debit mandate as a PDF byte slice.
 type SEPAMandateGenerator interface {
 	Generate(data SEPAMandateData) ([]byte, error)
+	GenerateCompany(data SEPAMandateData) ([]byte, error)
 }
 
 // FPDFGenerator implements SEPAMandateGenerator using go-pdf/fpdf.
@@ -194,6 +195,148 @@ func (g *FPDFGenerator) Generate(data SEPAMandateData) ([]byte, error) {
 		return nil, fmt.Errorf("pdf rendering error: %w", f.Error())
 	}
 
+	var buf bytes.Buffer
+	if err := f.Output(&buf); err != nil {
+		return nil, fmt.Errorf("pdf output failed: %w", err)
+	}
+	return buf.Bytes(), nil
+}
+
+// GenerateCompany produces a DIN-A4 SEPA-Firmenlastschrift-Mandat (B2B) PDF.
+func (g *FPDFGenerator) GenerateCompany(data SEPAMandateData) ([]byte, error) {
+	f := fpdf.New("P", "mm", "A4", "")
+	f.SetMargins(15, 15, 15)
+	f.SetAutoPageBreak(false, 0)
+	f.AddPage()
+
+	lm, _, rm, _ := f.GetMargins()
+	pageW, _ := f.GetPageSize()
+	cw := pageW - lm - rm
+
+	setFont := func(style string, size float64) { f.SetFont("Helvetica", style, size) }
+	fieldRow := func(label, value string, labelW, h float64) {
+		setFont("B", 9)
+		f.CellFormat(labelW, h, w1252(label), "0", 0, "L", false, 0, "")
+		setFont("", 9)
+		f.CellFormat(cw-labelW, h, w1252(value), "B", 1, "L", false, 0, "")
+	}
+
+	// ── Title ─────────────────────────────────────────────────────────────────
+	setFont("B", 13)
+	f.CellFormat(cw, 8, w1252("SEPA-Firmenlastschrift-Mandat"), "0", 1, "L", false, 0, "")
+	f.Ln(2)
+
+	// ── Mandatsreferenz ────────────────────────────────────────────────────────
+	setFont("", 9)
+	mandatsRef := fmt.Sprintf("Mandatsreferenz (wird von %s ausgefüllt):", data.EEGName)
+	f.CellFormat(cw, 6, w1252(mandatsRef), "0", 1, "L", false, 0, "")
+	f.Ln(1)
+	f.Line(lm, f.GetY(), lm+80, f.GetY())
+	f.Ln(4)
+
+	// ── ZAHLUNGSEMPFÄNGER ──────────────────────────────────────────────────────
+	boxTop := f.GetY()
+	setFont("B", 9)
+	f.SetFillColor(230, 230, 230)
+	f.CellFormat(cw, 6, w1252("ZAHLUNGSEMPFÄNGER"), "LRT", 1, "L", true, 0, "")
+	f.Ln(1)
+	setFont("", 9)
+	fieldRow("Creditor CD:", data.CreditorID, 30, 6)
+	fieldRow("Name:", data.EEGName, 30, 6)
+	fieldRow("Anschrift (Straße, Ort, Land):", fmt.Sprintf("%s %s, %s %s, Österreich",
+		data.EEGStreet, data.EEGStreetNumber, data.EEGZip, data.EEGCity), 60, 6)
+	boxBot := f.GetY()
+	f.Rect(lm, boxTop, cw, boxBot-boxTop, "D")
+	f.Ln(3)
+
+	// ── Ermächtigungstext (B2B-Wortlaut) ──────────────────────────────────────
+	ermText := fmt.Sprintf(
+		"Ich ermächtige/Wir ermächtigen %s, Zahlungen von meinem/unserem Konto mittels SEPA-Firmenlastschriften einzuziehen. "+
+			"Zugleich weise ich mein/weisen wir unser Kreditinstitut an, die von %s auf mein/unser Konto gezogenen SEPA-Firmenlastschriften einzulösen.\n\n"+
+			"Hinweis: Dieses SEPA-Firmenlastschrift-Mandat dient nur dem Einzug von SEPA-Firmenlastschriften, die auf Konten von Unternehmen gezogen sind. "+
+			"Ich bin/Wir sind nicht berechtigt, nach der erfolgten Einlösung eine Erstattung des belasteten Betrages zu verlangen. "+
+			"Ich bin/Wir sind berechtigt, mein/unser Kreditinstitut bis zum Fälligkeitstag anzuweisen, SEPA-Firmenlastschriften nicht einzulösen.",
+		data.EEGName, data.EEGName,
+	)
+	boxTop = f.GetY()
+	setFont("", 9)
+	f.SetFillColor(255, 255, 255)
+	f.MultiCell(cw, 5, w1252(ermText), "LR", "L", false)
+	boxBot = f.GetY()
+	f.Rect(lm, boxTop, cw, boxBot-boxTop, "D")
+	f.Ln(3)
+
+	// ── Zahlungsart ────────────────────────────────────────────────────────────
+	boxTop = f.GetY()
+	setFont("", 9)
+	f.CellFormat(25, 7, w1252("Zahlungsart:"), "0", 0, "L", false, 0, "")
+	// einmalig (unchecked box)
+	einmX := f.GetX() + 3
+	einmY := f.GetY()
+	f.Rect(einmX, einmY+1.5, 4, 4, "D")
+	f.SetX(einmX + 7)
+	f.CellFormat(22, 7, w1252("einmalig"), "0", 0, "L", false, 0, "")
+	// wiederkehrend (checked)
+	checkX := f.GetX() + 3
+	checkY := f.GetY()
+	f.Rect(checkX, checkY+1.5, 4, 4, "DF")
+	f.SetTextColor(255, 255, 255)
+	setFont("B", 9)
+	f.SetXY(checkX-0.5, checkY)
+	f.CellFormat(5, 7, w1252("x"), "0", 0, "L", false, 0, "")
+	f.SetTextColor(0, 0, 0)
+	f.SetX(f.GetX() + 3)
+	setFont("", 9)
+	f.CellFormat(40, 7, w1252("wiederkehrend"), "0", 1, "L", false, 0, "")
+	boxBot = f.GetY()
+	f.Rect(lm, boxTop, cw, boxBot-boxTop, "D")
+	f.Ln(3)
+
+	// ── ZAHLUNGSPFLICHTIGER ────────────────────────────────────────────────────
+	boxTop = f.GetY()
+	setFont("B", 9)
+	f.SetFillColor(230, 230, 230)
+	f.CellFormat(cw, 6, w1252("ZAHLUNGSPFLICHTIGER"), "LRT", 1, "L", true, 0, "")
+	f.Ln(1)
+	setFont("", 9)
+	fieldRow("Name:", data.MemberName, 30, 6)
+	fieldRow("Anschrift (Straße, Ort, Land):", fmt.Sprintf("%s %s, %s %s",
+		data.MemberStreet, data.MemberStreetNumber, data.MemberZip, data.MemberCity), 60, 6)
+	f.Ln(1)
+	setFont("B", 9)
+	f.CellFormat(12, 6, w1252("IBAN:"), "0", 0, "L", false, 0, "")
+	setFont("", 9)
+	f.CellFormat(75, 6, w1252(data.IBAN), "B", 0, "L", false, 0, "")
+	f.CellFormat(8, 6, "", "0", 0, "L", false, 0, "")
+	setFont("B", 9)
+	f.CellFormat(12, 6, w1252("BIC:*"), "0", 0, "L", false, 0, "")
+	setFont("", 9)
+	f.CellFormat(cw-107, 6, "", "B", 1, "L", false, 0, "")
+	boxBot = f.GetY()
+	f.Rect(lm, boxTop, cw, boxBot-boxTop, "D")
+	f.Ln(8)
+
+	// ── Unterschriftsfeld ─────────────────────────────────────────────────────
+	boxTop = f.GetY()
+	f.Ln(15)
+	sigY := f.GetY()
+	f.Line(lm, sigY, lm+70, sigY)
+	setFont("", 8)
+	f.SetXY(lm, sigY+1)
+	f.CellFormat(70, 5, w1252("Ort, Datum, Unterschrift"), "0", 0, "L", false, 0, "")
+	boxBot = f.GetY()
+	f.Rect(lm, boxTop, cw, boxBot-boxTop+2, "D")
+	f.Ln(4)
+
+	// ── BIC-Fußnote ────────────────────────────────────────────────────────────
+	setFont("", 7)
+	f.MultiCell(cw, 4, w1252(
+		"* Seit 01.06.2016 kann die Angabe des BIC bei nationalen und grenzüberschreitenden Lastschriften entfallen.",
+	), "1", "L", false)
+
+	if f.Error() != nil {
+		return nil, fmt.Errorf("pdf rendering error: %w", f.Error())
+	}
 	var buf bytes.Buffer
 	if err := f.Output(&buf); err != nil {
 		return nil, fmt.Errorf("pdf output failed: %w", err)

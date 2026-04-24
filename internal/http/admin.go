@@ -61,12 +61,20 @@ func (h *AdminHandler) GetFieldConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	config, err := h.adminService.GetFieldConfig(rcNumber)
+	rawConfig, err := h.adminService.GetFieldConfig(rcNumber)
 	if err != nil {
 		h.handleServiceError(w, err)
 		return
 	}
 
+	type fieldEntry struct {
+		State      string  `json:"state"`
+		AdminValue *string `json:"adminValue,omitempty"`
+	}
+	config := make(map[string]fieldEntry, len(rawConfig))
+	for name, entry := range rawConfig {
+		config[name] = fieldEntry{State: entry.State, AdminValue: entry.AdminValue}
+	}
 	h.writeJSON(w, http.StatusOK, map[string]interface{}{"rcNumber": rcNumber, "fieldConfig": config})
 }
 
@@ -86,10 +94,18 @@ func (h *AdminHandler) SaveFieldConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var config map[string]string
-	if err := json.NewDecoder(r.Body).Decode(&config); err != nil {
+	var rawConfig map[string]struct {
+		State      string  `json:"state"`
+		AdminValue *string `json:"adminValue,omitempty"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&rawConfig); err != nil {
 		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Invalid JSON", nil)))
 		return
+	}
+
+	config := make(map[string]application.FieldConfigEntry, len(rawConfig))
+	for name, v := range rawConfig {
+		config[name] = application.FieldConfigEntry{State: v.State, AdminValue: v.AdminValue}
 	}
 
 	if err := h.adminService.SaveFieldConfig(rcNumber, config); err != nil {
@@ -386,14 +402,15 @@ func (h *AdminHandler) GetEEGSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.writeJSON(w, http.StatusOK, map[string]interface{}{
-		"rcNumber":           rcNumber,
-		"eegName":            ep.EEGName,
-		"eegStreet":          ep.EEGStreet,
-		"eegStreetNumber":    ep.EEGStreetNumber,
-		"eegZip":             ep.EEGZip,
-		"eegCity":            ep.EEGCity,
-		"creditorId":         ep.CreditorID,
-		"sepaMandateEnabled": ep.SEPAMandateEnabled,
+		"rcNumber":                rcNumber,
+		"eegName":                 ep.EEGName,
+		"eegStreet":               ep.EEGStreet,
+		"eegStreetNumber":         ep.EEGStreetNumber,
+		"eegZip":                  ep.EEGZip,
+		"eegCity":                 ep.EEGCity,
+		"creditorId":              ep.CreditorID,
+		"sepaMandateEnabled":      ep.SEPAMandateEnabled,
+		"useCompanySEPAMandate":   ep.UseCompanySEPAMandate,
 	})
 }
 
@@ -414,13 +431,14 @@ func (h *AdminHandler) SaveEEGSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body struct {
-		EEGName            *string `json:"eegName"`
-		EEGStreet          *string `json:"eegStreet"`
-		EEGStreetNumber    *string `json:"eegStreetNumber"`
-		EEGZip             *string `json:"eegZip"`
-		EEGCity            *string `json:"eegCity"`
-		CreditorID         *string `json:"creditorId"`
-		SEPAMandateEnabled bool    `json:"sepaMandateEnabled"`
+		EEGName               *string `json:"eegName"`
+		EEGStreet             *string `json:"eegStreet"`
+		EEGStreetNumber       *string `json:"eegStreetNumber"`
+		EEGZip                *string `json:"eegZip"`
+		EEGCity               *string `json:"eegCity"`
+		CreditorID            *string `json:"creditorId"`
+		SEPAMandateEnabled    bool    `json:"sepaMandateEnabled"`
+		UseCompanySEPAMandate bool    `json:"useCompanySEPAMandate"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Invalid JSON", nil)))
@@ -444,6 +462,7 @@ func (h *AdminHandler) SaveEEGSettings(w http.ResponseWriter, r *http.Request) {
 		nilIfEmpty(body.EEGCity),
 		nilIfEmpty(body.CreditorID),
 		body.SEPAMandateEnabled,
+		body.UseCompanySEPAMandate,
 	); err != nil {
 		h.handleServiceError(w, err)
 		return
