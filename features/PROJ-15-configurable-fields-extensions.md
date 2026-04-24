@@ -1,6 +1,6 @@
 # PROJ-15: Konfigurierbare Felder — Erweiterungen
 
-## Status: Planned
+## Status: In Review
 **Created:** 2026-04-24
 **Last Updated:** 2026-04-24
 
