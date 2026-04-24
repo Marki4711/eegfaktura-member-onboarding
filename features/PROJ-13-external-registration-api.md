@@ -23,7 +23,7 @@
 
 - [ ] Im Admin-Backend gibt es pro EEG einen Abschnitt „Externe API" mit den Optionen: Key generieren / Key widerrufen
 - [ ] Ein Klick auf „API-Key generieren" erzeugt einen neuen Key und zeigt ihn **einmalig** im Klartext an (danach nicht mehr lesbar)
-- [ ] Der angezeigte Key hat das Format: `moak_<rc_number>_<32 zufällige alphanumerische Zeichen>` (leicht identifizierbar)
+- [ ] Der angezeigte Key hat das Format: `moak_<32 zufällige alphanumerische Zeichen>` — die RC-Nummer ist **nicht** Teil des Keys (kein Information Leak falls ein Key versehentlich in Logs oder E-Mails landet)
 - [ ] In der Datenbank wird nur der Hash des Keys gespeichert (SHA-256), niemals der Klartext
 - [ ] Pro EEG existiert maximal ein aktiver API-Key — wird ein neuer generiert, wird der alte automatisch invalidiert
 - [ ] Der Admin kann den aktiven Key jederzeit widerrufen (kein neuer Key wird dabei erzeugt)
@@ -188,6 +188,8 @@ Folgt dem Muster der bestehenden `KeycloakAuthMiddleware` in `internal/http/auth
 - Legt RC-Nummer im Request-Kontext ab (analog zu Keycloak-Claims)
 
 ### Tech-Entscheidungen
+
+**Kein `rc_number` im Key-Format** — `moak_<32chars>` ohne RC-Nummer. Die Zuordnung Key→EEG erfolgt ausschließlich über den DB-Lookup. Würde ein Key versehentlich in einem Log, einer E-Mail oder einem Git-Commit landen, ist die betroffene EEG nicht sofort identifizierbar.
 
 **SHA-256 statt bcrypt** — API-Keys sind 32 zufällige alphanumerische Zeichen. Bei dieser Länge und Zufälligkeit ist ein Wörterbuchangriff nicht praktikabel. SHA-256 ist bei jedem Request in Mikrosekunden berechenbar; bcrypt würde 100–300 ms kosten und die API bei hoher Last ausbremsen.
 
