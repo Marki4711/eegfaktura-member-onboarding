@@ -67,6 +67,8 @@
 ### Rate Limiting
 
 - [ ] Maximal 10 Einreichungen pro Minute pro API-Key — bei Überschreitung: `429 Too Many Requests`
+- [ ] Maximal 200 Einreichungen pro Tag pro API-Key — bei Überschreitung: `429 Too Many Requests` mit `Retry-After`-Header (Reset um Mitternacht UTC)
+- [ ] Der Tages-Zähler wird in der DB gespeichert (`daily_count` + `quota_date` auf `external_api_key`) — übersteht Pod-Neustart, funktioniert bei mehreren Pods korrekt
 
 ## Edge Cases
 
@@ -77,12 +79,14 @@
 - **Konfigurierbare Pflichtfelder fehlen**: `422` mit denselben Fehlermeldungen wie das Standardformular
 - **Sehr langer Mitgliedsname / Anschrift**: Gleiche Längenbeschränkungen wie im Standardformular
 - **Widerruf während Admin den Key gerade anzeigt** (Race Condition): Kein Problem — Key wird nach Anzeige nicht gespeichert
+- **Tageskontingent erschöpft**: `429` mit `Retry-After`-Header — kein Antrag wird angelegt; legitimer Betreiber kann bis Mitternacht UTC warten oder sich an den EEG-Admin wenden
+- **DDoS auf Infrastrukturebene**: Massenhaft eingehende Verbindungen zur Serverüberlastung sind kein Anwendungsproblem — Schutz erfolgt durch nginx-Limits am Ingress oder vorgelagertem CDN/WAF, nicht durch Code in diesem Service
 
 ## Technical Requirements
 
 - **Neuer Endpunkt**: `POST /api/external/v1/applications` — eigene Route-Gruppe `/api/external`, kein Keycloak-Middleware (eigene API-Key-Middleware)
 - **Neue DB-Tabelle**: `member_onboarding.external_api_key`
-  - `id`, `rc_number` (FK), `key_hash` (VARCHAR(64), SHA-256 hex), `created_at`, `revoked_at` (nullable), `last_generated_at`
+  - `id`, `rc_number` (FK), `key_hash` (VARCHAR(64), SHA-256 hex), `created_at`, `revoked_at` (nullable), `last_generated_at`, `daily_count` (INT DEFAULT 0), `quota_date` (DATE)
 - **Key-Hashing**: SHA-256 des Klartext-Keys (kein bcrypt — Performance bei jedem Request)
 - **Admin-Endpunkte**: 
   - `POST /api/admin/settings/api-key?rc_number=...` — generiert neuen Key, gibt Klartext zurück (einmalig)
@@ -186,6 +190,7 @@ Folgt dem Muster der bestehenden `KeycloakAuthMiddleware` in `internal/http/auth
 - Berechnet SHA-256 des Keys
 - Schlägt in `external_api_key` nach — verifiziert, dass `revoked_at IS NULL`
 - Prüft In-Memory-Rate-Limit (sliding window, 10 req/60s pro Key-Hash)
+- Prüft Tageskontingent in DB: wenn `quota_date = heute` und `daily_count >= 200` → 429; wenn `quota_date < heute` → Reset `daily_count = 0, quota_date = heute`
 - Legt RC-Nummer im Request-Kontext ab (analog zu Keycloak-Claims)
 
 ### Tech-Entscheidungen
@@ -194,7 +199,7 @@ Folgt dem Muster der bestehenden `KeycloakAuthMiddleware` in `internal/http/auth
 
 **SHA-256 statt bcrypt** — API-Keys sind 32 zufällige alphanumerische Zeichen. Bei dieser Länge und Zufälligkeit ist ein Wörterbuchangriff nicht praktikabel. SHA-256 ist bei jedem Request in Mikrosekunden berechenbar; bcrypt würde 100–300 ms kosten und die API bei hoher Last ausbremsen.
 
-**In-Memory Rate Limiting** — Kein Redis, keine externe Abhängigkeit. Bei einem einzelnen Pod für den MVP ist das ausreichend. Bei mehreren Pods wird das Limit pro Pod geprüft (effektiv N×10 req/min global) — akzeptabler Kompromiss für V1.
+**Zwei-stufiges Rate Limiting** — In-Memory für den Burst-Schutz (10 req/min, pro Pod), DB für das Tageskontingent (200 req/Tag, global korrekt). Der In-Memory-Zähler ist bei mehreren Pods ungenau (effektiv N×10/min) — akzeptabler Kompromiss für V1. Das Tageskontingent hingegen wird in der DB mit einem atomaren `UPDATE ... WHERE quota_date = today RETURNING daily_count` geprüft und ist pod-übergreifend korrekt. Echter DDoS-Schutz (massenhafte Verbindungen zur Serverüberlastung) ist Infrastrukturaufgabe (nginx, CDN/WAF) und nicht Teil dieses Services.
 
 **Einmaliger Key im Dialog** — Der Klartext-Key verlässt das Backend genau einmal (bei Generierung). Das Frontend zeigt ihn in einem modalen Dialog mit Kopier-Button. Sobald der Dialog geschlossen wird, ist der Key unwiederbringlich — nur ein neuer Key kann generiert werden. Dieses Muster ist aus GitHub/Stripe/Supabase bekannt und gut verstanden.
 
