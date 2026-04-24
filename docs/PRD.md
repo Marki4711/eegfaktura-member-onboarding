@@ -42,6 +42,7 @@ Version 1 includes:
 | P1 | Keycloak-secured Admin Area | Planned | — |
 | P2 | Email Notifications | Planned | `features/PROJ-6-email-notifications.md` |
 | P2 | Externe Registrierungs-API | Planned | `features/PROJ-13-external-registration-api.md` |
+| P2 | Cloudflare Turnstile Spam-Schutz | Planned | `features/PROJ-16-turnstile-spam-protection.md` |
 
 ## 5. Success Metrics
 
