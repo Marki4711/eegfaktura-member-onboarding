@@ -23,14 +23,14 @@ ingress:
 images:
   backend:
     repository: marki4711/eegfaktura-member-onboarding-backend
-    tag: latest
-    # Always: immer vom Registry laden (empfohlen für latest-Tags)
-    # IfNotPresent: nur laden wenn nicht lokal vorhanden
-    pullPolicy: Always
+    # tag: sha-xxxxxxx  # Leer lassen → verwendet den Tag aus values.yaml (empfohlen)
+    # "latest" vermeiden: verhindert reproduzierbare Deployments und wird von Kubernetes
+    # bei pullPolicy: IfNotPresent nicht neu gezogen.
+    pullPolicy: IfNotPresent
   frontend:
     repository: marki4711/eegfaktura-member-onboarding-frontend
-    tag: latest
-    pullPolicy: Always
+    # tag: sha-xxxxxxx  # Leer lassen → verwendet den Tag aus values.yaml (empfohlen)
+    pullPolicy: IfNotPresent
 
 # ── PostgreSQL ─────────────────────────────────────────────────────────────────
 postgres:
