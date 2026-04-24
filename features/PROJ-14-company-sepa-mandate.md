@@ -1,6 +1,6 @@
 # PROJ-14: SEPA-Firmenlastschriftmandat für Unternehmen
 
-## Status: In Review
+## Status: Deployed
 **Created:** 2026-04-24
 **Last Updated:** 2026-04-24
 
@@ -146,3 +146,26 @@ Standardmäßig erhalten alle Mitglieder das CORE-Mandat. EEGs, die das B2B-Verf
 - **Security:** Pass
 - **Production Ready:** YES
 - **Recommendation:** DB-Migrationen 000015 auf Server ausführen, dann `/deploy`
+
+---
+
+## Deployment
+
+**Deployed:** 2026-04-24
+**Image Tag:** `sha-81265b9`
+
+### Deployment-Schritte (auszuführen auf dem Server)
+
+1. **DB-Migration anwenden:**
+   ```bash
+   make migrate-up
+   # oder: migrate -path db/migrations -database $DB_URL up
+   ```
+   Angewendete Migration: `000015_add_company_sepa_mandate` — fügt Spalte `use_company_sepa_mandate` zu `registration_entrypoint` hinzu.
+
+2. **Helm-Upgrade:**
+   ```bash
+   helm upgrade eegfaktura-member-onboarding ./helm/member-onboarding \
+     -f helm/member-onboarding/values-env.yaml \
+     -f helm/member-onboarding/values-secret.yaml
+   ```

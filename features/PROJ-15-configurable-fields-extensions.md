@@ -1,6 +1,6 @@
 # PROJ-15: Konfigurierbare Felder — Erweiterungen
 
-## Status: Approved
+## Status: Deployed
 **Created:** 2026-04-24
 **Last Updated:** 2026-04-24
 
@@ -122,3 +122,28 @@ Zu den bestehenden drei Zuständen (`hidden`, `optional`, `required`) kommt ein 
 
 ### Produktionsbereitschaft
 **READY** — BUG-2 und BUG-3 sind bekannte Einschränkungen; keine Critical- oder High-Bugs. BUG-2 sollte in einem Folge-Ticket (PROJ-15b) behandelt werden.
+
+---
+
+## Deployment
+
+**Deployed:** 2026-04-24
+**Image Tag:** `sha-81265b9`
+
+### Deployment-Schritte (auszuführen auf dem Server)
+
+1. **DB-Migrationen anwenden:**
+   ```bash
+   make migrate-up
+   # oder: migrate -path db/migrations -database $DB_URL up
+   ```
+   Angewendete Migrationen:
+   - `000015_add_company_sepa_mandate` — `use_company_sepa_mandate` Spalte (zusammen mit PROJ-14)
+   - `000016_add_admin_value_to_field_config` — `admin_value TEXT` Spalte + `admin_only` CHECK-Constraint in `field_config`
+
+2. **Helm-Upgrade:**
+   ```bash
+   helm upgrade eegfaktura-member-onboarding ./helm/member-onboarding \
+     -f helm/member-onboarding/values-env.yaml \
+     -f helm/member-onboarding/values-secret.yaml
+   ```
