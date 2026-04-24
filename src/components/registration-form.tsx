@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -48,6 +49,8 @@ import {
 
 // Hardcoded for MVP — matches backend default
 const PRIVACY_VERSION = "2026-01";
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
 const MEMBER_TYPE_OPTIONS: { value: MemberType; label: string; hint: string }[] = [
   { value: "private",      label: "Privatperson / Kleinunternehmer", hint: "0 % USt." },
@@ -205,6 +208,8 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
   const [success, setSuccess] = useState<SuccessState | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
 
   const fieldConfig = config.fieldConfig;
 
@@ -333,6 +338,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
           installationNumber: mp.installationNumber || undefined,
           installationName: mp.installationName || undefined,
         })),
+        turnstileToken: turnstileToken || undefined,
       });
 
       const submitted = await submitApplication(app.id);
@@ -369,6 +375,10 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
           setApiError("Die RC-Nummer wurde nicht gefunden.");
         } else if (code === "gone") {
           setApiError("Die Registrierung ist nicht mehr aktiv.");
+        } else if (code === "turnstile_failed" || code === "turnstile_missing") {
+          setTurnstileToken(null);
+          turnstileRef.current?.reset();
+          setApiError("Sicherheitsprüfung fehlgeschlagen. Bitte lösen Sie das CAPTCHA erneut.");
         } else {
           setApiError(message || "Ein Fehler ist aufgetreten.");
         }
@@ -1044,11 +1054,22 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
           </CardContent>
         </Card>
 
+        {TURNSTILE_SITE_KEY && (
+          <Turnstile
+            ref={turnstileRef}
+            siteKey={TURNSTILE_SITE_KEY}
+            onSuccess={(token) => setTurnstileToken(token)}
+            onExpire={() => setTurnstileToken(null)}
+            onError={() => setTurnstileToken(null)}
+            options={{ theme: "auto" }}
+          />
+        )}
+
         <div>
           <Button
             type="submit"
             size="lg"
-            disabled={isSubmitting}
+            disabled={isSubmitting || (!!TURNSTILE_SITE_KEY && !turnstileToken)}
             className="w-full sm:w-auto"
           >
             {isSubmitting ? "Antrag wird eingereicht …" : "Antrag einreichen"}
