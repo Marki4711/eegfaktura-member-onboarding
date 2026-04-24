@@ -88,7 +88,7 @@ No direct access to eegFaktura core tables takes place.
 }
 ```
 
-`fieldConfig` contains only explicitly configured fields. Missing fields fall back to system defaults (`hidden` for new fields, `optional` for `phone`, `birth_date`, `uid_number`). The frontend uses this to show/hide/require fields dynamically.
+`fieldConfig` contains only explicitly configured fields. Missing fields fall back to system defaults (`hidden` for new fields, `optional` for `phone`, `birth_date`, `uid_number`). The frontend uses this to show/hide/require fields dynamically. Fields with admin state `admin_only` are returned as `"hidden"` here — they are never shown to the member.
 
 ### Errors
 - `404` if `rc_number` is not found in `registration_entrypoint`
@@ -106,21 +106,20 @@ Creates a new application.
 ```json
 {
   "rcNumber": "RC123456",
-  "firstname": "Josef",
-  "lastname": "Brandstätter",
-  "birthDate": "1962-06-06",
-  "email": "max@example.org",
+  "firstname": "Max",
+  "lastname": "Muster",
+  "birthDate": "1985-06-15",
+  "email": "max.muster@example.at",
   "phone": "0664/1234567",
   "residentStreet": "Musterstraße",
   "residentStreetNumber": "2",
-  "residentZip": "1010",
-  "residentCity": "Musterstadt",
-  "residentCountry": "AT",
+  "residentZip": "4020",
+  "residentCity": "Linz",
   "privacyAccepted": true,
   "privacyVersion": "2026-01",
   "accuracyConfirmed": true,
-  "iban": "AT123456789012345678",
-  "accountHolder": "Josef Brandstätter",
+  "iban": "AT611904300234573201",
+  "accountHolder": "Max Muster",
   "sepaMandateAccepted": true,
   "meteringPoints": [
     {
@@ -155,7 +154,6 @@ All fields under `meteringPoints[].transformer/installationNumber/installationNa
 - `residentStreetNumber` required
 - `residentZip` required
 - `residentCity` required
-- `residentCountry` required
 - at least one `meteringPoint`
 - `meteringPoint` must be unique within the request
 - `direction` must be `CONSUMPTION` or `PRODUCTION`
@@ -239,7 +237,6 @@ Before submit, the following must be set:
 - `residentStreetNumber`
 - `residentZip`
 - `residentCity`
-- `residentCountry`
 - at least one metering point
 - `privacyAccepted = true`
 - `privacyVersion` set
@@ -328,16 +325,15 @@ Returns the admin list.
   "referenceNumber": "MO-2026-000001",
   "rcNumber": "RC123456",
   "status": "submitted",
-  "firstname": "Josef",
-  "lastname": "Brandstätter",
-  "birthDate": "1962-06-06",
-  "email": "max@example.org",
+  "firstname": "Max",
+  "lastname": "Muster",
+  "birthDate": "1985-06-15",
+  "email": "max.muster@example.at",
   "phone": "0664/1234567",
   "residentStreet": "Musterstraße",
   "residentStreetNumber": "2",
-  "residentZip": "1010",
-  "residentCity": "Musterstadt",
-  "residentCountry": "AT",
+  "residentZip": "4020",
+  "residentCity": "Linz",
   "privacyAccepted": true,
   "privacyVersion": "2026-01",
   "privacyAcceptedAt": "2026-04-18T12:35:00Z",
@@ -377,17 +373,16 @@ Returns the admin list.
 ### Request
 ```json
 {
-  "firstname": "Josef",
-  "lastname": "Brandstätter",
-  "birthDate": "1962-06-06",
-  "email": "max@example.org",
+  "firstname": "Max",
+  "lastname": "Muster",
+  "birthDate": "1985-06-15",
+  "email": "max.muster@example.at",
   "phone": "0664/1234567",
   "residentStreet": "Musterstraße",
   "residentStreetNumber": "2",
-  "residentZip": "1010",
-  "residentCity": "Musterstadt",
-  "residentCountry": "AT",
-  "adminNote": "Phone number verified",
+  "residentZip": "4020",
+  "residentCity": "Linz",
+  "adminNote": "Telefonnummer verifiziert",
   "meteringPoints": [
     {
       "meteringPoint": "AT0031000000000000000000990022105",
@@ -514,11 +509,14 @@ Returns the stored field configuration for an EEG. Only explicitly saved overrid
 {
   "rcNumber": "RC123456",
   "fieldConfig": {
-    "heat_pump": "required",
-    "transformer": "optional"
+    "heat_pump": { "state": "required", "adminValue": null },
+    "transformer": { "state": "optional", "adminValue": null },
+    "persons_in_household": { "state": "admin_only", "adminValue": "3" }
   }
 }
 ```
+
+Each field entry contains `state` and optionally `adminValue`. `adminValue` is only relevant when `state = "admin_only"` and is automatically applied to new applications.
 
 ### Errors
 - `400` missing `rc_number`
@@ -538,16 +536,19 @@ Replaces the field configuration for an EEG atomically. Unknown field names and 
 ### Request body
 ```json
 {
-  "phone": "required",
-  "birth_date": "optional",
-  "heat_pump": "required",
-  "transformer": "hidden"
+  "phone": { "state": "required" },
+  "birth_date": { "state": "optional" },
+  "heat_pump": { "state": "required" },
+  "transformer": { "state": "hidden" },
+  "persons_in_household": { "state": "admin_only", "adminValue": "3" }
 }
 ```
 
 Allowed field names: `phone`, `birth_date`, `uid_number`, `membership_start_date`, `persons_in_household`, `consumption_previous_year`, `consumption_forecast`, `feed_in_forecast`, `pv_power_kwp`, `heat_pump`, `electric_vehicle`, `electric_hot_water`, `transformer`, `installation_number`, `installation_name`
 
-Allowed states: `hidden`, `optional`, `required`
+Allowed states: `hidden`, `optional`, `required`, `admin_only`
+
+When `state = "admin_only"`: the field is hidden from the public registration form; `adminValue` is automatically written to new applications (server-side type conversion: int via `Sscanf %d`, float via `%f`, bool via `"true"/"false"`, date via `YYYY-MM-DD`). Invalid values result in NULL (no error).
 
 ### Response
 - `204 No Content` on success
@@ -612,9 +613,113 @@ Send `{ "introText": null }` to clear the text (public form will show default te
 
 ---
 
-## 6.10 Public registration config — introText field
+## 6.10 Get EEG settings
 
-`GET /api/public/registration/{rc_number}` now includes `introText` in the response:
+### GET `/api/admin/settings/eeg?rc_number={rc_number}`
+
+Returns the EEG master data used for SEPA mandate PDF generation.
+
+### Response 200
+```json
+{
+  "rcNumber": "RC123456",
+  "eegName": "Muster Energiegemeinschaft",
+  "eegStreet": "Hauptstraße",
+  "eegStreetNumber": "12",
+  "eegZip": "4020",
+  "eegCity": "Linz",
+  "creditorId": "AT28ZZZ00000000000",
+  "sepaMandateEnabled": true,
+  "useCompanySEPAMandate": false
+}
+```
+
+All address/name fields are `null` when not yet configured. `sepaMandateEnabled` defaults to `false`. `useCompanySEPAMandate` defaults to `false`.
+
+### Errors
+- `400` missing `rc_number`
+- `403` not authorized for this EEG
+
+---
+
+## 6.11 Save EEG settings
+
+### PUT `/api/admin/settings/eeg?rc_number={rc_number}`
+
+### Request body
+```json
+{
+  "eegName": "Muster Energiegemeinschaft",
+  "eegStreet": "Hauptstraße",
+  "eegStreetNumber": "12",
+  "eegZip": "4020",
+  "eegCity": "Linz",
+  "creditorId": "AT28ZZZ00000000000",
+  "sepaMandateEnabled": true,
+  "useCompanySEPAMandate": false
+}
+```
+
+`useCompanySEPAMandate`: when `true`, members of type `company` or `association` receive the SEPA B2B mandate PDF instead of the standard CORE mandate. Only evaluated when `sepaMandateEnabled = true`.
+
+### Response
+- `204 No Content`
+
+### Errors
+- `400` missing `rc_number` or invalid JSON
+- `403` not authorized for this EEG
+
+---
+
+## 6.12 Get API key status
+
+### GET `/api/admin/settings/api-key?rc_number={rc_number}`
+
+Returns whether an external API key exists for this EEG.
+
+### Response 200
+```json
+{
+  "active": true,
+  "lastGeneratedAt": "2026-04-24T10:00:00Z"
+}
+```
+
+`active: false` means no key exists or it has been revoked. The key value itself is never returned after initial generation.
+
+---
+
+## 6.13 Generate API key
+
+### POST `/api/admin/settings/api-key?rc_number={rc_number}`
+
+Generates a new API key (invalidates any existing key).
+
+### Response 200
+```json
+{
+  "apiKey": "moak_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+}
+```
+
+The key is shown exactly once. Store it securely — it cannot be retrieved again.
+
+---
+
+## 6.14 Revoke API key
+
+### DELETE `/api/admin/settings/api-key?rc_number={rc_number}`
+
+Revokes the API key. External integrations using this key will receive `401` immediately.
+
+### Response
+- `204 No Content`
+
+---
+
+## 6.16 Public registration config — introText field
+
+`GET /api/public/registration/{rc_number}` includes `introText` in the response:
 
 ```json
 {
@@ -732,7 +837,7 @@ Same as public API: `private` | `farmer` | `municipality` | `company` | `associa
 ### Required fields
 
 `memberType`, `email`, `residentStreet`, `residentStreetNumber`, `residentZip`, `residentCity`,
-`residentCountry` (ISO 3166-1 alpha-2), `iban`, `accountHolder`, `privacyAccepted: true`,
+`iban`, `accountHolder`, `privacyAccepted: true`,
 `sepaMandateAccepted: true`, `meteringPoints` (min 1).
 
 For `natural_person` types (`private`, `farmer`): `firstname` + `lastname` required.

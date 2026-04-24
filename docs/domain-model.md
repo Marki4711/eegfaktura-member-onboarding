@@ -49,6 +49,7 @@ Fields:
 - `eeg_city` — nullable, city of the EEG address
 - `creditor_id` — nullable, SEPA creditor ID (max 35 chars)
 - `sepa_mandate_enabled` — boolean, default false; controls whether SEPA mandate PDF is attached to welcome email
+- `use_company_sepa_mandate` — boolean, default false; when true, members of type `company`/`association` receive the SEPA B2B mandate instead of the CORE mandate (only evaluated when `sepa_mandate_enabled = true`)
 - `created_at`
 - `updated_at`
 
@@ -67,14 +68,16 @@ Fields:
 - `id`
 - `rc_number` — references `registration_entrypoint(rc_number)`, ON DELETE CASCADE
 - `field_name` — name of the configurable field (e.g. `heat_pump`, `transformer`)
-- `state` — `hidden` | `optional` | `required`
+- `state` — `hidden` | `optional` | `required` | `admin_only`
+- `admin_value` — nullable TEXT; only relevant when `state = 'admin_only'`; automatically applied to new applications (server-side type conversion)
 - `updated_at`
 
 Rules:
 - `(rc_number, field_name)` is unique
 - `field_name` must be one of the centrally registered configurable fields (enforced in application code)
-- `state` is constrained to `hidden`, `optional`, `required` (DB CHECK constraint)
+- `state` is constrained to `hidden`, `optional`, `required`, `admin_only` (DB CHECK constraint)
 - missing entries default to `hidden` for new fields; `optional` for `phone`, `birth_date`, `uid_number`
+- `admin_only` fields are returned as `hidden` in the public registration config — members never see them
 
 ---
 
@@ -116,7 +119,6 @@ Fields:
 - `resident_street_number`
 - `resident_zip`
 - `resident_city`
-- `resident_country`
 - `privacy_accepted`
 - `privacy_version`
 - `privacy_accepted_at`

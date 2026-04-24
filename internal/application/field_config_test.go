@@ -197,6 +197,101 @@ func TestApplyAdminValues_SkipsNonAdminOnly(t *testing.T) {
 	}
 }
 
+func TestApplyAdminValues_SetsBoolField(t *testing.T) {
+	app := baseAppWithAllOptional()
+	val := "true"
+	cfg := map[string]FieldConfigEntry{
+		"heat_pump": {State: "admin_only", AdminValue: &val},
+	}
+	applyAdminValues(app, cfg)
+	if app.HeatPump == nil || *app.HeatPump != true {
+		t.Errorf("expected heat_pump=true, got %v", app.HeatPump)
+	}
+}
+
+func TestApplyAdminValues_SetsBoolFieldFalse(t *testing.T) {
+	app := baseAppWithAllOptional()
+	val := "false"
+	cfg := map[string]FieldConfigEntry{
+		"electric_vehicle": {State: "admin_only", AdminValue: &val},
+	}
+	applyAdminValues(app, cfg)
+	if app.ElectricVehicle == nil || *app.ElectricVehicle != false {
+		t.Errorf("expected electric_vehicle=false, got %v", app.ElectricVehicle)
+	}
+}
+
+func TestApplyAdminValues_SetsFloatField(t *testing.T) {
+	app := baseAppWithAllOptional()
+	val := "10.5"
+	cfg := map[string]FieldConfigEntry{
+		"pv_power_kwp": {State: "admin_only", AdminValue: &val},
+	}
+	applyAdminValues(app, cfg)
+	if app.PvPowerKwp == nil || *app.PvPowerKwp != 10.5 {
+		t.Errorf("expected pv_power_kwp=10.5, got %v", app.PvPowerKwp)
+	}
+}
+
+func TestApplyAdminValues_InvalidIntValue_LeavesNil(t *testing.T) {
+	app := baseAppWithAllOptional()
+	val := "abc"
+	cfg := map[string]FieldConfigEntry{
+		"persons_in_household": {State: "admin_only", AdminValue: &val},
+	}
+	applyAdminValues(app, cfg)
+	if app.PersonsInHousehold != nil {
+		t.Errorf("expected nil for invalid int value, got %v", app.PersonsInHousehold)
+	}
+}
+
+func TestApplyAdminValues_EmptyAdminValue_LeavesNil(t *testing.T) {
+	app := baseAppWithAllOptional()
+	empty := ""
+	cfg := map[string]FieldConfigEntry{
+		"persons_in_household": {State: "admin_only", AdminValue: &empty},
+	}
+	applyAdminValues(app, cfg)
+	if app.PersonsInHousehold != nil {
+		t.Errorf("expected nil for empty admin_value, got %v", app.PersonsInHousehold)
+	}
+}
+
+func TestApplyAdminValues_NilAdminValue_LeavesNil(t *testing.T) {
+	app := baseAppWithAllOptional()
+	cfg := map[string]FieldConfigEntry{
+		"persons_in_household": {State: "admin_only", AdminValue: nil},
+	}
+	applyAdminValues(app, cfg)
+	if app.PersonsInHousehold != nil {
+		t.Errorf("expected nil when AdminValue is nil, got %v", app.PersonsInHousehold)
+	}
+}
+
+func TestApplyAdminValues_SetsMembershipStartDate(t *testing.T) {
+	app := baseAppWithAllOptional()
+	val := "2026-05-01"
+	cfg := map[string]FieldConfigEntry{
+		"membership_start_date": {State: "admin_only", AdminValue: &val},
+	}
+	applyAdminValues(app, cfg)
+	if app.MembershipStartDate == nil {
+		t.Error("expected membership_start_date to be set")
+	}
+}
+
+func TestApplyAdminValues_InvalidDateValue_LeavesNil(t *testing.T) {
+	app := baseAppWithAllOptional()
+	val := "not-a-date"
+	cfg := map[string]FieldConfigEntry{
+		"membership_start_date": {State: "admin_only", AdminValue: &val},
+	}
+	applyAdminValues(app, cfg)
+	if app.MembershipStartDate != nil {
+		t.Error("expected nil for invalid date value")
+	}
+}
+
 // --- validateConfigurableMeteringPointFields ---
 
 func TestValidateMPFields_TransformerRequired_Missing(t *testing.T) {
