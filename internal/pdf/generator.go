@@ -124,18 +124,23 @@ func (g *FPDFGenerator) Generate(data SEPAMandateData) ([]byte, error) {
 	boxTop = f.GetY()
 	setFont("", 9)
 	f.CellFormat(25, 7, w1252("Zahlungsart:"), "0", 0, "L", false, 0, "")
-	// einmalig (unchecked)
-	f.CellFormat(5, 7, "\xA8", "0", 0, "L", false, 0, "") // □ box char in Zapf is not available — draw manually
+	// einmalig (unchecked) — draw an empty rectangle
+	einmX := f.GetX() + 3
+	einmY := f.GetY()
+	f.Rect(einmX, einmY+1.5, 4, 4, "D")
+	f.SetX(einmX + 7)
 	f.CellFormat(22, 7, w1252("einmalig"), "0", 0, "L", false, 0, "")
-	// wiederkehrend (checked) — draw a filled box manually
+	// wiederkehrend (checked) — dark-filled rectangle with white "x"
 	checkX := f.GetX() + 3
 	checkY := f.GetY()
+	f.SetFillColor(40, 40, 40)
 	f.Rect(checkX, checkY+1.5, 4, 4, "DF")
 	f.SetTextColor(255, 255, 255)
 	setFont("B", 9)
 	f.SetXY(checkX-0.5, checkY)
 	f.CellFormat(5, 7, w1252("x"), "0", 0, "L", false, 0, "")
 	f.SetTextColor(0, 0, 0)
+	f.SetFillColor(255, 255, 255)
 	f.SetX(f.GetX() + 3)
 	setFont("", 9)
 	f.CellFormat(40, 7, w1252("wiederkehrend"), "0", 1, "L", false, 0, "")
@@ -276,15 +281,17 @@ func (g *FPDFGenerator) GenerateCompany(data SEPAMandateData) ([]byte, error) {
 	f.Rect(einmX, einmY+1.5, 4, 4, "D")
 	f.SetX(einmX + 7)
 	f.CellFormat(22, 7, w1252("einmalig"), "0", 0, "L", false, 0, "")
-	// wiederkehrend (checked)
+	// wiederkehrend (checked) — dark-filled rectangle with white "x"
 	checkX := f.GetX() + 3
 	checkY := f.GetY()
+	f.SetFillColor(40, 40, 40)
 	f.Rect(checkX, checkY+1.5, 4, 4, "DF")
 	f.SetTextColor(255, 255, 255)
 	setFont("B", 9)
 	f.SetXY(checkX-0.5, checkY)
 	f.CellFormat(5, 7, w1252("x"), "0", 0, "L", false, 0, "")
 	f.SetTextColor(0, 0, 0)
+	f.SetFillColor(255, 255, 255)
 	f.SetX(f.GetX() + 3)
 	setFont("", 9)
 	f.CellFormat(40, 7, w1252("wiederkehrend"), "0", 1, "L", false, 0, "")

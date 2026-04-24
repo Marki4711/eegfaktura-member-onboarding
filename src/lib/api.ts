@@ -107,6 +107,7 @@ export interface CreateApplicationRequest {
   heatPump?: boolean | null;
   electricVehicle?: boolean | null;
   electricHotWater?: boolean | null;
+  turnstileToken?: string;
 }
 
 export interface ApplicationResponse {
@@ -259,6 +260,7 @@ export interface MeteringPointDetail {
   id: string;
   meteringPoint: string;
   direction: "CONSUMPTION" | "PRODUCTION";
+  participationFactor: number;
 }
 
 export interface StatusLogEntry {

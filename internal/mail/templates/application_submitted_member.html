@@ -11,6 +11,30 @@
 
   <p><strong>Ihre Antragsnummer:</strong> {{.ReferenceNumber}}</p>
 
+  {{if .HasSEPAMandate}}
+  <p>
+    <strong>Wichtiger Hinweis zum SEPA-Lastschriftmandat:</strong><br>
+    Ihrem Antrag liegt ein SEPA-Lastschriftmandat als PDF-Anhang bei.
+    Bitte <strong>unterschreiben Sie dieses Dokument und senden Sie es an Ihre Energiegemeinschaft zurück</strong>,
+    damit Ihr Beitritt abgeschlossen werden kann.
+  </p>
+  <p>Sie haben zwei Möglichkeiten zur Unterschrift:</p>
+  <ol>
+    <li>
+      <strong>Ausdruck &amp; händische Unterschrift:</strong> Drucken Sie das PDF aus, unterschreiben Sie es,
+      und senden Sie ein Foto oder einen Scan an Ihre Energiegemeinschaft.
+    </li>
+    <li>
+      <strong>Digitale Signatur mit der ID Austria App (einfachste Variante):</strong>
+      Signieren Sie das PDF direkt am Smartphone mit der ID Austria App.
+      Eine Schritt-für-Schritt-Anleitung finden Sie hier:<br>
+      <a href="https://www.oesterreich.gv.at/dam/jcr:0cf432cd-fc6e-4020-9787-0944a7061245/Anleitung_PDF-Signaturservice_Android_v1.1.pdf">
+        Anleitung: PDF signieren mit ID Austria (PDF)
+      </a>
+    </li>
+  </ol>
+  {{end}}
+
   <p>
     Ihre Energiegemeinschaft wird Ihren Antrag in Kürze prüfen und sich bei Ihnen melden.
     Bitte haben Sie etwas Geduld – wir werden Sie so schnell wie möglich informieren.

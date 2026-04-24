@@ -36,6 +36,7 @@ interface FormMeteringPoint {
   key: number;
   meteringPoint: string;
   direction: "CONSUMPTION" | "PRODUCTION";
+  participationFactor: number;
 }
 
 function validateEmail(email: string) {
@@ -70,6 +71,7 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
       key: ++mpKeyCounter,
       meteringPoint: mp.meteringPoint,
       direction: mp.direction,
+      participationFactor: mp.participationFactor ?? 100,
     }))
   );
   const [saving, setSaving] = useState(false);
@@ -94,7 +96,7 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
   function addRow() {
     setMeteringPoints((prev) => [
       ...prev,
-      { key: ++mpKeyCounter, meteringPoint: "", direction: "CONSUMPTION" },
+      { key: ++mpKeyCounter, meteringPoint: "", direction: "CONSUMPTION", participationFactor: 100 },
     ]);
   }
 
@@ -104,7 +106,13 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
 
   function updateRow(key: number, field: keyof Omit<FormMeteringPoint, "key">, value: string) {
     setMeteringPoints((prev) =>
-      prev.map((mp) => (mp.key === key ? { ...mp, [field]: value } : mp))
+      prev.map((mp) => {
+        if (mp.key !== key) return mp;
+        if (field === "participationFactor") {
+          return { ...mp, participationFactor: parseInt(value, 10) || 0 };
+        }
+        return { ...mp, [field]: value };
+      })
     );
   }
 
@@ -134,6 +142,9 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
     if (meteringPoints.length === 0) return "Mindestens ein Zählpunkt ist erforderlich.";
     for (const mp of meteringPoints) {
       if (!mp.meteringPoint.trim()) return "Alle Zählpunktnummern müssen ausgefüllt sein.";
+      if (mp.participationFactor < 1 || mp.participationFactor > 100) {
+        return "Teilnahmefaktor muss zwischen 1 und 100 liegen.";
+      }
     }
     return null;
   }
@@ -151,6 +162,7 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
     const payload: MeteringPointRequest[] = meteringPoints.map((mp) => ({
       meteringPoint: mp.meteringPoint.trim(),
       direction: mp.direction,
+      participationFactor: mp.participationFactor,
     }));
 
     try {
@@ -373,7 +385,7 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
                     value={mp.direction}
                     onValueChange={(v) => updateRow(mp.key, "direction", v)}
                   >
-                    <SelectTrigger className="w-40">
+                    <SelectTrigger className="w-36">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -381,6 +393,18 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
                       <SelectItem value="PRODUCTION">Einspeisung</SelectItem>
                     </SelectContent>
                   </Select>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={mp.participationFactor}
+                      onChange={(e) => updateRow(mp.key, "participationFactor", e.target.value)}
+                      className="w-20 text-sm"
+                      title="Teilnahmefaktor (%)"
+                    />
+                    <span className="text-sm text-muted-foreground">%</span>
+                  </div>
                   <Button
                     type="button"
                     variant="ghost"

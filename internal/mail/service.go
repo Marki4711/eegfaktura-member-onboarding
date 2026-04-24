@@ -50,6 +50,7 @@ type memberTemplateData struct {
 	Firstname       string
 	Lastname        string
 	ReferenceNumber string
+	HasSEPAMandate  bool
 }
 
 type eegTemplateData struct {
@@ -72,6 +73,7 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 		Firstname:       derefString(app.Firstname),
 		Lastname:        derefString(app.Lastname),
 		ReferenceNumber: app.ReferenceNumber,
+		HasSEPAMandate:  len(attachment) > 0,
 	}); err != nil {
 		slog.Error("mail: failed to render member template", "application_id", app.ID, "error", err)
 	} else {

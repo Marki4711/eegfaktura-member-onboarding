@@ -27,6 +27,7 @@ export function AdminMeteringPointTable({ meteringPoints }: Props) {
         <TableRow>
           <TableHead>Zählpunktnummer</TableHead>
           <TableHead>Richtung</TableHead>
+          <TableHead className="text-right">Teilnahmefaktor</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -36,6 +37,7 @@ export function AdminMeteringPointTable({ meteringPoints }: Props) {
             <TableCell>
               {mp.direction === "CONSUMPTION" ? "Bezug" : "Einspeisung"}
             </TableCell>
+            <TableCell className="text-right">{mp.participationFactor} %</TableCell>
           </TableRow>
         ))}
       </TableBody>
