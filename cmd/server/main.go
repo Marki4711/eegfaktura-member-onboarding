@@ -59,6 +59,7 @@ func main() {
 	statusLogRepo := application.NewStatusLogRepository(db)
 	entrypointRepo := application.NewRegistrationEntrypointRepository(db)
 	fieldConfigRepo := application.NewFieldConfigRepository(db)
+	apiKeyRepo := application.NewExternalAPIKeyRepository(db)
 
 	// Initialize mail service
 	var mailService mail.MailService = &mail.NoOpMailService{}
@@ -84,7 +85,8 @@ func main() {
 	// Initialize handlers
 	registrationHandler := internalhttp.NewRegistrationHandler(registrationService)
 	applicationHandler := internalhttp.NewApplicationHandler(applicationService)
-	adminHandler := internalhttp.NewAdminHandler(adminService, entrypointRepo)
+	adminHandler := internalhttp.NewAdminHandler(adminService, entrypointRepo, apiKeyRepo)
+	externalHandler := internalhttp.NewExternalHandler(applicationService)
 	healthHandler := internalhttp.NewHealthHandler(db)
 
 	// Setup routes
@@ -137,7 +139,16 @@ func main() {
 			r.Put("/intro-text", adminHandler.SaveIntroText)
 			r.Get("/eeg", adminHandler.GetEEGSettings)
 			r.Put("/eeg", adminHandler.SaveEEGSettings)
+			r.Get("/api-key", adminHandler.GetAPIKeyStatus)
+			r.Post("/api-key", adminHandler.GenerateAPIKey)
+			r.Delete("/api-key", adminHandler.RevokeAPIKey)
 		})
+	})
+
+	// External API routes — authenticated via API key middleware (no Keycloak)
+	r.Route("/api/external", func(r chi.Router) {
+		r.Use(internalhttp.APIKeyMiddleware(apiKeyRepo))
+		r.Post("/v1/applications", externalHandler.SubmitExternalApplication)
 	})
 
 	// Start server

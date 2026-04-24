@@ -666,3 +666,133 @@ Send `{ "introText": null }` to clear the text (public form will show default te
   "message": "status transition is not allowed"
 }
 ```
+
+## 8. External API
+
+### Authentication
+
+All endpoints under `/api/external` use API-key authentication — no Keycloak required.
+
+```
+Authorization: Bearer moak_<32-char-random-key>
+```
+
+The key is generated in the Admin Settings page and must be kept server-side only.
+
+### Rate limits
+
+- **Burst**: 10 requests / 60 seconds per key (in-memory, per pod)
+- **Daily quota**: 200 submissions / day per key (UTC midnight reset, DB-backed)
+- Exceeded: `429 Too Many Requests` with `Retry-After` header
+
+### Error codes specific to external API
+
+| HTTP | code | Meaning |
+|------|------|---------|
+| 401 | `unauthorized` | Missing, invalid, or revoked API key |
+| 410 | `gone` | EEG is inactive |
+| 422 | `validation_error` | Invalid or missing fields |
+| 429 | `rate_limit_exceeded` | Burst limit exceeded |
+| 429 | `quota_exceeded` | Daily quota exhausted |
+
+## 8.1 Submit external application
+
+### POST `/api/external/v1/applications`
+
+Submit a member application from an external integration (e.g. operator's own website form).
+The API key determines the EEG — no `rcNumber` in the body.
+
+### Request
+
+```json
+{
+  "memberType": "private",
+  "firstname": "Josef",
+  "lastname": "Muster",
+  "email": "max.mustermann@example.org",
+  "residentStreet": "Testgasse",
+  "residentStreetNumber": "5",
+  "residentZip": "8010",
+  "residentCity": "Graz",
+  "residentCountry": "AT",
+  "iban": "AT61190430023457320",
+  "accountHolder": "Josef Muster",
+  "privacyAccepted": true,
+  "sepaMandateAccepted": true,
+  "meteringPoints": [
+    { "meteringPoint": "AT0010000000000000001000000000001", "direction": "CONSUMPTION", "participationFactor": 100 }
+  ]
+}
+```
+
+### memberType values
+
+Same as public API: `private` | `farmer` | `municipality` | `company` | `association`
+
+### Required fields
+
+`memberType`, `email`, `residentStreet`, `residentStreetNumber`, `residentZip`, `residentCity`,
+`residentCountry` (ISO 3166-1 alpha-2), `iban`, `accountHolder`, `privacyAccepted: true`,
+`sepaMandateAccepted: true`, `meteringPoints` (min 1).
+
+For `natural_person` types (`private`, `farmer`): `firstname` + `lastname` required.
+For legal entity types: `companyName` required.
+
+Configurable fields follow the EEG's active `field_config` — identical rules to the public form.
+
+### Response 201
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "referenceNumber": "REF-2026-0042"
+}
+```
+
+### Effects
+
+- Application created directly in `submitted` status (draft → submitted in one step)
+- Confirmation email sent to the member
+- SEPA mandate PDF attached if enabled for the EEG
+- EEG notification email sent if `contact_email` is configured
+
+## 8.2 Get API key status
+
+### GET `/api/admin/settings/api-key?rc_number=...`
+
+Requires Keycloak authentication (admin area).
+
+### Response 200
+
+```json
+{
+  "active": true,
+  "lastGeneratedAt": "2026-04-24T10:30:00Z"
+}
+```
+
+## 8.3 Generate API key
+
+### POST `/api/admin/settings/api-key?rc_number=...`
+
+Generates a new key. Any existing active key is immediately invalidated. The plaintext key
+is returned **once only** — it is not stored and cannot be retrieved again.
+
+### Response 201
+
+```json
+{
+  "apiKey": "moak_Xy7kR2..."
+}
+```
+
+## 8.4 Revoke API key
+
+### DELETE `/api/admin/settings/api-key?rc_number=...`
+
+Revokes the active key immediately. No new key is created. All integrations using this key
+will receive `401` from this point onwards.
+
+### Response 204
+
+No body.

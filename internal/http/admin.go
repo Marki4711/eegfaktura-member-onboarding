@@ -1,7 +1,9 @@
 package http
 
 import (
+	"crypto/rand"
 	"encoding/json"
+	"math/big"
 	"net/http"
 	"strconv"
 	"time"
@@ -19,12 +21,17 @@ import (
 type AdminHandler struct {
 	adminService   *application.AdminApplicationService
 	entrypointRepo *application.RegistrationEntrypointRepository
+	apiKeyRepo     *application.ExternalAPIKeyRepository
 	validate       *validator.Validate
 	sanitizer      *bluemonday.Policy
 }
 
 // NewAdminHandler creates a new AdminHandler.
-func NewAdminHandler(adminService *application.AdminApplicationService, entrypointRepo *application.RegistrationEntrypointRepository) *AdminHandler {
+func NewAdminHandler(
+	adminService *application.AdminApplicationService,
+	entrypointRepo *application.RegistrationEntrypointRepository,
+	apiKeyRepo *application.ExternalAPIKeyRepository,
+) *AdminHandler {
 	p := bluemonday.NewPolicy()
 	p.AllowElements("p", "br", "strong", "b", "em", "i", "ul", "ol", "li")
 	p.AllowAttrs("href", "target", "rel").OnElements("a")
@@ -32,6 +39,7 @@ func NewAdminHandler(adminService *application.AdminApplicationService, entrypoi
 	return &AdminHandler{
 		adminService:   adminService,
 		entrypointRepo: entrypointRepo,
+		apiKeyRepo:     apiKeyRepo,
 		validate:       validator.New(),
 		sanitizer:      p,
 	}
@@ -442,6 +450,109 @@ func (h *AdminHandler) SaveEEGSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// GetAPIKeyStatus handles GET /api/admin/settings/api-key?rc_number=...
+func (h *AdminHandler) GetAPIKeyStatus(w http.ResponseWriter, r *http.Request) {
+	rcNumber := r.URL.Query().Get("rc_number")
+	if rcNumber == "" {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string]string{
+			"rc_number": "rc_number query parameter is required",
+		})))
+		return
+	}
+	claims := ClaimsFromContext(r.Context())
+	if claims != nil && !claims.IsSuperuser() && !containsRC(claims.Tenant, rcNumber) {
+		h.writeError(w, shared.NewErrorResponse(shared.ErrForbidden))
+		return
+	}
+
+	active, lastGenAt, err := h.apiKeyRepo.GetStatus(rcNumber)
+	if err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+
+	var lastGenStr *string
+	if lastGenAt != nil {
+		s := lastGenAt.UTC().Format(time.RFC3339)
+		lastGenStr = &s
+	}
+	h.writeJSON(w, http.StatusOK, map[string]interface{}{
+		"active":          active,
+		"lastGeneratedAt": lastGenStr,
+	})
+}
+
+// GenerateAPIKey handles POST /api/admin/settings/api-key?rc_number=...
+// Returns the plaintext key exactly once.
+func (h *AdminHandler) GenerateAPIKey(w http.ResponseWriter, r *http.Request) {
+	rcNumber := r.URL.Query().Get("rc_number")
+	if rcNumber == "" {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string]string{
+			"rc_number": "rc_number query parameter is required",
+		})))
+		return
+	}
+	claims := ClaimsFromContext(r.Context())
+	if claims != nil && !claims.IsSuperuser() && !containsRC(claims.Tenant, rcNumber) {
+		h.writeError(w, shared.NewErrorResponse(shared.ErrForbidden))
+		return
+	}
+
+	rawKey, err := generateAPIKeyString()
+	if err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+
+	keyHash := hashAPIKey(rawKey)
+	if err := h.apiKeyRepo.Upsert(rcNumber, keyHash); err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+
+	h.writeJSON(w, http.StatusCreated, map[string]string{
+		"apiKey": rawKey,
+	})
+}
+
+// RevokeAPIKey handles DELETE /api/admin/settings/api-key?rc_number=...
+func (h *AdminHandler) RevokeAPIKey(w http.ResponseWriter, r *http.Request) {
+	rcNumber := r.URL.Query().Get("rc_number")
+	if rcNumber == "" {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string]string{
+			"rc_number": "rc_number query parameter is required",
+		})))
+		return
+	}
+	claims := ClaimsFromContext(r.Context())
+	if claims != nil && !claims.IsSuperuser() && !containsRC(claims.Tenant, rcNumber) {
+		h.writeError(w, shared.NewErrorResponse(shared.ErrForbidden))
+		return
+	}
+
+	if err := h.apiKeyRepo.Revoke(rcNumber); err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+const apiKeyAlphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+// generateAPIKeyString returns a cryptographically random key in the format moak_<32 chars>.
+func generateAPIKeyString() (string, error) {
+	b := make([]byte, 32)
+	alphabetLen := big.NewInt(int64(len(apiKeyAlphabet)))
+	for i := range b {
+		n, err := rand.Int(rand.Reader, alphabetLen)
+		if err != nil {
+			return "", err
+		}
+		b[i] = apiKeyAlphabet[n.Int64()]
+	}
+	return "moak_" + string(b), nil
 }
 
 // --- helpers ---
