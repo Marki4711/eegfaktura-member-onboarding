@@ -41,6 +41,7 @@ Version 1 includes:
 | P0 (MVP) | Core Import | Architected | `features/PROJ-4-core-import.md` |
 | P1 | Keycloak-secured Admin Area | Planned | — |
 | P2 | Email Notifications | Planned | `features/PROJ-6-email-notifications.md` |
+| P2 | Externe Registrierungs-API | Planned | `features/PROJ-13-external-registration-api.md` |
 
 ## 5. Success Metrics
 
