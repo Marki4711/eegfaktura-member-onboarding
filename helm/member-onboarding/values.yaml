@@ -15,7 +15,6 @@
 
 # ── Namespace ──────────────────────────────────────────────────────────────────
 namespace: default
-
 # ── Ingress ────────────────────────────────────────────────────────────────────
 ingress:
   host: ""
@@ -24,54 +23,48 @@ ingress:
   proxySendTimeout: "60"
   proxyBufferSize: "128k"
   proxyBuffersNumber: "4"
-
 # ── Images ─────────────────────────────────────────────────────────────────────
 images:
   backend:
     repository: ""
-    tag: latest
+    tag: sha-9663e39
     pullPolicy: IfNotPresent
   frontend:
     repository: ""
-    tag: latest
+    tag: sha-9663e39
     pullPolicy: IfNotPresent
-
 # ── PostgreSQL ─────────────────────────────────────────────────────────────────
 postgres:
   user: postgres
   database: member_onboarding
   storageClassName: standard
   storageSize: 5Gi
-
 # ── Backend ────────────────────────────────────────────────────────────────────
 backend:
   replicas: 1
-  logLevel: "INFO"   # DEBUG | INFO | WARN | ERROR
+  logLevel: "INFO" # DEBUG | INFO | WARN | ERROR
   corsAllowedOrigins: ""
   smtp:
-    host: ""       # leer = Mail deaktiviert (NoOpMailService)
+    host: "" # leer = Mail deaktiviert (NoOpMailService)
     port: "587"
-    user: ""       # leer = kein SMTP-Auth (open relay)
-    from: ""       # Pflicht wenn smtp.host gesetzt
+    user: "" # leer = kein SMTP-Auth (open relay)
+    from: "" # Pflicht wenn smtp.host gesetzt
   # Keycloak JWT-Validierung — leer = Dev-Modus (kein Auth)
-  keycloakJwksUrl: ""    # z.B. https://keycloak.example.at/realms/EEGFaktura/protocol/openid-connect/certs
-  keycloakIssuer: ""     # z.B. https://keycloak.example.at/realms/EEGFaktura
-
+  keycloakJwksUrl: "" # z.B. https://keycloak.example.at/realms/EEGFaktura/protocol/openid-connect/certs
+  keycloakIssuer: "" # z.B. https://keycloak.example.at/realms/EEGFaktura
 # ── Seed data ──────────────────────────────────────────────────────────────────
 seed:
   rcNumber: ""
   eegId: ""
-
 # ── Frontend ───────────────────────────────────────────────────────────────────
 frontend:
   replicas: 1
   logLevel: "info"
   backendUrl: ""
   # NextAuth / Keycloak — via values-env.yaml setzen
-  nextauthUrl: ""          # Öffentliche URL der App, z.B. https://member-onboarding.example.at
-  keycloakIssuer: ""       # z.B. https://keycloak.example.at/realms/EEGFaktura
+  nextauthUrl: "" # Öffentliche URL der App, z.B. https://member-onboarding.example.at
+  keycloakIssuer: "" # z.B. https://keycloak.example.at/realms/EEGFaktura
   keycloakClientId: ""
-
 # ── Secrets ────────────────────────────────────────────────────────────────────
 # Niemals echte Werte hier eintragen — immer via values-secret.yaml übergeben.
 secrets:
