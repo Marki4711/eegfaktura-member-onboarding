@@ -308,4 +308,29 @@ Alle gefundenen Bugs wurden behoben:
 **READY** — Keine offenen Bugs. Alle Acceptance Criteria erfüllt.
 
 ## Deployment
-_To be added by /deploy_
+
+**Deployed:** 2026-04-24
+**Image tag:** `sha-56d4af7`
+**Git tag:** `v1.10.0-PROJ-13`
+
+### DB-Migration
+
+Vor dem Helm-Upgrade muss Migration `000014` angewendet werden:
+
+```bash
+make migrate-up
+# oder direkt:
+kubectl exec -n <namespace> deploy/member-onboarding-backend -- /app/migrate -path /migrations -database "$DATABASE_URL" up
+```
+
+### Helm-Upgrade
+
+```bash
+helm upgrade member-onboarding helm/member-onboarding/ \
+  --namespace <namespace> \
+  --values helm/member-onboarding/values.yaml
+```
+
+### Neue Umgebungsvariablen
+
+Keine — die externe API benötigt keine neuen Konfigurationswerte.

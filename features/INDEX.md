@@ -27,6 +27,6 @@ Central tracking for all features.
 | PROJ-10 | Admin Notifications | Planned | `features/PROJ-10-admin-notifications.md` | 2026-04-22 |
 | PROJ-11 | Konfigurierbarer Einleitungstext | Deployed | `features/PROJ-11-registration-intro-text.md` | 2026-04-23 |
 | PROJ-12 | SEPA-Lastschriftmandat PDF | Deployed | `features/PROJ-12-sepa-mandate-pdf.md` | 2026-04-23 |
-| PROJ-13 | Externe Registrierungs-API | Approved | `features/PROJ-13-external-registration-api.md` | 2026-04-24 |
+| PROJ-13 | Externe Registrierungs-API | Deployed | `features/PROJ-13-external-registration-api.md` | 2026-04-24 |
 
 ## Next Available ID: PROJ-14
