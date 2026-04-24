@@ -96,7 +96,110 @@
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+
+### Betroffene Komponenten
+
+Beide Seiten — Backend (neuer Endpunkt + Middleware + DB-Tabelle) und Frontend (neuer Settings-Abschnitt).
+
+```
+Admin Settings Page (bestehend)
+└── Einleitungstext-Editor (bestehend)
+└── EEG-Stammdaten & SEPA-Mandat (bestehend)
+└── [NEU] AdminApiKeyEditor
+│   ├── Status-Anzeige: aktiv / kein Key vorhanden + Datum der letzten Generierung
+│   ├── Button „API-Key generieren"
+│   │   └── Bestätigungs-Dialog (einmalige Anzeige)
+│   │       ├── Key-Text (kopierbar, Monospace)
+│   │       ├── Hinweis „Dieser Key wird nicht mehr angezeigt"
+│   │       └── Button „Schließen"
+│   └── Button „Key widerrufen" (nur sichtbar wenn ein aktiver Key existiert)
+└── Formular-Felder-Editor (bestehend)
+
+Backend
+├── db/migrations/
+│   ├── 000014_add_external_api_key.up.sql    ← neu: Tabelle external_api_key
+│   └── 000014_add_external_api_key.down.sql
+├── internal/application/
+│   └── external_api_key_repo.go              ← neu: CRUD für external_api_key
+├── internal/http/
+│   ├── external.go                           ← neu: POST /api/external/v1/applications
+│   ├── apikey_middleware.go                  ← neu: API-Key-Authentifizierung + Rate Limit
+│   └── admin.go                              ← erweitert: 3 neue Key-Verwaltungs-Endpunkte
+└── cmd/server/main.go                        ← erweitert: neue Route-Gruppe /api/external
+```
+
+### Datenmodell-Erweiterung
+
+Neue Tabelle `member_onboarding.external_api_key`:
+
+| Feld | Typ | Bedeutung |
+|------|-----|-----------|
+| `id` | UUID | Primärschlüssel |
+| `rc_number` | TEXT UNIQUE | Fremdschlüssel zur EEG — pro EEG max. 1 Zeile |
+| `key_hash` | VARCHAR(64) | SHA-256-Hash des Klartext-Keys (Hex), nie der Key selbst |
+| `revoked_at` | TIMESTAMPTZ NULL | NULL = aktiv; gesetzt = widerrufen |
+| `last_generated_at` | TIMESTAMPTZ | Zeitpunkt der letzten Key-Generierung |
+| `created_at` | TIMESTAMPTZ | Zeitpunkt der ersten Generierung |
+
+Ein neuer Key überschreibt `key_hash` und setzt `revoked_at` auf NULL. Es gibt immer maximal eine Zeile pro EEG (UPSERT).
+
+### API-Änderungen
+
+**Neue Route-Gruppe** `/api/external` — eigene API-Key-Middleware (kein Keycloak):
+
+| Methode | Pfad | Beschreibung |
+|---------|------|-------------|
+| `POST` | `/api/external/v1/applications` | Externe Einreichung — Key im `Authorization: Bearer`-Header |
+
+**Neue Admin-Endpunkte** (in bestehender `/api/admin/settings`-Gruppe, Keycloak-gesichert):
+
+| Methode | Pfad | Beschreibung |
+|---------|------|-------------|
+| `GET` | `/api/admin/settings/api-key?rc_number=...` | Status: aktiv/inaktiv + `last_generated_at` |
+| `POST` | `/api/admin/settings/api-key?rc_number=...` | Key generieren — gibt Klartext einmalig zurück |
+| `DELETE` | `/api/admin/settings/api-key?rc_number=...` | Aktiven Key widerrufen |
+
+### Einreichungsfluss (extern)
+
+```
+POST /api/external/v1/applications
+  1. API-Key-Middleware: Key aus Authorization-Header extrahieren
+     → SHA-256 hashen → in external_api_key suchen
+     → nicht gefunden oder revoked_at gesetzt → 401
+     → Rate-Limit-Check (10 req/min pro Key) → 429 bei Überschreitung
+     → RC-Nummer in Request-Kontext setzen
+  2. Handler: alle Felder aus Body validieren (identische Regeln wie Formular)
+     → Fehler → 422 mit Fehlerliste
+  3. ApplicationService.CreateApplication() → Antrag im Status "draft"
+  4. ApplicationService.SubmitApplication() → direkt zu "submitted"
+     → Bestätigungsmail + SEPA-PDF (falls aktiv) → async
+  5. Response: 201 Created mit id + referenceNumber
+```
+
+**Wiederverwendung**: Schritte 3 + 4 rufen exakt dieselben Service-Methoden auf wie das Standardformular. Kein duplizierter Validierungs- oder Einreichungscode.
+
+### API-Key-Middleware
+
+Folgt dem Muster der bestehenden `KeycloakAuthMiddleware` in `internal/http/auth_middleware.go`:
+- Liest `Authorization: Bearer <key>` aus dem Header
+- Berechnet SHA-256 des Keys
+- Schlägt in `external_api_key` nach — verifiziert, dass `revoked_at IS NULL`
+- Prüft In-Memory-Rate-Limit (sliding window, 10 req/60s pro Key-Hash)
+- Legt RC-Nummer im Request-Kontext ab (analog zu Keycloak-Claims)
+
+### Tech-Entscheidungen
+
+**SHA-256 statt bcrypt** — API-Keys sind 32 zufällige alphanumerische Zeichen. Bei dieser Länge und Zufälligkeit ist ein Wörterbuchangriff nicht praktikabel. SHA-256 ist bei jedem Request in Mikrosekunden berechenbar; bcrypt würde 100–300 ms kosten und die API bei hoher Last ausbremsen.
+
+**In-Memory Rate Limiting** — Kein Redis, keine externe Abhängigkeit. Bei einem einzelnen Pod für den MVP ist das ausreichend. Bei mehreren Pods wird das Limit pro Pod geprüft (effektiv N×10 req/min global) — akzeptabler Kompromiss für V1.
+
+**Einmaliger Key im Dialog** — Der Klartext-Key verlässt das Backend genau einmal (bei Generierung). Das Frontend zeigt ihn in einem modalen Dialog mit Kopier-Button. Sobald der Dialog geschlossen wird, ist der Key unwiederbringlich — nur ein neuer Key kann generiert werden. Dieses Muster ist aus GitHub/Stripe/Supabase bekannt und gut verstanden.
+
+**Kein separates `source`-Feld auf `application`** — Externe und formularbasierte Anträge sind im Admin-Backend identisch behandelt. Es gibt keinen Filter oder Hinweis auf die Herkunft. Das vereinfacht den Admin-Workflow und entspricht der User Story.
+
+### Neue Pakete
+
+Keine neuen externen Abhängigkeiten — SHA-256 und sync.Map sind in der Go-Standardbibliothek enthalten.
 
 ## QA Test Results
 _To be added by /qa_
