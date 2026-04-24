@@ -91,6 +91,7 @@
 - **Rate Limiting**: In-Memory-Counter pro Key (Token-Bucket oder sliding window, 10 req/min)
 - **Einreichungslogik**: Wiederverwendung von `ApplicationService.SubmitApplication` — kein duplizierter Code
 - **Frontend**: Neuer Abschnitt „Externe API" in der Admin-Settings-Seite
+- **Integrationsanforderung**: Der API-Key darf **niemals im Browser-Frontend des Betreibers** verwendet werden. Der Aufruf von `POST /api/external/v1/applications` muss server-seitig erfolgen (PHP, Node.js, .NET, etc.). Der API-Key wird als Umgebungsvariable auf dem Server des Betreibers gespeichert und verlässt diesen nicht. Betreiber, die ein reines Browser-Formular ohne eigenen Server betreiben möchten, müssen das Session-Token-Verfahren verwenden (siehe Tech Design).
 
 ---
 <!-- Sections below are added by subsequent skills -->
