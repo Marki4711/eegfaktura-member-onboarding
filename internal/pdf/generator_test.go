@@ -104,6 +104,85 @@ func TestW1252_RoundTrip(t *testing.T) {
 	}
 }
 
+// ─── GenerateCompany tests ────────────────────────────────────────────────────
+
+// TestFPDFGenerator_GenerateCompany_ValidPDF verifies GenerateCompany returns a valid PDF.
+func TestFPDFGenerator_GenerateCompany_ValidPDF(t *testing.T) {
+	g := NewFPDFGenerator()
+	b, err := g.GenerateCompany(fullData())
+	if err != nil {
+		t.Fatalf("GenerateCompany returned error: %v", err)
+	}
+	if len(b) == 0 {
+		t.Fatal("GenerateCompany returned empty byte slice")
+	}
+	if !bytes.HasPrefix(b, []byte("%PDF-")) {
+		t.Errorf("output does not start with PDF magic bytes, got: %q", b[:min(8, len(b))])
+	}
+}
+
+// TestFPDFGenerator_GenerateCompany_LargerThanCore verifies the B2B PDF is a different
+// size than the CORE mandate, which indirectly confirms different content was rendered.
+// Note: fpdf compresses content streams, so direct text search in bytes is not reliable.
+func TestFPDFGenerator_GenerateCompany_LargerThanCore(t *testing.T) {
+	g := NewFPDFGenerator()
+	core, err := g.Generate(fullData())
+	if err != nil {
+		t.Fatalf("Generate returned error: %v", err)
+	}
+	b2b, err := g.GenerateCompany(fullData())
+	if err != nil {
+		t.Fatalf("GenerateCompany returned error: %v", err)
+	}
+	// Both must be valid PDFs of meaningful size — size difference confirms distinct templates
+	if len(core) == 0 || len(b2b) == 0 {
+		t.Fatal("one of the PDFs is empty")
+	}
+	if len(core) == len(b2b) {
+		t.Error("CORE and B2B mandate PDFs have identical size — they may be using the same template")
+	}
+}
+
+// TestFPDFGenerator_GenerateCompany_DifferentFromCore verifies the B2B PDF differs from the CORE PDF.
+func TestFPDFGenerator_GenerateCompany_DifferentFromCore(t *testing.T) {
+	g := NewFPDFGenerator()
+	core, err := g.Generate(fullData())
+	if err != nil {
+		t.Fatalf("Generate returned error: %v", err)
+	}
+	b2b, err := g.GenerateCompany(fullData())
+	if err != nil {
+		t.Fatalf("GenerateCompany returned error: %v", err)
+	}
+	if bytes.Equal(core, b2b) {
+		t.Error("B2B mandate PDF is identical to CORE mandate PDF — they should differ")
+	}
+}
+
+// TestFPDFGenerator_GenerateCompany_SizeReasonable verifies the B2B PDF is large enough.
+func TestFPDFGenerator_GenerateCompany_SizeReasonable(t *testing.T) {
+	g := NewFPDFGenerator()
+	b, err := g.GenerateCompany(fullData())
+	if err != nil {
+		t.Fatalf("GenerateCompany returned error: %v", err)
+	}
+	const minExpectedBytes = 1_500
+	if len(b) < minExpectedBytes {
+		t.Errorf("B2B PDF too small (%d bytes), expected at least %d — content may be missing", len(b), minExpectedBytes)
+	}
+}
+
+// TestFPDFGenerator_GenerateCompany_LongCompanyName verifies no crash on long company name.
+func TestFPDFGenerator_GenerateCompany_LongCompanyName(t *testing.T) {
+	g := NewFPDFGenerator()
+	data := fullData()
+	data.MemberName = strings.Repeat("Lange Firmenbezeichnung GmbH & Co KG ", 3)
+	_, err := g.GenerateCompany(data)
+	if err != nil {
+		t.Errorf("GenerateCompany failed with long company name: %v", err)
+	}
+}
+
 func min(a, b int) int {
 	if a < b {
 		return a

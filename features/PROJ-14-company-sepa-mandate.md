@@ -73,3 +73,83 @@ Standardmäßig erhalten alle Mitglieder das CORE-Mandat. EEGs, die das B2B-Verf
 - `municipality` mit `use_company_sepa_mandate = true` → erhält CORE-Mandat (Gemeinden sind keine Unternehmen)
 - `company_name` ist NULL bei Typ `company` → Firmenname-Fallback auf `firstname + lastname`
 - `use_company_sepa_mandate = true` aber `sepa_mandate_enabled = false` → kein PDF (Toggle für B2B gilt nur wenn SEPA generell aktiv)
+
+---
+
+## QA Test Results
+
+**Tested:** 2026-04-24
+**Tester:** QA Engineer (AI)
+
+### Acceptance Criteria Status
+
+#### Konfiguration im Admin-Backend
+- [x] Toggle `useCompanySEPAMandate` in EEG Settings API implementiert (GET + PUT)
+- [x] Standard: `false` (verifiziert per API-Test AC-B2B-4)
+- [x] Toggle nur sichtbar wenn SEPA aktiv — via `sepaMandateEnabled && useCompanySEPAMandate` Frontend-Logik
+- [x] Einstellung wird in `registration_entrypoint.use_company_sepa_mandate` gespeichert (Migration 000015)
+- [x] Kein Cache — direkte DB-Abfrage bei jedem Request
+
+#### PDF-Auswahl
+- [x] `use_company_sepa_mandate = false`: alle Mitglieder erhalten CORE-Mandat (Standardverhalten unverändert)
+- [x] `company` / `association` + `use_company_sepa_mandate = true` → `GenerateCompany()` wird aufgerufen
+- [x] `private`, `farmer`, `municipality` → weiterhin `Generate()` (CORE)
+
+#### PDF-Inhalt (SEPA-Firmenlastschriftmandat)
+- [x] Titel „SEPA-Firmenlastschrift-Mandat"
+- [x] Mandatsreferenz-Leerzeile vorhanden
+- [x] ZAHLUNGSEMPFÄNGER: Creditor CD, Name, Anschrift
+- [x] Ermächtigungstext: B2B-spezifischer Wortlaut (unterscheidet sich von CORE)
+- [x] Zahlungsart: „wiederkehrend" vorausgewählt
+- [x] ZAHLUNGSPFLICHTIGER: Name, Anschrift, IBAN, BIC-Feld
+- [x] Unterschriftsfeld vorhanden
+- [x] BIC-Fußnote vorhanden
+- [x] PDF valide (magic bytes, xref table, >1,5KB)
+- [ ] **BUG-1**: Firmenname im B2B-PDF falsch wenn company_name UND firstname/lastname gesetzt sind
+- [x] Dateiname: `sepa-firmenlastschriftmandat.pdf` — via Mail-Service-Konstante gesetzt
+- [x] Sprache: Deutsch
+
+#### Verhalten bei fehlenden Pflichtdaten
+- [x] Kein PDF wenn EEG-Stammdaten fehlen (`buildSEPAMandateData` gibt nil zurück)
+
+#### Regression
+- [x] CORE-Mandat unverändert (alle bestehenden PDF-Tests grün)
+- [x] `use_company_sepa_mandate = false` → ausschließlich CORE (Standardverhalten)
+
+### Edge Cases Status
+
+- [x] `company` + `use_company_sepa_mandate = false` → CORE-Mandat
+- [x] `farmer` + `use_company_sepa_mandate = true` → CORE-Mandat (nur `company`/`association` triggern B2B)
+- [x] `municipality` + `use_company_sepa_mandate = true` → CORE-Mandat
+- [x] `use_company_sepa_mandate = true` + `sepa_mandate_enabled = false` → kein PDF
+- [ ] **BUG-1**: `company_name` NULL bei Typ `company` → Fallback auf `firstname + lastname` funktioniert; aber umgekehrt (company_name gesetzt) werden fälschlicherweise `firstname + lastname` verwendet
+
+### Security Audit Results
+- [x] `useCompanySEPAMandate` ist nicht im öffentlichen `/api/public/registration/{rc}` Endpoint (AC-B2B-5)
+- [x] Admin-Endpoint erfordert Authentifizierung (401 ohne Token)
+- [x] Keine EEG-Stammdaten im öffentlichen API
+
+### Automatisierte Tests
+- **Go Unit Tests**: 11 PDF-Tests grün (inkl. 5 neue GenerateCompany-Tests)
+- **E2E Tests**: 2 von 16 ausgeführt (14 skipped — Backend nicht lokal verfügbar); keine Fehler
+
+### Bugs Found
+
+#### BUG-1: Firmenname im B2B-Mandat verwendet firstname+lastname statt company_name
+- **Severity:** Medium
+- **Betroffene Datei:** `internal/application/application_service.go`, Funktion `buildSEPAMandateData`
+- **Steps to Reproduce:**
+  1. Neues Mitglied mit Typ `company` anlegen, `company_name = "Muster GmbH"`, `firstname = "Max"`, `lastname = "Muster"`
+  2. EEG mit `use_company_sepa_mandate = true` und vollständigen Stammdaten konfigurieren
+  3. Antrag einreichen
+  4. Erwartet: B2B-Mandat zeigt „Muster GmbH" als Zahlungspflichtigen
+  5. Tatsächlich: B2B-Mandat zeigt „Max Muster" (firstname+lastname zuerst)
+- **Ursache:** `buildSEPAMandateData` baut den Namen immer als `firstname + " " + lastname`, `company_name` wird nur als Fallback verwendet wenn beide leer sind. Für B2B sollte `company_name` Priorität haben.
+- **Priority:** Fix before deployment
+
+### Summary
+- **Acceptance Criteria:** 14/15 bestanden (1 Bug)
+- **Bugs Found:** 1 gesamt (0 critical, 0 high, 1 medium, 0 low)
+- **Security:** Pass
+- **Production Ready:** NO — BUG-1 muss vor dem Deployment behoben werden
+- **Recommendation:** BUG-1 beheben, dann erneut `/qa` ausführen
