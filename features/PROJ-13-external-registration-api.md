@@ -95,7 +95,35 @@
 - **Rate Limiting**: In-Memory-Counter pro Key (Token-Bucket oder sliding window, 10 req/min)
 - **Einreichungslogik**: Wiederverwendung von `ApplicationService.SubmitApplication` — kein duplizierter Code
 - **Frontend**: Neuer Abschnitt „Externe API" in der Admin-Settings-Seite
-- **Integrationsanforderung**: Der API-Key darf **niemals im Browser-Frontend des Betreibers** verwendet werden. Der Aufruf von `POST /api/external/v1/applications` muss server-seitig erfolgen (PHP, Node.js, .NET, etc.). Der API-Key wird als Umgebungsvariable auf dem Server des Betreibers gespeichert und verlässt diesen nicht. Betreiber, die ein reines Browser-Formular ohne eigenen Server betreiben möchten, müssen das Session-Token-Verfahren verwenden (siehe Tech Design).
+- **Integrationsanforderung**: Der API-Key darf **niemals im Browser-Frontend des Betreibers** verwendet werden. Der Aufruf von `POST /api/external/v1/applications` muss server-seitig erfolgen (PHP, Node.js, .NET, etc.). Der API-Key wird als Umgebungsvariable auf dem Server des Betreibers gespeichert und verlässt diesen nicht.
+
+## Integrationshinweise
+
+### Grundprinzip: Server-seitiger API-Call
+
+Der API-Key muss auf dem Server des Betreibers verbleiben. Das Formular auf der Website des Betreibers sendet die Daten an den **eigenen Server** (nicht direkt an das Member-Onboarding-Backend). Der eigene Server leitet die Daten — mit dem API-Key im `Authorization`-Header — weiter.
+
+```
+Browser (Nutzer)  →  Server des Betreibers  →  POST /api/external/v1/applications
+                       (API-Key als Env-Variable)
+```
+
+Jede serverseitige Technologie ist geeignet: Node.js, PHP, .NET, Python, Ruby, Java u.a.
+
+### Beispiel: WordPress
+
+WordPress ist ein häufig genutztes CMS bei EEG-Betreibern und eignet sich gut für diese Integration, da WordPress selbst PHP auf dem Server ausführt — die Sicherheitsanforderung ist damit strukturell erfüllt.
+
+**Umsetzung als WordPress-Plugin:**
+
+1. **Einstellungsseite in wp-admin** — der EEG-Admin trägt den API-Key ein; er wird in `wp_options` gespeichert und verlässt den Server nie
+2. **Shortcode** `[eegfaktura_registration]` — einbettbar auf jeder WordPress-Seite, rendert das Registrierungsformular
+3. **WordPress REST-Endpunkt** `POST /wp-json/eegfaktura/v1/register` — nimmt die Formulardaten entgegen, validiert sie, und ruft server-seitig `POST /api/external/v1/applications` auf
+4. **WordPress Nonces** — CSRF-Schutz ist in WordPress eingebaut und schützt den eigenen Endpunkt
+
+Der Browser des Nutzers sieht nur den Aufruf an den WordPress-eigenen Endpunkt. Der API-Key und der Aufruf an das Member-Onboarding-Backend sind für den Nutzer vollständig unsichtbar.
+
+> **Hinweis:** Die Implementierung eines WordPress-Plugins ist nicht Teil dieses Projekts. Dieser Abschnitt dient als Orientierung für EEG-Betreiber, die WordPress einsetzen.
 
 ---
 <!-- Sections below are added by subsequent skills -->
