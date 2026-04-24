@@ -41,6 +41,8 @@ type CreateApplicationRequest struct {
 	HeatPump                *bool    `json:"heatPump,omitempty"`
 	ElectricVehicle         *bool    `json:"electricVehicle,omitempty"`
 	ElectricHotWater        *bool    `json:"electricHotWater,omitempty"`
+	// Cloudflare Turnstile token (PROJ-16) — optional, verified server-side when TURNSTILE_SECRET_KEY is set
+	TurnstileToken *string `json:"turnstileToken,omitempty"`
 }
 
 // CreateMeteringPointRequest represents a metering point in create request

@@ -84,7 +84,7 @@ func main() {
 
 	// Initialize handlers
 	registrationHandler := internalhttp.NewRegistrationHandler(registrationService)
-	applicationHandler := internalhttp.NewApplicationHandler(applicationService)
+	applicationHandler := internalhttp.NewApplicationHandler(applicationService, cfg.Turnstile.SecretKey)
 	adminHandler := internalhttp.NewAdminHandler(adminService, entrypointRepo, apiKeyRepo)
 	externalHandler := internalhttp.NewExternalHandler(applicationService)
 	healthHandler := internalhttp.NewHealthHandler(db)

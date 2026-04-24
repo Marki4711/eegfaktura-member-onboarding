@@ -75,3 +75,5 @@ secrets:
   nextauthSecret: ""
   # Keycloak Client Secret
   keycloakClientSecret: ""
+  # Cloudflare Turnstile Secret Key — leer lassen zum Deaktivieren (Dev-Modus)
+  turnstileSecretKey: ""

@@ -15,15 +15,17 @@ import (
 
 // ApplicationHandler handles application-related HTTP requests
 type ApplicationHandler struct {
-	applicationService *application.ApplicationService
-	validate           *validator.Validate
+	applicationService  *application.ApplicationService
+	validate            *validator.Validate
+	turnstileSecretKey  string
 }
 
 // NewApplicationHandler creates a new application handler
-func NewApplicationHandler(applicationService *application.ApplicationService) *ApplicationHandler {
+func NewApplicationHandler(applicationService *application.ApplicationService, turnstileSecretKey string) *ApplicationHandler {
 	return &ApplicationHandler{
 		applicationService: applicationService,
 		validate:           validator.New(),
+		turnstileSecretKey: turnstileSecretKey,
 	}
 }
 
@@ -32,6 +34,17 @@ func (h *ApplicationHandler) CreateApplication(w http.ResponseWriter, r *http.Re
 	var req shared.CreateApplicationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Invalid JSON", nil)))
+		return
+	}
+
+	// Verify Cloudflare Turnstile token (skipped when secret key not configured)
+	token := ""
+	if req.TurnstileToken != nil {
+		token = *req.TurnstileToken
+	}
+	if errCode, err := verifyTurnstileToken(h.turnstileSecretKey, token); err != nil {
+		slog.Warn("turnstile verification failed", "code", errCode, "error", err)
+		h.writeError(w, shared.ErrorResponse{Code: errCode, Message: err.Error()})
 		return
 	}
 

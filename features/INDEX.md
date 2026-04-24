@@ -30,6 +30,6 @@ Central tracking for all features.
 | PROJ-13 | Externe Registrierungs-API | Deployed | `features/PROJ-13-external-registration-api.md` | 2026-04-24 |
 | PROJ-14 | SEPA-Firmenlastschriftmandat | Deployed | `features/PROJ-14-company-sepa-mandate.md` | 2026-04-24 |
 | PROJ-15 | Konfigurierbare Felder Erweiterungen | Deployed | `features/PROJ-15-configurable-fields-extensions.md` | 2026-04-24 |
-| PROJ-16 | Cloudflare Turnstile Spam-Schutz | Planned | `features/PROJ-16-turnstile-spam-protection.md` | 2026-04-24 |
+| PROJ-16 | Cloudflare Turnstile Spam-Schutz | In Progress | `features/PROJ-16-turnstile-spam-protection.md` | 2026-04-24 |
 
 ## Next Available ID: PROJ-17

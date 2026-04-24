@@ -10,11 +10,18 @@ import (
 
 // Config holds all configuration for the application
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-	CORS     CORSConfig
-	SMTP     SMTPConfig
-	Keycloak KeycloakConfig
+	Server    ServerConfig
+	Database  DatabaseConfig
+	CORS      CORSConfig
+	SMTP      SMTPConfig
+	Keycloak  KeycloakConfig
+	Turnstile TurnstileConfig
+}
+
+// TurnstileConfig holds Cloudflare Turnstile settings.
+// When SecretKey is empty, server-side verification is disabled (dev mode).
+type TurnstileConfig struct {
+	SecretKey string
 }
 
 // KeycloakConfig holds Keycloak JWT validation settings.
@@ -85,6 +92,9 @@ func Load() (*Config, error) {
 		Keycloak: KeycloakConfig{
 			JWKSUrl: getEnv("KEYCLOAK_JWKS_URL", ""),
 			Issuer:  getEnv("KEYCLOAK_ISSUER", ""),
+		},
+		Turnstile: TurnstileConfig{
+			SecretKey: getEnv("TURNSTILE_SECRET_KEY", ""),
 		},
 	}
 
