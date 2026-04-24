@@ -1,6 +1,6 @@
 # PROJ-12: SEPA-Lastschriftmandat als PDF-Anhang im Willkommensmail
 
-## Status: Approved
+## Status: Deployed
 **Created:** 2026-04-23
 **Last Updated:** 2026-04-23
 
@@ -256,3 +256,32 @@ Keine Bugs gefunden.
 - **Security:** Pass
 - **Production Ready:** YES
 - **Recommendation:** Deploy
+
+---
+
+## Deployment
+
+**Deployed:** 2026-04-24
+**Image Tag:** `sha-10c2959`
+**Git Tag:** `v0.13.0-PROJ-12`
+
+### Deployment-Schritte (Kubernetes/Helm)
+
+Migration wird automatisch als `pre-upgrade` Helm-Hook ausgeführt:
+
+```bash
+helm upgrade eegfaktura-member-onboarding ./helm/member-onboarding \
+  -f helm/member-onboarding/values-env.yaml \
+  -f helm/member-onboarding/values-secret.yaml
+```
+
+### Neue DB-Felder (Migration 000013)
+- `eeg_name`, `eeg_street`, `eeg_street_number`, `eeg_zip`, `eeg_city` — TEXT/VARCHAR NULL
+- `creditor_id` — VARCHAR(35) NULL
+- `sepa_mandate_enabled` — BOOLEAN NOT NULL DEFAULT FALSE
+
+### Rollback
+```bash
+# Image: vorherigen SHA-Tag in values.yaml setzen + helm upgrade
+# DB: migrate-job mit -direction down auf 000012 (entfernt alle 7 Spalten)
+```
