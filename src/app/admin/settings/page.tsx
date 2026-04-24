@@ -14,6 +14,7 @@ import {
 import { AdminFieldConfigEditor } from "@/components/admin-field-config-editor";
 import { AdminIntroTextEditor } from "@/components/admin-intro-text-editor";
 import { AdminEEGSettingsEditor } from "@/components/admin-eeg-settings-editor";
+import { AdminApiKeyEditor } from "@/components/admin-api-key-editor";
 import { Separator } from "@/components/ui/separator";
 import { getFieldConfig, type FieldConfig } from "@/lib/api";
 
@@ -116,6 +117,21 @@ export default function SettingsPage() {
             damit das Mandat als PDF-Anhang im Willkommensmail verschickt wird.
           </p>
           <AdminEEGSettingsEditor rcNumber={selectedRc} />
+        </div>
+      )}
+
+      <Separator />
+
+      {/* Externe API */}
+      {selectedRc && (
+        <div>
+          <h2 className="text-base font-medium mb-1">Externe API</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            API-Key für die externe Registrierungs-API. Der Key ermöglicht das Einreichen von Mitgliedsanträgen
+            über eine eigene Integration (z.B. eigenes Formular auf Ihrer Website).
+            Der Key darf ausschließlich server-seitig verwendet werden — niemals in Browser-seitigem Code.
+          </p>
+          <AdminApiKeyEditor rcNumber={selectedRc} />
         </div>
       )}
 

@@ -462,3 +462,28 @@ export function saveIntroText(rcNumber: string, introText: string | null, token?
     { method: "PUT", body: JSON.stringify({ introText }) }
   );
 }
+
+export interface ApiKeyStatus {
+  active: boolean;
+  lastGeneratedAt: string | null;
+}
+
+export function getApiKeyStatus(rcNumber: string, token?: string): Promise<ApiKeyStatus> {
+  return adminRequest<ApiKeyStatus>(`/api/admin/settings/api-key?rc_number=${encodeURIComponent(rcNumber)}`, token);
+}
+
+export function generateApiKey(rcNumber: string, token?: string): Promise<{ apiKey: string }> {
+  return adminRequest<{ apiKey: string }>(
+    `/api/admin/settings/api-key?rc_number=${encodeURIComponent(rcNumber)}`,
+    token,
+    { method: "POST" }
+  );
+}
+
+export function revokeApiKey(rcNumber: string, token?: string): Promise<void> {
+  return adminRequest<void>(
+    `/api/admin/settings/api-key?rc_number=${encodeURIComponent(rcNumber)}`,
+    token,
+    { method: "DELETE" }
+  );
+}
