@@ -238,7 +238,92 @@ Folgt dem Muster der bestehenden `KeycloakAuthMiddleware` in `internal/http/auth
 Keine neuen externen Abhängigkeiten — SHA-256 und sync.Map sind in der Go-Standardbibliothek enthalten.
 
 ## QA Test Results
-_To be added by /qa_
+
+**QA Date:** 2026-04-24
+**Tester:** Claude (QA Engineer)
+**Status:** In Review — 2 Medium bugs found
+
+### Acceptance Criteria Results
+
+| ID | Criteria | Result |
+|----|----------|--------|
+| AC-KEY-1 | Admin-Bereich „Externe API" mit Key generieren / widerrufen | PASS |
+| AC-KEY-2 | Key-Dialog zeigt Key einmalig im Klartext | PASS |
+| AC-KEY-3 | Key-Format `moak_<32chars>` ohne RC-Nummer | PASS (Unit-Test) |
+| AC-KEY-4 | Nur SHA-256-Hash in DB gespeichert | PASS (Code-Review) |
+| AC-KEY-5 | Pro EEG max. 1 aktiver Key — UPSERT invalidiert alten | PASS (Code-Review) |
+| AC-KEY-6 | Key widerrufen ohne neuen zu erzeugen | PASS |
+| AC-KEY-7 | Admin sieht aktiv/inaktiv + letztes Generierungsdatum | PASS |
+| AC-KEY-8 | Änderungen sofort wirksam | PASS (kein Cache) |
+| AC-EXT-1 | `POST /api/external/v1/applications` akzeptiert Antrag | PASS |
+| AC-EXT-2 | Authentifizierung via `Authorization: Bearer` | PASS (E2E) |
+| AC-EXT-3 | API-Key bestimmt EEG — kein `rcNumber` im Body | PASS |
+| AC-EXT-4 | Gültiger Key + valide Daten → `submitted`, 201 | PASS (Code-Review) |
+| AC-EXT-5 | Response mit `id` + `referenceNumber` | PASS |
+| AC-EXT-6 | Ungültiger Key → 401 | PASS (E2E) |
+| AC-EXT-7 | Fehlende Felder → 422 mit Fehlerliste | PASS (E2E) |
+| AC-EXT-8 | Inaktiver Entrypoint → 410 | PASS (Code-Review) |
+| AC-REQ-1 | `memberType` Pflicht | PASS — **Abweichung:** impl. nutzt `private/farmer/municipality/company/association` statt `natural_person/legal_entity` aus Spec |
+| AC-REQ-2 | `firstname`+`lastname` bei natürlicher Person | PASS |
+| AC-REQ-3 | `email` Pflicht (valides Format) | PASS |
+| AC-REQ-4 | Adressfelder alle Pflicht | PASS |
+| AC-REQ-5 | `residentCountry` Pflicht ISO-3166-1 | FAIL — **Bug #1** |
+| AC-REQ-6 | `iban` Pflicht | PASS (Längenvalidierung) |
+| AC-REQ-7 | `privacyAccepted: true` + `sepaMandateAccepted: true` | PASS |
+| AC-REQ-8 | `meteringPoints` min. 1 | PASS |
+| AC-AFTER-1 | Bestätigungsmail versendet | PASS (Code-Review, identisch Standardformular) |
+| AC-AFTER-2 | SEPA-PDF angehängt wenn aktiv | PASS (Code-Review) |
+| AC-AFTER-3 | EEG-Benachrichtigungsmail | PASS (Code-Review) |
+| AC-AFTER-4 | Status-Log `draft → submitted` | PASS (Code-Review) |
+| AC-AFTER-5 | Antrag im Admin ohne Herkunftshinweis | PASS |
+| AC-RATE-1 | 10 req/min Burst-Limit → 429 | PASS (Unit-Test) |
+| AC-RATE-2 | 200 req/Tag Tageskontingent → 429 mit Retry-After | PASS (Code-Review) |
+| AC-RATE-3 | Tages-Zähler in DB (pod-sicher) | PASS |
+
+### Bugs Found
+
+#### Bug #1 — Medium: `residentCountry` wird validiert aber nicht gespeichert
+
+**Schweregrad:** Medium
+**Beschreibung:** Das Feld `residentCountry` ist in `externalApplicationRequest` definiert und wird validiert (`required, len=2`). Es wird jedoch nicht in `shared.CreateApplicationRequest` gemappt, da dieses Feld dort nicht existiert (wurde in Migration `000006` aus der DB entfernt). Das Feld wird vom Aufrufer erwartet, validiert, aber dann still verworfen.
+
+**Steps to reproduce:**
+1. `POST /api/external/v1/applications` mit `"residentCountry": "AT"` und gültigem Key
+2. Antrag wird angelegt
+3. In der DB: kein `resident_country` gespeichert — das Feld existiert nicht mehr
+
+**Erwartetes Verhalten:** Entweder (a) `residentCountry` aus Spec entfernen, oder (b) Spalte per Migration wieder hinzufügen und durch alle Schichten durchreichen.
+
+#### Bug #2 — Medium: `memberType`-Werte weichen von Spec ab
+
+**Schweregrad:** Medium
+**Beschreibung:** Die Spec definiert `memberType` als `natural_person | legal_entity`. Die Implementierung akzeptiert die internen 5 Typen: `private | farmer | municipality | company | association`. Das führt zu einer Inkonsistenz in der API-Dokumentation.
+
+**Empfehlung:** Spec-Werte (`natural_person`, `legal_entity`) an die tatsächlichen System-Werte anpassen. Die internen Typen sind feingranularer und bereits in Betrieb — eine Mapping-Schicht wäre unnötig komplex.
+
+### Security Audit
+
+| Prüfpunkt | Ergebnis |
+|-----------|----------|
+| API-Key im Browser sichtbar | PASS — Key verlässt Backend genau einmal (POST-Response zum Admin) |
+| SQL Injection via Key-Hash | PASS — parametrisierte Query, kein dynamisches SQL |
+| Keycloak-Token als API-Key nutzbar | PASS — SHA-256-Hash eines JWT ≠ gültiger Key-Hash in DB |
+| Tenant-Isolation (EEG A kann nicht EEG B's Admin-Endpunkt nutzen) | PASS — `containsRC` Check |
+| Key-Hash in API-Response enthalten | PASS — GET-Status liefert nur `active` + `lastGeneratedAt` |
+| Rate-Limit-Bucket Memory-Leak | INFO — Buckets werden nie bereinigt; bei sehr vielen kurzlebigen Keys möglich, bei realistischer EEG-Anzahl kein Problem |
+| Burst-Limit umgehbar via mehrere Pods | INFO — bewusste Entscheidung, dokumentiert |
+
+### Automated Tests
+
+- **Go Unit Tests:** 7/7 PASS (`internal/http` package: hash, rate bucket, key format)
+- **E2E Tests:** 8/8 PASS (30 Runs: 8 pass, 22 skip — kein lokales Backend)
+- **TypeScript:** 0 Fehler
+
+### Production-Ready Decision
+
+**NOT READY** — 2 Medium bugs müssen vor Deployment geklärt werden:
+1. Bug #1: `residentCountry` Spec-Anforderung vs. DB-Schema entscheiden
+2. Bug #2: `memberType`-Werte in Spec korrigieren (einfach — nur Doku)
 
 ## Deployment
 _To be added by /deploy_
