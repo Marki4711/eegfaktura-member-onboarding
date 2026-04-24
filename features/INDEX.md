@@ -29,6 +29,6 @@ Central tracking for all features.
 | PROJ-12 | SEPA-Lastschriftmandat PDF | Deployed | `features/PROJ-12-sepa-mandate-pdf.md` | 2026-04-23 |
 | PROJ-13 | Externe Registrierungs-API | Deployed | `features/PROJ-13-external-registration-api.md` | 2026-04-24 |
 | PROJ-14 | SEPA-Firmenlastschriftmandat | Approved | `features/PROJ-14-company-sepa-mandate.md` | 2026-04-24 |
-| PROJ-15 | Konfigurierbare Felder Erweiterungen | In Review | `features/PROJ-15-configurable-fields-extensions.md` | 2026-04-24 |
+| PROJ-15 | Konfigurierbare Felder Erweiterungen | Approved | `features/PROJ-15-configurable-fields-extensions.md` | 2026-04-24 |
 
 ## Next Available ID: PROJ-16
