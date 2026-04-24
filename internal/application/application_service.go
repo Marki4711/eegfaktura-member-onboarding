@@ -430,6 +430,10 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID) (*shared.SubmitResp
 			if mandate := buildSEPAMandateData(app, entrypoint); mandate != nil {
 				useCompany := entrypoint.UseCompanySEPAMandate &&
 					(app.MemberType == shared.MemberTypeCompany || app.MemberType == shared.MemberTypeAssociation)
+				// For B2B mandates, the debtor name must be the company name, not the contact person.
+				if useCompany && app.CompanyName != nil && *app.CompanyName != "" {
+					mandate.MemberName = *app.CompanyName
+				}
 				var pdfBytes []byte
 				var pdfErr error
 				if useCompany {

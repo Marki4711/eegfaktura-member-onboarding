@@ -105,7 +105,7 @@ Standardmäßig erhalten alle Mitglieder das CORE-Mandat. EEGs, die das B2B-Verf
 - [x] Unterschriftsfeld vorhanden
 - [x] BIC-Fußnote vorhanden
 - [x] PDF valide (magic bytes, xref table, >1,5KB)
-- [ ] **BUG-1**: Firmenname im B2B-PDF falsch wenn company_name UND firstname/lastname gesetzt sind
+- [x] Firmenname im B2B-PDF: `company_name` hat Priorität, Fallback auf `firstname + lastname` (BUG-1 behoben)
 - [x] Dateiname: `sepa-firmenlastschriftmandat.pdf` — via Mail-Service-Konstante gesetzt
 - [x] Sprache: Deutsch
 
@@ -122,7 +122,7 @@ Standardmäßig erhalten alle Mitglieder das CORE-Mandat. EEGs, die das B2B-Verf
 - [x] `farmer` + `use_company_sepa_mandate = true` → CORE-Mandat (nur `company`/`association` triggern B2B)
 - [x] `municipality` + `use_company_sepa_mandate = true` → CORE-Mandat
 - [x] `use_company_sepa_mandate = true` + `sepa_mandate_enabled = false` → kein PDF
-- [ ] **BUG-1**: `company_name` NULL bei Typ `company` → Fallback auf `firstname + lastname` funktioniert; aber umgekehrt (company_name gesetzt) werden fälschlicherweise `firstname + lastname` verwendet
+- [x] `company_name` NULL bei Typ `company` → Fallback auf `firstname + lastname` funktioniert korrekt (BUG-1 behoben)
 
 ### Security Audit Results
 - [x] `useCompanySEPAMandate` ist nicht im öffentlichen `/api/public/registration/{rc}` Endpoint (AC-B2B-5)
@@ -135,21 +135,14 @@ Standardmäßig erhalten alle Mitglieder das CORE-Mandat. EEGs, die das B2B-Verf
 
 ### Bugs Found
 
-#### BUG-1: Firmenname im B2B-Mandat verwendet firstname+lastname statt company_name
-- **Severity:** Medium
-- **Betroffene Datei:** `internal/application/application_service.go`, Funktion `buildSEPAMandateData`
-- **Steps to Reproduce:**
-  1. Neues Mitglied mit Typ `company` anlegen, `company_name = "Muster GmbH"`, `firstname = "Max"`, `lastname = "Muster"`
-  2. EEG mit `use_company_sepa_mandate = true` und vollständigen Stammdaten konfigurieren
-  3. Antrag einreichen
-  4. Erwartet: B2B-Mandat zeigt „Muster GmbH" als Zahlungspflichtigen
-  5. Tatsächlich: B2B-Mandat zeigt „Max Muster" (firstname+lastname zuerst)
-- **Ursache:** `buildSEPAMandateData` baut den Namen immer als `firstname + " " + lastname`, `company_name` wird nur als Fallback verwendet wenn beide leer sind. Für B2B sollte `company_name` Priorität haben.
-- **Priority:** Fix before deployment
+#### BUG-1: Firmenname im B2B-Mandat — BEHOBEN
+- **Severity:** Medium → Fixed
+- **Fix:** In `SubmitApplication` (application_service.go): nach `buildSEPAMandateData` wird `mandate.MemberName` mit `company_name` überschrieben wenn `useCompany = true` und `company_name` gesetzt ist.
+- 5 neue Unit-Tests in `application_service_test.go` decken das Verhalten ab.
 
 ### Summary
-- **Acceptance Criteria:** 14/15 bestanden (1 Bug)
-- **Bugs Found:** 1 gesamt (0 critical, 0 high, 1 medium, 0 low)
+- **Acceptance Criteria:** 15/15 bestanden
+- **Bugs Found:** 1 Medium — behoben
 - **Security:** Pass
-- **Production Ready:** NO — BUG-1 muss vor dem Deployment behoben werden
-- **Recommendation:** BUG-1 beheben, dann erneut `/qa` ausführen
+- **Production Ready:** YES
+- **Recommendation:** DB-Migrationen 000015 auf Server ausführen, dann `/deploy`

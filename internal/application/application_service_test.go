@@ -244,3 +244,86 @@ func TestNormalizeIBAN_StripSpacesAndUppercase(t *testing.T) {
 		t.Errorf("got %q, want %q", got, want)
 	}
 }
+
+// --- buildSEPAMandateData ---
+
+func baseEntrypoint(sepaEnabled bool) *shared.RegistrationEntrypoint {
+	return &shared.RegistrationEntrypoint{
+		RCNumber:             "RC123456",
+		SEPAMandateEnabled:   sepaEnabled,
+		UseCompanySEPAMandate: false,
+		EEGName:              strPtr("Test EEG"),
+		EEGStreet:            strPtr("Hauptstr."),
+		EEGStreetNumber:      strPtr("1"),
+		EEGZip:               strPtr("1010"),
+		EEGCity:              strPtr("Wien"),
+		CreditorID:           strPtr("AT28ZZZ00000000000"),
+	}
+}
+
+func TestBuildSEPAMandateData_ReturnsNilWhenDisabled(t *testing.T) {
+	ep := baseEntrypoint(false)
+	app := baseApp(shared.MemberTypePrivate)
+	app.Firstname = strPtr("Max")
+	app.Lastname = strPtr("Muster")
+	if buildSEPAMandateData(app, ep) != nil {
+		t.Error("expected nil when SEPAMandateEnabled=false")
+	}
+}
+
+func TestBuildSEPAMandateData_ReturnsNilWhenEEGFieldsMissing(t *testing.T) {
+	ep := baseEntrypoint(true)
+	ep.CreditorID = nil
+	app := baseApp(shared.MemberTypePrivate)
+	app.Firstname = strPtr("Max")
+	app.Lastname = strPtr("Muster")
+	if buildSEPAMandateData(app, ep) != nil {
+		t.Error("expected nil when CreditorID is missing")
+	}
+}
+
+func TestBuildSEPAMandateData_PrivateMember_UsesFirstnameLastname(t *testing.T) {
+	ep := baseEntrypoint(true)
+	app := baseApp(shared.MemberTypePrivate)
+	app.Firstname = strPtr("Max")
+	app.Lastname = strPtr("Muster")
+	m := buildSEPAMandateData(app, ep)
+	if m == nil {
+		t.Fatal("expected non-nil mandate data")
+	}
+	if m.MemberName != "Max Muster" {
+		t.Errorf("expected 'Max Muster', got %q", m.MemberName)
+	}
+}
+
+func TestBuildSEPAMandateData_CompanyMember_UsesFirstnameLastname(t *testing.T) {
+	// buildSEPAMandateData itself always returns firstname+lastname.
+	// The B2B name override (company_name priority) happens at the call site in SubmitApplication.
+	ep := baseEntrypoint(true)
+	app := baseApp(shared.MemberTypeCompany)
+	app.Firstname = strPtr("Max")
+	app.Lastname = strPtr("Muster")
+	app.CompanyName = strPtr("Muster GmbH")
+	m := buildSEPAMandateData(app, ep)
+	if m == nil {
+		t.Fatal("expected non-nil mandate data")
+	}
+	// base function: firstname+lastname (override happens at call site for B2B)
+	if m.MemberName != "Max Muster" {
+		t.Errorf("base function: expected 'Max Muster', got %q", m.MemberName)
+	}
+}
+
+func TestBuildSEPAMandateData_CompanyMember_FallbackWhenNamesEmpty(t *testing.T) {
+	ep := baseEntrypoint(true)
+	app := baseApp(shared.MemberTypeCompany)
+	// No firstname/lastname — only company_name
+	app.CompanyName = strPtr("Muster GmbH")
+	m := buildSEPAMandateData(app, ep)
+	if m == nil {
+		t.Fatal("expected non-nil mandate data")
+	}
+	if m.MemberName != "Muster GmbH" {
+		t.Errorf("expected company name fallback 'Muster GmbH', got %q", m.MemberName)
+	}
+}
