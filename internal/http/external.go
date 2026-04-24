@@ -42,7 +42,6 @@ type externalApplicationRequest struct {
 	ResidentStreetNumber string                       `json:"residentStreetNumber" validate:"required,min=1,max=50"`
 	ResidentZip          string                       `json:"residentZip"          validate:"required,min=1,max=20"`
 	ResidentCity         string                       `json:"residentCity"         validate:"required,min=1,max=255"`
-	ResidentCountry      string                       `json:"residentCountry"      validate:"required,len=2"`
 	IBAN                 string                       `json:"iban"                 validate:"required,min=15,max=34"`
 	AccountHolder        string                       `json:"accountHolder"        validate:"required,min=1,max=255"`
 	PrivacyAccepted      bool                         `json:"privacyAccepted"      validate:"required"`
