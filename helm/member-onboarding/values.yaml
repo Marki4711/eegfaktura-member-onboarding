@@ -72,7 +72,7 @@ frontend:
 # Requires imagePullPolicy: Always in values-env.yaml when using a floating tag.
 restart:
   enabled: false
-  schedule: "30 4 1 * *"   # 1st of month 04:30 UTC — 30 min after GitHub Actions rebuild
+  schedule: "0 2 * * *"    # daily at 02:00 UTC
   kubectlImage: "bitnami/kubectl:1.31"
 # ── Secrets ────────────────────────────────────────────────────────────────────
 # Niemals echte Werte hier eintragen — immer via values-secret.yaml übergeben.
