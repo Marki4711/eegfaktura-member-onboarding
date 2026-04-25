@@ -15,6 +15,7 @@ import { AdminFieldConfigEditor } from "@/components/admin-field-config-editor";
 import { AdminIntroTextEditor } from "@/components/admin-intro-text-editor";
 import { AdminEEGSettingsEditor } from "@/components/admin-eeg-settings-editor";
 import { AdminApiKeyEditor } from "@/components/admin-api-key-editor";
+import { AdminLegalDocumentsEditor } from "@/components/admin-legal-documents-editor";
 import { Separator } from "@/components/ui/separator";
 import { getFieldConfig, type AdminFieldConfig } from "@/lib/api";
 
@@ -93,6 +94,21 @@ export default function SettingsPage() {
           <span className="text-sm text-muted-foreground">{selectedRc}</span>
         )}
       </div>
+
+      {/* Rechtsdokumente */}
+      {selectedRc && (
+        <div>
+          <h2 className="text-xl font-semibold mb-1">Rechtsdokumente</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            EEG-spezifische Dokumente (z.B. Satzung, Nutzungsbedingungen), denen Mitglieder bei der
+            Registrierung zustimmen müssen. Die zentrale Datenschutzerklärung wird über
+            Servereinstellungen konfiguriert.
+          </p>
+          <AdminLegalDocumentsEditor rcNumber={selectedRc} />
+        </div>
+      )}
+
+      <Separator />
 
       {/* Einleitungstext */}
       {selectedRc && (

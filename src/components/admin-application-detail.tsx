@@ -25,7 +25,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { getApplicationDetail, resendMemberConfirmation, deleteApplication, downloadApplicationExcel, ApiResponseError } from "@/lib/api";
-import type { AdminApplicationDetail, MemberType } from "@/lib/api";
+import type { AdminApplicationDetail, MemberType, DocumentConsentView } from "@/lib/api";
 
 const MEMBER_TYPE_LABELS: Record<MemberType, string> = {
   private:      "Privatperson / Kleinunternehmer",
@@ -354,6 +354,27 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
               <Field label="Akzeptiert am" value={formatDateTime(application.privacyAcceptedAt)} />
               <BoolField label="Richtigkeit bestätigt" value={application.accuracyConfirmed} />
             </dl>
+            {application.consents && application.consents.length > 0 && (
+              <>
+                <Separator className="my-4" />
+                <p className="text-xs text-muted-foreground mb-3">Dokument-Einwilligungen</p>
+                <div className="space-y-2">
+                  {(application.consents as DocumentConsentView[]).map((c) => (
+                    <div key={c.id} className="flex items-start gap-3 text-sm">
+                      <div className="flex-1">
+                        <a href={c.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
+                          {c.title}
+                        </a>
+                        {c.isCentralPolicy && (
+                          <span className="ml-2 text-xs text-muted-foreground">(Zentrale Datenschutzerklärung)</span>
+                        )}
+                      </div>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">{formatDateTime(c.consentedAt)}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 

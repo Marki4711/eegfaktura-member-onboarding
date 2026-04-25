@@ -56,6 +56,29 @@ export function resolveFieldState(config: FieldConfig | undefined, fieldName: st
   return config?.[fieldName] ?? defaultState;
 }
 
+export interface LegalDocumentItem {
+  id: string;
+  title: string;
+  url: string;
+  required: boolean;
+  sortOrder: number;
+  isCentralPolicy: boolean;
+}
+
+export interface ConsentInput {
+  title: string;
+  url: string;
+  isCentralPolicy: boolean;
+}
+
+export interface DocumentConsentView {
+  id: string;
+  title: string;
+  url: string;
+  isCentralPolicy: boolean;
+  consentedAt: string;
+}
+
 export interface RegistrationConfig {
   rcNumber: string;
   title: string;
@@ -63,6 +86,7 @@ export interface RegistrationConfig {
   fieldConfig?: FieldConfig;
   introText?: string | null;
   sepaMandateEnabled?: boolean;
+  legalDocuments?: LegalDocumentItem[];
 }
 
 export type MemberType = "private" | "farmer" | "municipality" | "company" | "association";
@@ -219,9 +243,10 @@ export function createApplication(
   });
 }
 
-export function submitApplication(id: string): Promise<SubmitResponse> {
+export function submitApplication(id: string, consents?: ConsentInput[]): Promise<SubmitResponse> {
   return request<SubmitResponse>(`/api/public/applications/${id}/submit`, {
     method: "POST",
+    body: consents && consents.length > 0 ? JSON.stringify({ consents }) : undefined,
   });
 }
 
@@ -313,6 +338,7 @@ export interface AdminApplicationDetail {
   updatedAt: string;
   meteringPoints: MeteringPointDetail[];
   statusLog: StatusLogEntry[];
+  consents?: DocumentConsentView[];
 }
 
 export interface AdminUpdateApplicationRequest {
@@ -513,5 +539,48 @@ export function revokeApiKey(rcNumber: string, token?: string): Promise<void> {
     `/api/admin/settings/api-key?rc_number=${encodeURIComponent(rcNumber)}`,
     token,
     { method: "DELETE" }
+  );
+}
+
+// ---------- legal documents admin API ----------
+
+export interface CreateLegalDocumentRequest {
+  title: string;
+  url: string;
+  required: boolean;
+}
+
+export function listLegalDocuments(rcNumber: string, token?: string): Promise<LegalDocumentItem[]> {
+  return adminRequest<LegalDocumentItem[]>(
+    `/api/admin/legal-documents?rc_number=${encodeURIComponent(rcNumber)}`,
+    token
+  );
+}
+
+export function createLegalDocument(rcNumber: string, req: CreateLegalDocumentRequest, token?: string): Promise<LegalDocumentItem> {
+  return adminRequest<LegalDocumentItem>(
+    `/api/admin/legal-documents?rc_number=${encodeURIComponent(rcNumber)}`,
+    token,
+    { method: "POST", body: JSON.stringify(req) }
+  );
+}
+
+export function updateLegalDocument(id: string, req: CreateLegalDocumentRequest, token?: string): Promise<LegalDocumentItem> {
+  return adminRequest<LegalDocumentItem>(
+    `/api/admin/legal-documents/${id}`,
+    token,
+    { method: "PUT", body: JSON.stringify(req) }
+  );
+}
+
+export function deleteLegalDocument(id: string, token?: string): Promise<void> {
+  return adminRequest<void>(`/api/admin/legal-documents/${id}`, token, { method: "DELETE" });
+}
+
+export function reorderLegalDocuments(rcNumber: string, ids: string[], token?: string): Promise<void> {
+  return adminRequest<void>(
+    `/api/admin/legal-documents/reorder?rc_number=${encodeURIComponent(rcNumber)}`,
+    token,
+    { method: "PUT", body: JSON.stringify({ ids }) }
   );
 }

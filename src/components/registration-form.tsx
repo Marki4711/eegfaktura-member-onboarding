@@ -45,6 +45,7 @@ import {
   type MemberType,
   type FieldConfig,
   type FieldState,
+  type ConsentInput,
 } from "@/lib/api";
 
 // Hardcoded for MVP — matches backend default
@@ -217,9 +218,14 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const turnstileRef = useRef<TurnstileInstance>(null);
+  const [docConsents, setDocConsents] = useState<Record<string, boolean>>({});
+  const [docConsentErrors, setDocConsentErrors] = useState<Record<string, string>>({});
 
   const fieldConfig = config.fieldConfig;
   const sepaMandateEnabled = config.sepaMandateEnabled ?? false;
+  const legalDocuments = config.legalDocuments ?? [];
+  const centralPolicy = legalDocuments.find((d) => d.isCentralPolicy);
+  const eegSpecificDocs = legalDocuments.filter((d) => !d.isCentralPolicy);
 
   // returns the resolved FieldState for an application-level configurable field
   function fs(name: string): FieldState {
@@ -302,10 +308,31 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
   }
 
   async function onSubmit(values: RegistrationFormValues) {
+    // Validate required EEG-specific doc consents
+    const errors: Record<string, string> = {};
+    for (const doc of eegSpecificDocs) {
+      if (doc.required && !docConsents[doc.id]) {
+        errors[doc.id] = "Zustimmung ist erforderlich";
+      }
+    }
+    setDocConsentErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
     setIsSubmitting(true);
     setApiError(null);
 
     const isPersonType = values.memberType === "private" || values.memberType === "farmer";
+
+    // Build consents array
+    const consents: ConsentInput[] = [];
+    if (centralPolicy && values.privacyAccepted) {
+      consents.push({ title: centralPolicy.title, url: centralPolicy.url, isCentralPolicy: true });
+    }
+    for (const doc of eegSpecificDocs) {
+      if (docConsents[doc.id]) {
+        consents.push({ title: doc.title, url: doc.url, isCentralPolicy: false });
+      }
+    }
 
     try {
       const app = await createApplication({
@@ -349,7 +376,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
         turnstileToken: turnstileToken || undefined,
       });
 
-      const submitted = await submitApplication(app.id);
+      const submitted = await submitApplication(app.id, consents.length > 0 ? consents : undefined);
 
       setSuccess({
         referenceNumber: submitted.referenceNumber,
@@ -1009,14 +1036,49 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                   </FormControl>
                   <div className="space-y-1 leading-none">
                     <FormLabel className="font-normal cursor-pointer">
-                      Ich habe die Datenschutzerklärung gelesen und stimme der
-                      Verarbeitung meiner Daten zu. *
+                      {centralPolicy ? (
+                        <>
+                          Ich habe die{" "}
+                          <a href={centralPolicy.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
+                            {centralPolicy.title}
+                          </a>{" "}
+                          gelesen und stimme der Verarbeitung meiner Daten zu. *
+                        </>
+                      ) : (
+                        "Ich habe die Datenschutzerklärung gelesen und stimme der Verarbeitung meiner Daten zu. *"
+                      )}
                     </FormLabel>
                     <FormMessage />
                   </div>
                 </FormItem>
               )}
             />
+            {eegSpecificDocs.map((doc) => (
+              <div key={doc.id} className="flex flex-row items-start gap-3">
+                <Checkbox
+                  id={`doc-${doc.id}`}
+                  checked={docConsents[doc.id] ?? false}
+                  onCheckedChange={(checked) => {
+                    setDocConsents((prev) => ({ ...prev, [doc.id]: checked === true }));
+                    if (checked) {
+                      setDocConsentErrors((prev) => { const n = { ...prev }; delete n[doc.id]; return n; });
+                    }
+                  }}
+                />
+                <div className="space-y-1 leading-none">
+                  <label htmlFor={`doc-${doc.id}`} className="text-sm font-normal cursor-pointer">
+                    Ich habe die{" "}
+                    <a href={doc.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
+                      {doc.title}
+                    </a>{" "}
+                    gelesen und stimme zu.{doc.required ? " *" : ""}
+                  </label>
+                  {docConsentErrors[doc.id] && (
+                    <p className="text-sm font-medium text-destructive">{docConsentErrors[doc.id]}</p>
+                  )}
+                </div>
+              </div>
+            ))}
             <FormField
               control={form.control}
               name="accuracyConfirmed"
