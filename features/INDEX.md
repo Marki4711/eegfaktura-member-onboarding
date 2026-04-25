@@ -33,5 +33,6 @@ Central tracking for all features.
 | PROJ-16 | Cloudflare Turnstile Spam-Schutz | Deployed | `features/PROJ-16-turnstile-spam-protection.md` | 2026-04-24 |
 | PROJ-17 | Excel-Export für eegFaktura-Import | Deployed | `features/PROJ-17-excel-export.md` | 2026-04-25 |
 | PROJ-18 | Datenschutzerklärung & Central Policy Toggle | Deployed | `features/PROJ-18-datenschutz-policy-toggle.md` | 2026-04-25 |
+| PROJ-19 | Manuelle Aktivierung der Registrierung | Deployed | `features/PROJ-19-registration-activation.md` | 2026-04-25 |
 
-## Next Available ID: PROJ-19
+## Next Available ID: PROJ-20

@@ -39,7 +39,7 @@ Fields:
 - `id`
 - `rc_number`
 - `eeg_id` — nullable, internal EEG identifier used for the Gemeinschafts-ID column in the Excel export
-- `is_active`
+- `is_active` — boolean, default false; controls whether the public registration form is active; must be explicitly enabled by the admin via the settings page
 - `contact_email` — nullable, EEG notification email address
 - `intro_text` — nullable, sanitized HTML string for the public registration form
 - `eeg_name` — nullable, official name of the energy community

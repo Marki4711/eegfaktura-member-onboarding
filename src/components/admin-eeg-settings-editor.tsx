@@ -46,12 +46,14 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
   const [creditorId, setCreditorId] = useState("");
   const [sepaMandateEnabled, setSepaMandateEnabled] = useState(false);
   const [useCompanySEPAMandate, setUseCompanySEPAMandate] = useState(false);
+  const [registrationActive, setRegistrationActive] = useState(false);
 
   useEffect(() => {
     if (!rcNumber || !session?.accessToken) return;
     setLoaded(false);
     getEEGSettings(rcNumber, session.accessToken)
       .then((s) => {
+        setRegistrationActive(s.registrationActive ?? false);
         setEegId(s.eegId ?? "");
         setEegName(s.eegName ?? "");
         setEegStreet(s.eegStreet ?? "");
@@ -76,6 +78,7 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
       await saveEEGSettings(
         rcNumber,
         {
+          registrationActive,
           eegId: eegId.trim() || null,
           eegName: eegName.trim() || null,
           eegStreet: eegStreet.trim() || null,
@@ -106,6 +109,21 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
 
       {loaded && (
         <>
+          {/* Registrierung aktivieren/deaktivieren */}
+          <div className="flex items-center justify-between rounded-md border px-4 py-3 bg-muted/40">
+            <div>
+              <p className="text-sm font-medium">Mitgliederregistrierung aktiv</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Wenn deaktiviert, erhalten Besucher des Registrierungslinks eine Fehlermeldung.
+              </p>
+            </div>
+            <Switch
+              id="registration-active"
+              checked={registrationActive}
+              onCheckedChange={(v) => { setRegistrationActive(v); setSaveResult(null); }}
+            />
+          </div>
+
           {/* EEG-ID (Gemeinschafts-ID für Excel-Export) */}
           <div className="space-y-1.5">
             <Label htmlFor="eeg-id" className="text-sm">Gemeinschafts-ID</Label>

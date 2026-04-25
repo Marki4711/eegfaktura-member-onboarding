@@ -18,13 +18,13 @@ func NewRegistrationEntrypointRepository(db *sql.DB) *RegistrationEntrypointRepo
 }
 
 // UpsertForRCNumbers ensures a registration_entrypoint row exists for each RC number.
-// Missing rows are inserted with is_active=true; existing rows are left untouched.
-// This is called once per login session for Tenant-Admins.
+// Missing rows are inserted with is_active=false; existing rows are left untouched.
+// Activation must be done explicitly by the admin via the settings page.
 func (r *RegistrationEntrypointRepository) UpsertForRCNumbers(rcNumbers []string) error {
 	for _, rc := range rcNumbers {
 		_, err := r.db.Exec(`
 			INSERT INTO member_onboarding.registration_entrypoint (rc_number, is_active)
-			VALUES ($1, TRUE)
+			VALUES ($1, FALSE)
 			ON CONFLICT (rc_number) DO NOTHING`, rc)
 		if err != nil {
 			return fmt.Errorf("failed to upsert registration entrypoint for %s: %w", rc, err)
@@ -79,6 +79,25 @@ func (r *RegistrationEntrypointRepository) SaveEEGSettings(
 		sepaMandateEnabled, useCompanySEPAMandate, rcNumber)
 	if err != nil {
 		return fmt.Errorf("failed to save EEG settings for %s: %w", rcNumber, err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check rows affected: %w", err)
+	}
+	if rows == 0 {
+		return shared.ErrNotFound
+	}
+	return nil
+}
+
+// SaveIsActive sets the is_active flag for the given RC number.
+func (r *RegistrationEntrypointRepository) SaveIsActive(rcNumber string, active bool) error {
+	result, err := r.db.Exec(`
+		UPDATE member_onboarding.registration_entrypoint
+		SET is_active = $1, updated_at = NOW()
+		WHERE rc_number = $2`, active, rcNumber)
+	if err != nil {
+		return fmt.Errorf("failed to save is_active for %s: %w", rcNumber, err)
 	}
 	rows, err := result.RowsAffected()
 	if err != nil {

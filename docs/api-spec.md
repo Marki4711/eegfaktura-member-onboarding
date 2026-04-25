@@ -707,13 +707,14 @@ Returns the EEG master data used for SEPA mandate PDF generation.
   "eegZip": "4020",
   "eegCity": "Linz",
   "creditorId": "AT28ZZZ00000000000",
+  "registrationActive": true,
   "sepaMandateEnabled": true,
   "useCompanySEPAMandate": false,
   "showCentralPolicy": true
 }
 ```
 
-All address/name fields are `null` when not yet configured. `sepaMandateEnabled` defaults to `false`. `useCompanySEPAMandate` defaults to `false`. `showCentralPolicy` defaults to `true`.
+All address/name fields are `null` when not yet configured. `registrationActive` is `false` by default — new EEGs are inactive until explicitly activated by an admin. `sepaMandateEnabled` defaults to `false`. `useCompanySEPAMandate` defaults to `false`. `showCentralPolicy` defaults to `true`.
 
 ### Errors
 - `400` missing `rc_number`
@@ -734,11 +735,14 @@ All address/name fields are `null` when not yet configured. `sepaMandateEnabled`
   "eegZip": "4020",
   "eegCity": "Linz",
   "creditorId": "AT28ZZZ00000000000",
+  "registrationActive": true,
   "sepaMandateEnabled": true,
   "useCompanySEPAMandate": false,
   "showCentralPolicy": true
 }
 ```
+
+`registrationActive`: enables or disables the public registration form for this EEG. When `false`, `GET /api/public/registration/{rc_number}` returns `410 Gone`.
 
 `showCentralPolicy`: when `false`, the central operator privacy policy is not shown in the public registration form. Intended for EEGs that have configured their own privacy policy as a custom document (see 6.16).
 

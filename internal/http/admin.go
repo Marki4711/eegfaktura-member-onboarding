@@ -476,6 +476,7 @@ func (h *AdminHandler) GetEEGSettings(w http.ResponseWriter, r *http.Request) {
 
 	h.writeJSON(w, http.StatusOK, map[string]interface{}{
 		"rcNumber":                rcNumber,
+		"registrationActive":      ep.IsActive,
 		"eegId":                   ep.EegID,
 		"eegName":                 ep.EEGName,
 		"eegStreet":               ep.EEGStreet,
@@ -506,6 +507,7 @@ func (h *AdminHandler) SaveEEGSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body struct {
+		RegistrationActive    *bool   `json:"registrationActive"`
 		EegID                 *string `json:"eegId"`
 		EEGName               *string `json:"eegName"`
 		EEGStreet             *string `json:"eegStreet"`
@@ -544,6 +546,13 @@ func (h *AdminHandler) SaveEEGSettings(w http.ResponseWriter, r *http.Request) {
 	); err != nil {
 		h.handleServiceError(w, err)
 		return
+	}
+
+	if body.RegistrationActive != nil {
+		if err := h.entrypointRepo.SaveIsActive(rcNumber, *body.RegistrationActive); err != nil {
+			h.handleServiceError(w, err)
+			return
+		}
 	}
 
 	if body.ShowCentralPolicy != nil {

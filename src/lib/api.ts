@@ -468,6 +468,7 @@ export function saveFieldConfig(rcNumber: string, config: AdminFieldConfig, toke
 
 export interface EEGSettings {
   rcNumber: string;
+  registrationActive?: boolean;
   eegId: string | null;
   eegName: string | null;
   eegStreet: string | null;
