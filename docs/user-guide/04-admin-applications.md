@@ -32,16 +32,20 @@ Klicken Sie auf eine Zeile in der Tabelle, um die **Detailansicht** des Antrags 
 
 ## Detailansicht
 
-![Antragsdetail](images/admin-application-detail.png)
+![Antragsdetail oben](images/admin-application-detail-1.png)
+
+![Antragsdetail unten](images/admin-application-detail-2.png)
 
 Die Detailansicht zeigt alle Angaben des Mitglieds:
 
-- **Persönliche Daten** — Name, Geburtsdatum, Mitgliedstyp
-- **Adresse** — Wohnadresse
-- **Bankverbindung** — IBAN und Kontoinhaber
+- **Statusaktionen** — verfügbare Aktionen je nach aktuellem Status
+- **Mitgliedsdaten** — Mitgliedstyp, Name, Geburtsdatum, Kontakt, Adresse
+- **Bankverbindung** — IBAN, Kontoinhaber, SEPA-Mandat
+- **Einwilligungen** — Datenschutz und Richtigkeitsbestätigung
+- **Antragsdaten** — Referenznummer, RC-Nummer, Zeitstempel
 - **Zählpunkte** — alle angegebenen Zählpunkte mit Richtung und Teilnahmefaktor
-- **Statusverlauf** — chronologische Historie aller Statusänderungen
 - **Admin-Notiz** — interne Notizen (nur für Admins sichtbar)
+- **Statusverlauf** — chronologische Historie aller Statusänderungen
 
 ## Antrag bearbeiten
 
