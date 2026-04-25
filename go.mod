@@ -1,6 +1,6 @@
 module github.com/your-org/eegfaktura-member-onboarding
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/MicahParks/keyfunc/v3 v3.8.0
@@ -14,7 +14,7 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/wneessen/go-mail v0.7.2
 	github.com/xuri/excelize/v2 v2.10.1
-	golang.org/x/text v0.34.0
+	golang.org/x/text v0.36.0
 )
 
 require (
