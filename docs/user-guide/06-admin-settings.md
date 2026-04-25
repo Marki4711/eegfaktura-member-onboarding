@@ -42,6 +42,8 @@ Klicken Sie auf **Speichern**, um alle Änderungen in diesem Abschnitt zu übern
 
 ## Einleitungstext
 
+![Einleitungstext](images/admin-settings-intro.png)
+
 Der Einleitungstext wird oberhalb des Registrierungsformulars angezeigt. Er kann genutzt werden, um Interessenten zu begrüßen oder Hinweise zur Registrierung zu geben.
 
 Unterstützte Formatierungen: **Fett**, *Kursiv*, Listen und Links. Wenn das Feld leer bleibt, wird ein Standardtext angezeigt.
@@ -51,6 +53,8 @@ Klicken Sie auf **Speichern**, um den Text zu übernehmen.
 ---
 
 ## Formular-Felder & Zählpunktfelder
+
+![Formular-Felder](images/admin-settings-fields.png)
 
 Hier legen Sie fest, welche optionalen Felder im Registrierungsformular angezeigt werden.
 
@@ -68,6 +72,8 @@ Klicken Sie auf **Konfiguration speichern**, um die Änderungen zu übernehmen.
 ---
 
 ## Rechtsdokumente
+
+![Rechtsdokumente](images/admin-settings-legal.png)
 
 Hier verwalten Sie EEG-spezifische Dokumente (z.B. Satzung, Nutzungsbedingungen), denen Mitglieder bei der Registrierung zustimmen müssen.
 
@@ -87,6 +93,8 @@ Hier verwalten Sie EEG-spezifische Dokumente (z.B. Satzung, Nutzungsbedingungen)
 ---
 
 ## Externe API
+
+![Externe API](images/admin-settings-api.png)
 
 Dieser Abschnitt zeigt den API-Key für die externe Registrierungs-API. Der Key ermöglicht das Einreichen von Mitgliedsanträgen über eine eigene Integration (z.B. ein Formular auf Ihrer Website).
 
