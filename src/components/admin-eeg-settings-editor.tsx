@@ -37,6 +37,7 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
   const [saving, setSaving] = useState(false);
   const [saveResult, setSaveResult] = useState<"ok" | "error" | null>(null);
 
+  const [eegId, setEegId] = useState("");
   const [eegName, setEegName] = useState("");
   const [eegStreet, setEegStreet] = useState("");
   const [eegStreetNumber, setEegStreetNumber] = useState("");
@@ -51,6 +52,7 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
     setLoaded(false);
     getEEGSettings(rcNumber, session.accessToken)
       .then((s) => {
+        setEegId(s.eegId ?? "");
         setEegName(s.eegName ?? "");
         setEegStreet(s.eegStreet ?? "");
         setEegStreetNumber(s.eegStreetNumber ?? "");
@@ -74,6 +76,7 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
       await saveEEGSettings(
         rcNumber,
         {
+          eegId: eegId.trim() || null,
           eegName: eegName.trim() || null,
           eegStreet: eegStreet.trim() || null,
           eegStreetNumber: eegStreetNumber.trim() || null,
@@ -103,6 +106,21 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
 
       {loaded && (
         <>
+          {/* EEG-ID (Gemeinschafts-ID für Excel-Export) */}
+          <div className="space-y-1.5">
+            <Label htmlFor="eeg-id" className="text-sm">Gemeinschafts-ID</Label>
+            <Input
+              id="eeg-id"
+              value={eegId}
+              onChange={(e) => { setEegId(e.target.value); setSaveResult(null); }}
+              placeholder="AT00300000000RC101519000000912345"
+              className={fieldClass}
+            />
+            <p className="text-xs text-muted-foreground">
+              Wird im Excel-Export (Spalte B) für den eegFaktura-Import verwendet.
+            </p>
+          </div>
+
           {/* EEG-Name */}
           <div className="space-y-1.5">
             <Label htmlFor="eeg-name" className="text-sm">EEG-Name</Label>
