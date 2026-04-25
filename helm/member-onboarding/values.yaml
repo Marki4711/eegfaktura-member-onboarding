@@ -27,11 +27,11 @@ ingress:
 images:
   backend:
     repository: ""
-    tag: sha-2c085c9
+    tag: sha-4319cb4
     pullPolicy: IfNotPresent
   frontend:
     repository: ""
-    tag: sha-2c085c9
+    tag: sha-4319cb4
     pullPolicy: IfNotPresent
 # ── PostgreSQL ─────────────────────────────────────────────────────────────────
 postgres:
