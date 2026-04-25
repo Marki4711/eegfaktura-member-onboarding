@@ -22,12 +22,12 @@ func openXlsx(t *testing.T, data []byte) *excelize.File {
 	return f
 }
 
-// cellValue returns the string value of a cell (e.g. "B10") in Sheet1.
+// cellValue returns the string value of a cell in the EEG Stammdaten sheet.
 func cellValue(t *testing.T, data []byte, cell string) string {
 	t.Helper()
 	f := openXlsx(t, data)
 	defer f.Close()
-	val, err := f.GetCellValue("Sheet1", cell)
+	val, err := f.GetCellValue(sheetName, cell)
 	if err != nil {
 		t.Fatalf("GetCellValue(%s): %v", cell, err)
 	}

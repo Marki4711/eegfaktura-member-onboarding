@@ -13,7 +13,7 @@ import (
 
 const (
 	markerText   = "[### Leerzeile für Importer ###]"
-	sheetName    = "Sheet1"
+	sheetName    = "EEG Stammdaten"
 	headerRow    = 7
 	dataStartRow = 10
 )
@@ -44,6 +44,10 @@ func GenerateExcel(app *shared.Application, meteringPoints []shared.MeteringPoin
 
 	f := excelize.NewFile()
 	defer f.Close()
+
+	if err := f.SetSheetName("Sheet1", sheetName); err != nil {
+		return nil, fmt.Errorf("failed to rename sheet: %w", err)
+	}
 
 	if err := writeTemplateHeader(f); err != nil {
 		return nil, err
