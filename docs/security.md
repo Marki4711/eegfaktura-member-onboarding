@@ -121,8 +121,9 @@ Die folgenden Punkte sind als known Issues dokumentiert und werden in nachfolgen
 
 | Issue | Severity | Status |
 |-------|----------|--------|
-| Container laufen als root (kein `securityContext`) | High | Offen — nächste Helm-Review |
-| `allowPrivilegeEscalation` nicht gesetzt | Medium | Offen |
+| Container laufen als root (kein `securityContext`) | High | Behoben — `runAsNonRoot: true`, `runAsUser: 1000` in Helm-Templates |
+| `allowPrivilegeEscalation` nicht gesetzt | Medium | Behoben — `allowPrivilegeEscalation: false` in allen Containers |
+| `readOnlyRootFilesystem` nicht gesetzt (Backend) | Medium | Behoben — `readOnlyRootFilesystem: true` für Backend + Migrate |
 | Next.js CVEs (npm audit) | Medium | Offen — `npm audit fix` ausstehend |
 | Go-Version in Dockerfile-Base-Image | Medium | Durch wöchentliche Rebuilds mitigiert |
 
