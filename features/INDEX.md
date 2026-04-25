@@ -15,9 +15,9 @@ Central tracking for all features.
 
 | ID | Feature | Status | Spec | Created |
 |----|---------|--------|------|---------|
-| PROJ-1 | Public Registration | Approved | `features/PROJ-1-public-registration.md` | 2026-04-18 |
-| PROJ-2 | Admin Review | Approved | `features/PROJ-2-admin-review.md` | 2026-04-19 |
-| PROJ-3 | Admin Frontend UI | In Review | `features/PROJ-3-admin-frontend-ui.md` | 2026-04-19 |
+| PROJ-1 | Public Registration | Deployed | `features/PROJ-1-public-registration.md` | 2026-04-18 |
+| PROJ-2 | Admin Review | Deployed | `features/PROJ-2-admin-review.md` | 2026-04-19 |
+| PROJ-3 | Admin Frontend UI | Deployed | `features/PROJ-3-admin-frontend-ui.md` | 2026-04-19 |
 | PROJ-4 | Core Import | Architected | `features/PROJ-4-core-import.md` | 2026-04-19 |
 | PROJ-5 | Keycloak-secured Admin Area | Deployed | `features/PROJ-5-keycloak-admin-auth.md` | 2026-04-19 |
 | PROJ-6 | E-Mail-Benachrichtigungen | Deployed | `features/PROJ-6-email-notifications.md` | 2026-04-19 |
