@@ -27,11 +27,11 @@ ingress:
 images:
   backend:
     repository: ""
-    tag: sha-1bd60d3
+    tag: sha-8cb2e14
     pullPolicy: IfNotPresent
   frontend:
     repository: ""
-    tag: sha-1bd60d3
+    tag: sha-8cb2e14
     pullPolicy: IfNotPresent
 # ── PostgreSQL ─────────────────────────────────────────────────────────────────
 postgres:
@@ -56,7 +56,7 @@ backend:
   # Zentrale Datenschutzerklärung des Tool-Betreibers (PROJ-9)
   centralPolicyTitle: "Datenschutzerklärung"
   centralPolicyUrl: "" # Optional: absolute URL zur Datenschutzerklärung (z.B. https://onboarding.example.at/datenschutz)
-                       # Leer lassen = internes /datenschutz wird verlinkt
+  # Leer lassen = internes /datenschutz wird verlinkt
 # ── Seed data ──────────────────────────────────────────────────────────────────
 seed:
   rcNumber: ""
