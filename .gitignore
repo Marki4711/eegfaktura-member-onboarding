@@ -42,6 +42,7 @@ helm/**/values-secret.yaml
 .vercel
 
 # claude code personal settings
+.claude/settings.json
 .claude/settings.local.json
 
 # typescript
