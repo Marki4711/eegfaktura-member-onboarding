@@ -5,9 +5,9 @@ on:
     branches: [main]
     tags: ['v*']
   workflow_dispatch:
-  # Monthly security rebuild: rebuilds images with latest base layers on the 1st at 04:00 UTC
+  # Weekly security rebuild: rebuilds images with latest base layers every Monday at 04:00 UTC
   schedule:
-    - cron: '0 4 1 * *'
+    - cron: '0 4 * * 1'
 
 jobs:
   build-backend:
