@@ -121,10 +121,12 @@ Die folgenden Punkte sind als known Issues dokumentiert und werden in nachfolgen
 
 | Issue | Severity | Status |
 |-------|----------|--------|
-| Container laufen als root (kein `securityContext`) | High | Behoben — `runAsNonRoot: true`, `runAsUser: 1000` in Helm-Templates |
+| Container laufen als root (kein `securityContext`) | High | Behoben — `runAsNonRoot: true`, `runAsUser: 1000/999` in allen Helm-Templates |
 | `allowPrivilegeEscalation` nicht gesetzt | Medium | Behoben — `allowPrivilegeEscalation: false` in allen Containers |
 | `readOnlyRootFilesystem` nicht gesetzt (Backend) | Medium | Behoben — `readOnlyRootFilesystem: true` für Backend + Migrate |
-| Next.js CVEs (npm audit) | Medium | Offen — `npm audit fix` ausstehend |
+| `capabilities.drop` nicht gesetzt | Medium | Behoben — `capabilities.drop: ALL` in allen Containers |
+| Next.js High-CVEs (CVE-2025-59471/72, CVE-2026-23864/69) | High | Behoben — Upgrade auf `next@16.2.3` |
+| next-auth/uuid Moderate-CVEs | Medium | Offen — Fix erfordert Breaking Change (next-auth Downgrade) |
 | Go-Version in Dockerfile-Base-Image | Medium | Durch wöchentliche Rebuilds mitigiert |
 
 ---
@@ -158,42 +160,43 @@ snyk code test
 
 ### IaC-Scan
 
+Helm-Templates enthalten Go-Template-Syntax (`{{ }}`), die kein valides YAML ist.
+Daher müssen die Templates zuerst gerendert werden:
+
 ```bash
-snyk iac test helm/
-snyk iac test Dockerfile.backend
-snyk iac test Dockerfile.frontend
+helm template member-onboarding helm/member-onboarding \
+  -f helm/member-onboarding/values.yaml \
+  > /tmp/rendered-helm.yaml
+
+snyk iac test /tmp/rendered-helm.yaml
 ```
+
+Über Snyk MCP in Claude Code erfolgt dies automatisch beim `/security-review`.
 
 ### Snyk in Claude Code (MCP)
 
 Snyk kann über das Model Context Protocol (MCP) in Claude Code eingebunden werden.
-Die Konfiguration erfolgt lokal — **nicht ins Repository committen**.
+Die Konfiguration erfolgt lokal über den `claude mcp` Befehl — **nicht ins Repository committen**.
 
-Beispiel für die lokale Claude-Code-Konfiguration (`~/.claude/settings.json` oder projektlokal):
-
-```json
-{
-  "mcpServers": {
-    "Snyk": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "snyk@latest", "mcp", "-t", "stdio"],
-      "env": {}
-    }
-  }
-}
+```bash
+# Einmalige Einrichtung
+npm install -g snyk
+snyk auth                                              # Browser-Login
+claude mcp add --scope user -t stdio Snyk -- npx -y snyk@latest mcp -t stdio
 ```
 
-Der Snyk-Token muss in der lokalen Umgebung (`SNYK_TOKEN`) oder via `snyk auth` konfiguriert sein.
+Danach Claude Code neu starten. Prüfen mit: `claude mcp list` → `Snyk: ✓ Connected`
+
+**Hinweis:** `mcpServers` in `settings.json` ist kein unterstütztes Format — ausschließlich `claude mcp add` verwenden.
 
 ---
 
 ## Manuelle Schritte (einmalig einrichten)
 
-- [ ] Snyk-Konto erstellen und GitHub-Repository importieren (snyk.io)
-- [ ] Snyk-Token lokal via `snyk auth` konfigurieren
-- [ ] Snyk MCP lokal in Claude Code konfigurieren (s. o.)
-- [ ] GitHub Security Features im Repository aktivieren (Settings → Security)
-- [ ] Dependabot-Alerts aktivieren
-- [ ] Secret Scanning und Push Protection aktivieren
+- [x] Snyk-Token lokal via `snyk auth` konfiguriert
+- [x] Snyk MCP lokal in Claude Code konfiguriert (`claude mcp add --scope user`)
+- [x] Snyk Code (SAST) für Organisation `marki4711` aktiviert
+- [x] Dependabot-Alerts aktiviert (`.github/dependabot.yml`)
+- [ ] GitHub-Repository auf snyk.io importieren (für CI-Alerts im PR-Flow)
+- [ ] GitHub Security Features vollständig aktivieren (Settings → Security → Secret Scanning, Push Protection)
 - [ ] Optional: Snyk-GitHub-Action in `.github/workflows/` ergänzen (empfohlen für CI-Gate)
