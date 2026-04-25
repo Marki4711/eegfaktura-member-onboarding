@@ -18,9 +18,16 @@ spec:
       labels:
         app: {{ include "member-onboarding.fullname" . }}-postgres
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
       containers:
         - name: postgres
           image: postgres:16-alpine
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           ports:
             - containerPort: 5432
           env:

@@ -14,9 +14,16 @@ spec:
   template:
     spec:
       restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
       initContainers:
         - name: wait-for-postgres
           image: postgres:16-alpine
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           command: ['sh', '-c',
             'until pg_isready -h {{ include "member-onboarding.fullname" . }}-postgres -p 5432 -U {{ .Values.postgres.user }}; do
                echo "waiting for postgres..."; sleep 2;
@@ -24,6 +31,10 @@ spec:
       containers:
         - name: seed
           image: postgres:16-alpine
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           command: ["/bin/sh", "-c"]
           args:
             - |
