@@ -1045,7 +1045,13 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                           gelesen und stimme der Verarbeitung meiner Daten zu. *
                         </>
                       ) : (
-                        "Ich habe die Datenschutzerklärung gelesen und stimme der Verarbeitung meiner Daten zu. *"
+                        <>
+                          Ich habe die{" "}
+                          <a href="/datenschutz" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
+                            Datenschutzerklärung
+                          </a>{" "}
+                          gelesen und stimme der Verarbeitung meiner Daten zu. *
+                        </>
                       )}
                     </FormLabel>
                     <FormMessage />
