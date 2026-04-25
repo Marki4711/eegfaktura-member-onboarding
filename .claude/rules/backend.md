@@ -1,32 +1,35 @@
 ---
 paths:
-  - "src/app/api/**"
-  - "src/lib/supabase*"
-  - "supabase/**"
+  - "internal/**"
+  - "cmd/**"
+  - "db/migrations/**"
 ---
 
 # Backend Development Rules
 
-## Database (Supabase)
-- ALWAYS enable Row Level Security on every table
-- Create RLS policies for SELECT, INSERT, UPDATE, DELETE
-- Add indexes on columns used in WHERE, ORDER BY, and JOIN clauses
-- Use foreign keys with ON DELETE CASCADE where appropriate
-- Never skip RLS - security first
+## Stack
+Go backend + PostgreSQL (`member_onboarding` schema) — no Supabase, no RLS, no ORM.
 
-## API Routes
-- Validate all inputs using Zod schemas before processing
-- Always check authentication: verify user session exists
-- Return meaningful error messages with appropriate HTTP status codes
-- Use `.limit()` on all list queries
+## Database
+- All tables in `member_onboarding` schema
+- Use snake_case column names, UUID primary keys, foreign keys with ON DELETE CASCADE
+- Add indexes on columns used in WHERE, ORDER BY, and JOIN (see `docs/domain-model.md`)
+- Never use JSON columns — use proper relational columns
+- Every schema change goes in a numbered migration: `db/migrations/00000X_description.up.sql` + `.down.sql`
 
-## Query Patterns
-- Use Supabase joins instead of N+1 query loops
-- Use `unstable_cache` from Next.js for rarely-changing data
-- Always handle errors from Supabase responses
+## Go patterns
+- Separate handler, service, and repository layers
+- Validate all user input in the handler or service layer — never trust the frontend
+- Parse UUID path params with `uuid.Parse` — reject malformed IDs with 400
+- Use `database/sql` directly with parameterized queries — no ORM
+- Status transitions validated server-side against the allowed map in `shared/`
+
+## Auth
+- Admin endpoints protected by `KeycloakAuthMiddleware` — never skip it
+- Tenant isolation enforced via `checkTenantAccess` / `RCNumbers` from JWT claims
+- Superuser check (`IsSuperuser()`) grants unrestricted access — changes require human approval
 
 ## Security
-- Never hardcode secrets in source code
-- Use environment variables for all credentials
-- Validate and sanitize all user input
-- Use parameterized queries (Supabase handles this)
+- Never hardcode secrets — environment variables only
+- Sanitize HTML input with bluemonday before storage
+- Error responses must not leak stack traces, DB details, or internal IDs

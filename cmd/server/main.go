@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"log"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -50,6 +54,9 @@ func main() {
 	if err := db.Ping(); err != nil {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
+	db.SetMaxOpenConns(20)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(5 * time.Minute)
 
 	slog.Info("connected to database")
 
@@ -162,6 +169,10 @@ func main() {
 		r.Post("/v1/applications", externalHandler.SubmitExternalApplication)
 	})
 
+	// Start IP bucket cleanup goroutine
+	cleanupCtx, cleanupCancel := context.WithCancel(context.Background())
+	internalhttp.StartIPBucketCleanup(cleanupCtx)
+
 	// Start server
 	addr := ":" + cfg.Server.Port
 	slog.Info("starting server", "addr", addr)
@@ -171,7 +182,22 @@ func main() {
 		ReadTimeout:  cfg.Server.ReadTimeout,
 		WriteTimeout: cfg.Server.WriteTimeout,
 	}
-	if err := srv.ListenAndServe(); err != nil {
-		log.Fatalf("server failed to start: %v", err)
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("server failed: %v", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
+	<-quit
+
+	slog.Info("shutdown signal received, draining requests...")
+	cleanupCancel()
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer shutdownCancel()
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Fatalf("forced shutdown: %v", err)
 	}
+	slog.Info("server stopped")
 }

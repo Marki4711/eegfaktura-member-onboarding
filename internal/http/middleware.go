@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -99,6 +100,32 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Content-Security-Policy", "default-src 'none'")
 		next.ServeHTTP(w, r)
 	})
+}
+
+// StartIPBucketCleanup starts a background goroutine that evicts idle IP buckets
+// every 10 minutes to prevent unbounded memory growth. Stops when ctx is cancelled.
+func StartIPBucketCleanup(ctx context.Context) {
+	go func() {
+		ticker := time.NewTicker(10 * time.Minute)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				publicIPBucketsMu.Lock()
+				for ip, b := range publicIPBuckets {
+					b.mu.Lock()
+					empty := len(b.timestamps) == 0
+					b.mu.Unlock()
+					if empty {
+						delete(publicIPBuckets, ip)
+					}
+				}
+				publicIPBucketsMu.Unlock()
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 }
 
 func SlogRequestLogger(next http.Handler) http.Handler {

@@ -39,9 +39,21 @@ postgres:
   database: member_onboarding
   storageClassName: standard
   storageSize: 5Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      memory: 512Mi
 # ── Backend ────────────────────────────────────────────────────────────────────
 backend:
   replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 256Mi
   logLevel: "INFO" # DEBUG | INFO | WARN | ERROR
   corsAllowedOrigins: ""
   smtp:
@@ -64,6 +76,12 @@ seed:
 # ── Frontend ───────────────────────────────────────────────────────────────────
 frontend:
   replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
   logLevel: "info"
   backendUrl: ""
   # NextAuth / Keycloak — via values-env.yaml setzen

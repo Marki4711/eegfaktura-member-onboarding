@@ -79,6 +79,8 @@ spec:
               value: {{ .Values.backend.centralPolicyTitle | quote }}
             - name: CENTRAL_POLICY_URL
               value: {{ .Values.backend.centralPolicyUrl | quote }}
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
           readinessProbe:
             httpGet:
               path: /health

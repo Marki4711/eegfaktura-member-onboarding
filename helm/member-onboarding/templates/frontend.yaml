@@ -57,12 +57,21 @@ spec:
                 secretKeyRef:
                   name: {{ include "member-onboarding.fullname" . }}-frontend-secret
                   key: KEYCLOAK_CLIENT_SECRET
+          resources:
+            {{- toYaml .Values.frontend.resources | nindent 12 }}
           readinessProbe:
             httpGet:
               path: /
               port: 3000
             initialDelaySeconds: 10
             periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3
 ---
 apiVersion: v1
 kind: Service
