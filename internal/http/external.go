@@ -145,7 +145,7 @@ func (h *ExternalHandler) SubmitExternalApplication(w http.ResponseWriter, r *ht
 		return
 	}
 
-	submitted, err := h.applicationService.SubmitApplication(app.ID)
+	submitted, err := h.applicationService.SubmitApplication(app.ID, nil)
 	if err != nil {
 		h.handleServiceError(w, err)
 		return

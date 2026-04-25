@@ -16,14 +16,15 @@ import (
 
 // ApplicationService handles business logic for applications
 type ApplicationService struct {
-	db              *sql.DB
-	appRepo         *ApplicationRepository
-	meteringRepo    *MeteringPointRepository
-	statusLogRepo   *StatusLogRepository
-	entrypointRepo  *RegistrationEntrypointRepository
-	fieldConfigRepo *FieldConfigRepository
-	mailService     mail.MailService
-	pdfGenerator   pdf.SEPAMandateGenerator
+	db                  *sql.DB
+	appRepo             *ApplicationRepository
+	meteringRepo        *MeteringPointRepository
+	statusLogRepo       *StatusLogRepository
+	entrypointRepo      *RegistrationEntrypointRepository
+	fieldConfigRepo     *FieldConfigRepository
+	consentRepo         *DocumentConsentRepository
+	mailService         mail.MailService
+	pdfGenerator        pdf.SEPAMandateGenerator
 }
 
 // NewApplicationService creates a new application service
@@ -34,6 +35,7 @@ func NewApplicationService(
 	statusLogRepo *StatusLogRepository,
 	entrypointRepo *RegistrationEntrypointRepository,
 	fieldConfigRepo *FieldConfigRepository,
+	consentRepo *DocumentConsentRepository,
 	mailService mail.MailService,
 	pdfGenerator pdf.SEPAMandateGenerator,
 ) *ApplicationService {
@@ -44,6 +46,7 @@ func NewApplicationService(
 		statusLogRepo:   statusLogRepo,
 		entrypointRepo:  entrypointRepo,
 		fieldConfigRepo: fieldConfigRepo,
+		consentRepo:     consentRepo,
 		mailService:     mailService,
 		pdfGenerator:    pdfGenerator,
 	}
@@ -347,8 +350,9 @@ func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateAp
 	}, nil
 }
 
-// SubmitApplication transitions an application from draft/needs_info to submitted.
-func (s *ApplicationService) SubmitApplication(id uuid.UUID) (*shared.SubmitResponse, error) {
+// SubmitApplication transitions an application from draft/needs_info to submitted
+// and persists the provided consent snapshots.
+func (s *ApplicationService) SubmitApplication(id uuid.UUID, consents []shared.ConsentInput) (*shared.SubmitResponse, error) {
 	app, err := s.appRepo.GetByID(id)
 	if err != nil {
 		return nil, err
@@ -419,6 +423,32 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID) (*shared.SubmitResp
 	}
 	if err = s.statusLogRepo.Create(statusLog); err != nil {
 		slog.Error("failed to create status log", "application_id", id, "error", err)
+	}
+
+	// Persist consent snapshots when provided.
+	if len(consents) > 0 && s.consentRepo != nil {
+		consentRows := make([]shared.DocumentConsent, 0, len(consents))
+		for _, c := range consents {
+			consentRows = append(consentRows, shared.DocumentConsent{
+				ID:              uuid.New(),
+				ApplicationID:   id,
+				Title:           c.Title,
+				URL:             c.URL,
+				IsCentralPolicy: c.IsCentralPolicy,
+				ConsentedAt:     now,
+			})
+		}
+		tx, txErr := s.db.Begin()
+		if txErr == nil {
+			if txErr = s.consentRepo.CreateBulkTx(tx, consentRows); txErr != nil {
+				tx.Rollback()
+				slog.Error("failed to save consents", "application_id", id, "error", txErr)
+			} else {
+				tx.Commit()
+			}
+		} else {
+			slog.Error("failed to begin consent transaction", "application_id", id, "error", txErr)
+		}
 	}
 
 	// Send submission emails only on first submission (draft → submitted).

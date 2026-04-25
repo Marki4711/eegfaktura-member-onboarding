@@ -82,14 +82,37 @@ type UpdateApplicationRequest struct {
 
 // Response models
 
+// LegalDocumentItem is a single legal document as returned in the public registration config.
+type LegalDocumentItem struct {
+	ID               uuid.UUID `json:"id"`
+	Title            string    `json:"title"`
+	URL              string    `json:"url"`
+	Required         bool      `json:"required"`
+	SortOrder        int       `json:"sortOrder"`
+	IsCentralPolicy  bool      `json:"isCentralPolicy"`
+}
+
+// ConsentInput is one consent entry sent by the frontend at submit time.
+type ConsentInput struct {
+	Title           string `json:"title"`
+	URL             string `json:"url"`
+	IsCentralPolicy bool   `json:"isCentralPolicy"`
+}
+
+// SubmitRequest is the optional body sent with POST /api/public/applications/{id}/submit.
+type SubmitRequest struct {
+	Consents []ConsentInput `json:"consents"`
+}
+
 // RegistrationConfig represents the response for the registration entry point endpoint
 type RegistrationConfig struct {
-	RCNumber           string            `json:"rcNumber"`
-	Title              string            `json:"title"`
-	Active             bool              `json:"active"`
-	FieldConfig        map[string]string `json:"fieldConfig"`
-	IntroText          *string           `json:"introText"`
-	SEPAMandateEnabled bool              `json:"sepaMandateEnabled"`
+	RCNumber           string              `json:"rcNumber"`
+	Title              string              `json:"title"`
+	Active             bool                `json:"active"`
+	FieldConfig        map[string]string   `json:"fieldConfig"`
+	IntroText          *string             `json:"introText"`
+	SEPAMandateEnabled bool                `json:"sepaMandateEnabled"`
+	LegalDocuments     []LegalDocumentItem `json:"legalDocuments"`
 }
 
 // ApplicationResponse represents the response for application operations
@@ -163,12 +186,22 @@ type ApplicationListResponse struct {
 	Total    int                   `json:"total"`
 }
 
+// DocumentConsentView is one consent entry in the admin detail response.
+type DocumentConsentView struct {
+	ID              uuid.UUID `json:"id"`
+	Title           string    `json:"title"`
+	URL             string    `json:"url"`
+	IsCentralPolicy bool      `json:"isCentralPolicy"`
+	ConsentedAt     time.Time `json:"consentedAt"`
+}
+
 // AdminApplicationDetailResponse is the full admin detail view: application
 // record plus its metering points and complete status history.
 type AdminApplicationDetailResponse struct {
 	Application
-	MeteringPoints []MeteringPoint  `json:"meteringPoints"`
-	StatusLog      []StatusLogEntry `json:"statusLog"`
+	MeteringPoints []MeteringPoint       `json:"meteringPoints"`
+	StatusLog      []StatusLogEntry      `json:"statusLog"`
+	Consents       []DocumentConsentView `json:"consents"`
 }
 
 // ChangeStatusResponse is returned after a successful status transition.

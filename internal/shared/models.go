@@ -128,6 +128,28 @@ type MeteringPoint struct {
 	InstallationName   *string `json:"installationName,omitempty" db:"installation_name"`
 }
 
+// LegalDocument is a legal document configured per EEG.
+type LegalDocument struct {
+	ID        uuid.UUID `json:"id"        db:"id"`
+	RCNumber  string    `json:"rcNumber"  db:"rc_number"`
+	Title     string    `json:"title"     db:"title"`
+	URL       string    `json:"url"       db:"url"`
+	Required  bool      `json:"required"  db:"required"`
+	SortOrder int       `json:"sortOrder" db:"sort_order"`
+	CreatedAt time.Time `json:"createdAt" db:"created_at"`
+	UpdatedAt time.Time `json:"updatedAt" db:"updated_at"`
+}
+
+// DocumentConsent is an immutable consent snapshot stored at application submit time.
+type DocumentConsent struct {
+	ID              uuid.UUID `json:"id"              db:"id"`
+	ApplicationID   uuid.UUID `json:"applicationId"   db:"application_id"`
+	Title           string    `json:"title"           db:"title"`
+	URL             string    `json:"url"             db:"url"`
+	IsCentralPolicy bool      `json:"isCentralPolicy" db:"is_central_policy"`
+	ConsentedAt     time.Time `json:"consentedAt"     db:"consented_at"`
+}
+
 // StatusLogEntry represents a status log entry
 type StatusLogEntry struct {
 	ID               uuid.UUID  `json:"id" db:"id"`

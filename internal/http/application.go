@@ -110,7 +110,11 @@ func (h *ApplicationHandler) SubmitApplication(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	response, err := h.applicationService.SubmitApplication(id)
+	var req shared.SubmitRequest
+	// Body is optional — ignore decode errors (empty body is valid)
+	json.NewDecoder(r.Body).Decode(&req) //nolint:errcheck
+
+	response, err := h.applicationService.SubmitApplication(id, req.Consents)
 	if err != nil {
 		h.handleServiceError(w, err)
 		return

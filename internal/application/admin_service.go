@@ -43,6 +43,7 @@ type AdminApplicationService struct {
 	statusLogRepo   *StatusLogRepository
 	fieldConfigRepo *FieldConfigRepository
 	entrypointRepo  *RegistrationEntrypointRepository
+	consentRepo     *DocumentConsentRepository
 	mailService     mail.MailService
 }
 
@@ -54,6 +55,7 @@ func NewAdminApplicationService(
 	statusLogRepo *StatusLogRepository,
 	fieldConfigRepo *FieldConfigRepository,
 	entrypointRepo *RegistrationEntrypointRepository,
+	consentRepo *DocumentConsentRepository,
 	mailService mail.MailService,
 ) *AdminApplicationService {
 	return &AdminApplicationService{
@@ -63,6 +65,7 @@ func NewAdminApplicationService(
 		statusLogRepo:   statusLogRepo,
 		fieldConfigRepo: fieldConfigRepo,
 		entrypointRepo:  entrypointRepo,
+		consentRepo:     consentRepo,
 		mailService:     mailService,
 	}
 }
@@ -152,10 +155,26 @@ func (s *AdminApplicationService) GetApplicationDetail(id uuid.UUID) (*shared.Ad
 		statusLog = []shared.StatusLogEntry{}
 	}
 
+	consentRows, err := s.consentRepo.GetByApplicationID(id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch consents: %w", err)
+	}
+	consentViews := make([]shared.DocumentConsentView, 0, len(consentRows))
+	for _, c := range consentRows {
+		consentViews = append(consentViews, shared.DocumentConsentView{
+			ID:              c.ID,
+			Title:           c.Title,
+			URL:             c.URL,
+			IsCentralPolicy: c.IsCentralPolicy,
+			ConsentedAt:     c.ConsentedAt,
+		})
+	}
+
 	return &shared.AdminApplicationDetailResponse{
 		Application:    *app,
 		MeteringPoints: meteringPoints,
 		StatusLog:      statusLog,
+		Consents:       consentViews,
 	}, nil
 }
 

@@ -60,6 +60,8 @@ func main() {
 	entrypointRepo := application.NewRegistrationEntrypointRepository(db)
 	fieldConfigRepo := application.NewFieldConfigRepository(db)
 	apiKeyRepo := application.NewExternalAPIKeyRepository(db)
+	legalDocumentRepo := application.NewLegalDocumentRepository(db)
+	consentRepo := application.NewDocumentConsentRepository(db)
 
 	// Initialize mail service
 	var mailService mail.MailService = &mail.NoOpMailService{}
@@ -78,14 +80,14 @@ func main() {
 
 	// Initialize services
 	pdfGenerator := pdf.NewFPDFGenerator()
-	registrationService := application.NewRegistrationService(entrypointRepo, fieldConfigRepo)
-	applicationService := application.NewApplicationService(db, appRepo, meteringRepo, statusLogRepo, entrypointRepo, fieldConfigRepo, mailService, pdfGenerator)
-	adminService := application.NewAdminApplicationService(db, appRepo, meteringRepo, statusLogRepo, fieldConfigRepo, entrypointRepo, mailService)
+	registrationService := application.NewRegistrationService(entrypointRepo, fieldConfigRepo, legalDocumentRepo, cfg.CentralPolicy.Title, cfg.CentralPolicy.URL)
+	applicationService := application.NewApplicationService(db, appRepo, meteringRepo, statusLogRepo, entrypointRepo, fieldConfigRepo, consentRepo, mailService, pdfGenerator)
+	adminService := application.NewAdminApplicationService(db, appRepo, meteringRepo, statusLogRepo, fieldConfigRepo, entrypointRepo, consentRepo, mailService)
 
 	// Initialize handlers
 	registrationHandler := internalhttp.NewRegistrationHandler(registrationService)
 	applicationHandler := internalhttp.NewApplicationHandler(applicationService, cfg.Turnstile.SecretKey)
-	adminHandler := internalhttp.NewAdminHandler(adminService, entrypointRepo, apiKeyRepo)
+	adminHandler := internalhttp.NewAdminHandler(adminService, entrypointRepo, apiKeyRepo, legalDocumentRepo)
 	externalHandler := internalhttp.NewExternalHandler(applicationService)
 	healthHandler := internalhttp.NewHealthHandler(db)
 
@@ -144,6 +146,13 @@ func main() {
 			r.Get("/api-key", adminHandler.GetAPIKeyStatus)
 			r.Post("/api-key", adminHandler.GenerateAPIKey)
 			r.Delete("/api-key", adminHandler.RevokeAPIKey)
+		})
+		r.Route("/legal-documents", func(r chi.Router) {
+			r.Get("/", adminHandler.ListLegalDocuments)
+			r.Post("/", adminHandler.CreateLegalDocument)
+			r.Put("/reorder", adminHandler.ReorderLegalDocuments)
+			r.Put("/{id}", adminHandler.UpdateLegalDocument)
+			r.Delete("/{id}", adminHandler.DeleteLegalDocument)
 		})
 	})
 

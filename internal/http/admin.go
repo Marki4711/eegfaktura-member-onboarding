@@ -20,11 +20,12 @@ import (
 
 // AdminHandler handles admin-facing HTTP requests.
 type AdminHandler struct {
-	adminService   *application.AdminApplicationService
-	entrypointRepo *application.RegistrationEntrypointRepository
-	apiKeyRepo     *application.ExternalAPIKeyRepository
-	validate       *validator.Validate
-	sanitizer      *bluemonday.Policy
+	adminService      *application.AdminApplicationService
+	entrypointRepo    *application.RegistrationEntrypointRepository
+	apiKeyRepo        *application.ExternalAPIKeyRepository
+	legalDocumentRepo *application.LegalDocumentRepository
+	validate          *validator.Validate
+	sanitizer         *bluemonday.Policy
 }
 
 // NewAdminHandler creates a new AdminHandler.
@@ -32,17 +33,19 @@ func NewAdminHandler(
 	adminService *application.AdminApplicationService,
 	entrypointRepo *application.RegistrationEntrypointRepository,
 	apiKeyRepo *application.ExternalAPIKeyRepository,
+	legalDocumentRepo *application.LegalDocumentRepository,
 ) *AdminHandler {
 	p := bluemonday.NewPolicy()
 	p.AllowElements("p", "br", "strong", "b", "em", "i", "ul", "ol", "li")
 	p.AllowAttrs("href", "target", "rel").OnElements("a")
 	p.AllowURLSchemes("http", "https", "mailto")
 	return &AdminHandler{
-		adminService:   adminService,
-		entrypointRepo: entrypointRepo,
-		apiKeyRepo:     apiKeyRepo,
-		validate:       validator.New(),
-		sanitizer:      p,
+		adminService:      adminService,
+		entrypointRepo:    entrypointRepo,
+		apiKeyRepo:        apiKeyRepo,
+		legalDocumentRepo: legalDocumentRepo,
+		validate:          validator.New(),
+		sanitizer:         p,
 	}
 }
 
@@ -722,6 +725,185 @@ func containsRC(tenants []string, rc string) bool {
 		}
 	}
 	return false
+}
+
+// ListLegalDocuments handles GET /api/admin/legal-documents?rc_number=...
+func (h *AdminHandler) ListLegalDocuments(w http.ResponseWriter, r *http.Request) {
+	rcNumber := r.URL.Query().Get("rc_number")
+	if rcNumber == "" {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string]string{
+			"rc_number": "rc_number query parameter is required",
+		})))
+		return
+	}
+	claims := ClaimsFromContext(r.Context())
+	if claims != nil && !claims.IsSuperuser() && !containsRC(claims.Tenant, rcNumber) {
+		h.writeError(w, shared.NewErrorResponse(shared.ErrForbidden))
+		return
+	}
+	docs, err := h.legalDocumentRepo.GetByRCNumber(rcNumber)
+	if err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+	if docs == nil {
+		docs = []shared.LegalDocument{}
+	}
+	h.writeJSON(w, http.StatusOK, docs)
+}
+
+// CreateLegalDocument handles POST /api/admin/legal-documents?rc_number=...
+func (h *AdminHandler) CreateLegalDocument(w http.ResponseWriter, r *http.Request) {
+	rcNumber := r.URL.Query().Get("rc_number")
+	if rcNumber == "" {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string]string{
+			"rc_number": "rc_number query parameter is required",
+		})))
+		return
+	}
+	claims := ClaimsFromContext(r.Context())
+	if claims != nil && !claims.IsSuperuser() && !containsRC(claims.Tenant, rcNumber) {
+		h.writeError(w, shared.NewErrorResponse(shared.ErrForbidden))
+		return
+	}
+
+	var body struct {
+		Title    string `json:"title"`
+		URL      string `json:"url"`
+		Required bool   `json:"required"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Invalid JSON", nil)))
+		return
+	}
+	if body.Title == "" || body.URL == "" {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string]string{
+			"title": "title and url are required",
+		})))
+		return
+	}
+
+	count, err := h.legalDocumentRepo.CountByRCNumber(rcNumber)
+	if err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+	if count >= application.MaxLegalDocumentsPerEEG {
+		h.writeError(w, shared.NewErrorResponse(shared.NewConflictError("maximum number of legal documents reached")))
+		return
+	}
+
+	doc, err := h.legalDocumentRepo.Create(rcNumber, body.Title, body.URL, body.Required, count)
+	if err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+	h.writeJSON(w, http.StatusCreated, doc)
+}
+
+// UpdateLegalDocument handles PUT /api/admin/legal-documents/{id}
+func (h *AdminHandler) UpdateLegalDocument(w http.ResponseWriter, r *http.Request) {
+	id, err := h.parseID(w, r)
+	if err != nil {
+		return
+	}
+	existing, err := h.legalDocumentRepo.GetByID(id)
+	if err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+	claims := ClaimsFromContext(r.Context())
+	if claims != nil && !claims.IsSuperuser() && !containsRC(claims.Tenant, existing.RCNumber) {
+		h.writeError(w, shared.NewErrorResponse(shared.ErrForbidden))
+		return
+	}
+
+	var body struct {
+		Title    string `json:"title"`
+		URL      string `json:"url"`
+		Required bool   `json:"required"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Invalid JSON", nil)))
+		return
+	}
+	if body.Title == "" || body.URL == "" {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string]string{
+			"title": "title and url are required",
+		})))
+		return
+	}
+
+	if err := h.legalDocumentRepo.Update(id, body.Title, body.URL, body.Required); err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// DeleteLegalDocument handles DELETE /api/admin/legal-documents/{id}
+func (h *AdminHandler) DeleteLegalDocument(w http.ResponseWriter, r *http.Request) {
+	id, err := h.parseID(w, r)
+	if err != nil {
+		return
+	}
+	existing, err := h.legalDocumentRepo.GetByID(id)
+	if err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+	claims := ClaimsFromContext(r.Context())
+	if claims != nil && !claims.IsSuperuser() && !containsRC(claims.Tenant, existing.RCNumber) {
+		h.writeError(w, shared.NewErrorResponse(shared.ErrForbidden))
+		return
+	}
+	if err := h.legalDocumentRepo.Delete(id); err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// ReorderLegalDocuments handles PUT /api/admin/legal-documents/reorder?rc_number=...
+func (h *AdminHandler) ReorderLegalDocuments(w http.ResponseWriter, r *http.Request) {
+	rcNumber := r.URL.Query().Get("rc_number")
+	if rcNumber == "" {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string]string{
+			"rc_number": "rc_number query parameter is required",
+		})))
+		return
+	}
+	claims := ClaimsFromContext(r.Context())
+	if claims != nil && !claims.IsSuperuser() && !containsRC(claims.Tenant, rcNumber) {
+		h.writeError(w, shared.NewErrorResponse(shared.ErrForbidden))
+		return
+	}
+
+	var body struct {
+		IDs []string `json:"ids"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Invalid JSON", nil)))
+		return
+	}
+
+	ids := make([]uuid.UUID, 0, len(body.IDs))
+	for _, s := range body.IDs {
+		parsed, err := uuid.Parse(s)
+		if err != nil {
+			h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string]string{
+				"ids": "invalid UUID: " + s,
+			})))
+			return
+		}
+		ids = append(ids, parsed)
+	}
+
+	if err := h.legalDocumentRepo.Reorder(rcNumber, ids); err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func isKnownStatus(s string) bool {

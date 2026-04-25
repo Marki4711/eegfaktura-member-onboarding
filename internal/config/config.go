@@ -10,12 +10,20 @@ import (
 
 // Config holds all configuration for the application
 type Config struct {
-	Server    ServerConfig
-	Database  DatabaseConfig
-	CORS      CORSConfig
-	SMTP      SMTPConfig
-	Keycloak  KeycloakConfig
-	Turnstile TurnstileConfig
+	Server        ServerConfig
+	Database      DatabaseConfig
+	CORS          CORSConfig
+	SMTP          SMTPConfig
+	Keycloak      KeycloakConfig
+	Turnstile     TurnstileConfig
+	CentralPolicy CentralPolicyConfig
+}
+
+// CentralPolicyConfig holds title and URL of the operator's central privacy policy.
+// Always shown as a required document in the public registration form.
+type CentralPolicyConfig struct {
+	Title string
+	URL   string
 }
 
 // TurnstileConfig holds Cloudflare Turnstile settings.
@@ -95,6 +103,10 @@ func Load() (*Config, error) {
 		},
 		Turnstile: TurnstileConfig{
 			SecretKey: getEnv("TURNSTILE_SECRET_KEY", ""),
+		},
+		CentralPolicy: CentralPolicyConfig{
+			Title: getEnv("CENTRAL_POLICY_TITLE", "Datenschutzerklärung"),
+			URL:   getEnv("CENTRAL_POLICY_URL", ""),
 		},
 	}
 

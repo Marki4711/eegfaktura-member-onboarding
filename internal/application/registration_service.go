@@ -3,23 +3,38 @@ package application
 import (
 	"log/slog"
 
+	"github.com/google/uuid"
+
 	"github.com/your-org/eegfaktura-member-onboarding/internal/shared"
 )
 
 // RegistrationService handles business logic for public registration lookups.
 type RegistrationService struct {
-	entrypointRepo  *RegistrationEntrypointRepository
-	fieldConfigRepo *FieldConfigRepository
+	entrypointRepo    *RegistrationEntrypointRepository
+	fieldConfigRepo   *FieldConfigRepository
+	legalDocumentRepo *LegalDocumentRepository
+	centralPolicy     shared.LegalDocumentItem
 }
 
 // NewRegistrationService creates a new RegistrationService.
 func NewRegistrationService(
 	entrypointRepo *RegistrationEntrypointRepository,
 	fieldConfigRepo *FieldConfigRepository,
+	legalDocumentRepo *LegalDocumentRepository,
+	centralPolicyTitle, centralPolicyURL string,
 ) *RegistrationService {
 	return &RegistrationService{
-		entrypointRepo:  entrypointRepo,
-		fieldConfigRepo: fieldConfigRepo,
+		entrypointRepo:    entrypointRepo,
+		fieldConfigRepo:   fieldConfigRepo,
+		legalDocumentRepo: legalDocumentRepo,
+		centralPolicy: shared.LegalDocumentItem{
+			ID:              uuid.Nil,
+			Title:           centralPolicyTitle,
+			URL:             centralPolicyURL,
+			Required:        true,
+			SortOrder:       9999,
+			IsCentralPolicy: true,
+		},
 	}
 }
 
@@ -53,6 +68,25 @@ func (s *RegistrationService) GetRegistrationConfig(rcNumber string) (*shared.Re
 		}
 	}
 
+	docs, err := s.legalDocumentRepo.GetByRCNumber(rcNumber)
+	if err != nil {
+		slog.Warn("failed to load legal documents", "rc", rcNumber, "error", err)
+		docs = nil
+	}
+
+	legalDocuments := make([]shared.LegalDocumentItem, 0, len(docs)+1)
+	for _, d := range docs {
+		legalDocuments = append(legalDocuments, shared.LegalDocumentItem{
+			ID:              d.ID,
+			Title:           d.Title,
+			URL:             d.URL,
+			Required:        d.Required,
+			SortOrder:       d.SortOrder,
+			IsCentralPolicy: false,
+		})
+	}
+	legalDocuments = append(legalDocuments, s.centralPolicy)
+
 	return &shared.RegistrationConfig{
 		RCNumber:           ep.RCNumber,
 		Title:              "Mitglied werden",
@@ -60,5 +94,6 @@ func (s *RegistrationService) GetRegistrationConfig(rcNumber string) (*shared.Re
 		FieldConfig:        fieldConfig,
 		IntroText:          ep.IntroText,
 		SEPAMandateEnabled: ep.SEPAMandateEnabled,
+		LegalDocuments:     legalDocuments,
 	}, nil
 }
