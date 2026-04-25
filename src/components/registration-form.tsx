@@ -1078,11 +1078,11 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                 />
                 <div className="space-y-1 leading-none">
                   <label htmlFor={`doc-${doc.id}`} className="text-sm font-normal cursor-pointer">
-                    Ich habe die{" "}
+                    Ich habe „
                     <a href={doc.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
                       {doc.title}
-                    </a>{" "}
-                    gelesen und stimme zu.{doc.required ? " *" : ""}
+                    </a>
+                    " gelesen und stimme zu.{doc.required ? " *" : ""}
                   </label>
                   {docConsentErrors[doc.id] && (
                     <p className="text-sm font-medium text-destructive">{docConsentErrors[doc.id]}</p>
