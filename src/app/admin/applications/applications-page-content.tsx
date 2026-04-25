@@ -30,7 +30,10 @@ export function ApplicationsPageContent() {
   const [draftCount, setDraftCount] = useState<number | null>(null);
   const [deletingDrafts, setDeletingDrafts] = useState(false);
 
-  const rcNumbers: string[] = (session as unknown as { tenant?: string[] })?.tenant ?? [];
+  const sessionRCNumbers: string[] = (session as unknown as { tenant?: string[] })?.tenant ?? [];
+  // Merge session RC numbers with distinct RC numbers from loaded items so the
+  // EEG filter is visible for superusers and on initial load.
+  const rcNumbers = [...new Set([...sessionRCNumbers, ...items.map((i) => i.rcNumber)])].sort();
 
   const page = parseInt(searchParams.get("page") ?? "1", 10) || 1;
   const pageSize = parseInt(searchParams.get("page_size") ?? "20", 10) || 20;

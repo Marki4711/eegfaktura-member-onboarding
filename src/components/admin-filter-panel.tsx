@@ -80,11 +80,10 @@ export function AdminFilterPanel({ rcNumbers = [] }: Props) {
   }
 
   const showEEGFilter = rcNumbers.length > 1;
-  const colCount = showEEGFilter ? 6 : 5;
 
   return (
     <div className="bg-card rounded-lg border p-4 space-y-4">
-      <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-${colCount} gap-4`}>
+      <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 ${showEEGFilter ? "lg:grid-cols-6" : "lg:grid-cols-5"} gap-4`}>
         <div className="space-y-1">
           <Label htmlFor="filter-status">Status</Label>
           <Select value={status} onValueChange={setStatus}>
@@ -102,7 +101,7 @@ export function AdminFilterPanel({ rcNumbers = [] }: Props) {
         </div>
 
         <div className="space-y-1">
-          <Label htmlFor="filter-lastname">Nachname</Label>
+          <Label htmlFor="filter-lastname">Name</Label>
           <Input
             id="filter-lastname"
             value={lastname}
