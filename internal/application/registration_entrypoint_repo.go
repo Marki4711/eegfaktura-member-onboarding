@@ -37,7 +37,7 @@ func (r *RegistrationEntrypointRepository) UpsertForRCNumbers(rcNumbers []string
 // Returns shared.ErrNotFound when no row matches.
 func (r *RegistrationEntrypointRepository) GetByRCNumber(rcNumber string) (*shared.RegistrationEntrypoint, error) {
 	query := `
-		SELECT id, rc_number, is_active, contact_email, intro_text,
+		SELECT id, rc_number, eeg_id, is_active, contact_email, intro_text,
 		       eeg_name, eeg_street, eeg_street_number, eeg_zip, eeg_city,
 		       creditor_id, sepa_mandate_enabled, use_company_sepa_mandate,
 		       created_at, updated_at
@@ -46,7 +46,7 @@ func (r *RegistrationEntrypointRepository) GetByRCNumber(rcNumber string) (*shar
 
 	ep := &shared.RegistrationEntrypoint{}
 	err := r.db.QueryRow(query, rcNumber).Scan(
-		&ep.ID, &ep.RCNumber, &ep.IsActive, &ep.ContactEmail, &ep.IntroText,
+		&ep.ID, &ep.RCNumber, &ep.EegID, &ep.IsActive, &ep.ContactEmail, &ep.IntroText,
 		&ep.EEGName, &ep.EEGStreet, &ep.EEGStreetNumber, &ep.EEGZip, &ep.EEGCity,
 		&ep.CreditorID, &ep.SEPAMandateEnabled, &ep.UseCompanySEPAMandate,
 		&ep.CreatedAt, &ep.UpdatedAt,
@@ -63,18 +63,19 @@ func (r *RegistrationEntrypointRepository) GetByRCNumber(rcNumber string) (*shar
 // SaveEEGSettings persists the EEG master data and SEPA mandate toggles for the given RC number.
 func (r *RegistrationEntrypointRepository) SaveEEGSettings(
 	rcNumber string,
+	eegID *string,
 	eegName, eegStreet, eegStreetNumber, eegZip, eegCity, creditorID *string,
 	sepaMandateEnabled bool,
 	useCompanySEPAMandate bool,
 ) error {
 	result, err := r.db.Exec(`
 		UPDATE member_onboarding.registration_entrypoint
-		SET eeg_name = $1, eeg_street = $2, eeg_street_number = $3,
-		    eeg_zip = $4, eeg_city = $5, creditor_id = $6,
-		    sepa_mandate_enabled = $7, use_company_sepa_mandate = $8,
+		SET eeg_id = $1, eeg_name = $2, eeg_street = $3, eeg_street_number = $4,
+		    eeg_zip = $5, eeg_city = $6, creditor_id = $7,
+		    sepa_mandate_enabled = $8, use_company_sepa_mandate = $9,
 		    updated_at = NOW()
-		WHERE rc_number = $9`,
-		eegName, eegStreet, eegStreetNumber, eegZip, eegCity, creditorID,
+		WHERE rc_number = $10`,
+		eegID, eegName, eegStreet, eegStreetNumber, eegZip, eegCity, creditorID,
 		sepaMandateEnabled, useCompanySEPAMandate, rcNumber)
 	if err != nil {
 		return fmt.Errorf("failed to save EEG settings for %s: %w", rcNumber, err)

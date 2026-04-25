@@ -80,7 +80,7 @@ func main() {
 	pdfGenerator := pdf.NewFPDFGenerator()
 	registrationService := application.NewRegistrationService(entrypointRepo, fieldConfigRepo)
 	applicationService := application.NewApplicationService(db, appRepo, meteringRepo, statusLogRepo, entrypointRepo, fieldConfigRepo, mailService, pdfGenerator)
-	adminService := application.NewAdminApplicationService(db, appRepo, meteringRepo, statusLogRepo, fieldConfigRepo, mailService)
+	adminService := application.NewAdminApplicationService(db, appRepo, meteringRepo, statusLogRepo, fieldConfigRepo, entrypointRepo, mailService)
 
 	// Initialize handlers
 	registrationHandler := internalhttp.NewRegistrationHandler(registrationService)

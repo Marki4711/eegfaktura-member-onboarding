@@ -72,7 +72,7 @@ func baseMeteringPoint() shared.MeteringPoint {
 func TestGenerateExcel_HappyPath_PrivateMember(t *testing.T) {
 	app := baseApp()
 	mp := baseMeteringPoint()
-	data, err := GenerateExcel(app, []shared.MeteringPoint{mp})
+	data, err := GenerateExcel(app, []shared.MeteringPoint{mp}, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -91,7 +91,7 @@ func TestGenerateExcel_MultipleMetringPoints_ProducesOneRowEach(t *testing.T) {
 	mp2.MeteringPoint = "AT0010000000000000009876543210"
 	mp2.Direction = shared.DirectionProduction
 
-	data, err := GenerateExcel(app, []shared.MeteringPoint{mp1, mp2})
+	data, err := GenerateExcel(app, []shared.MeteringPoint{mp1, mp2}, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -104,7 +104,7 @@ func TestGenerateExcel_MultipleMetringPoints_ProducesOneRowEach(t *testing.T) {
 
 func TestGenerateExcel_NoMeteringPoints_ReturnsError(t *testing.T) {
 	app := baseApp()
-	_, err := GenerateExcel(app, []shared.MeteringPoint{})
+	_, err := GenerateExcel(app, []shared.MeteringPoint{}, "")
 	if err == nil {
 		t.Fatal("expected error for empty metering points")
 	}
@@ -152,7 +152,7 @@ func TestDirectionMapping_Production_WritesGENERATION(t *testing.T) {
 	mp := baseMeteringPoint()
 	mp.Direction = shared.DirectionProduction
 
-	data, err := GenerateExcel(app, []shared.MeteringPoint{mp})
+	data, err := GenerateExcel(app, []shared.MeteringPoint{mp}, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -167,7 +167,7 @@ func TestDirectionMapping_Consumption_WritesCONSUMPTION(t *testing.T) {
 	mp := baseMeteringPoint()
 	mp.Direction = shared.DirectionConsumption
 
-	data, err := GenerateExcel(app, []shared.MeteringPoint{mp})
+	data, err := GenerateExcel(app, []shared.MeteringPoint{mp}, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -216,7 +216,7 @@ func TestGenerateExcel_OptionalFieldsNil_NoError(t *testing.T) {
 	mp.Transformer = nil
 	mp.InstallationName = nil
 
-	_, err := GenerateExcel(app, []shared.MeteringPoint{mp})
+	_, err := GenerateExcel(app, []shared.MeteringPoint{mp}, "")
 	if err != nil {
 		t.Fatalf("unexpected error with nil optional fields: %v", err)
 	}
@@ -231,17 +231,78 @@ func TestGenerateExcel_CompanyMember_Name1IsCompanyName(t *testing.T) {
 	app.Firstname = nil
 	app.Lastname = nil
 
-	data, err := GenerateExcel(app, []shared.MeteringPoint{baseMeteringPoint()})
+	data, err := GenerateExcel(app, []shared.MeteringPoint{baseMeteringPoint()}, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// Column U row 10 is Name 1 (first data row)
+	// U = Name 1: company name for business
 	if got := cellValue(t, data, "U10"); got != "Acme EEG GmbH" {
 		t.Errorf("Name 1: want 'Acme EEG GmbH', got %q", got)
 	}
-	// Column V row 10 is Name 2 — should be empty for business
+	// V = Name 2: empty for business
 	if got := cellValue(t, data, "V10"); got != "" {
 		t.Errorf("Name 2: want empty for company, got %q", got)
+	}
+}
+
+func TestGenerateExcel_PrivateMember_Name1IsFirstname_Name2IsLastname(t *testing.T) {
+	app := baseApp() // Maria Muster
+	data, err := GenerateExcel(app, []shared.MeteringPoint{baseMeteringPoint()}, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// U = Name 1: firstname for private
+	if got := cellValue(t, data, "U10"); got != "Maria" {
+		t.Errorf("Name 1: want 'Maria', got %q", got)
+	}
+	// V = Name 2: lastname for private
+	if got := cellValue(t, data, "V10"); got != "Muster" {
+		t.Errorf("Name 2: want 'Muster', got %q", got)
+	}
+}
+
+func TestGenerateExcel_EegID_WrittenToColumnB(t *testing.T) {
+	app := baseApp()
+	data, err := GenerateExcel(app, []shared.MeteringPoint{baseMeteringPoint()}, "AT00300000000RC123")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got := cellValue(t, data, "B10"); got != "AT00300000000RC123" {
+		t.Errorf("B10 Gemeinschafts-ID: want 'AT00300000000RC123', got %q", got)
+	}
+}
+
+func TestGenerateExcel_Netzbetreiber_First8CharsOfMeteringPoint(t *testing.T) {
+	app := baseApp()
+	mp := baseMeteringPoint() // AT0010000000000000001234567890
+	data, err := GenerateExcel(app, []shared.MeteringPoint{mp}, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got := cellValue(t, data, "A10"); got != "AT001000" {
+		t.Errorf("A10 Netzbetreiber: want 'AT001000', got %q", got)
+	}
+}
+
+func TestGenerateExcel_ZaehlpunktstatusIsNEW(t *testing.T) {
+	app := baseApp()
+	data, err := GenerateExcel(app, []shared.MeteringPoint{baseMeteringPoint()}, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got := cellValue(t, data, "AH10"); got != "NEW" {
+		t.Errorf("AH10 Zählpunktstatus: want 'NEW', got %q", got)
+	}
+}
+
+func TestGenerateExcel_MitgliedsNrIsEmpty(t *testing.T) {
+	app := baseApp()
+	data, err := GenerateExcel(app, []shared.MeteringPoint{baseMeteringPoint()}, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got := cellValue(t, data, "AG10"); got != "" {
+		t.Errorf("AG10 MitgliedsNr: want empty, got %q", got)
 	}
 }
 
@@ -249,7 +310,7 @@ func TestGenerateExcel_CompanyMember_Name1IsCompanyName(t *testing.T) {
 
 func TestGenerateExcel_TemplateHeader_MarkerRows(t *testing.T) {
 	app := baseApp()
-	data, err := GenerateExcel(app, []shared.MeteringPoint{baseMeteringPoint()})
+	data, err := GenerateExcel(app, []shared.MeteringPoint{baseMeteringPoint()}, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -263,7 +324,7 @@ func TestGenerateExcel_TemplateHeader_MarkerRows(t *testing.T) {
 
 func TestGenerateExcel_TemplateHeader_HeaderRowAt7(t *testing.T) {
 	app := baseApp()
-	data, err := GenerateExcel(app, []shared.MeteringPoint{baseMeteringPoint()})
+	data, err := GenerateExcel(app, []shared.MeteringPoint{baseMeteringPoint()}, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -281,7 +342,7 @@ func TestGenerateExcel_TemplateHeader_HeaderRowAt7(t *testing.T) {
 
 func TestGenerateExcel_TemplateHeader_ErforderlichAnnotations(t *testing.T) {
 	app := baseApp()
-	data, err := GenerateExcel(app, []shared.MeteringPoint{baseMeteringPoint()})
+	data, err := GenerateExcel(app, []shared.MeteringPoint{baseMeteringPoint()}, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -297,7 +358,7 @@ func TestGenerateExcel_DataStartsAtRow10(t *testing.T) {
 	app := baseApp()
 	mp := baseMeteringPoint()
 
-	data, err := GenerateExcel(app, []shared.MeteringPoint{mp})
+	data, err := GenerateExcel(app, []shared.MeteringPoint{mp}, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -318,7 +379,7 @@ func TestGenerateExcel_MultipleMetringPoints_SecondRowAt11(t *testing.T) {
 	mp2.MeteringPoint = "AT0010000000000000009876543210"
 	mp2.Direction = shared.DirectionProduction
 
-	data, err := GenerateExcel(app, []shared.MeteringPoint{mp1, mp2})
+	data, err := GenerateExcel(app, []shared.MeteringPoint{mp1, mp2}, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

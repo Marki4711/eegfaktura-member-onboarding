@@ -42,6 +42,7 @@ type AdminApplicationService struct {
 	meteringRepo    *MeteringPointRepository
 	statusLogRepo   *StatusLogRepository
 	fieldConfigRepo *FieldConfigRepository
+	entrypointRepo  *RegistrationEntrypointRepository
 	mailService     mail.MailService
 }
 
@@ -52,6 +53,7 @@ func NewAdminApplicationService(
 	meteringRepo *MeteringPointRepository,
 	statusLogRepo *StatusLogRepository,
 	fieldConfigRepo *FieldConfigRepository,
+	entrypointRepo *RegistrationEntrypointRepository,
 	mailService mail.MailService,
 ) *AdminApplicationService {
 	return &AdminApplicationService{
@@ -60,6 +62,7 @@ func NewAdminApplicationService(
 		meteringRepo:    meteringRepo,
 		statusLogRepo:   statusLogRepo,
 		fieldConfigRepo: fieldConfigRepo,
+		entrypointRepo:  entrypointRepo,
 		mailService:     mailService,
 	}
 }
@@ -414,7 +417,17 @@ func (s *AdminApplicationService) ExportApplicationExcel(id uuid.UUID) ([]byte, 
 		return nil, "", shared.NewUnprocessableEntityError("application has no metering points")
 	}
 
-	data, err := excel.GenerateExcel(app, meteringPoints)
+	ep, err := s.entrypointRepo.GetByRCNumber(app.RCNumber)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to fetch registration entrypoint: %w", err)
+	}
+
+	eegID := ""
+	if ep.EegID != nil {
+		eegID = *ep.EegID
+	}
+
+	data, err := excel.GenerateExcel(app, meteringPoints, eegID)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to generate excel: %w", err)
 	}

@@ -472,6 +472,7 @@ func (h *AdminHandler) GetEEGSettings(w http.ResponseWriter, r *http.Request) {
 
 	h.writeJSON(w, http.StatusOK, map[string]interface{}{
 		"rcNumber":                rcNumber,
+		"eegId":                   ep.EegID,
 		"eegName":                 ep.EEGName,
 		"eegStreet":               ep.EEGStreet,
 		"eegStreetNumber":         ep.EEGStreetNumber,
@@ -500,6 +501,7 @@ func (h *AdminHandler) SaveEEGSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body struct {
+		EegID                 *string `json:"eegId"`
 		EEGName               *string `json:"eegName"`
 		EEGStreet             *string `json:"eegStreet"`
 		EEGStreetNumber       *string `json:"eegStreetNumber"`
@@ -524,6 +526,7 @@ func (h *AdminHandler) SaveEEGSettings(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.entrypointRepo.SaveEEGSettings(
 		rcNumber,
+		nilIfEmpty(body.EegID),
 		nilIfEmpty(body.EEGName),
 		nilIfEmpty(body.EEGStreet),
 		nilIfEmpty(body.EEGStreetNumber),

@@ -31,13 +31,13 @@ var columnHeaders = []string{
 }
 
 // GenerateExcel produces an xlsx file matching the eegFaktura import template.
-// One data row is written per metering point; member data is repeated for each row.
+// eegID is written to column B (Gemeinschafts-ID); pass empty string if not configured.
 // Template structure:
 //   - Rows 1–6:  importer marker rows (with metadata in rows 2–5)
 //   - Row 7:     column headers
 //   - Rows 8–9:  importer marker rows
 //   - Row 10+:   one data row per metering point
-func GenerateExcel(app *shared.Application, meteringPoints []shared.MeteringPoint) ([]byte, error) {
+func GenerateExcel(app *shared.Application, meteringPoints []shared.MeteringPoint, eegID string) ([]byte, error) {
 	if len(meteringPoints) == 0 {
 		return nil, fmt.Errorf("application has no metering points")
 	}
@@ -50,7 +50,7 @@ func GenerateExcel(app *shared.Application, meteringPoints []shared.MeteringPoin
 	}
 
 	for i, mp := range meteringPoints {
-		if err := writeDataRow(f, dataStartRow+i, app, &mp); err != nil {
+		if err := writeDataRow(f, dataStartRow+i, app, &mp, eegID); err != nil {
 			return nil, fmt.Errorf("failed to write row %d: %w", dataStartRow+i, err)
 		}
 	}
@@ -152,7 +152,7 @@ func writeTemplateHeader(f *excelize.File) error {
 	return nil
 }
 
-func writeDataRow(f *excelize.File, rowNum int, app *shared.Application, mp *shared.MeteringPoint) error {
+func writeDataRow(f *excelize.File, rowNum int, app *shared.Application, mp *shared.MeteringPoint, eegID string) error {
 	r := strconv.Itoa(rowNum)
 	set := func(col, val string) error {
 		return f.SetCellValue(sheetName, col+r, val)
@@ -161,9 +161,16 @@ func writeDataRow(f *excelize.File, rowNum int, app *shared.Application, mp *sha
 		return f.SetCellInt(sheetName, col+r, int64(val))
 	}
 
-	// A: Netzbetreiber — empty (V1)
-	// B: Gemeinschafts-ID
-	if err := set("B", app.RCNumber); err != nil {
+	// A: Netzbetreiber — first 8 chars of metering point number (grid operator code)
+	netzbetreiber := ""
+	if len(mp.MeteringPoint) >= 8 {
+		netzbetreiber = mp.MeteringPoint[:8]
+	}
+	if err := set("A", netzbetreiber); err != nil {
+		return err
+	}
+	// B: Gemeinschafts-ID — eeg_id from registration_entrypoint
+	if err := set("B", eegID); err != nil {
 		return err
 	}
 	// C: Ortsgebiet — default LOKAL
@@ -219,20 +226,20 @@ func writeDataRow(f *excelize.File, rowNum int, app *shared.Application, mp *sha
 		return err
 	}
 	// T: TitelVor — empty
-	// U: Name 1 — company name (business) or last name (private)
+	// U: Name 1 — first name (private) or company name (business)
 	name1 := ""
 	if app.CompanyName != nil && *app.CompanyName != "" {
 		name1 = *app.CompanyName
-	} else if app.Lastname != nil {
-		name1 = *app.Lastname
+	} else if app.Firstname != nil {
+		name1 = *app.Firstname
 	}
 	if err := set("U", name1); err != nil {
 		return err
 	}
-	// V: Name 2 — first name for private only
+	// V: Name 2 — last name for private only, empty for business
 	name2 := ""
-	if (app.CompanyName == nil || *app.CompanyName == "") && app.Firstname != nil {
-		name2 = *app.Firstname
+	if (app.CompanyName == nil || *app.CompanyName == "") && app.Lastname != nil {
+		name2 = *app.Lastname
 	}
 	if err := set("V", name2); err != nil {
 		return err
@@ -278,12 +285,9 @@ func writeDataRow(f *excelize.File, rowNum int, app *shared.Application, mp *sha
 			return err
 		}
 	}
-	// AG: MitgliedsNr
-	if err := set("AG", app.ReferenceNumber); err != nil {
-		return err
-	}
-	// AH: Zählpunktstatus — default ACTIVATED
-	if err := set("AH", "ACTIVATED"); err != nil {
+	// AG: MitgliedsNr — leer lassen (wird in eegFaktura vergeben)
+	// AH: Zählpunktstatus — NEW (Zählpunkt wird neu angelegt)
+	if err := set("AH", "NEW"); err != nil {
 		return err
 	}
 	// AI: registriert seit

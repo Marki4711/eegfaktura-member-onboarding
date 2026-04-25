@@ -11,6 +11,7 @@ import (
 type RegistrationEntrypoint struct {
 	ID           uuid.UUID `json:"id"           db:"id"`
 	RCNumber     string    `json:"rcNumber"     db:"rc_number"`
+	EegID        *string   `json:"eegId"        db:"eeg_id"`
 	IsActive     bool      `json:"isActive"     db:"is_active"`
 	ContactEmail       *string   `json:"contactEmail"       db:"contact_email"`
 	IntroText          *string   `json:"introText"          db:"intro_text"`
