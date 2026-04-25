@@ -18,15 +18,12 @@ Die Tabelle zeigt:
 
 Über das **Filterpanel** können Sie die Anträge gezielt einschränken:
 
-![Filterpanel](images/admin-filter-panel.png)
-
 | Filter | Beschreibung |
 |--------|-------------|
 | **Status** | Nur Anträge mit einem bestimmten Status anzeigen |
-| **Nachname** | Suche nach Familienname des Mitglieds |
+| **Name** | Suche nach Familienname des Mitglieds |
 | **E-Mail** | Suche nach E-Mail-Adresse |
-| **Zählpunkt** | Suche nach Zählpunktnummer |
-| **Antragsnummer** | Direkte Suche nach Antragsnummer |
+| **EEG** | Nur Anträge einer bestimmten EEG anzeigen (erscheint bei mehreren EEGs) |
 | **Eingereicht von/bis** | Zeitraum der Einreichung |
 
 ## Antrag öffnen
