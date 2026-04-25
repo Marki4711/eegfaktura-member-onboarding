@@ -1,8 +1,9 @@
 # PROJ-16: Cloudflare Turnstile — Spam-Schutz für das Beitrittsformular
 
-## Status: Approved
+## Status: Deployed
 **Created:** 2026-04-24
-**Last Updated:** 2026-04-24
+**Last Updated:** 2026-04-25
+**Deployed:** 2026-04-25
 
 ## Dependencies
 - Requires: PROJ-1 (Public Registration) — das zu schützende Formular
