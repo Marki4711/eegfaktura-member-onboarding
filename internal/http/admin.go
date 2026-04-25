@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"math/big"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -752,6 +753,33 @@ func (h *AdminHandler) ListLegalDocuments(w http.ResponseWriter, r *http.Request
 	h.writeJSON(w, http.StatusOK, docs)
 }
 
+// validateLegalDocumentFields checks title/url constraints shared by create and update.
+// Returns a validation error response or nil.
+func validateLegalDocumentFields(title, rawURL string) error {
+	if title == "" || rawURL == "" {
+		return shared.NewValidationError("Validation failed", map[string]string{
+			"title": "title and url are required",
+		})
+	}
+	if len(title) > 500 {
+		return shared.NewValidationError("Validation failed", map[string]string{
+			"title": "title must not exceed 500 characters",
+		})
+	}
+	if len(rawURL) > 2048 {
+		return shared.NewValidationError("Validation failed", map[string]string{
+			"url": "url must not exceed 2048 characters",
+		})
+	}
+	parsed, err := url.Parse(rawURL)
+	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		return shared.NewValidationError("Validation failed", map[string]string{
+			"url": "url must use http or https scheme",
+		})
+	}
+	return nil
+}
+
 // CreateLegalDocument handles POST /api/admin/legal-documents?rc_number=...
 func (h *AdminHandler) CreateLegalDocument(w http.ResponseWriter, r *http.Request) {
 	rcNumber := r.URL.Query().Get("rc_number")
@@ -776,10 +804,8 @@ func (h *AdminHandler) CreateLegalDocument(w http.ResponseWriter, r *http.Reques
 		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Invalid JSON", nil)))
 		return
 	}
-	if body.Title == "" || body.URL == "" {
-		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string]string{
-			"title": "title and url are required",
-		})))
+	if err := validateLegalDocumentFields(body.Title, body.URL); err != nil {
+		h.writeError(w, shared.NewErrorResponse(err))
 		return
 	}
 
@@ -827,10 +853,8 @@ func (h *AdminHandler) UpdateLegalDocument(w http.ResponseWriter, r *http.Reques
 		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Invalid JSON", nil)))
 		return
 	}
-	if body.Title == "" || body.URL == "" {
-		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string]string{
-			"title": "title and url are required",
-		})))
+	if err := validateLegalDocumentFields(body.Title, body.URL); err != nil {
+		h.writeError(w, shared.NewErrorResponse(err))
 		return
 	}
 
