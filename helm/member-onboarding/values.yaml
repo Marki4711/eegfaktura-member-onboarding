@@ -27,11 +27,11 @@ ingress:
 images:
   backend:
     repository: ""
-    tag: sha-f359b48
+    tag: sha-1b8a73f
     pullPolicy: IfNotPresent
   frontend:
     repository: ""
-    tag: sha-f359b48
+    tag: sha-1b8a73f
     pullPolicy: IfNotPresent
 # ── PostgreSQL ─────────────────────────────────────────────────────────────────
 postgres:
@@ -72,7 +72,7 @@ frontend:
 # Requires imagePullPolicy: Always in values-env.yaml when using a floating tag.
 restart:
   enabled: false
-  schedule: "0 2 * * *"    # daily at 02:00 UTC
+  schedule: "0 2 * * *" # daily at 02:00 UTC
   kubectlImage: "bitnami/kubectl:1.31"
 # ── Secrets ────────────────────────────────────────────────────────────────────
 # Niemals echte Werte hier eintragen — immer via values-secret.yaml übergeben.
