@@ -1,8 +1,9 @@
 # PROJ-17: Excel-Export für eegFaktura-Import
 
-## Status: Approved
+## Status: Deployed
 **Created:** 2026-04-25
 **Last Updated:** 2026-04-25
+**Deployed:** 2026-04-25
 
 ## Kontext
 
