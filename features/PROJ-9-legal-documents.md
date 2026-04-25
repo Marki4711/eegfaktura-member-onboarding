@@ -1,6 +1,6 @@
 # PROJ-9: EEG-spezifische Rechtsdokumente mit granularer Zustimmung
 
-## Status: In Progress
+## Status: Approved
 **Created:** 2026-04-21
 **Last Updated:** 2026-04-25
 
@@ -220,7 +220,59 @@ Keine neuen Go-Pakete notwendig — die neue Logik passt in die bestehende Struk
 - `src/app/admin/settings/page.tsx`: Rechtsdokumente section added
 
 ## QA Test Results
-_To be added by /qa_
+
+**Date:** 2026-04-25
+**QA Status:** Approved (pending `/security-review` for public endpoint + DB schema changes)
+
+### Acceptance Criteria Results
+
+| # | Criterion | Result | Method |
+|---|-----------|--------|--------|
+| AC-1 | Pro EEG: geordnete Liste von Dokumenten anlegen (Titel, URL, Pflicht, Reihenfolge) | PASS (code review) | Admin CRUD not testable without Keycloak; verified in `internal/http/admin.go` + `legal_document_repo.go` |
+| AC-2 | Dokumentenliste über `/api/public/registration/{rc_number}` mitgeliefert | PASS | E2E: backend returns `legalDocuments` array incl. central policy |
+| AC-3 | Pro EEG-Dokument eigene Checkbox mit verlinktem Titel | PASS | E2E: AC-3, AC-3b, AC-3c |
+| AC-4 | Pflichtdokumente blockieren Absenden wenn nicht angehakt | PASS | E2E: AC-4+5 (central policy required, form blocked) |
+| AC-5 | Zentrale Datenschutzerklärung immer angezeigt, immer Pflicht | PASS | E2E: AC-5 (always required, marked with `*`) |
+| AC-6 | Pro Zustimmung: Titel, URL, Zeitstempel gespeichert | PASS (code review) | `document_consent_repo.go` `CreateBulkTx`; `application_service.go` saves snapshot |
+| AC-7 | Gespeicherte Zustimmungen in Admin-Detailansicht sichtbar | PASS (code review) | `admin-application-detail.tsx` renders `consents` array; not testable without Keycloak |
+| AC-8 | Admin kann Dokumente hinzufügen, bearbeiten, löschen, sortieren | PASS (code review) | `admin-legal-documents-editor.tsx` + 5 admin API endpoints; not testable without Keycloak |
+| AC-9 | Löschen beeinflusst keine gespeicherten Zustimmungen | PASS (design) | `document_consent` hat keinen FK auf `legal_document`; Snapshot-Prinzip |
+
+**Result: 9/9 criteria passed**
+
+### Edge Cases
+
+| Edge Case | Result |
+|-----------|--------|
+| Keine EEG-Dokumente konfiguriert → nur zentrale Policy | PASS — Formular lädt und ist voll funktionsfähig |
+| Optionales Dokument nicht angehakt → Antrag einreichbar | PASS (E2E: AC-6-edge) |
+| Dokument-Link nicht erreichbar → wird trotzdem angezeigt | PASS (design: keine Erreichbarkeitsprüfung) |
+| Dokument nach Einreichung gelöscht → bestehende Zustimmungen unberührt | PASS (design: Snapshot ohne FK) |
+
+### Security Smoke Test
+
+| Severity | Datei | Funktion | Risiko | Exploit-Szenario | Fix-Empfehlung | Confidence |
+|----------|-------|----------|--------|------------------|----------------|------------|
+| Medium | `internal/http/admin.go` | `handleCreateLegalDocument`, `handleUpdateLegalDocument` | Kein max-length check auf `title`/`url` — sehr lange Strings möglich | Admin sendet 100 KB langen Titel → evtl. DB-Fehler oder Performance-Problem | Max-Length-Validierung für `title` (z.B. 500 Zeichen) und `url` (z.B. 2000 Zeichen) hinzufügen | High |
+| Low | `internal/http/registration.go` / `internal/application/application_service.go` | `SubmitApplication` | Public user kann beliebige Consent-Einträge einreichen (Titel, URL nicht gegen EEG-Dokumente geprüft) | Mitglied sendet `consents: [{title: "fake", url: "http://evil.com", isCentralPolicy: false}]` — wird so gespeichert | Design-Entscheidung: Snapshot-Prinzip. Für V2 optional: Whitelist-Check gegen `legal_document`-IDs | Low |
+| Low | `internal/application/application_service.go` | `SubmitApplication` | Consent-Speicherung "best-effort" — Fehler beim Speichern blockiert Einreichung nicht | Netzwerkfehler im Consent-INSERT → Antrag eingereicht ohne Consent-Snapshot | Erwägen, Consent-Fehler als kritisch zu behandeln (Rollback der ganzen Transaktion) | Medium |
+
+**Sicherheitshinweis:** Feature berührt public endpoint, DB-Schema-Migration und Admin-CRUD → **`/security-review` empfohlen.**
+
+### Automated Tests
+
+**Unit Tests:** vitest auf Windows nicht lauffähig (pre-existing: `@rolldown/binding-win32-x64-msvc` optional dependency bug mit TypeScript 6.0).
+
+**E2E Tests:** `tests/PROJ-9-legal-documents.spec.ts` — **10/10 bestanden** (chromium)
+
+**Regression:** 106 bestanden, 8 vorher existierende Fehler (PROJ-11 backend-unavailable-Test, PROJ-12/14 API-Shape-Mismatches, PROJ-17 Route-Issue, PROJ-8 Dev-DB-Zustand) — keine PROJ-9-Regressionen.
+
+### Cross-Browser / Responsive
+
+Manuelle Tests durchgeführt:
+- Chrome Desktop: Formular zeigt zentrale Policy-Checkbox, Zustimmung blockiert Absenden ohne Haken
+- Admin-Bereich: Redirect ohne Keycloak-Auth bestätigt
+- Mobile: Playwright iPhone 13 — E2E-Tests auf Mobile Safari nicht separat ausgeführt (Testumgebung Windows)
 
 ## Deployment
 _To be added by /deploy_
