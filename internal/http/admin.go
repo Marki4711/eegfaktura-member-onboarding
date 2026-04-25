@@ -809,6 +809,11 @@ func (h *AdminHandler) CreateLegalDocument(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	if err := h.entrypointRepo.UpsertForRCNumbers([]string{rcNumber}); err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+
 	count, err := h.legalDocumentRepo.CountByRCNumber(rcNumber)
 	if err != nil {
 		h.handleServiceError(w, err)
