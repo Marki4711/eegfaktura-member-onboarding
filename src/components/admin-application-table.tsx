@@ -94,16 +94,16 @@ export function AdminApplicationTable({
             <TableHead>Referenz</TableHead>
             <TableHead>Name</TableHead>
             <TableHead>E-Mail</TableHead>
+            <TableHead>EEG</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Eingereicht am</TableHead>
-            <TableHead>Zählpunkte</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {loading ? (
             Array.from({ length: 5 }).map((_, i) => (
               <TableRow key={i}>
-                {Array.from({ length: 6 }).map((_, j) => (
+                {Array.from({ length: 6 }).map((_, j) => (  // Referenz, Name, E-Mail, EEG, Status, Datum
                   <TableCell key={j}>
                     <Skeleton className="h-4 w-full" />
                   </TableCell>
@@ -132,16 +132,12 @@ export function AdminApplicationTable({
                     : (item.companyName ?? "")}
                 </TableCell>
                 <TableCell className="text-sm">{item.email}</TableCell>
+                <TableCell className="text-sm text-muted-foreground font-mono">{item.rcNumber}</TableCell>
                 <TableCell>
                   <AdminStatusBadge status={item.status} />
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {formatDate(item.submittedAt)}
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {item.meteringPoints.length > 0
-                    ? item.meteringPoints.length
-                    : "—"}
                 </TableCell>
               </TableRow>
             ))

@@ -185,6 +185,9 @@ func (h *AdminHandler) ListApplications(w http.ResponseWriter, r *http.Request) 
 	if v := q.Get("metering_point"); v != "" {
 		filters.MeteringPoint = &v
 	}
+	if v := q.Get("rc_number"); v != "" {
+		filters.RCNumberFilter = &v
+	}
 	if v := q.Get("submitted_from"); v != "" {
 		t, err := time.Parse(time.RFC3339, v)
 		if err == nil {

@@ -24,6 +24,9 @@ type ApplicationListFilters struct {
 	// RCNumbers restricts results to a specific set of RC numbers (tenant-admin scope).
 	// When nil, no restriction is applied (superuser scope).
 	RCNumbers *[]string
+	// RCNumberFilter is an optional single-EEG filter chosen by the admin in the UI.
+	// Must always be a subset of RCNumbers when set.
+	RCNumberFilter *string
 }
 
 // adminTransitions defines which status changes the admin endpoint may perform.
@@ -105,24 +108,6 @@ func (s *AdminApplicationService) ListApplications(filters ApplicationListFilter
 		return nil, fmt.Errorf("failed to list applications: %w", err)
 	}
 
-	// Enrich each item with its metering point numbers.
-	if len(items) > 0 {
-		ids := make([]uuid.UUID, len(items))
-		for i, item := range items {
-			ids[i] = item.ID
-		}
-		mpMap, err := s.meteringRepo.GetNumbersByApplicationIDs(ids)
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch metering points: %w", err)
-		}
-		for i := range items {
-			if nums, ok := mpMap[items[i].ID]; ok {
-				items[i].MeteringPoints = nums
-			} else {
-				items[i].MeteringPoints = []string{}
-			}
-		}
-	}
 
 	return &shared.ApplicationListResponse{
 		Items:    items,

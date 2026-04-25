@@ -266,6 +266,7 @@ export type ApplicationStatus =
 export interface ApplicationListItem {
   id: string;
   referenceNumber: string;
+  rcNumber: string;
   status: ApplicationStatus;
   memberType: MemberType;
   firstname?: string | null;
@@ -273,7 +274,6 @@ export interface ApplicationListItem {
   companyName?: string | null;
   email: string;
   submittedAt: string | null;
-  meteringPoints: string[];
 }
 
 export interface ApplicationListResponse {
@@ -377,11 +377,10 @@ export interface ChangeStatusResponse {
 
 export interface ListApplicationsParams {
   status?: string;
-
   reference_number?: string;
   lastname?: string;
   email?: string;
-  metering_point?: string;
+  rc_number?: string;
   submitted_from?: string;
   submitted_to?: string;
   page?: number;
@@ -400,7 +399,7 @@ export function listApplications(
   if (params.reference_number) qs.set("reference_number", params.reference_number);
   if (params.lastname) qs.set("lastname", params.lastname);
   if (params.email) qs.set("email", params.email);
-  if (params.metering_point) qs.set("metering_point", params.metering_point);
+  if (params.rc_number) qs.set("rc_number", params.rc_number);
   if (params.submitted_from) qs.set("submitted_from", `${params.submitted_from}T00:00:00Z`);
   if (params.submitted_to) qs.set("submitted_to", `${params.submitted_to}T23:59:59Z`);
   if (params.page) qs.set("page", String(params.page));

@@ -30,6 +30,8 @@ export function ApplicationsPageContent() {
   const [draftCount, setDraftCount] = useState<number | null>(null);
   const [deletingDrafts, setDeletingDrafts] = useState(false);
 
+  const rcNumbers: string[] = (session as unknown as { tenant?: string[] })?.tenant ?? [];
+
   const page = parseInt(searchParams.get("page") ?? "1", 10) || 1;
   const pageSize = parseInt(searchParams.get("page_size") ?? "20", 10) || 20;
 
@@ -41,7 +43,7 @@ export function ApplicationsPageContent() {
         status: searchParams.get("status") ?? undefined,
         lastname: searchParams.get("lastname") ?? undefined,
         email: searchParams.get("email") ?? undefined,
-        metering_point: searchParams.get("metering_point") ?? undefined,
+        rc_number: searchParams.get("rc_number") ?? undefined,
         submitted_from: searchParams.get("submitted_from") ?? undefined,
         submitted_to: searchParams.get("submitted_to") ?? undefined,
         page,
@@ -117,7 +119,7 @@ export function ApplicationsPageContent() {
           </AlertDialog>
         )}
       </div>
-      <AdminFilterPanel />
+      <AdminFilterPanel rcNumbers={rcNumbers} />
       <AdminApplicationTable
         items={items}
         total={total}

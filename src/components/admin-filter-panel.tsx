@@ -25,16 +25,18 @@ const STATUS_OPTIONS = [
   { value: "import_failed", label: "Import fehlgeschlagen" },
 ];
 
-export function AdminFilterPanel() {
+interface Props {
+  rcNumbers?: string[];
+}
+
+export function AdminFilterPanel({ rcNumbers = [] }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const [status, setStatus] = useState(searchParams.get("status") ?? "all");
   const [lastname, setLastname] = useState(searchParams.get("lastname") ?? "");
   const [email, setEmail] = useState(searchParams.get("email") ?? "");
-  const [meteringPoint, setMeteringPoint] = useState(
-    searchParams.get("metering_point") ?? ""
-  );
+  const [rcNumber, setRcNumber] = useState(searchParams.get("rc_number") ?? "all");
   const [submittedFrom, setSubmittedFrom] = useState(
     searchParams.get("submitted_from") ?? ""
   );
@@ -42,12 +44,11 @@ export function AdminFilterPanel() {
     searchParams.get("submitted_to") ?? ""
   );
 
-  // Keep inputs in sync when searchParams change (e.g. browser back, nav link)
   useEffect(() => {
     setStatus(searchParams.get("status") ?? "all");
     setLastname(searchParams.get("lastname") ?? "");
     setEmail(searchParams.get("email") ?? "");
-    setMeteringPoint(searchParams.get("metering_point") ?? "");
+    setRcNumber(searchParams.get("rc_number") ?? "all");
     setSubmittedFrom(searchParams.get("submitted_from") ?? "");
     setSubmittedTo(searchParams.get("submitted_to") ?? "");
   }, [searchParams]);
@@ -57,7 +58,7 @@ export function AdminFilterPanel() {
     if (status && status !== "all") params.set("status", status);
     if (lastname.trim()) params.set("lastname", lastname.trim());
     if (email.trim()) params.set("email", email.trim());
-    if (meteringPoint.trim()) params.set("metering_point", meteringPoint.trim());
+    if (rcNumber && rcNumber !== "all") params.set("rc_number", rcNumber);
     if (submittedFrom) params.set("submitted_from", submittedFrom);
     if (submittedTo) params.set("submitted_to", submittedTo);
     params.set("page", "1");
@@ -68,7 +69,7 @@ export function AdminFilterPanel() {
     setStatus("all");
     setLastname("");
     setEmail("");
-    setMeteringPoint("");
+    setRcNumber("all");
     setSubmittedFrom("");
     setSubmittedTo("");
     router.push("/admin/applications");
@@ -78,9 +79,12 @@ export function AdminFilterPanel() {
     if (e.key === "Enter") applyFilters();
   }
 
+  const showEEGFilter = rcNumbers.length > 1;
+  const colCount = showEEGFilter ? 6 : 5;
+
   return (
     <div className="bg-card rounded-lg border p-4 space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-${colCount} gap-4`}>
         <div className="space-y-1">
           <Label htmlFor="filter-status">Status</Label>
           <Select value={status} onValueChange={setStatus}>
@@ -104,7 +108,6 @@ export function AdminFilterPanel() {
             value={lastname}
             onChange={(e) => setLastname(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Mustermann"
           />
         </div>
 
@@ -115,20 +118,25 @@ export function AdminFilterPanel() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="max@example.org"
           />
         </div>
 
-        <div className="space-y-1">
-          <Label htmlFor="filter-mp">Zählpunkt</Label>
-          <Input
-            id="filter-mp"
-            value={meteringPoint}
-            onChange={(e) => setMeteringPoint(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="AT003..."
-          />
-        </div>
+        {showEEGFilter && (
+          <div className="space-y-1">
+            <Label htmlFor="filter-eeg">EEG</Label>
+            <Select value={rcNumber} onValueChange={setRcNumber}>
+              <SelectTrigger id="filter-eeg">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Alle EEGs</SelectItem>
+                {rcNumbers.map((rc) => (
+                  <SelectItem key={rc} value={rc}>{rc}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <div className="space-y-1">
           <Label htmlFor="filter-from">Eingereicht ab</Label>

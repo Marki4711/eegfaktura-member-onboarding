@@ -416,6 +416,11 @@ func (r *ApplicationRepository) List(filters ApplicationListFilters, page, pageS
 		args = append(args, *filters.SubmittedTo)
 		n++
 	}
+	if filters.RCNumberFilter != nil {
+		conditions = append(conditions, fmt.Sprintf("a.rc_number = $%d", n))
+		args = append(args, *filters.RCNumberFilter)
+		n++
+	}
 	if filters.RCNumbers != nil && len(*filters.RCNumbers) > 0 {
 		placeholders := make([]string, len(*filters.RCNumbers))
 		for i, rc := range *filters.RCNumbers {
@@ -476,7 +481,6 @@ func (r *ApplicationRepository) List(filters ApplicationListFilters, page, pageS
 		if submittedAt.Valid {
 			item.SubmittedAt = &submittedAt.Time
 		}
-		item.MeteringPoints = []string{}
 		items = append(items, item)
 	}
 	if err := rows.Err(); err != nil {

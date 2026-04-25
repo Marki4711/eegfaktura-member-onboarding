@@ -176,7 +176,6 @@ type ApplicationListItem struct {
 	CompanyName     *string    `json:"companyName,omitempty"`
 	Email           string     `json:"email"`
 	SubmittedAt     *time.Time `json:"submittedAt"`
-	MeteringPoints  []string   `json:"meteringPoints"`
 }
 
 // ApplicationListResponse wraps a paginated list of applications.
