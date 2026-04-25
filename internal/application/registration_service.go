@@ -54,10 +54,11 @@ func (s *RegistrationService) GetRegistrationConfig(rcNumber string) (*shared.Re
 	}
 
 	return &shared.RegistrationConfig{
-		RCNumber:    ep.RCNumber,
-		Title:       "Mitglied werden",
-		Active:      ep.IsActive,
-		FieldConfig: fieldConfig,
-		IntroText:   ep.IntroText,
+		RCNumber:           ep.RCNumber,
+		Title:              "Mitglied werden",
+		Active:             ep.IsActive,
+		FieldConfig:        fieldConfig,
+		IntroText:          ep.IntroText,
+		SEPAMandateEnabled: ep.SEPAMandateEnabled,
 	}, nil
 }

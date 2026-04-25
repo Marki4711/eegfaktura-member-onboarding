@@ -62,6 +62,7 @@ export interface RegistrationConfig {
   active: boolean;
   fieldConfig?: FieldConfig;
   introText?: string | null;
+  sepaMandateEnabled?: boolean;
 }
 
 export type MemberType = "private" | "farmer" | "municipality" | "company" | "association";

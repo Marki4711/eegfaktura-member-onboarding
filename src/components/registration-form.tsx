@@ -101,9 +101,7 @@ const baseSchema = z.object({
   accuracyConfirmed: z.boolean().refine((v) => v === true, {
     message: "Richtigkeit der Angaben muss bestätigt werden",
   }),
-  sepaMandateAccepted: z.boolean().refine((v) => v === true, {
-    message: "Zustimmung zum SEPA-Lastschriftmandat ist erforderlich",
-  }),
+  sepaMandateAccepted: z.boolean(),
   meteringPoints: z
     .array(meteringPointSchema)
     .min(1, "Mindestens ein Zählpunkt ist erforderlich")
@@ -122,7 +120,7 @@ const baseSchema = z.object({
 
 export type RegistrationFormValues = z.infer<typeof baseSchema>;
 
-function buildFormSchema(fieldConfig: FieldConfig | undefined) {
+function buildFormSchema(fieldConfig: FieldConfig | undefined, sepaMandateEnabled: boolean) {
   const appFields = CONFIGURABLE_FIELDS.application;
   const resolve = (name: string): FieldState => {
     const f = appFields.find((x) => x.name === name);
@@ -190,6 +188,15 @@ function buildFormSchema(fieldConfig: FieldConfig | undefined) {
     requireNum("heat_pump", "heatPump", "Wärmepumpe vorhanden");
     requireNum("electric_vehicle", "electricVehicle", "E-Auto vorhanden");
     requireNum("electric_hot_water", "electricHotWater", "Warmwasser elektrisch");
+
+    // SEPA mandate acceptance only required when not sent by email
+    if (!sepaMandateEnabled && !data.sepaMandateAccepted) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["sepaMandateAccepted"],
+        message: "Zustimmung zum SEPA-Lastschriftmandat ist erforderlich",
+      });
+    }
   });
 }
 
@@ -212,6 +219,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
   const turnstileRef = useRef<TurnstileInstance>(null);
 
   const fieldConfig = config.fieldConfig;
+  const sepaMandateEnabled = config.sepaMandateEnabled ?? false;
 
   // returns the resolved FieldState for an application-level configurable field
   function fs(name: string): FieldState {
@@ -222,7 +230,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
   const req = (name: string) => fs(name) === "required" ? " *" : "";
 
   const form = useForm<RegistrationFormValues>({
-    resolver: zodResolver(buildFormSchema(fieldConfig)),
+    resolver: zodResolver(buildFormSchema(fieldConfig, sepaMandateEnabled)),
     defaultValues: {
       memberType: "private",
       firstname: "",
@@ -241,7 +249,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
       accountHolder: "",
       privacyAccepted: false,
       accuracyConfirmed: false,
-      sepaMandateAccepted: false,
+      sepaMandateAccepted: sepaMandateEnabled ? true : false,
       meteringPoints: [{ meteringPoint: "", direction: "CONSUMPTION", participationFactor: 100 }],
       membershipStartDate: "",
       personsInHousehold: undefined,
@@ -1029,28 +1037,30 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="sepaMandateAccepted"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start gap-3 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel className="font-normal cursor-pointer">
-                      Ich erteile der Energiegemeinschaft ein SEPA-Lastschriftmandat
-                      und stimme dem Einzug fälliger Rechnungsbeträge von meinem
-                      angegebenen Konto zu. *
-                    </FormLabel>
-                    <FormMessage />
-                  </div>
-                </FormItem>
-              )}
-            />
+            {!sepaMandateEnabled && (
+              <FormField
+                control={form.control}
+                name="sepaMandateAccepted"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start gap-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="font-normal cursor-pointer">
+                        Ich erteile der Energiegemeinschaft ein SEPA-Lastschriftmandat
+                        und stimme dem Einzug fälliger Rechnungsbeträge von meinem
+                        angegebenen Konto zu. *
+                      </FormLabel>
+                      <FormMessage />
+                    </div>
+                  </FormItem>
+                )}
+              />
+            )}
           </CardContent>
         </Card>
 

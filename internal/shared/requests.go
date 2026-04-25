@@ -84,11 +84,12 @@ type UpdateApplicationRequest struct {
 
 // RegistrationConfig represents the response for the registration entry point endpoint
 type RegistrationConfig struct {
-	RCNumber    string            `json:"rcNumber"`
-	Title       string            `json:"title"`
-	Active      bool              `json:"active"`
-	FieldConfig map[string]string `json:"fieldConfig"`
-	IntroText   *string           `json:"introText"`
+	RCNumber           string            `json:"rcNumber"`
+	Title              string            `json:"title"`
+	Active             bool              `json:"active"`
+	FieldConfig        map[string]string `json:"fieldConfig"`
+	IntroText          *string           `json:"introText"`
+	SEPAMandateEnabled bool              `json:"sepaMandateEnabled"`
 }
 
 // ApplicationResponse represents the response for application operations
