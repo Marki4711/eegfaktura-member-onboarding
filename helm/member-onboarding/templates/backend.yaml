@@ -17,10 +17,16 @@ spec:
       labels:
         app: {{ include "member-onboarding.fullname" . }}-backend
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
       containers:
         - name: backend
           image: {{ .Values.images.backend.repository }}:{{ .Values.images.backend.tag }}
           imagePullPolicy: {{ .Values.images.backend.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
           ports:
             - containerPort: 8080
           env:

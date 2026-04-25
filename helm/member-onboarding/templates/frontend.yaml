@@ -17,10 +17,15 @@ spec:
       labels:
         app: {{ include "member-onboarding.fullname" . }}-frontend
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
       containers:
         - name: frontend
           image: {{ .Values.images.frontend.repository }}:{{ .Values.images.frontend.tag }}
           imagePullPolicy: {{ .Values.images.frontend.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
           ports:
             - containerPort: 3000
           env:
