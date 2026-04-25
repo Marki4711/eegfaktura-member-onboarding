@@ -517,6 +517,34 @@ func (r *ApplicationRepository) UpdateAdminTx(tx *sql.Tx, app *shared.Applicatio
 
 // UpdateStatusAdminTx updates the status and related timestamp columns atomically.
 // Columns not applicable to the transition are preserved via COALESCE.
+// DeleteDraftsByRCNumbers deletes all draft applications belonging to the given RC numbers.
+// Returns the number of deleted rows.
+func (r *ApplicationRepository) DeleteDraftsByRCNumbers(rcNumbers []string) (int64, error) {
+	if len(rcNumbers) == 0 {
+		return 0, nil
+	}
+	placeholders := make([]string, len(rcNumbers))
+	args := make([]interface{}, len(rcNumbers))
+	for i, rc := range rcNumbers {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = rc
+	}
+	result, err := r.db.Exec(
+		fmt.Sprintf(
+			`DELETE FROM member_onboarding.application
+			 WHERE status = 'draft'
+			   AND rc_number IN (%s)`,
+			strings.Join(placeholders, ", "),
+		),
+		args...,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("failed to delete drafts: %w", err)
+	}
+	n, _ := result.RowsAffected()
+	return n, nil
+}
+
 func (r *ApplicationRepository) Delete(id uuid.UUID) error {
 	result, err := r.db.Exec(`DELETE FROM member_onboarding.application WHERE id = $1`, id)
 	if err != nil {

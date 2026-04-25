@@ -362,6 +362,30 @@ func (h *AdminHandler) DeleteApplication(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// DeleteDraftApplications handles DELETE /api/admin/applications/drafts
+// Deletes all draft applications for the tenant's RC numbers and returns the count.
+func (h *AdminHandler) DeleteDraftApplications(w http.ResponseWriter, r *http.Request) {
+	claims := ClaimsFromContext(r.Context())
+	if claims == nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var rcNumbers []string
+	if !claims.IsSuperuser() {
+		rcNumbers = []string(claims.Tenant)
+	}
+
+	n, err := h.adminService.DeleteDrafts(rcNumbers)
+	if err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+
+	slog.Info("admin: draft applications deleted", "count", n, "user_id", claims.Subject)
+	h.writeJSON(w, http.StatusOK, map[string]int64{"deleted": n})
+}
+
 // ExportApplicationExcel handles GET /api/admin/applications/{id}/export/excel
 func (h *AdminHandler) ExportApplicationExcel(w http.ResponseWriter, r *http.Request) {
 	id, err := h.parseID(w, r)

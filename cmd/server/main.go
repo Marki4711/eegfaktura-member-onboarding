@@ -134,6 +134,7 @@ func main() {
 		r.Post("/sync", adminHandler.SyncEntrypoints)
 		r.Route("/applications", func(r chi.Router) {
 			r.Get("/", adminHandler.ListApplications)
+			r.Delete("/drafts", adminHandler.DeleteDraftApplications)
 			r.Route("/{id}", func(r chi.Router) {
 				r.Get("/", adminHandler.GetApplicationDetail)
 				r.Put("/", adminHandler.UpdateApplication)

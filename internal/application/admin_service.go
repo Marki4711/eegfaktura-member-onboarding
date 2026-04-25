@@ -391,6 +391,11 @@ func (s *AdminApplicationService) DeleteApplication(id uuid.UUID) error {
 	return s.appRepo.Delete(id)
 }
 
+// DeleteDrafts deletes all draft applications for the given RC numbers and returns the count.
+func (s *AdminApplicationService) DeleteDrafts(rcNumbers []string) (int64, error) {
+	return s.appRepo.DeleteDraftsByRCNumbers(rcNumbers)
+}
+
 func isAdminTransitionAllowed(from, to shared.ApplicationStatus) bool {
 	allowed, ok := adminTransitions[from]
 	if !ok {
