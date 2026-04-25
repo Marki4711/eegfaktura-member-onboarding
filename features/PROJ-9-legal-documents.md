@@ -34,7 +34,7 @@
 
 - Was passiert, wenn eine EEG keine eigenen Dokumente hinterlegt hat? → Nur die zentrale Datenschutzerklärung wird angezeigt, Formular bleibt funktionsfähig.
 - Was passiert, wenn ein Dokument-Link nicht erreichbar ist? → Das Formular zeigt den Link trotzdem an; die Erreichbarkeit wird nicht geprüft.
-- **Offener Punkt — Dokumentenversionen:** Da nur die URL gespeichert wird, kann nachträglich nicht nachgewiesen werden, welche Version des Dokuments zum Zeitpunkt der Zustimmung abrufbar war. Mögliche Lösungsansätze: (1) Inhalt des Dokuments zum Zeitpunkt der Einreichung archivieren, (2) EEGs verpflichten, versionierte URLs zu verwenden (z.B. `/datenschutz-v2.pdf`), (3) Hash des Dokumenteninhalts speichern. Dieser Aspekt muss vor der Implementierung entschieden werden.
+- **Dokumentenversionen:** Beim Einreichen des Antrags wird der SHA-256-Hash des Dokumenteninhalts (abgerufen vom angegebenen URL) serverseitig berechnet und zusammen mit Titel, URL und Zeitstempel als Zustimmungs-Snapshot gespeichert. Ist der URL zum Einreichzeitpunkt nicht erreichbar, wird der Hash als NULL gespeichert (kein Abbruch des Einreichvorgangs).
 - Was passiert, wenn ein Dokument nach Einreichung eines Antrags geändert oder gelöscht wird? → Bereits gespeicherte Zustimmungen bleiben unverändert (Snapshot zum Zeitpunkt der Einreichung).
 - Was passiert, wenn ein optionales Dokument nicht angehakt wird? → Antrag kann trotzdem eingereicht werden; keine Zustimmung wird für dieses Dokument gespeichert.
 - Was passiert, wenn die URL eines Dokuments sehr lang ist? → URL wird vollständig gespeichert, im Formular aber nur der Titel verlinkt angezeigt.
@@ -50,7 +50,157 @@
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+
+### Übersicht
+
+PROJ-9 ist ein Full-Stack-Feature: neues Datenbankschema, Backend-Erweiterungen (Admin-CRUD + öffentliche API + Consent-Speicherung) und Frontend-Erweiterungen (Admin-Verwaltungsseite + Registrierungsformular + Antragsdetail).
+
+---
+
+### Neue Datenbanktabellen (Migration 000018)
+
+**`member_onboarding.legal_document`** — Dokumentenliste pro EEG
+
+| Feld | Typ | Bedeutung |
+|------|-----|-----------|
+| `id` | UUID | Primärschlüssel |
+| `rc_number` | TEXT | Fremdschlüssel → `registration_entrypoint(rc_number)`, ON DELETE CASCADE |
+| `title` | TEXT | Angezeigter Titel im Formular |
+| `url` | TEXT | Link zum Dokument |
+| `required` | BOOLEAN | Pflichtfeld ja/nein |
+| `sort_order` | INTEGER | Reihenfolge der Anzeige (aufsteigend) |
+| `created_at` | TIMESTAMP | |
+| `updated_at` | TIMESTAMP | |
+
+Regeln:
+- Max. 10 Dokumente pro EEG (in Anwendungscode erzwungen)
+- `sort_order` ist eindeutig pro `rc_number`
+
+**`member_onboarding.document_consent`** — Zustimmungs-Snapshot pro Antrag
+
+| Feld | Typ | Bedeutung |
+|------|-----|-----------|
+| `id` | UUID | Primärschlüssel |
+| `application_id` | UUID | Fremdschlüssel → `application(id)`, ON DELETE CASCADE |
+| `title` | TEXT | Snapshot des Titels zum Einreichzeitpunkt |
+| `url` | TEXT | Snapshot der URL zum Einreichzeitpunkt |
+| `document_hash` | TEXT (nullable) | SHA-256-Hash des Dokumenteninhalts zum Einreichzeitpunkt; NULL wenn URL nicht erreichbar war |
+| `is_central_policy` | BOOLEAN | true = zentrale Datenschutzerklärung des Tool-Betreibers |
+| `consented_at` | TIMESTAMP | Zeitpunkt der Zustimmung (= Einreichzeitpunkt des Antrags) |
+
+Regeln:
+- Unveränderlicher Snapshot — wird nie nachträglich geändert
+- Kein Fremdschlüssel auf `legal_document` (Dokument kann nach Einreichung gelöscht werden)
+
+---
+
+### Komponenten-Struktur
+
+**Admin-Seite — Einstellungen (EEG-Tab, neu: Reiter „Rechtsdokumente")**
+```
+AdminEEGSettingsPage
++-- [bestehend] EEGSettingsEditor (Stammdaten)
++-- [bestehend] FieldConfigEditor (Felder)
++-- [NEU] LegalDocumentsEditor
+    +-- DokumentenListe
+    |   +-- DokumentZeile (Titel, URL, Pflicht-Toggle, Reihenfolge-Pfeile, Löschen)
+    |   +-- DokumentZeile ...
+    +-- "Dokument hinzufügen"-Button
+    +-- Hinweis auf zentrale Datenschutzerklärung (fix, nicht editierbar)
+```
+
+**Registrierungsformular (Erweiterung am Ende des Formulars)**
+```
+RegistrationForm
++-- [bestehend] Alle bisherigen Felder ...
++-- [NEU] RechtsdokumenteAbschnitt
+    +-- Checkbox: [Pflicht] "Ich stimme den [AGB] zu"  ← Link öffnet Dokument
+    +-- Checkbox: [Optional] "Ich stimme der [Datenschutz EEG] zu"
+    +-- Checkbox: [Pflicht] "Ich stimme der [Datenschutzerklärung] zu"  ← zentrale Policy
++-- Absenden-Button (blockiert solange Pflicht-Checkboxen nicht angehakt)
+```
+
+**Admin-Antragsdetail (Erweiterung)**
+```
+AdminApplicationDetail
++-- [bestehend] Personendaten, Status, Zählpunkte ...
++-- [NEU] ZustimmungenAbschnitt
+    +-- ZustimmungsZeile: Titel | URL | Zeitstempel | Hash (gekürzt)
+    +-- ZustimmungsZeile ...
+```
+
+---
+
+### API-Änderungen
+
+**Öffentliche API — Erweiterung bestehender Endpunkte**
+
+| Endpunkt | Änderung |
+|----------|----------|
+| `GET /api/public/registration/{rc_number}` | Antwort enthält neu: `legalDocuments: [{id, title, url, required, sortOrder}]` |
+| `POST /api/public/applications` | Request-Body enthält neu: `consents: [{documentId?, title, url, isCentralPolicy}]`; beim Einreichen holt das Backend die Hashes serverseitig |
+
+**Admin API — neue Endpunkte**
+
+| Methode | Pfad | Beschreibung |
+|---------|------|--------------|
+| `GET` | `/api/admin/legal-documents?rc_number=` | Alle Dokumente einer EEG abrufen |
+| `POST` | `/api/admin/legal-documents?rc_number=` | Neues Dokument anlegen |
+| `PUT` | `/api/admin/legal-documents/{id}` | Dokument bearbeiten |
+| `DELETE` | `/api/admin/legal-documents/{id}` | Dokument löschen |
+| `PUT` | `/api/admin/legal-documents/reorder?rc_number=` | Reihenfolge aller Dokumente auf einmal aktualisieren |
+
+`GET /api/admin/applications/{id}` wird um ein `consents`-Array erweitert.
+
+---
+
+### Backend-Pakete
+
+Keine neuen Go-Pakete notwendig — die neue Logik passt in die bestehende Struktur:
+
+| Datei | Inhalt |
+|-------|--------|
+| `internal/application/legal_document_repo.go` | CRUD für `legal_document`-Tabelle |
+| `internal/application/document_consent_repo.go` | INSERT + SELECT für `document_consent` |
+| `internal/application/document_hasher.go` | SHA-256-Hash-Berechnung via HTTP-Fetch (mit 5s Timeout, Fehler → NULL) |
+| `internal/http/admin.go` | 5 neue Handler-Methoden für Legal-Document-Admin-API |
+| `internal/http/registration.go` | Erweiterung: Consents aus Request lesen, Hash berechnen, speichern |
+
+---
+
+### Zentrale Datenschutzerklärung
+
+- Titel und URL werden als Umgebungsvariablen konfiguriert: `CENTRAL_POLICY_TITLE`, `CENTRAL_POLICY_URL`
+- Sind sie nicht gesetzt, wird eine sinnvolle Default-URL verwendet
+- Das Frontend erhält die zentrale Policy als festes letztes Element in `legalDocuments` (mit `isCentralPolicy: true`)
+- Der Backend-Endpunkt `GET /api/public/registration/{rc_number}` fügt sie immer ans Ende der Liste an
+
+---
+
+### Tenant-Isolation
+
+- Admins dürfen nur Dokumente ihrer eigenen EEG(s) verwalten (via `rc_number` aus Keycloak JWT)
+- Die `legal_document`-Tabelle ist per `rc_number` isoliert — bestehende `checkTenantAccess`-Logik wird analog verwendet
+
+---
+
+### Technische Entscheidungen
+
+| Entscheidung | Begründung |
+|---|---|
+| Separater `document_consent`-Snapshot statt FK auf `legal_document` | Löschen eines Dokuments darf bestehende Zustimmungen nicht beeinflussen |
+| Hash-Berechnung serverseitig beim Einreichen | Frontend-seitiger Hash wäre manipulierbar; 5s Timeout verhindert, dass Hash-Abruf das Einreichen blockiert |
+| Hash NULL bei nicht erreichbarem Dokument | Kein Abbruch des Einreichvorgangs wegen eines nicht erreichbaren Links |
+| Reorder-Endpunkt sendet komplette neue Reihenfolge | Einfacher als einzelne Patch-Calls; atomare DB-Transaktion |
+| Keine eigene `legal`-Package | Passt in `internal/application/` — kein Grund für extra Paket bei dieser Größe |
+
+---
+
+### Migrations-Übersicht
+
+| Migration | Inhalt |
+|---|---|
+| `000018_add_legal_documents.up.sql` | Tabellen `legal_document` + `document_consent` mit Constraints und Indexes |
 
 ## QA Test Results
 _To be added by /qa_
