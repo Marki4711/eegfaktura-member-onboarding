@@ -20,6 +20,10 @@ spec:
       initContainers:
         - name: wait-for-postgres
           image: postgres:16-alpine
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           command: ['sh', '-c',
             'until pg_isready -h {{ include "member-onboarding.fullname" . }}-postgres -p 5432 -U {{ .Values.postgres.user }}; do
                echo "waiting for postgres..."; sleep 2;
@@ -31,6 +35,8 @@ spec:
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
           workingDir: /app
           command: ["/bin/sh", "-c"]
           args:
