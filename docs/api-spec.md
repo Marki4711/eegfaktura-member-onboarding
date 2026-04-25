@@ -30,11 +30,21 @@ Not part of this API:
 
 ## 3. Authentication
 
-### Public API
-No login required.
+### Public API (`/api/public/*`)
+No authentication required. The public registration form is intentionally open.
 
-### Admin API
-Authentication via the existing eegFaktura/Keycloak mechanism.
+### External API (`/api/external/*`)
+API-key authentication — no Keycloak required. Each API key is bound to exactly one EEG.
+
+```
+Authorization: Bearer moak_<32-char-random-key>
+```
+
+Keys are generated and revoked in the Admin Settings page (see section 6.12–6.14).
+The key value is shown only once at generation time and cannot be retrieved again.
+
+### Admin API (`/api/admin/*`)
+Authentication via the existing eegFaktura/Keycloak mechanism (JWT Bearer token).
 The business logic additionally validates the EEG authorization in the backend.
 
 ---

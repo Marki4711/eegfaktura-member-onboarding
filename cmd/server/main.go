@@ -94,6 +94,7 @@ func main() {
 
 	// Middleware
 	r.Use(internalhttp.CORSMiddleware(cfg.CORS.AllowedOrigins))
+	r.Use(internalhttp.SecurityHeadersMiddleware)
 	r.Use(middleware.RequestID)
 	r.Use(internalhttp.SlogRequestLogger)
 	r.Use(middleware.Recoverer)
@@ -154,7 +155,13 @@ func main() {
 	// Start server
 	addr := ":" + cfg.Server.Port
 	slog.Info("starting server", "addr", addr)
-	if err := http.ListenAndServe(addr, r); err != nil {
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      r,
+		ReadTimeout:  cfg.Server.ReadTimeout,
+		WriteTimeout: cfg.Server.WriteTimeout,
+	}
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatalf("server failed to start: %v", err)
 	}
 }

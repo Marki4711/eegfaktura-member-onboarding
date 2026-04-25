@@ -75,12 +75,6 @@ export const authOptions: NextAuthOptions = {
           const realmAccess = payload["realm_access"] as { roles?: string[] } | undefined;
           token.roles = realmAccess?.roles ?? [];
           token.tenant = parseTenant(payload["tenant"]);
-          const ts = new Date().toISOString();
-          console.log(`[auth] ${ts} JWT payload keys:`, Object.keys(payload));
-          console.log(`[auth] ${ts} realm_access:`, JSON.stringify(realmAccess));
-          console.log(`[auth] ${ts} tenant raw:`, JSON.stringify(payload["tenant"]));
-          console.log(`[auth] ${ts} tenant parsed:`, JSON.stringify(token.tenant));
-          console.log(`[auth] ${ts} roles resolved:`, JSON.stringify(token.roles));
         } catch (e) {
           console.error("[auth] Failed to decode access token:", e);
           token.roles = [];
