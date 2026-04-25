@@ -224,7 +224,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
   const fieldConfig = config.fieldConfig;
   const sepaMandateEnabled = config.sepaMandateEnabled ?? false;
   const legalDocuments = config.legalDocuments ?? [];
-  const centralPolicy = legalDocuments.find((d) => d.isCentralPolicy);
+  const centralPolicy = legalDocuments.find((d) => d.isCentralPolicy && d.url);
   const eegSpecificDocs = legalDocuments.filter((d) => !d.isCentralPolicy);
 
   // returns the resolved FieldState for an application-level configurable field

@@ -55,7 +55,8 @@ backend:
   keycloakIssuer: "" # z.B. https://keycloak.example.at/realms/EEGFaktura
   # Zentrale Datenschutzerklärung des Tool-Betreibers (PROJ-9)
   centralPolicyTitle: "Datenschutzerklärung"
-  centralPolicyUrl: "" # Pflicht in Produktion: URL zur Datenschutzerklärung setzen
+  centralPolicyUrl: "" # Optional: absolute URL zur Datenschutzerklärung (z.B. https://onboarding.example.at/datenschutz)
+                       # Leer lassen = internes /datenschutz wird verlinkt
 # ── Seed data ──────────────────────────────────────────────────────────────────
 seed:
   rcNumber: ""
