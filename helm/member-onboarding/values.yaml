@@ -53,6 +53,9 @@ backend:
   # Keycloak JWT-Validierung — leer = Dev-Modus (kein Auth)
   keycloakJwksUrl: "" # z.B. https://keycloak.example.at/realms/EEGFaktura/protocol/openid-connect/certs
   keycloakIssuer: "" # z.B. https://keycloak.example.at/realms/EEGFaktura
+  # Zentrale Datenschutzerklärung des Tool-Betreibers (PROJ-9)
+  centralPolicyTitle: "Datenschutzerklärung"
+  centralPolicyUrl: "" # Pflicht in Produktion: URL zur Datenschutzerklärung setzen
 # ── Seed data ──────────────────────────────────────────────────────────────────
 seed:
   rcNumber: ""
