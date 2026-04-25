@@ -109,7 +109,7 @@ func main() {
 		})
 
 		r.Route("/applications", func(r chi.Router) {
-			r.Post("/", applicationHandler.CreateApplication)
+			r.With(internalhttp.PublicSubmitRateLimitMiddleware).Post("/", applicationHandler.CreateApplication)
 			r.Route("/{id}", func(r chi.Router) {
 				r.Put("/", applicationHandler.UpdateApplication)
 				r.Route("/submit", func(r chi.Router) {

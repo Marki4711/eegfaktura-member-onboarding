@@ -43,7 +43,7 @@ func (m *Mailer) Send(to, subject, htmlBody string) error {
 
 	opts := []gomail.Option{
 		gomail.WithPort(m.port),
-		gomail.WithTLSPolicy(gomail.TLSOpportunistic),
+		gomail.WithTLSPolicy(gomail.TLSMandatory),
 		gomail.WithTimeout(10 * time.Second),
 	}
 	// Only configure SMTP auth when credentials are provided.
@@ -84,7 +84,7 @@ func (m *Mailer) SendWithAttachment(to, subject, htmlBody, attachmentName string
 
 	opts := []gomail.Option{
 		gomail.WithPort(m.port),
-		gomail.WithTLSPolicy(gomail.TLSOpportunistic),
+		gomail.WithTLSPolicy(gomail.TLSMandatory),
 		gomail.WithTimeout(10 * time.Second),
 	}
 	if m.user != "" {

@@ -3,6 +3,7 @@ package http
 import (
 	"crypto/rand"
 	"encoding/json"
+	"log/slog"
 	"math/big"
 	"net/http"
 	"strconv"
@@ -341,6 +342,13 @@ func (h *AdminHandler) DeleteApplication(w http.ResponseWriter, r *http.Request)
 	if !h.checkTenantAccess(w, r, id) {
 		return
 	}
+
+	claims := ClaimsFromContext(r.Context())
+	userID := ""
+	if claims != nil {
+		userID = claims.Subject
+	}
+	slog.Info("admin: application deleted", "application_id", id, "user_id", userID)
 
 	if err := h.adminService.DeleteApplication(id); err != nil {
 		h.handleServiceError(w, err)

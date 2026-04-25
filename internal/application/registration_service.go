@@ -1,7 +1,7 @@
 package application
 
 import (
-	"fmt"
+	"log/slog"
 
 	"github.com/your-org/eegfaktura-member-onboarding/internal/shared"
 )
@@ -39,7 +39,7 @@ func (s *RegistrationService) GetRegistrationConfig(rcNumber string) (*shared.Re
 	rawConfig, err := s.fieldConfigRepo.Get(rcNumber)
 	if err != nil {
 		// Non-fatal: log and fall back to empty config (frontend uses defaults)
-		fmt.Printf("warning: failed to load field config for rc=%s: %v\n", rcNumber, err)
+		slog.Warn("failed to load field config", "rc", rcNumber, "error", err)
 		rawConfig = map[string]FieldConfigEntry{}
 	}
 

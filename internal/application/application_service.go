@@ -3,6 +3,7 @@ package application
 import (
 	"database/sql"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -63,7 +64,7 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 	// Load field config (best-effort — fail open so a DB error doesn't block registrations)
 	fieldConfig, fcErr := s.fieldConfigRepo.Get(strings.ToUpper(req.RCNumber))
 	if fcErr != nil {
-		fmt.Printf("warning: failed to load field config for rc=%s: %v\n", req.RCNumber, fcErr)
+		slog.Warn("failed to load field config", "rc", req.RCNumber, "error", fcErr)
 		fieldConfig = map[string]FieldConfigEntry{}
 	}
 
@@ -393,7 +394,7 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID) (*shared.SubmitResp
 
 	fieldConfig, fcErr := s.fieldConfigRepo.Get(strings.ToUpper(app.RCNumber))
 	if fcErr != nil {
-		fmt.Printf("warning: failed to load field config for rc=%s: %v\n", app.RCNumber, fcErr)
+		slog.Warn("failed to load field config", "rc", app.RCNumber, "error", fcErr)
 		fieldConfig = map[string]FieldConfigEntry{}
 	}
 	if err = validateConfigurableRequiredFields(app, fieldConfig); err != nil {
@@ -417,14 +418,14 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID) (*shared.SubmitResp
 		CreatedAt:     now,
 	}
 	if err = s.statusLogRepo.Create(statusLog); err != nil {
-		fmt.Printf("Failed to create status log: %v\n", err)
+		slog.Error("failed to create status log", "application_id", id, "error", err)
 	}
 
 	// Send submission emails only on first submission (draft → submitted).
 	if oldStatus == string(shared.StatusDraft) {
 		entrypoint, epErr := s.entrypointRepo.GetByRCNumber(app.RCNumber)
 		if epErr != nil {
-			fmt.Printf("mail: failed to load entrypoint for rc=%s: %v\n", app.RCNumber, epErr)
+			slog.Warn("mail: failed to load entrypoint", "rc", app.RCNumber, "error", epErr)
 		} else {
 			var attachment []byte
 			if mandate := buildSEPAMandateData(app, entrypoint); mandate != nil {
@@ -442,7 +443,7 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID) (*shared.SubmitResp
 					pdfBytes, pdfErr = s.pdfGenerator.Generate(*mandate)
 				}
 				if pdfErr != nil {
-					fmt.Printf("pdf: failed to generate SEPA mandate for rc=%s: %v\n", app.RCNumber, pdfErr)
+					slog.Warn("pdf: failed to generate SEPA mandate", "rc", app.RCNumber, "error", pdfErr)
 				} else {
 					attachment = pdfBytes
 				}
