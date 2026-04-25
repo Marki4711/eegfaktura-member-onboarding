@@ -492,6 +492,21 @@ export function generateApiKey(rcNumber: string, token?: string): Promise<{ apiK
   );
 }
 
+export async function downloadApplicationExcel(id: string, token?: string): Promise<{ blob: Blob; filename: string }> {
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(`${API_URL}/api/admin/applications/${id}/export/excel`, { headers });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ code: "internal_error", message: "Download fehlgeschlagen." }));
+    throw new ApiResponseError(body as ApiError);
+  }
+  const blob = await res.blob();
+  const disposition = res.headers.get("Content-Disposition") ?? "";
+  const match = disposition.match(/filename="([^"]+)"/);
+  const filename = match ? match[1] : `${id}.xlsx`;
+  return { blob, filename };
+}
+
 export function revokeApiKey(rcNumber: string, token?: string): Promise<void> {
   return adminRequest<void>(
     `/api/admin/settings/api-key?rc_number=${encodeURIComponent(rcNumber)}`,

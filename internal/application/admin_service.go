@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/your-org/eegfaktura-member-onboarding/internal/excel"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/mail"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/shared"
 )
@@ -383,4 +384,41 @@ func isAdminTransitionAllowed(from, to shared.ApplicationStatus) bool {
 
 func requiresReason(status shared.ApplicationStatus) bool {
 	return status == shared.StatusNeedsInfo || status == shared.StatusRejected
+}
+
+// ExportApplicationExcel generates an xlsx file for a given application in
+// eegFaktura import format. Only applications in approved, imported, or
+// import_failed status can be exported.
+func (s *AdminApplicationService) ExportApplicationExcel(id uuid.UUID) ([]byte, string, error) {
+	app, err := s.appRepo.GetByID(id)
+	if err != nil {
+		return nil, "", err
+	}
+
+	exportable := map[shared.ApplicationStatus]bool{
+		shared.StatusApproved:     true,
+		shared.StatusImported:     true,
+		shared.StatusImportFailed: true,
+	}
+	if !exportable[app.Status] {
+		return nil, "", shared.NewConflictError(
+			fmt.Sprintf("excel export not available for applications in status %s", app.Status),
+		)
+	}
+
+	meteringPoints, err := s.meteringRepo.GetByApplicationID(id)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to fetch metering points: %w", err)
+	}
+	if len(meteringPoints) == 0 {
+		return nil, "", shared.NewUnprocessableEntityError("application has no metering points")
+	}
+
+	data, err := excel.GenerateExcel(app, meteringPoints)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to generate excel: %w", err)
+	}
+
+	filename := app.ReferenceNumber + ".xlsx"
+	return data, filename, nil
 }

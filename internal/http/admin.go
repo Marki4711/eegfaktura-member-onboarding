@@ -358,6 +358,29 @@ func (h *AdminHandler) DeleteApplication(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// ExportApplicationExcel handles GET /api/admin/applications/{id}/export/excel
+func (h *AdminHandler) ExportApplicationExcel(w http.ResponseWriter, r *http.Request) {
+	id, err := h.parseID(w, r)
+	if err != nil {
+		return
+	}
+
+	if !h.checkTenantAccess(w, r, id) {
+		return
+	}
+
+	data, filename, err := h.adminService.ExportApplicationExcel(id)
+	if err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	w.Header().Set("Content-Disposition", `attachment; filename="`+filename+`"`)
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+}
+
 // GetIntroText handles GET /api/admin/settings/intro-text?rc_number=...
 func (h *AdminHandler) GetIntroText(w http.ResponseWriter, r *http.Request) {
 	rcNumber := r.URL.Query().Get("rc_number")
@@ -648,6 +671,8 @@ func (h *AdminHandler) handleServiceError(w http.ResponseWriter, err error) {
 	case shared.ValidationError:
 		h.writeError(w, shared.NewErrorResponse(e))
 	case shared.ConflictError:
+		h.writeError(w, shared.NewErrorResponse(e))
+	case shared.UnprocessableEntityError:
 		h.writeError(w, shared.NewErrorResponse(e))
 	default:
 		switch err {

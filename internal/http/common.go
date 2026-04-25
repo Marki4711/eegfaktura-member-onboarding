@@ -20,7 +20,7 @@ func httpStatusFor(code string) int {
 		return http.StatusConflict
 	case "forbidden":
 		return http.StatusForbidden
-	case "turnstile_failed", "turnstile_missing":
+	case "turnstile_failed", "turnstile_missing", "unprocessable_entity":
 		return http.StatusUnprocessableEntity
 	default:
 		return http.StatusInternalServerError

@@ -51,6 +51,18 @@ func NewConflictError(message string) ConflictError {
 	return ConflictError{Message: message}
 }
 
+// UnprocessableEntityError represents a semantic business-rule failure (HTTP 422).
+type UnprocessableEntityError struct {
+	Message string
+}
+
+func (e UnprocessableEntityError) Error() string { return e.Message }
+
+// NewUnprocessableEntityError creates an UnprocessableEntityError.
+func NewUnprocessableEntityError(message string) UnprocessableEntityError {
+	return UnprocessableEntityError{Message: message}
+}
+
 // NewErrorResponse maps an error to the canonical ErrorResponse.
 func NewErrorResponse(err error) ErrorResponse {
 	resp := ErrorResponse{
@@ -69,6 +81,9 @@ func NewErrorResponse(err error) ErrorResponse {
 		resp.Fields = e.Fields
 	case ConflictError:
 		resp.Code = "conflict"
+		resp.Message = e.Message
+	case UnprocessableEntityError:
+		resp.Code = "unprocessable_entity"
 		resp.Message = e.Message
 	default:
 		switch {

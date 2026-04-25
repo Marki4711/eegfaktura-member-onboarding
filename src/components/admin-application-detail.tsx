@@ -24,7 +24,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { getApplicationDetail, resendMemberConfirmation, deleteApplication, ApiResponseError } from "@/lib/api";
+import { getApplicationDetail, resendMemberConfirmation, deleteApplication, downloadApplicationExcel, ApiResponseError } from "@/lib/api";
 import type { AdminApplicationDetail, MemberType } from "@/lib/api";
 
 const MEMBER_TYPE_LABELS: Record<MemberType, string> = {
@@ -92,6 +92,29 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
   const [resending, setResending] = useState(false);
   const [resendResult, setResendResult] = useState<"ok" | "error" | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [downloadingExcel, setDownloadingExcel] = useState(false);
+  const [excelError, setExcelError] = useState<string | null>(null);
+
+  const handleExcelDownload = async () => {
+    if (!application) return;
+    setDownloadingExcel(true);
+    setExcelError(null);
+    try {
+      const { blob, filename } = await downloadApplicationExcel(application.id, session?.accessToken);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setExcelError("Excel-Download fehlgeschlagen.");
+    } finally {
+      setDownloadingExcel(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!application) return;
@@ -212,9 +235,17 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
           {resendResult === "error" && (
             <span className="text-xs text-destructive">Fehler beim Senden</span>
           )}
+          {excelError && (
+            <span className="text-xs text-destructive">{excelError}</span>
+          )}
           <Button variant="outline" size="sm" onClick={handleResend} disabled={resending}>
             {resending ? "Wird gesendet…" : "Bestätigung erneut senden"}
           </Button>
+          {(application.status === "approved" || application.status === "imported" || application.status === "import_failed") && (
+            <Button variant="outline" size="sm" onClick={handleExcelDownload} disabled={downloadingExcel}>
+              {downloadingExcel ? "Wird erstellt…" : "Excel herunterladen"}
+            </Button>
+          )}
           {(application.status === "draft" || application.status === "rejected") && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
