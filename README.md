@@ -68,8 +68,9 @@ This project uses the AI Coding Starter Kit workflow with specialized skills:
 2. **Architecture** (`/architecture`) - Design technical approach (PM-friendly)
 3. **Frontend** (`/frontend`) - Build UI components with Next.js and shadcn/ui
 4. **Backend** (`/backend`) - Implement Go APIs and database schemas
-5. **QA** (`/qa`) - Test features against criteria + security audit
-6. **Deploy** (`/deploy`) - Deploy to production with checks
+5. **QA** (`/qa`) - Test features against acceptance criteria + security smoke test
+6. **Security Review** (`/security-review`) - Required for auth, public endpoints, schema changes, Helm/CI changes
+7. **Deploy** (`/deploy`) - Deploy to Kubernetes via Helm
 
 ### Getting Started
 
