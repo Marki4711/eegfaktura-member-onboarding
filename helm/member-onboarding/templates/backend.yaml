@@ -75,6 +75,10 @@ spec:
                 secretKeyRef:
                   name: {{ include "member-onboarding.fullname" . }}-backend-secret
                   key: TURNSTILE_SECRET_KEY
+            - name: CENTRAL_POLICY_TITLE
+              value: {{ .Values.backend.centralPolicyTitle | quote }}
+            - name: CENTRAL_POLICY_URL
+              value: {{ .Values.backend.centralPolicyUrl | quote }}
           readinessProbe:
             httpGet:
               path: /health

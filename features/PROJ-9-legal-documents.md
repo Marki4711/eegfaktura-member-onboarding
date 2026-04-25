@@ -275,4 +275,32 @@ Manuelle Tests durchgeführt:
 - Mobile: Playwright iPhone 13 — E2E-Tests auf Mobile Safari nicht separat ausgeführt (Testumgebung Windows)
 
 ## Deployment
-_To be added by /deploy_
+
+**Deployed:** 2026-04-25
+**Tag:** `v1.9.0-PROJ-9`
+
+### Pre-Deployment Checklist
+- [x] `npm run build` — passes (standalone output)
+- [x] `go build ./...` — passes
+- [x] QA approved: 9/9 acceptance criteria passed
+- [x] Security review approved: Medium findings fixed (URL scheme + length validation)
+- [x] Migration `000018_add_legal_documents.up.sql` applied
+- [x] All commits pushed to `main`
+
+### Helm Chart Changes
+- `helm/member-onboarding/values.yaml`: Added `backend.centralPolicyTitle` + `backend.centralPolicyUrl`
+- `helm/member-onboarding/templates/backend.yaml`: `CENTRAL_POLICY_TITLE` + `CENTRAL_POLICY_URL` env vars
+
+### Production Configuration Required
+Set in `values-env.yaml` before deploying to production:
+```yaml
+backend:
+  centralPolicyTitle: "Datenschutzerklärung"
+  centralPolicyUrl: "https://your-eeg.at/datenschutz"  # REQUIRED — set to actual URL
+```
+
+### Rollback
+```bash
+helm rollback eegfaktura-member-onboarding
+# DB: run 000018_add_legal_documents.down.sql (drops legal_document + document_consent tables)
+```

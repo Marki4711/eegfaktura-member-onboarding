@@ -23,7 +23,7 @@ Central tracking for all features.
 | PROJ-6 | E-Mail-Benachrichtigungen | Deployed | `features/PROJ-6-email-notifications.md` | 2026-04-19 |
 | PROJ-7 | Mitgliedstypen | Deployed | `features/PROJ-7-member-types.md` | 2026-04-20 |
 | PROJ-8 | Konfigurierbare Felder pro EEG | Deployed | `features/PROJ-8-configurable-fields.md` | 2026-04-21 |
-| PROJ-9 | EEG-spezifische Rechtsdokumente | Approved | `features/PROJ-9-legal-documents.md` | 2026-04-21 |
+| PROJ-9 | EEG-spezifische Rechtsdokumente | Deployed | `features/PROJ-9-legal-documents.md` | 2026-04-21 |
 | PROJ-10 | Admin Notifications | Planned | `features/PROJ-10-admin-notifications.md` | 2026-04-22 |
 | PROJ-11 | Konfigurierbarer Einleitungstext | Deployed | `features/PROJ-11-registration-intro-text.md` | 2026-04-23 |
 | PROJ-12 | SEPA-Lastschriftmandat PDF | Deployed | `features/PROJ-12-sepa-mandate-pdf.md` | 2026-04-23 |
