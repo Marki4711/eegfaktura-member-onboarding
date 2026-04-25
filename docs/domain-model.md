@@ -50,6 +50,7 @@ Fields:
 - `creditor_id` — nullable, SEPA creditor ID (max 35 chars)
 - `sepa_mandate_enabled` — boolean, default false; controls whether SEPA mandate PDF is attached to welcome email
 - `use_company_sepa_mandate` — boolean, default false; when true, members of type `company`/`association` receive the SEPA B2B mandate instead of the CORE mandate (only evaluated when `sepa_mandate_enabled = true`)
+- `show_central_policy` — boolean, default true; when false, the central operator privacy policy is not shown in the public registration form (for EEGs that configure their own policy as a legal document)
 - `created_at`
 - `updated_at`
 

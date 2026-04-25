@@ -15,17 +15,19 @@ This repository contains the **eegfaktura Member Onboarding** component, enablin
 
 ## Features
 
-### MVP Scope
-- Public self-service registration form
-- Collection of member master data and metering points
-- Admin review and approval workflow
-- Status tracking and controlled import
-- Keycloak-secured admin area
+- Public self-service registration form with configurable fields per EEG
+- Member types: Privatperson, Landwirt, Gemeinde, Unternehmen, Verein
+- SEPA direct debit mandate (inline or email-based)
+- Admin review and approval workflow with status tracking
+- Keycloak-secured admin area with tenant isolation
+- Per-EEG field configuration, intro text, and legal documents
+- E-mail notifications for applicants and admins
+- Excel export for manual import into eegFaktura core
+- External registration API (API key auth)
+- Cloudflare Turnstile spam protection
+- Datenschutzerklärung page with per-EEG toggle
 
-### Out of Scope
-- Document management
-- Tariff or role management in onboarding
-- Direct writes to eegFaktura core tables
+**Not in scope (V1):** document management, tariff/role management, direct writes to eegFaktura core tables
 
 ## Tech Stack
 
@@ -160,11 +162,9 @@ $body = @{
     residentStreetNumber = "1"
     residentZip          = "1010"
     residentCity         = "Musterstadt"
-    residentCountry      = "AT"
     privacyAccepted      = $true
     privacyVersion       = "2026-01"
     accuracyConfirmed    = $true
-    communicationConsent = $false
     meteringPoints       = @(@{ meteringPoint = "AT0031000000000000000000990022105"; direction = "CONSUMPTION" })
 } | ConvertTo-Json -Depth 5
 

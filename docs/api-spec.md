@@ -99,6 +99,7 @@ No direct access to eegFaktura core tables takes place.
   },
   "introText": "<p>Willkommen!</p>",
   "sepaMandateEnabled": true,
+  "showCentralPolicy": true,
   "legalDocuments": [
     {
       "id": "3f8c8c2d-...",
@@ -126,7 +127,9 @@ No direct access to eegFaktura core tables takes place.
 
 `sepaMandateEnabled` is `false` by default. When `true`, SEPA mandate checkboxes and PDF generation are activated.
 
-`legalDocuments` always contains at least the central privacy policy entry (`isCentralPolicy: true`). EEG-specific documents precede it, ordered by `sortOrder`. The central policy is not stored in the database — it is configured via `CENTRAL_POLICY_TITLE` / `CENTRAL_POLICY_URL` env vars.
+`showCentralPolicy` controls whether the central operator privacy policy is included in `legalDocuments`. Defaults to `true`. When `false`, the central policy entry is omitted from the list even if env vars are set — intended for EEGs that configure their own privacy policy as a custom document.
+
+`legalDocuments` contains the central privacy policy entry (`isCentralPolicy: true`) when `showCentralPolicy = true` and `CENTRAL_POLICY_URL` is set. EEG-specific documents precede it, ordered by `sortOrder`. The central policy is not stored in the database — it is configured via `CENTRAL_POLICY_TITLE` / `CENTRAL_POLICY_URL` env vars.
 
 ### Errors
 - `404` if `rc_number` is not found in `registration_entrypoint`
@@ -705,11 +708,12 @@ Returns the EEG master data used for SEPA mandate PDF generation.
   "eegCity": "Linz",
   "creditorId": "AT28ZZZ00000000000",
   "sepaMandateEnabled": true,
-  "useCompanySEPAMandate": false
+  "useCompanySEPAMandate": false,
+  "showCentralPolicy": true
 }
 ```
 
-All address/name fields are `null` when not yet configured. `sepaMandateEnabled` defaults to `false`. `useCompanySEPAMandate` defaults to `false`.
+All address/name fields are `null` when not yet configured. `sepaMandateEnabled` defaults to `false`. `useCompanySEPAMandate` defaults to `false`. `showCentralPolicy` defaults to `true`.
 
 ### Errors
 - `400` missing `rc_number`
@@ -731,9 +735,12 @@ All address/name fields are `null` when not yet configured. `sepaMandateEnabled`
   "eegCity": "Linz",
   "creditorId": "AT28ZZZ00000000000",
   "sepaMandateEnabled": true,
-  "useCompanySEPAMandate": false
+  "useCompanySEPAMandate": false,
+  "showCentralPolicy": true
 }
 ```
+
+`showCentralPolicy`: when `false`, the central operator privacy policy is not shown in the public registration form. Intended for EEGs that have configured their own privacy policy as a custom document (see 6.16).
 
 `useCompanySEPAMandate`: when `true`, members of type `company` or `association` receive the SEPA B2B mandate PDF instead of the standard CORE mandate. Only evaluated when `sepaMandateEnabled = true`.
 

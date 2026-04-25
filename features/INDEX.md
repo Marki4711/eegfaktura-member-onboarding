@@ -32,5 +32,6 @@ Central tracking for all features.
 | PROJ-15 | Konfigurierbare Felder Erweiterungen | Deployed | `features/PROJ-15-configurable-fields-extensions.md` | 2026-04-24 |
 | PROJ-16 | Cloudflare Turnstile Spam-Schutz | Deployed | `features/PROJ-16-turnstile-spam-protection.md` | 2026-04-24 |
 | PROJ-17 | Excel-Export für eegFaktura-Import | Deployed | `features/PROJ-17-excel-export.md` | 2026-04-25 |
+| PROJ-18 | Datenschutzerklärung & Central Policy Toggle | Deployed | `features/PROJ-18-datenschutz-policy-toggle.md` | 2026-04-25 |
 
-## Next Available ID: PROJ-18
+## Next Available ID: PROJ-19
