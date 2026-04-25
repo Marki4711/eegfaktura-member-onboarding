@@ -686,6 +686,7 @@ func (h *AdminHandler) handleServiceError(w http.ResponseWriter, err error) {
 		case shared.ErrConflict:
 			h.writeError(w, shared.NewErrorResponse(shared.ErrConflict))
 		default:
+			slog.Error("internal error", "error", err)
 			h.writeError(w, shared.NewErrorResponse(shared.ErrInternal))
 		}
 	}

@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -184,6 +185,7 @@ func (h *ExternalHandler) handleServiceError(w http.ResponseWriter, err error) {
 		case shared.ErrNotFound:
 			writeJSON(w, http.StatusNotFound, shared.NewErrorResponse(shared.ErrNotFound))
 		default:
+			slog.Error("internal error", "error", err)
 			writeJSON(w, http.StatusInternalServerError, shared.NewErrorResponse(shared.ErrInternal))
 		}
 	}
