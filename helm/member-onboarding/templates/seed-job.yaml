@@ -27,7 +27,7 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - |
-              psql "postgres://{{ .Values.postgres.user }}:${DB_PASSWORD}@{{ include "member-onboarding.fullname" . }}-postgres:5432/{{ .Values.postgres.database }}?sslmode=disable" <<'SQL'
+              psql "postgres://{{ .Values.postgres.user }}:${DB_PASSWORD}@{{ include "member-onboarding.fullname" . }}-postgres:5432/{{ .Values.postgres.database }}?sslmode={{ .Values.backend.dbSslMode }}" <<'SQL'
               INSERT INTO member_onboarding.registration_entrypoint (eeg_id, rc_number, is_active)
               VALUES ('{{ .Values.seed.eegId }}', '{{ .Values.seed.rcNumber }}', TRUE)
               ON CONFLICT (rc_number) DO NOTHING;

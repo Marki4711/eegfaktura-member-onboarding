@@ -29,7 +29,7 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - |
-              DATABASE_URL="postgres://{{ .Values.postgres.user }}:${DB_PASSWORD}@{{ include "member-onboarding.fullname" . }}-postgres:5432/{{ .Values.postgres.database }}?sslmode=disable" \
+              DATABASE_URL="postgres://{{ .Values.postgres.user }}:${DB_PASSWORD}@{{ include "member-onboarding.fullname" . }}-postgres:5432/{{ .Values.postgres.database }}?sslmode={{ .Values.backend.dbSslMode }}" \
               /app/migrate -direction up
           env:
             - name: DB_PASSWORD

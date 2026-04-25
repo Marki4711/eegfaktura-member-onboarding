@@ -45,6 +45,29 @@ func NewAdminHandler(
 	}
 }
 
+// checkTenantAccess verifies that the authenticated tenant-admin is allowed to
+// operate on the given application. Superusers are always allowed. Returns true
+// if access is granted; writes 403 and returns false otherwise.
+func (h *AdminHandler) checkTenantAccess(w http.ResponseWriter, r *http.Request, id uuid.UUID) bool {
+	claims := ClaimsFromContext(r.Context())
+	if claims == nil || claims.IsSuperuser() {
+		return true
+	}
+	detail, err := h.adminService.GetApplicationDetail(id)
+	if err != nil {
+		h.handleServiceError(w, err)
+		return false
+	}
+	if !containsRC(claims.Tenant, detail.RCNumber) {
+		writeJSON(w, http.StatusForbidden, map[string]string{
+			"code":    "forbidden",
+			"message": "Kein Zugriff auf diesen Antrag.",
+		})
+		return false
+	}
+	return true
+}
+
 // GetFieldConfig handles GET /api/admin/settings/fields?rc_number=...
 func (h *AdminHandler) GetFieldConfig(w http.ResponseWriter, r *http.Request) {
 	rcNumber := r.URL.Query().Get("rc_number")
@@ -222,6 +245,10 @@ func (h *AdminHandler) UpdateApplication(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	if !h.checkTenantAccess(w, r, id) {
+		return
+	}
+
 	var req shared.AdminUpdateApplicationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Invalid JSON", nil)))
@@ -246,6 +273,10 @@ func (h *AdminHandler) UpdateApplication(w http.ResponseWriter, r *http.Request)
 func (h *AdminHandler) ChangeStatus(w http.ResponseWriter, r *http.Request) {
 	id, err := h.parseID(w, r)
 	if err != nil {
+		return
+	}
+
+	if !h.checkTenantAccess(w, r, id) {
 		return
 	}
 
@@ -290,6 +321,9 @@ func (h *AdminHandler) ResendMemberConfirmation(w http.ResponseWriter, r *http.R
 	if err != nil {
 		return
 	}
+	if !h.checkTenantAccess(w, r, id) {
+		return
+	}
 	if err := h.adminService.ResendMemberConfirmation(id); err != nil {
 		h.handleServiceError(w, err)
 		return
@@ -301,6 +335,10 @@ func (h *AdminHandler) ResendMemberConfirmation(w http.ResponseWriter, r *http.R
 func (h *AdminHandler) DeleteApplication(w http.ResponseWriter, r *http.Request) {
 	id, err := h.parseID(w, r)
 	if err != nil {
+		return
+	}
+
+	if !h.checkTenantAccess(w, r, id) {
 		return
 	}
 
