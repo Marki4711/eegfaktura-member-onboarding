@@ -11,6 +11,13 @@ import (
 	"github.com/your-org/eegfaktura-member-onboarding/internal/shared"
 )
 
+const (
+	markerText   = "[### Leerzeile für Importer ###]"
+	sheetName    = "Sheet1"
+	headerRow    = 7
+	dataStartRow = 10
+)
+
 var columnHeaders = []string{
 	"Netzbetreiber", "Gemeinschafts-ID", "Ortsgebiet", "PLZ", "Ort",
 	"Straße", "Hausnummer", "Stiege", "Stock", "Tür", "Adresszusatz",
@@ -25,6 +32,11 @@ var columnHeaders = []string{
 
 // GenerateExcel produces an xlsx file matching the eegFaktura import template.
 // One data row is written per metering point; member data is repeated for each row.
+// Template structure:
+//   - Rows 1–6:  importer marker rows (with metadata in rows 2–5)
+//   - Row 7:     column headers
+//   - Rows 8–9:  importer marker rows
+//   - Row 10+:   one data row per metering point
 func GenerateExcel(app *shared.Application, meteringPoints []shared.MeteringPoint) ([]byte, error) {
 	if len(meteringPoints) == 0 {
 		return nil, fmt.Errorf("application has no metering points")
@@ -33,28 +45,13 @@ func GenerateExcel(app *shared.Application, meteringPoints []shared.MeteringPoin
 	f := excelize.NewFile()
 	defer f.Close()
 
-	sheet := "Sheet1"
-
-	// Row 1: column headers
-	for i, h := range columnHeaders {
-		col, err := excelize.ColumnNumberToName(i + 1)
-		if err != nil {
-			return nil, fmt.Errorf("invalid column index %d: %w", i+1, err)
-		}
-		if err := f.SetCellValue(sheet, col+"1", h); err != nil {
-			return nil, fmt.Errorf("failed to set header cell: %w", err)
-		}
+	if err := writeTemplateHeader(f); err != nil {
+		return nil, err
 	}
 
-	// Row 2: importer marker (required by eegFaktura import logic)
-	if err := f.SetCellValue(sheet, "A2", "[### Leerzeile für Importer ###]"); err != nil {
-		return nil, fmt.Errorf("failed to set marker row: %w", err)
-	}
-
-	// Rows 3+: one row per metering point
 	for i, mp := range meteringPoints {
-		if err := writeDataRow(f, sheet, i+3, app, &mp); err != nil {
-			return nil, fmt.Errorf("failed to write row %d: %w", i+3, err)
+		if err := writeDataRow(f, dataStartRow+i, app, &mp); err != nil {
+			return nil, fmt.Errorf("failed to write row %d: %w", dataStartRow+i, err)
 		}
 	}
 
@@ -65,13 +62,103 @@ func GenerateExcel(app *shared.Application, meteringPoints []shared.MeteringPoin
 	return buf.Bytes(), nil
 }
 
-func writeDataRow(f *excelize.File, sheet string, rowNum int, app *shared.Application, mp *shared.MeteringPoint) error {
+// writeTemplateHeader writes the 9-row template header required by the eegFaktura importer.
+func writeTemplateHeader(f *excelize.File) error {
+	set := func(cell, val string) error {
+		return f.SetCellValue(sheetName, cell, val)
+	}
+
+	// Row 1: marker only
+	if err := set("A1", markerText); err != nil {
+		return err
+	}
+
+	// Row 2: marker + EDA label
+	if err := set("A2", markerText); err != nil {
+		return err
+	}
+	if err := set("E2", "….Felder aus EDA"); err != nil {
+		return err
+	}
+
+	// Row 3: marker + Faktura label
+	if err := set("A3", markerText); err != nil {
+		return err
+	}
+	if err := set("E3", "….Felder für Faktura"); err != nil {
+		return err
+	}
+
+	// Row 4: marker + "Erforderlich" annotations
+	if err := set("A4", markerText); err != nil {
+		return err
+	}
+	for _, col := range []string{"B", "C", "D", "E", "F", "G", "L", "M", "U", "V", "AH"} {
+		if err := set(col+"4", "Erforderlich"); err != nil {
+			return err
+		}
+	}
+
+	// Row 5: marker + field descriptions
+	if err := set("A5", markerText); err != nil {
+		return err
+	}
+	if err := set("M5", "CONSUMPTION oder GENERATION"); err != nil {
+		return err
+	}
+	if err := set("U5", "Vorname (privat) od. Firmenname (business)"); err != nil {
+		return err
+	}
+	if err := set("V5", "Nachname"); err != nil {
+		return err
+	}
+	if err := set("X5", "privat oder business"); err != nil {
+		return err
+	}
+	if err := set("Y5", "Default: Today\nString: \n<tag>.<monat>.<jahr>\nBsp:\n1.1.2023"); err != nil {
+		return err
+	}
+	if err := set("AH5", "ACTIVE, ACTIVATED oder REGISTERED werden als aktivierte Zählpunkte übernommen. Zählpunkte mit Status NEW werden als neue, nicht aktivierte Zählpunkte übernommen."); err != nil {
+		return err
+	}
+	if err := set("AI5", "Zählpunkt registriert seit. Default 1. Jan des aktuellen Jahres\nString: \n<tag>.<monat>.<jahr>\nBsp:\n1.1.2023"); err != nil {
+		return err
+	}
+
+	// Row 6: marker only
+	if err := set("A6", markerText); err != nil {
+		return err
+	}
+
+	// Row 7: column headers
+	for i, h := range columnHeaders {
+		col, err := excelize.ColumnNumberToName(i + 1)
+		if err != nil {
+			return fmt.Errorf("invalid column index %d: %w", i+1, err)
+		}
+		if err := f.SetCellValue(sheetName, col+"7", h); err != nil {
+			return fmt.Errorf("failed to set header cell: %w", err)
+		}
+	}
+
+	// Rows 8–9: post-header marker rows
+	if err := set("A8", markerText); err != nil {
+		return err
+	}
+	if err := set("A9", markerText); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func writeDataRow(f *excelize.File, rowNum int, app *shared.Application, mp *shared.MeteringPoint) error {
 	r := strconv.Itoa(rowNum)
 	set := func(col, val string) error {
-		return f.SetCellValue(sheet, col+r, val)
+		return f.SetCellValue(sheetName, col+r, val)
 	}
 	setInt := func(col string, val int) error {
-		return f.SetCellInt(sheet, col+r, int64(val))
+		return f.SetCellInt(sheetName, col+r, int64(val))
 	}
 
 	// A: Netzbetreiber — empty (V1)
@@ -99,7 +186,7 @@ func writeDataRow(f *excelize.File, sheet string, rowNum int, app *shared.Applic
 	if err := set("G", app.ResidentStreetNumber); err != nil {
 		return err
 	}
-	// H-K: Stiege, Stock, Tür, Adresszusatz — empty
+	// H–K: Stiege, Stock, Tür, Adresszusatz — empty
 	// L: Zählpunkt
 	if err := set("L", mp.MeteringPoint); err != nil {
 		return err
@@ -124,7 +211,9 @@ func writeDataRow(f *excelize.File, sheet string, rowNum int, app *shared.Applic
 			return err
 		}
 	}
-	// P-R: empty
+	// P: Überschusseinspeisung — empty
+	// Q: Energiequelle — empty
+	// R: Verteilungsmodell — empty
 	// S: Zugeteilte Menge in Prozent
 	if err := setInt("S", mp.ParticipationFactor); err != nil {
 		return err

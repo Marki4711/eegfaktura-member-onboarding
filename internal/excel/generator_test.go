@@ -22,7 +22,7 @@ func openXlsx(t *testing.T, data []byte) *excelize.File {
 	return f
 }
 
-// cellValue returns the string value of a cell (e.g. "B3") in Sheet1.
+// cellValue returns the string value of a cell (e.g. "B10") in Sheet1.
 func cellValue(t *testing.T, data []byte, cell string) string {
 	t.Helper()
 	f := openXlsx(t, data)
@@ -156,8 +156,8 @@ func TestDirectionMapping_Production_WritesGENERATION(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// Column M (13th column) in row 3 is the direction field
-	if got := cellValue(t, data, "M3"); got != "GENERATION" {
+	// Column M in first data row (row 10)
+	if got := cellValue(t, data, "M10"); got != "GENERATION" {
 		t.Errorf("direction: want 'GENERATION', got %q", got)
 	}
 }
@@ -171,7 +171,7 @@ func TestDirectionMapping_Consumption_WritesCONSUMPTION(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if got := cellValue(t, data, "M3"); got != "CONSUMPTION" {
+	if got := cellValue(t, data, "M10"); got != "CONSUMPTION" {
 		t.Errorf("direction: want 'CONSUMPTION', got %q", got)
 	}
 }
@@ -235,26 +235,100 @@ func TestGenerateExcel_CompanyMember_Name1IsCompanyName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// Column U (21st) row 3 is Name 1
-	if got := cellValue(t, data, "U3"); got != "Acme EEG GmbH" {
+	// Column U row 10 is Name 1 (first data row)
+	if got := cellValue(t, data, "U10"); got != "Acme EEG GmbH" {
 		t.Errorf("Name 1: want 'Acme EEG GmbH', got %q", got)
 	}
-	// Column V (22nd) row 3 is Name 2 — should be empty for business
-	if got := cellValue(t, data, "V3"); got != "" {
+	// Column V row 10 is Name 2 — should be empty for business
+	if got := cellValue(t, data, "V10"); got != "" {
 		t.Errorf("Name 2: want empty for company, got %q", got)
 	}
 }
 
-// --- importer marker row ---
+// --- template structure ---
 
-func TestGenerateExcel_ContainsImporterMarker(t *testing.T) {
+func TestGenerateExcel_TemplateHeader_MarkerRows(t *testing.T) {
 	app := baseApp()
 	data, err := GenerateExcel(app, []shared.MeteringPoint{baseMeteringPoint()})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// Row 2, column A must contain the importer marker
-	if got := cellValue(t, data, "A2"); !strings.Contains(got, "Leerzeile") {
-		t.Errorf("importer marker: want string containing 'Leerzeile', got %q", got)
+	// Rows 1–6 and 8–9 must have the importer marker in column A
+	for _, cell := range []string{"A1", "A2", "A3", "A4", "A5", "A6", "A8", "A9"} {
+		if got := cellValue(t, data, cell); !strings.Contains(got, "Leerzeile") {
+			t.Errorf("marker row %s: want string containing 'Leerzeile', got %q", cell, got)
+		}
+	}
+}
+
+func TestGenerateExcel_TemplateHeader_HeaderRowAt7(t *testing.T) {
+	app := baseApp()
+	data, err := GenerateExcel(app, []shared.MeteringPoint{baseMeteringPoint()})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Row 7 must be the header row
+	if got := cellValue(t, data, "A7"); got != "Netzbetreiber" {
+		t.Errorf("header row A7: want 'Netzbetreiber', got %q", got)
+	}
+	if got := cellValue(t, data, "B7"); got != "Gemeinschafts-ID" {
+		t.Errorf("header row B7: want 'Gemeinschafts-ID', got %q", got)
+	}
+	if got := cellValue(t, data, "AJ7"); got != "Meter Codes" {
+		t.Errorf("header row AJ7: want 'Meter Codes', got %q", got)
+	}
+}
+
+func TestGenerateExcel_TemplateHeader_ErforderlichAnnotations(t *testing.T) {
+	app := baseApp()
+	data, err := GenerateExcel(app, []shared.MeteringPoint{baseMeteringPoint()})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Row 4 must have Erforderlich in required columns
+	for _, cell := range []string{"B4", "C4", "D4", "E4", "F4", "G4", "L4", "M4", "U4", "V4", "AH4"} {
+		if got := cellValue(t, data, cell); got != "Erforderlich" {
+			t.Errorf("required annotation %s: want 'Erforderlich', got %q", cell, got)
+		}
+	}
+}
+
+func TestGenerateExcel_DataStartsAtRow10(t *testing.T) {
+	app := baseApp()
+	mp := baseMeteringPoint()
+
+	data, err := GenerateExcel(app, []shared.MeteringPoint{mp})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// First data row: metering point in column L, row 10
+	if got := cellValue(t, data, "L10"); got != mp.MeteringPoint {
+		t.Errorf("L10: want %q, got %q", mp.MeteringPoint, got)
+	}
+	// Row 9 (last marker row) must not contain metering point data
+	if got := cellValue(t, data, "L9"); got != "" {
+		t.Errorf("L9 should be empty (marker row), got %q", got)
+	}
+}
+
+func TestGenerateExcel_MultipleMetringPoints_SecondRowAt11(t *testing.T) {
+	app := baseApp()
+	mp1 := baseMeteringPoint()
+	mp2 := baseMeteringPoint()
+	mp2.MeteringPoint = "AT0010000000000000009876543210"
+	mp2.Direction = shared.DirectionProduction
+
+	data, err := GenerateExcel(app, []shared.MeteringPoint{mp1, mp2})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got := cellValue(t, data, "L10"); got != mp1.MeteringPoint {
+		t.Errorf("L10: want %q, got %q", mp1.MeteringPoint, got)
+	}
+	if got := cellValue(t, data, "L11"); got != mp2.MeteringPoint {
+		t.Errorf("L11: want %q, got %q", mp2.MeteringPoint, got)
+	}
+	if got := cellValue(t, data, "M11"); got != "GENERATION" {
+		t.Errorf("M11 direction: want 'GENERATION', got %q", got)
 	}
 }
