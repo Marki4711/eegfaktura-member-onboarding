@@ -13,7 +13,6 @@ It supports:
 - later import into eegFaktura
 
 Not part of the model:
-- documents
 - tariffs
 - role management
 - separate metering point addresses
@@ -39,6 +38,7 @@ Purpose:
 Fields:
 - `id`
 - `rc_number`
+- `eeg_id` — nullable, internal EEG identifier used for the Gemeinschafts-ID column in the Excel export
 - `is_active`
 - `contact_email` — nullable, EEG notification email address
 - `intro_text` — nullable, sanitized HTML string for the public registration form
@@ -179,6 +179,45 @@ Fields:
 - `changed_by_user_id`
 - `reason`
 - `created_at`
+
+### 3.5 `member_onboarding.legal_document`
+
+Per-EEG list of legal documents shown in the public registration form.
+
+Fields:
+- `id`
+- `rc_number` — references `registration_entrypoint(rc_number)`, ON DELETE CASCADE
+- `title` — displayed link text in the form (max 500 chars)
+- `url` — URL to the document (max 2048 chars, http/https only)
+- `required` — boolean; when `true`, unchecked box blocks form submission
+- `sort_order` — integer; ascending display order
+- `created_at`
+- `updated_at`
+
+Rules:
+- max 10 documents per EEG (enforced in application code)
+- the central operator privacy policy is NOT stored here — it is configured via env vars (`CENTRAL_POLICY_TITLE`, `CENTRAL_POLICY_URL`) and appended by the backend to every public config response
+
+---
+
+### 3.6 `member_onboarding.document_consent`
+
+Immutable consent snapshots stored at application submission time.
+
+Fields:
+- `id`
+- `application_id` — references `application(id)`, ON DELETE CASCADE
+- `title` — snapshot of document title at submission time
+- `url` — snapshot of document URL at submission time
+- `is_central_policy` — boolean; `true` for the operator's central privacy policy
+- `consented_at` — timestamp of consent (= application submission time)
+
+Rules:
+- no foreign key to `legal_document` — deleting a document never affects stored consents
+- records are never updated after creation
+- an application may have zero consent entries if submitted without consent data
+
+---
 
 ## 4. Status Model
 

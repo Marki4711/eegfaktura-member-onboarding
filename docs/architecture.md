@@ -80,6 +80,8 @@ Persistence uses the same PostgreSQL database as eegFaktura, but in a dedicated 
 - `member_onboarding.application`
 - `member_onboarding.metering_point`
 - `member_onboarding.status_log`
+- `member_onboarding.legal_document` — EEG-specific legal documents shown in the registration form
+- `member_onboarding.document_consent` — immutable consent snapshots recorded at application submission
 
 ### 3.5 eegFaktura Core
 The core remains the authoritative system for productive participant data.
@@ -105,13 +107,15 @@ Disallowed connections:
 
 ## 5. Data Storage
 
-The module uses a deliberately reduced relational model without JSON fields and without document management.
+The module uses a deliberately reduced relational model without JSON fields.
 
 Tables:
 - `member_onboarding.registration_entrypoint`
 - `member_onboarding.application`
 - `member_onboarding.metering_point`
 - `member_onboarding.status_log`
+- `member_onboarding.legal_document`
+- `member_onboarding.document_consent`
 
 Basic rules:
 - one application contains exactly one member

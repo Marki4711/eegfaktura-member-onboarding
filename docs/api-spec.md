@@ -27,6 +27,8 @@ Not part of this API:
   - `member_onboarding.application`
   - `member_onboarding.metering_point`
   - `member_onboarding.status_log`
+  - `member_onboarding.legal_document`
+  - `member_onboarding.document_consent`
 
 ## 3. Authentication
 
@@ -87,18 +89,44 @@ No direct access to eegFaktura core tables takes place.
 ```json
 {
   "rcNumber": "RC123456",
-  "title": "Become a member",
+  "title": "Mitglied werden",
   "active": true,
   "fieldConfig": {
     "phone": "optional",
     "birth_date": "optional",
     "heat_pump": "required",
     "transformer": "hidden"
-  }
+  },
+  "introText": "<p>Willkommen!</p>",
+  "sepaMandateEnabled": true,
+  "legalDocuments": [
+    {
+      "id": "3f8c8c2d-...",
+      "title": "Satzung der Energiegemeinschaft",
+      "url": "https://example.at/satzung.pdf",
+      "required": true,
+      "sortOrder": 0,
+      "isCentralPolicy": false
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000000",
+      "title": "Datenschutzerklärung",
+      "url": "https://example.at/datenschutz",
+      "required": true,
+      "sortOrder": 9999,
+      "isCentralPolicy": true
+    }
+  ]
 }
 ```
 
-`fieldConfig` contains only explicitly configured fields. Missing fields fall back to system defaults (`hidden` for new fields, `optional` for `phone`, `birth_date`, `uid_number`). The frontend uses this to show/hide/require fields dynamically. Fields with admin state `admin_only` are returned as `"hidden"` here — they are never shown to the member.
+`fieldConfig` contains only explicitly configured fields. Missing fields fall back to system defaults (`hidden` for new fields, `optional` for `phone`, `birth_date`, `uid_number`). Fields with admin state `admin_only` are returned as `"hidden"` — they are never shown to the member.
+
+`introText` is `null` when no text is configured.
+
+`sepaMandateEnabled` is `false` by default. When `true`, SEPA mandate checkboxes and PDF generation are activated.
+
+`legalDocuments` always contains at least the central privacy policy entry (`isCentralPolicy: true`). EEG-specific documents precede it, ordered by `sortOrder`. The central policy is not stored in the database — it is configured via `CENTRAL_POLICY_TITLE` / `CENTRAL_POLICY_URL` env vars.
 
 ### Errors
 - `404` if `rc_number` is not found in `registration_entrypoint`
@@ -236,7 +264,26 @@ Submits the application.
 - `id: uuid`
 
 ### Request
-empty
+Optional body with consent snapshots:
+
+```json
+{
+  "consents": [
+    {
+      "title": "Satzung der Energiegemeinschaft",
+      "url": "https://example.at/satzung.pdf",
+      "isCentralPolicy": false
+    },
+    {
+      "title": "Datenschutzerklärung",
+      "url": "https://example.at/datenschutz",
+      "isCentralPolicy": true
+    }
+  ]
+}
+```
+
+`consents` is optional. Each entry is a snapshot of the document title and URL at the time of submission. If not provided, no consent entries are stored. The backend does not validate consent entries against configured `legal_document` records — the frontend is responsible for sending the correct entries.
 
 ### Rules
 Before submit, the following must be set:
@@ -366,9 +413,27 @@ Returns the admin list.
       "reason": "submitted by public user",
       "createdAt": "2026-04-18T12:35:00Z"
     }
+  ],
+  "consents": [
+    {
+      "id": "1a2b3c...",
+      "title": "Satzung der Energiegemeinschaft",
+      "url": "https://example.at/satzung.pdf",
+      "isCentralPolicy": false,
+      "consentedAt": "2026-04-18T12:35:00Z"
+    },
+    {
+      "id": "2b3c4d...",
+      "title": "Datenschutzerklärung",
+      "url": "https://example.at/datenschutz",
+      "isCentralPolicy": true,
+      "consentedAt": "2026-04-18T12:35:00Z"
+    }
   ]
 }
 ```
+
+`consents` contains the immutable snapshots of legal document consents recorded at submission time. Empty array when no consents were submitted.
 
 ### Errors
 - `404` not found
@@ -752,21 +817,122 @@ The file contains:
 
 ---
 
-## 6.16 Public registration config — introText field
+## 6.16 Legal documents — Admin CRUD
 
-`GET /api/public/registration/{rc_number}` includes `introText` in the response:
+Manages the list of EEG-specific legal documents shown in the public registration form.
 
+---
+
+### GET `/api/admin/legal-documents?rc_number={rc_number}`
+
+Returns all legal documents for an EEG, ordered by `sortOrder`.
+
+### Response 200
+```json
+[
+  {
+    "id": "3f8c8c2d-...",
+    "rcNumber": "RC123456",
+    "title": "Satzung der Energiegemeinschaft",
+    "url": "https://example.at/satzung.pdf",
+    "required": true,
+    "sortOrder": 0,
+    "createdAt": "2026-04-25T10:00:00Z",
+    "updatedAt": "2026-04-25T10:00:00Z"
+  }
+]
+```
+
+Empty array when no documents are configured.
+
+### Errors
+- `400` missing `rc_number`
+- `403` not authorized for this EEG
+
+---
+
+### POST `/api/admin/legal-documents?rc_number={rc_number}`
+
+Creates a new legal document. Maximum 10 documents per EEG.
+
+### Request
 ```json
 {
-  "rcNumber": "RC123456",
-  "title": "Mitglied werden",
-  "active": true,
-  "fieldConfig": { ... },
-  "introText": "<p>Willkommen!</p>"
+  "title": "Satzung der Energiegemeinschaft",
+  "url": "https://example.at/satzung.pdf",
+  "required": true
 }
 ```
 
-`introText` is `null` when no text is configured. The frontend displays a default text in that case.
+Validation: `title` required (max 500 chars), `url` required (max 2048 chars, must use `http`/`https` scheme).
+
+### Response 201
+The created document object (same shape as list item).
+
+### Errors
+- `400` validation error
+- `403` not authorized
+- `409` document limit (10) reached
+
+---
+
+### PUT `/api/admin/legal-documents/{id}`
+
+Updates title, url, and required flag of an existing document.
+
+### Request
+```json
+{
+  "title": "Satzung (aktualisiert)",
+  "url": "https://example.at/satzung-v2.pdf",
+  "required": true
+}
+```
+
+Same validation as create.
+
+### Response
+- `204 No Content`
+
+### Errors
+- `400` validation error
+- `403` not authorized for the document's EEG
+- `404` document not found
+
+---
+
+### DELETE `/api/admin/legal-documents/{id}`
+
+Deletes a legal document. Existing consent snapshots in `document_consent` are not affected (no foreign key).
+
+### Response
+- `204 No Content`
+
+### Errors
+- `403` not authorized for the document's EEG
+- `404` document not found
+
+---
+
+### PUT `/api/admin/legal-documents/reorder?rc_number={rc_number}`
+
+Replaces the sort order for all documents of an EEG atomically. Send all document IDs in the desired order.
+
+### Request
+```json
+{
+  "ids": ["3f8c8c2d-...", "7a1b2c3d-..."]
+}
+```
+
+All IDs must be valid UUIDs. IDs not belonging to the given `rc_number` are silently ignored.
+
+### Response
+- `204 No Content`
+
+### Errors
+- `400` missing `rc_number` or invalid UUID
+- `403` not authorized
 
 ---
 
