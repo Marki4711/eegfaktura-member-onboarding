@@ -49,7 +49,7 @@ backend:
     port: "587"
     user: "" # leer = kein SMTP-Auth (open relay)
     from: "" # Pflicht wenn smtp.host gesetzt
-  dbSslMode: "require" # require | disable (disable nur für lokale Entwicklung ohne TLS-PostgreSQL)
+  dbSslMode: "disable" # disable (interner Cluster-Postgres) | require (externer Postgres mit TLS)
   # Keycloak JWT-Validierung — leer = Dev-Modus (kein Auth)
   keycloakJwksUrl: "" # z.B. https://keycloak.example.at/realms/EEGFaktura/protocol/openid-connect/certs
   keycloakIssuer: "" # z.B. https://keycloak.example.at/realms/EEGFaktura
