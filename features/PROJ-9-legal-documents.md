@@ -1,8 +1,8 @@
 # PROJ-9: EEG-spezifische Rechtsdokumente mit granularer Zustimmung
 
-## Status: Planned
+## Status: In Progress
 **Created:** 2026-04-21
-**Last Updated:** 2026-04-21
+**Last Updated:** 2026-04-25
 
 ## Dependencies
 - Requires: PROJ-1 (Public Registration) — Zustimmung erfolgt im Registrierungsformular
@@ -198,6 +198,26 @@ Keine neuen Go-Pakete notwendig — die neue Logik passt in die bestehende Struk
 | Migration | Inhalt |
 |---|---|
 | `000018_add_legal_documents.up.sql` | Tabellen `legal_document` + `document_consent` mit Constraints und Indexes |
+
+## Implementation Notes
+
+### Backend (2026-04-25)
+- Migration `000018_add_legal_documents.up.sql` creates `legal_document` and `document_consent` tables
+- `internal/application/legal_document_repo.go`: CRUD + reorder logic; `MaxLegalDocumentsPerEEG = 10`
+- `internal/application/document_consent_repo.go`: bulk insert + fetch by application_id
+- `internal/application/application_service.go`: `SubmitApplication(id, consents)` saves consent snapshots in transaction
+- `internal/application/admin_service.go`: `GetApplicationDetail` fetches and maps consents to `DocumentConsentView`
+- `internal/application/registration_service.go`: `GetRegistrationConfig` appends central policy from env vars
+- `internal/http/admin.go`: 5 new handlers (List, Create, Update, Delete, Reorder) with tenant isolation
+- `internal/config/config.go`: `CENTRAL_POLICY_TITLE` + `CENTRAL_POLICY_URL` env vars
+- `cmd/server/main.go`: wired all new repos and handlers; routes `/api/admin/legal-documents/*`
+
+### Frontend (2026-04-25)
+- `src/lib/api.ts`: `LegalDocumentItem`, `ConsentInput`, `DocumentConsentView` types; updated `RegistrationConfig` and `AdminApplicationDetail`; CRUD functions; `submitApplication` accepts optional consents
+- `src/components/admin-legal-documents-editor.tsx`: new component with list/add/edit/delete/reorder
+- `src/components/registration-form.tsx`: dynamic checkboxes from `config.legalDocuments`; central policy URL linked; required docs validated; consents sent on submit
+- `src/components/admin-application-detail.tsx`: consent snapshots shown in Einwilligungen card
+- `src/app/admin/settings/page.tsx`: Rechtsdokumente section added
 
 ## QA Test Results
 _To be added by /qa_
