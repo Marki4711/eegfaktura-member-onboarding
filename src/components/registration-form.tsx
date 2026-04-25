@@ -307,7 +307,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
   function boolSelectValue(v: boolean | null | undefined): string {
     if (v === true) return "true";
     if (v === false) return "false";
-    return "";
+    return "__none__";
   }
 
   async function onSubmit(values: RegistrationFormValues) {
@@ -928,7 +928,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                         <FormLabel>Wärmepumpe vorhanden{req("heat_pump")}</FormLabel>
                         <Select
                           value={boolSelectValue(field.value)}
-                          onValueChange={(v) => field.onChange(v === "" ? null : parseBoolSelect(v))}
+                          onValueChange={(v) => field.onChange(v === "__none__" ? null : parseBoolSelect(v))}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -936,7 +936,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">Keine Angabe</SelectItem>
+                            <SelectItem value="__none__">Keine Angabe</SelectItem>
                             <SelectItem value="true">Ja</SelectItem>
                             <SelectItem value="false">Nein</SelectItem>
                           </SelectContent>
@@ -955,7 +955,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                         <FormLabel>E-Auto vorhanden{req("electric_vehicle")}</FormLabel>
                         <Select
                           value={boolSelectValue(field.value)}
-                          onValueChange={(v) => field.onChange(v === "" ? null : parseBoolSelect(v))}
+                          onValueChange={(v) => field.onChange(v === "__none__" ? null : parseBoolSelect(v))}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -963,7 +963,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">Keine Angabe</SelectItem>
+                            <SelectItem value="__none__">Keine Angabe</SelectItem>
                             <SelectItem value="true">Ja</SelectItem>
                             <SelectItem value="false">Nein</SelectItem>
                           </SelectContent>
@@ -982,7 +982,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                         <FormLabel>Warmwasser elektrisch (Boiler){req("electric_hot_water")}</FormLabel>
                         <Select
                           value={boolSelectValue(field.value)}
-                          onValueChange={(v) => field.onChange(v === "" ? null : parseBoolSelect(v))}
+                          onValueChange={(v) => field.onChange(v === "__none__" ? null : parseBoolSelect(v))}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -990,7 +990,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">Keine Angabe</SelectItem>
+                            <SelectItem value="__none__">Keine Angabe</SelectItem>
                             <SelectItem value="true">Ja</SelectItem>
                             <SelectItem value="false">Nein</SelectItem>
                           </SelectContent>
