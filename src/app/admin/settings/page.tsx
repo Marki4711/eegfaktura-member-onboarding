@@ -95,16 +95,16 @@ export default function SettingsPage() {
         )}
       </div>
 
-      {/* Rechtsdokumente */}
+      {/* EEG-Stammdaten & SEPA-Mandat */}
       {selectedRc && (
         <div>
-          <h2 className="text-xl font-semibold mb-1">Rechtsdokumente</h2>
+          <h2 className="text-xl font-semibold mb-1">EEG-Stammdaten &amp; SEPA-Mandat</h2>
           <p className="text-sm text-muted-foreground mb-4">
-            EEG-spezifische Dokumente (z.B. Satzung, Nutzungsbedingungen), denen Mitglieder bei der
-            Registrierung zustimmen müssen. Die zentrale Datenschutzerklärung wird über
-            Servereinstellungen konfiguriert.
+            Aktivieren oder deaktivieren Sie die öffentliche Registrierung. Hinterlegen Sie die
+            Stammdaten Ihrer Energiegemeinschaft für das SEPA-Lastschriftmandat — wenn aktiviert,
+            wird das Mandat als PDF-Anhang im Willkommensmail verschickt.
           </p>
-          <AdminLegalDocumentsEditor rcNumber={selectedRc} />
+          <AdminEEGSettingsEditor rcNumber={selectedRc} />
         </div>
       )}
 
@@ -124,39 +124,12 @@ export default function SettingsPage() {
 
       <Separator />
 
-      {/* EEG-Stammdaten & SEPA-Mandat */}
-      {selectedRc && (
-        <div>
-          <h2 className="text-xl font-semibold mb-1">EEG-Stammdaten &amp; SEPA-Mandat</h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            Stammdaten der Energiegemeinschaft für das SEPA-Lastschriftmandat. Aktivieren Sie den Schalter,
-            damit das Mandat als PDF-Anhang im Willkommensmail verschickt wird.
-          </p>
-          <AdminEEGSettingsEditor rcNumber={selectedRc} />
-        </div>
-      )}
-
-      <Separator />
-
-      {/* Externe API */}
-      {selectedRc && (
-        <div>
-          <h2 className="text-xl font-semibold mb-1">Externe API</h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            API-Key für die externe Registrierungs-API. Der Key ermöglicht das Einreichen von Mitgliedsanträgen
-            über eine eigene Integration (z.B. eigenes Formular auf Ihrer Website).
-            Der Key darf ausschließlich server-seitig verwendet werden — niemals in Browser-seitigem Code.
-          </p>
-          <AdminApiKeyEditor rcNumber={selectedRc} />
-        </div>
-      )}
-
-      <Separator />
-
+      {/* Formular-Felder & Zählpunktfelder */}
       <div>
-        <h2 className="text-xl font-semibold mb-1">Formular-Felder</h2>
+        <h2 className="text-xl font-semibold mb-1">Formular-Felder &amp; Zählpunktfelder</h2>
         <p className="text-sm text-muted-foreground mb-4">
           Legen Sie fest, welche optionalen Felder im Registrierungsformular für Ihre EEG angezeigt werden.
+          Felder können ausgeblendet, optional, verpflichtend oder als Admin-Vorbefüllung konfiguriert werden.
         </p>
 
         {loading && (
@@ -178,6 +151,36 @@ export default function SettingsPage() {
           <AdminFieldConfigEditor rcNumber={selectedRc} initialConfig={fieldConfig} />
         )}
       </div>
+
+      <Separator />
+
+      {/* Rechtsdokumente */}
+      {selectedRc && (
+        <div>
+          <h2 className="text-xl font-semibold mb-1">Rechtsdokumente</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            EEG-spezifische Dokumente (z.B. Satzung, Nutzungsbedingungen), denen Mitglieder bei der
+            Registrierung zustimmen müssen. Die zentrale Datenschutzerklärung wird über
+            Servereinstellungen konfiguriert.
+          </p>
+          <AdminLegalDocumentsEditor rcNumber={selectedRc} />
+        </div>
+      )}
+
+      <Separator />
+
+      {/* Externe API */}
+      {selectedRc && (
+        <div>
+          <h2 className="text-xl font-semibold mb-1">Externe API</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            API-Key für die externe Registrierungs-API. Der Key ermöglicht das Einreichen von Mitgliedsanträgen
+            über eine eigene Integration (z.B. eigenes Formular auf Ihrer Website).
+            Der Key darf ausschließlich server-seitig verwendet werden — niemals in Browser-seitigem Code.
+          </p>
+          <AdminApiKeyEditor rcNumber={selectedRc} />
+        </div>
+      )}
     </div>
   );
 }

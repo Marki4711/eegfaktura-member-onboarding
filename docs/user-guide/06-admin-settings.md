@@ -1,0 +1,95 @@
+# Admin-Einstellungen
+
+Die Einstellungsseite ist über **Einstellungen** im Admin-Bereich erreichbar. Sie enthält alle EEG-spezifischen Konfigurationen.
+
+## EEG auswählen
+
+Wenn Ihr Account für mehrere EEGs zuständig ist, erscheint oben rechts ein Auswahlfeld. Alle Einstellungen beziehen sich auf die gewählte EEG.
+
+## EEG-Stammdaten & SEPA-Mandat
+
+In diesem Abschnitt steuern Sie die öffentliche Registrierung und hinterlegen die Stammdaten für das SEPA-Lastschriftmandat.
+
+![EEG-Einstellungen](images/admin-settings-eeg.png)
+
+### Mitgliederregistrierung aktiv
+
+Der Toggle ganz oben steuert, ob der öffentliche Registrierungslink für Ihre EEG aktiv ist.
+
+- **Aktiv**: Interessenten können sich über den Registrierungslink anmelden.
+- **Inaktiv**: Besucher des Registrierungslinks erhalten eine Fehlermeldung. Bestehende Anträge sind davon nicht betroffen.
+
+Neue EEGs starten standardmäßig als inaktiv. Aktivieren Sie die Registrierung erst, wenn alle Einstellungen konfiguriert sind.
+
+### Gemeinschafts-ID
+
+Die interne ID Ihrer EEG in eegFaktura. Sie wird im Excel-Export für den Datenimport verwendet.
+
+### EEG-Stammdaten
+
+Name, Adresse und Creditor-ID Ihrer Energiegemeinschaft. Diese Felder werden für das SEPA-Lastschriftmandat benötigt.
+
+### SEPA-Lastschriftmandat
+
+- **SEPA-Lastschriftmandat dem Willkommensmail anhängen**: Wenn aktiv, wird beim Einreichen eines Mitgliedsantrags automatisch ein PDF-Mandat generiert und als Anhang im Willkommensmail verschickt.
+- **Firmenlastschrift (B2B)**: Erscheint nur wenn SEPA aktiv ist. Aktivieren Sie diese Option, wenn Unternehmen und Verbände das B2B-Mandat erhalten sollen.
+
+> **Hinweis:** Wenn das SEPA-Mandat aktiviert ist, aber Stammdaten fehlen, erscheint eine Warnung. Solange Felder fehlen, wird kein PDF generiert.
+
+Klicken Sie auf **Speichern**, um alle Änderungen in diesem Abschnitt zu übernehmen.
+
+---
+
+## Einleitungstext
+
+Der Einleitungstext wird oberhalb des Registrierungsformulars angezeigt. Er kann genutzt werden, um Interessenten zu begrüßen oder Hinweise zur Registrierung zu geben.
+
+Unterstützte Formatierungen: **Fett**, *Kursiv*, Listen und Links. Wenn das Feld leer bleibt, wird ein Standardtext angezeigt.
+
+Klicken Sie auf **Speichern**, um den Text zu übernehmen.
+
+---
+
+## Formular-Felder & Zählpunktfelder
+
+Hier legen Sie fest, welche optionalen Felder im Registrierungsformular angezeigt werden.
+
+Für jedes Feld stehen vier Zustände zur Verfügung:
+
+| Zustand | Beschreibung |
+|---------|--------------|
+| **Ausgeblendet** | Das Feld ist im Registrierungsformular nicht sichtbar. |
+| **Optional** | Das Feld wird angezeigt, muss aber nicht ausgefüllt werden. |
+| **Verpflichtend** | Das Feld muss vom Mitglied ausgefüllt werden. |
+| **Admin-Vorbefüllung** | Das Feld wird nicht im Formular angezeigt. Stattdessen wird der hier eingetragene Standardwert automatisch auf neue Anträge angewendet. |
+
+Klicken Sie auf **Konfiguration speichern**, um die Änderungen zu übernehmen.
+
+---
+
+## Rechtsdokumente
+
+Hier verwalten Sie EEG-spezifische Dokumente (z.B. Satzung, Nutzungsbedingungen), denen Mitglieder bei der Registrierung zustimmen müssen.
+
+### Dokument hinzufügen
+
+1. Klicken Sie auf **Dokument hinzufügen**.
+2. Geben Sie einen Titel und die URL des Dokuments ein.
+3. Aktivieren Sie **Zustimmung erforderlich**, wenn das Mitglied dem Dokument aktiv zustimmen muss.
+4. Klicken Sie auf **Hinzufügen**.
+
+### Dokument bearbeiten oder löschen
+
+Über die Symbole in der Dokumentenliste können Sie bestehende Einträge bearbeiten oder entfernen.
+
+> **Hinweis:** Die zentrale Datenschutzerklärung (für alle EEGs gemeinsam) wird über die Servereinstellungen konfiguriert, nicht hier.
+
+---
+
+## Externe API
+
+Dieser Abschnitt zeigt den API-Key für die externe Registrierungs-API. Der Key ermöglicht das Einreichen von Mitgliedsanträgen über eine eigene Integration (z.B. ein Formular auf Ihrer Website).
+
+> **Sicherheitshinweis:** Der API-Key darf ausschließlich server-seitig verwendet werden — niemals direkt in Browser-seitigem Code. Behandeln Sie ihn wie ein Passwort.
+
+Über **Neuen Key generieren** können Sie den bestehenden Key ungültig machen und einen neuen ausstellen.

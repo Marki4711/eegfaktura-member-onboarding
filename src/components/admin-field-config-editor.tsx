@@ -59,7 +59,6 @@ function FieldRow({
           <Input
             value={entry.adminValue ?? ""}
             onChange={(e) => onChange({ ...entry, adminValue: e.target.value || undefined })}
-            placeholder="Standardwert (wird automatisch auf neue Anträge angewendet)"
             className="h-8 text-xs"
           />
         </div>

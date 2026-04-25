@@ -160,7 +160,6 @@ export function AdminIntroTextEditor({ rcNumber }: Props) {
                   value={linkUrl}
                   onChange={(e) => setLinkUrl(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && applyLink()}
-                  placeholder="https://..."
                   className="h-8 text-sm"
                 />
                 <Button size="sm" className="h-8" onClick={applyLink}>OK</Button>

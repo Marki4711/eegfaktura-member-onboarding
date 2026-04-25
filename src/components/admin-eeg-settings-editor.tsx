@@ -131,7 +131,6 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
               id="eeg-id"
               value={eegId}
               onChange={(e) => { setEegId(e.target.value); setSaveResult(null); }}
-              placeholder="AT00300000000RC101519000000912345"
               className={fieldClass}
             />
             <p className="text-xs text-muted-foreground">
@@ -146,7 +145,6 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
               id="eeg-name"
               value={eegName}
               onChange={(e) => { setEegName(e.target.value); setSaveResult(null); }}
-              placeholder="Erneuerbare Energiegemeinschaft Muster"
               className={fieldClass}
             />
           </div>
@@ -159,7 +157,6 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
                 id="eeg-street"
                 value={eegStreet}
                 onChange={(e) => { setEegStreet(e.target.value); setSaveResult(null); }}
-                placeholder="Musterstraße"
                 className={fieldClass}
               />
             </div>
@@ -169,7 +166,6 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
                 id="eeg-street-number"
                 value={eegStreetNumber}
                 onChange={(e) => { setEegStreetNumber(e.target.value); setSaveResult(null); }}
-                placeholder="1"
                 className={fieldClass}
               />
             </div>
@@ -183,7 +179,6 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
                 id="eeg-zip"
                 value={eegZip}
                 onChange={(e) => { setEegZip(e.target.value); setSaveResult(null); }}
-                placeholder="1234"
                 className={fieldClass}
               />
             </div>
@@ -193,7 +188,6 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
                 id="eeg-city"
                 value={eegCity}
                 onChange={(e) => { setEegCity(e.target.value); setSaveResult(null); }}
-                placeholder="Musterort"
                 className={fieldClass}
               />
             </div>
@@ -206,7 +200,6 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
               id="creditor-id"
               value={creditorId}
               onChange={(e) => { setCreditorId(e.target.value); setSaveResult(null); }}
-              placeholder="AT00ZZZ00000000000"
               className={fieldClass}
             />
           </div>

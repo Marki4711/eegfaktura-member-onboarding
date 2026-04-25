@@ -256,7 +256,6 @@ export function AdminLegalDocumentsEditor({ rcNumber }: Props) {
                 id="doc-title"
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
-                placeholder="z.B. Satzung der Energiegemeinschaft"
               />
             </div>
             <div className="space-y-1.5">
@@ -265,7 +264,6 @@ export function AdminLegalDocumentsEditor({ rcNumber }: Props) {
                 id="doc-url"
                 value={form.url}
                 onChange={(e) => setForm({ ...form, url: e.target.value })}
-                placeholder="https://..."
                 type="url"
               />
             </div>
