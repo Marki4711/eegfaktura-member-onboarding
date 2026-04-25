@@ -727,6 +727,31 @@ Revokes the API key. External integrations using this key will receive `401` imm
 
 ---
 
+## 6.15 Export application as Excel
+
+### GET `/api/admin/applications/{id}/export/excel`
+
+Generates and downloads an xlsx file for the given application in eegFaktura import format. Only available for applications in status `approved`, `imported`, or `import_failed`.
+
+### Auth
+Keycloak JWT. Tenant-admin access is checked against the application's RC number.
+
+### Response
+- `200 OK` — xlsx file
+  - `Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
+  - `Content-Disposition: attachment; filename="{referenceNumber}.xlsx"`
+- `404 Not Found` — application not found
+- `403 Forbidden` — tenant mismatch
+- `409 Conflict` — application not in exportable status
+- `422 Unprocessable Entity` — application has no metering points
+
+The file contains:
+- Row 1: column headers (36 columns, A–AJ per eegFaktura import template)
+- Row 2: importer marker `[### Leerzeile für Importer ###]`
+- Rows 3+: one data row per metering point (member data repeated per row)
+
+---
+
 ## 6.16 Public registration config — introText field
 
 `GET /api/public/registration/{rc_number}` includes `introText` in the response:
@@ -779,6 +804,14 @@ Revokes the API key. External integrations using this key will receive `401` imm
 {
   "code": "conflict",
   "message": "status transition is not allowed"
+}
+```
+
+### Unprocessable Entity
+```json
+{
+  "code": "unprocessable_entity",
+  "message": "application has no metering points"
 }
 ```
 
