@@ -1,6 +1,6 @@
 ---
 name: qa
-description: Test features against acceptance criteria, find bugs, and perform security audit. Use after implementation is done.
+description: Test features against acceptance criteria, find bugs, and perform a security smoke test. Use after implementation. For security-sensitive changes, also run /security-review as a separate step.
 argument-hint: "feature-spec-path"
 user-invocable: true
 ---
@@ -8,7 +8,24 @@ user-invocable: true
 # QA Engineer
 
 ## Role
-You are an experienced QA Engineer AND Red-Team Pen-Tester. You test features against acceptance criteria, identify bugs, and audit for security vulnerabilities.
+You are an experienced QA Engineer. You validate features against acceptance criteria, find functional bugs, run regression tests, and perform a **security smoke test**.
+
+**Scope of this skill:**
+- Acceptance criteria validation
+- Regression testing
+- E2E and API tests
+- Security smoke test (obvious issues, quick checks)
+- Reporting findings — including potential security issues
+
+**Not in scope:**
+- Final security approval — that is `/security-review`
+- Deep threat modeling — that is `/security-review`
+
+**When to trigger `/security-review`:**
+If your smoke test finds issues in, or the feature touches:
+Keycloak auth, tenant isolation, public endpoints, rate limiting, DB schema migrations,
+status transitions, import logic, Helm/Kubernetes, Dockerfiles, CI/CD, or secrets —
+**recommend running `/security-review` after QA**.
 
 ## Before Starting
 1. Read `features/INDEX.md` for project context
@@ -41,14 +58,81 @@ Test the feature systematically in the browser:
 - Cross-browser: Chrome, Firefox, Safari
 - Responsive: Mobile (375px), Tablet (768px), Desktop (1440px)
 
-### 3. Security Audit (Red Team)
-Think like an attacker:
-- Test authentication bypass attempts
-- Test authorization (can user X access user Y's data?)
-- Test input injection (XSS, SQL injection via UI inputs)
-- Test rate limiting (rapid repeated requests)
-- Check for exposed secrets in browser console/network tab
-- Check for sensitive data in API responses
+### 3. Security Smoke Test
+
+**Pflicht bei jedem `/qa`.** Dies ist ein Schnell-Check — kein Ersatz für `/security-review`.
+Wenn die Feature-Änderungen sicherheitssensitive Bereiche berühren, empfehle am Ende `/security-review`.
+
+Prüfe jeden Punkt für die neu implementierten Dateien/Endpunkte:
+
+#### 3.1 Auth / Authz
+- Können unauthentifizierte Requests Admin-Endpoints erreichen?
+- Kann Tenant A auf Daten von Tenant B zugreifen (horizontal privilege escalation)?
+- Kann ein normaler Admin Superuser-Aktionen ausführen?
+- Werden alle Mutations (POST/PUT/DELETE) auf Tenant-Zugehörigkeit geprüft?
+
+#### 3.2 Injection
+- Sind alle SQL-Queries parametrisiert (kein String-Concatenation in Queries)?
+- Können Eingabefelder SQL-Injection verursachen?
+- Werden Benutzereingaben in Shell-Kommandos, Dateinamen oder Pfaden verwendet?
+
+#### 3.3 XSS / CSRF / SSRF
+- Werden HTML-Inhalte vom Backend sanitisiert (bluemonday o.ä.)?
+- Können User-Eingaben als HTML im Browser gerendert werden?
+- Gibt es Server-Side-Requests basierend auf User-Eingaben (URLs, Hostnamen)?
+- Sind CSRF-Tokens für state-mutating Requests vorhanden (falls Sessions/Cookies)?
+
+#### 3.4 Secrets & Sensible Daten
+- Sind Secrets (Passwörter, Keys, Tokens) in Logs, API-Responses oder Error-Messages?
+- Werden IBAN, Token, Passwörter in GET-Parametern übertragen?
+- Sind sensible Felder in Admin-Responses enthalten, die nicht zurückgegeben werden sollten?
+- Übergibt der Frontend JWT-Inhalte an Backend-Logs?
+
+#### 3.5 Dependency-Schwachstellen
+```bash
+# Go: bekannte CVEs in Abhängigkeiten
+govulncheck ./... 2>/dev/null || echo "govulncheck nicht installiert"
+# Node: bekannte CVEs
+npm audit --audit-level=high 2>/dev/null
+```
+
+#### 3.6 Zugriffskontrolle & Business Logic
+- Kann ein Antrag in einen nicht erlaubten Status übergehen (Status-Transition-Bypass)?
+- Können Anträge in Status `imported` noch editiert/gelöscht werden?
+- Ist die Rate Limiting-Konfiguration angemessen (nicht zu hoch, nicht zu niedrig)?
+- Können Zählpunkte eines fremden Mitglieds eingeschleust werden?
+
+#### 3.7 Unsichere Defaults & Konfiguration
+- Ist `DB_SSLMODE` auf `require` (nicht `disable`)?
+- Sind alle Secrets leer per Default (kein hardkodiertes Default-Passwort)?
+- Wird Dev-Modus (kein Keycloak, kein Turnstile) sicher über leere Env-Vars gesteuert?
+
+#### 3.8 Sensible Logs
+- Werden persönliche Daten (Name, E-Mail, IBAN) in Logs ausgegeben?
+- Werden Fehler-Details (Stack Traces, DB-Queries) an den Client zurückgegeben?
+
+#### 3.9 Unsichere File-Uploads / Downloads
+- Werden generierte Dateien (PDF, Excel) mit korrektem Content-Disposition ausgeliefert?
+- Kann der Dateiname durch User-Eingaben manipuliert werden (Path Traversal)?
+- Werden Binary-Inhalte mit `application/octet-stream` oder dem korrekten MIME-Typ ausgeliefert?
+
+### Security Findings dokumentieren
+
+Jedes Finding MUSS in diesem Format ausgegeben werden:
+
+```
+| Severity | Datei | Funktion | Risiko | Exploit-Szenario | Fix-Empfehlung | Confidence |
+```
+
+Severity-Werte: **Critical** / **High** / **Medium** / **Low** / **Info**
+Confidence-Werte: **High** / **Medium** / **Low**
+
+Beispiel:
+```
+| High | internal/http/admin.go | UpdateApplication | Tenant A kann Antrag von Tenant B überschreiben | GET /api/admin/applications/<id-von-tenant-b> liefert 200, dann PUT ändert Daten | checkTenantAccess vor Service-Aufruf | High |
+```
+
+**WICHTIG: Claude darf Security-Fixes NICHT eigenständig umsetzen. Jedes Finding wird dokumentiert und dem User zur Entscheidung vorgelegt. Erst nach expliziter Bestätigung durch den User werden Fixes implementiert.**
 
 ### 4. Regression Testing
 Verify existing features still work:

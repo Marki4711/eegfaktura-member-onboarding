@@ -228,14 +228,63 @@ Use the starter kit workflow.
 
 Recommended flow for new work:
 
-1. `/requirements` for clarifying or refining feature scope
-2. `/architecture` for design decisions
-3. `/frontend` for UI work
-4. `/backend` for API, database, service, and import work
-5. `/qa` for validation against acceptance criteria
-6. `/deploy` for deployment-related work
+```
+/requirements   → clarify and specify the feature
+/architecture   → design decisions
+/frontend       → UI components
+/backend        → API, database, services
+/qa             → acceptance criteria, regression, E2E, security smoke test
+/security-review → dedicated security gate (required for security-sensitive changes)
+/deploy         → deployment bookkeeping and tag
+```
 
 Always work from a documented feature spec in `features/`.
+
+**Claude-generated code must not be considered trusted until:**
+- tests pass
+- `/qa` passes
+- security-sensitive changes received `/security-review`
+- human approval checkpoints were satisfied
+
+`/security-review` is required whenever changes touch:
+Keycloak auth, tenant isolation, public endpoints, rate limiting, DB schema,
+status transitions, import logic, Helm/Kubernetes, Dockerfiles, CI/CD, or secrets.
+
+## Security Workflow mit Snyk
+
+Dieses Projekt nutzt Snyk als ergänzenden Security-Scanner.
+
+Bei sicherheitsrelevanten Änderungen führt Claude Code folgende Scans aus:
+
+1. **Dependency-Änderungen** (`go.mod`, `package.json`): Snyk Open Source / `govulncheck` / `npm audit`
+2. **App-Code-Änderungen** (`internal/`, `src/`): Snyk Code (SAST) wenn verfügbar
+3. **Infrastruktur-Änderungen** (`helm/`, `Dockerfile*`, `.github/`): Snyk IaC / Container
+
+Ablauf:
+1. Scan vor der Änderung (Baseline)
+2. Änderung implementieren
+3. Tests, Lint, Build ausführen
+4. Scan nach der Änderung
+5. High- und Critical-Findings priorisieren und beheben
+6. Findings nicht ohne dokumentierte Begründung ignorieren
+7. Keine pauschalen Suppressions ohne explizite Begründung
+
+Snyk ist über MCP in Claude Code einbindbar. Konfiguration lokal (nicht ins Repository committen):
+```json
+{
+  "mcpServers": {
+    "Snyk": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "snyk@latest", "mcp", "-t", "stdio"],
+      "env": {}
+    }
+  }
+}
+```
+
+Keine Secrets oder Snyk-Tokens ins Repository committen.
+Details: `docs/security.md`
 
 ## Feature Tracking
 
