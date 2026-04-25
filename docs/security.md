@@ -197,6 +197,15 @@ Danach Claude Code neu starten. Prüfen mit: `claude mcp list` → `Snyk: ✓ Co
 - [x] Snyk MCP lokal in Claude Code konfiguriert (`claude mcp add --scope user`)
 - [x] Snyk Code (SAST) für Organisation `marki4711` aktiviert
 - [x] Dependabot-Alerts aktiviert (`.github/dependabot.yml`)
+- [x] GitHub Secret Scanning aktiviert
+- [x] GitHub Push Protection aktiviert
+- [x] GitHub Dependabot Security Updates aktiviert
+- [x] CodeQL aktiviert
 - [ ] GitHub-Repository auf snyk.io importieren (für CI-Alerts im PR-Flow)
-- [ ] GitHub Security Features vollständig aktivieren (Settings → Security → Secret Scanning, Push Protection)
 - [ ] Optional: Snyk-GitHub-Action in `.github/workflows/` ergänzen (empfohlen für CI-Gate)
+
+## Dokumentierte False Positives
+
+| Scanner | Regel | Datei | Begründung |
+|---------|-------|-------|------------|
+| CodeQL | `go/weak-sensitive-data-hashing` | `internal/http/apikey_middleware.go:80` | API-Keys sind hochentropische Zufalls-Token (`moak_` + 32 random chars). SHA-256 ist Standard für Token-Hashing (GitHub, Stripe). Bcrypt ist nur bei niedrig-entropischen Passwörtern relevant. Alert auf GitHub als False Positive dismissed. |
