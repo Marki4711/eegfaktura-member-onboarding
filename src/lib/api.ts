@@ -86,6 +86,7 @@ export interface RegistrationConfig {
   fieldConfig?: FieldConfig;
   introText?: string | null;
   sepaMandateEnabled?: boolean;
+  showCentralPolicy?: boolean;
   legalDocuments?: LegalDocumentItem[];
 }
 
@@ -476,6 +477,7 @@ export interface EEGSettings {
   creditorId: string | null;
   sepaMandateEnabled: boolean;
   useCompanySEPAMandate: boolean;
+  showCentralPolicy?: boolean;
 }
 
 export function getEEGSettings(rcNumber: string, token?: string): Promise<EEGSettings> {

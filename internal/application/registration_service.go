@@ -85,7 +85,9 @@ func (s *RegistrationService) GetRegistrationConfig(rcNumber string) (*shared.Re
 			IsCentralPolicy: false,
 		})
 	}
-	legalDocuments = append(legalDocuments, s.centralPolicy)
+	if ep.ShowCentralPolicy && s.centralPolicy.URL != "" {
+		legalDocuments = append(legalDocuments, s.centralPolicy)
+	}
 
 	return &shared.RegistrationConfig{
 		RCNumber:           ep.RCNumber,
@@ -94,6 +96,7 @@ func (s *RegistrationService) GetRegistrationConfig(rcNumber string) (*shared.Re
 		FieldConfig:        fieldConfig,
 		IntroText:          ep.IntroText,
 		SEPAMandateEnabled: ep.SEPAMandateEnabled,
+		ShowCentralPolicy:  ep.ShowCentralPolicy,
 		LegalDocuments:     legalDocuments,
 	}, nil
 }

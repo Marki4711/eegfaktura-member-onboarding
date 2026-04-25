@@ -112,6 +112,7 @@ type RegistrationConfig struct {
 	FieldConfig        map[string]string   `json:"fieldConfig"`
 	IntroText          *string             `json:"introText"`
 	SEPAMandateEnabled bool                `json:"sepaMandateEnabled"`
+	ShowCentralPolicy  bool                `json:"showCentralPolicy"`
 	LegalDocuments     []LegalDocumentItem `json:"legalDocuments"`
 }
 

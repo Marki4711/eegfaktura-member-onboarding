@@ -40,7 +40,7 @@ func (r *RegistrationEntrypointRepository) GetByRCNumber(rcNumber string) (*shar
 		SELECT id, rc_number, eeg_id, is_active, contact_email, intro_text,
 		       eeg_name, eeg_street, eeg_street_number, eeg_zip, eeg_city,
 		       creditor_id, sepa_mandate_enabled, use_company_sepa_mandate,
-		       created_at, updated_at
+		       show_central_policy, created_at, updated_at
 		FROM member_onboarding.registration_entrypoint
 		WHERE rc_number = $1`
 
@@ -49,7 +49,7 @@ func (r *RegistrationEntrypointRepository) GetByRCNumber(rcNumber string) (*shar
 		&ep.ID, &ep.RCNumber, &ep.EegID, &ep.IsActive, &ep.ContactEmail, &ep.IntroText,
 		&ep.EEGName, &ep.EEGStreet, &ep.EEGStreetNumber, &ep.EEGZip, &ep.EEGCity,
 		&ep.CreditorID, &ep.SEPAMandateEnabled, &ep.UseCompanySEPAMandate,
-		&ep.CreatedAt, &ep.UpdatedAt,
+		&ep.ShowCentralPolicy, &ep.CreatedAt, &ep.UpdatedAt,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -79,6 +79,26 @@ func (r *RegistrationEntrypointRepository) SaveEEGSettings(
 		sepaMandateEnabled, useCompanySEPAMandate, rcNumber)
 	if err != nil {
 		return fmt.Errorf("failed to save EEG settings for %s: %w", rcNumber, err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check rows affected: %w", err)
+	}
+	if rows == 0 {
+		return shared.ErrNotFound
+	}
+	return nil
+}
+
+// SaveShowCentralPolicy toggles whether the central privacy policy is shown
+// in the public registration form for the given RC number.
+func (r *RegistrationEntrypointRepository) SaveShowCentralPolicy(rcNumber string, show bool) error {
+	result, err := r.db.Exec(`
+		UPDATE member_onboarding.registration_entrypoint
+		SET show_central_policy = $1, updated_at = NOW()
+		WHERE rc_number = $2`, show, rcNumber)
+	if err != nil {
+		return fmt.Errorf("failed to save show_central_policy for %s: %w", rcNumber, err)
 	}
 	rows, err := result.RowsAffected()
 	if err != nil {

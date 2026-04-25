@@ -485,6 +485,7 @@ func (h *AdminHandler) GetEEGSettings(w http.ResponseWriter, r *http.Request) {
 		"creditorId":              ep.CreditorID,
 		"sepaMandateEnabled":      ep.SEPAMandateEnabled,
 		"useCompanySEPAMandate":   ep.UseCompanySEPAMandate,
+		"showCentralPolicy":       ep.ShowCentralPolicy,
 	})
 }
 
@@ -514,6 +515,7 @@ func (h *AdminHandler) SaveEEGSettings(w http.ResponseWriter, r *http.Request) {
 		CreditorID            *string `json:"creditorId"`
 		SEPAMandateEnabled    bool    `json:"sepaMandateEnabled"`
 		UseCompanySEPAMandate bool    `json:"useCompanySEPAMandate"`
+		ShowCentralPolicy     *bool   `json:"showCentralPolicy"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Invalid JSON", nil)))
@@ -542,6 +544,13 @@ func (h *AdminHandler) SaveEEGSettings(w http.ResponseWriter, r *http.Request) {
 	); err != nil {
 		h.handleServiceError(w, err)
 		return
+	}
+
+	if body.ShowCentralPolicy != nil {
+		if err := h.entrypointRepo.SaveShowCentralPolicy(rcNumber, *body.ShowCentralPolicy); err != nil {
+			h.handleServiceError(w, err)
+			return
+		}
 	}
 
 	w.WriteHeader(http.StatusNoContent)

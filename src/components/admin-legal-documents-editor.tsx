@@ -31,9 +31,12 @@ import {
   updateLegalDocument,
   deleteLegalDocument,
   reorderLegalDocuments,
+  getEEGSettings,
+  saveEEGSettings,
   ApiResponseError,
   type LegalDocumentItem,
   type CreateLegalDocumentRequest,
+  type EEGSettings,
 } from "@/lib/api";
 
 interface Props {
@@ -59,12 +62,21 @@ export function AdminLegalDocumentsEditor({ rcNumber }: Props) {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
+  const [showCentralPolicy, setShowCentralPolicy] = useState(true);
+  const [eegSettings, setEegSettings] = useState<EEGSettings | null>(null);
+  const [policyToggleSaving, setPolicyToggleSaving] = useState(false);
+
   const loadDocs = async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await listLegalDocuments(rcNumber, session?.accessToken);
+      const [data, settings] = await Promise.all([
+        listLegalDocuments(rcNumber, session?.accessToken),
+        getEEGSettings(rcNumber, session?.accessToken),
+      ]);
       setDocs(data);
+      setEegSettings(settings);
+      setShowCentralPolicy(settings.showCentralPolicy ?? true);
     } catch {
       setError("Dokumente konnten nicht geladen werden.");
     } finally {
@@ -76,6 +88,20 @@ export function AdminLegalDocumentsEditor({ rcNumber }: Props) {
     loadDocs();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rcNumber, session?.accessToken]);
+
+  async function handlePolicyToggle(checked: boolean) {
+    if (!eegSettings) return;
+    setPolicyToggleSaving(true);
+    setShowCentralPolicy(checked);
+    try {
+      await saveEEGSettings(rcNumber, { ...eegSettings, showCentralPolicy: checked }, session?.accessToken);
+      setEegSettings({ ...eegSettings, showCentralPolicy: checked });
+    } catch {
+      setShowCentralPolicy(!checked);
+    } finally {
+      setPolicyToggleSaving(false);
+    }
+  }
 
   function openAdd() {
     setEditingDoc(null);
@@ -200,6 +226,23 @@ export function AdminLegalDocumentsEditor({ rcNumber }: Props) {
       )}
 
       <Button variant="outline" size="sm" onClick={openAdd}>+ Dokument hinzufügen</Button>
+
+      <div className="border-t border-border pt-4 mt-2">
+        <div className="flex items-center gap-3">
+          <Switch
+            id="show-central-policy"
+            checked={showCentralPolicy}
+            onCheckedChange={handlePolicyToggle}
+            disabled={policyToggleSaving || !eegSettings}
+          />
+          <Label htmlFor="show-central-policy" className="cursor-pointer font-normal">
+            Standard-Datenschutzerklärung im Registrierungsformular anzeigen
+          </Label>
+        </div>
+        <p className="text-xs text-muted-foreground mt-1 ml-10">
+          Deaktivieren wenn diese EEG eine eigene Datenschutzerklärung als Dokument oben konfiguriert hat.
+        </p>
+      </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">

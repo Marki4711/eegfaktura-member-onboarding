@@ -223,8 +223,11 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
 
   const fieldConfig = config.fieldConfig;
   const sepaMandateEnabled = config.sepaMandateEnabled ?? false;
+  const showCentralPolicy = config.showCentralPolicy ?? true;
   const legalDocuments = config.legalDocuments ?? [];
-  const centralPolicy = legalDocuments.find((d) => d.isCentralPolicy && d.url);
+  const centralPolicy = showCentralPolicy
+    ? legalDocuments.find((d) => d.isCentralPolicy && d.url)
+    : undefined;
   const eegSpecificDocs = legalDocuments.filter((d) => !d.isCentralPolicy);
 
   // returns the resolved FieldState for an application-level configurable field
@@ -253,7 +256,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
       residentCity: "",
       iban: "",
       accountHolder: "",
-      privacyAccepted: false,
+      privacyAccepted: !showCentralPolicy,
       accuracyConfirmed: false,
       sepaMandateAccepted: sepaMandateEnabled ? true : false,
       meteringPoints: [{ meteringPoint: "", direction: "CONSUMPTION", participationFactor: 100 }],
@@ -1023,42 +1026,44 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
             <CardTitle className="text-base">Einwilligungen</CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
-            <FormField
-              control={form.control}
-              name="privacyAccepted"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start gap-3 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel className="font-normal cursor-pointer">
-                      {centralPolicy ? (
-                        <>
-                          Ich habe die{" "}
-                          <a href={centralPolicy.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
-                            {centralPolicy.title}
-                          </a>{" "}
-                          gelesen und stimme der Verarbeitung meiner Daten zu. *
-                        </>
-                      ) : (
-                        <>
-                          Ich habe die{" "}
-                          <a href="/datenschutz" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
-                            Datenschutzerklärung
-                          </a>{" "}
-                          gelesen und stimme der Verarbeitung meiner Daten zu. *
-                        </>
-                      )}
-                    </FormLabel>
-                    <FormMessage />
-                  </div>
-                </FormItem>
-              )}
-            />
+            {showCentralPolicy && (
+              <FormField
+                control={form.control}
+                name="privacyAccepted"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start gap-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="font-normal cursor-pointer">
+                        {centralPolicy ? (
+                          <>
+                            Ich habe die{" "}
+                            <a href={centralPolicy.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
+                              {centralPolicy.title}
+                            </a>{" "}
+                            gelesen und stimme der Verarbeitung meiner Daten zu. *
+                          </>
+                        ) : (
+                          <>
+                            Ich habe die{" "}
+                            <a href="/datenschutz" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
+                              Datenschutzerklärung
+                            </a>{" "}
+                            gelesen und stimme der Verarbeitung meiner Daten zu. *
+                          </>
+                        )}
+                      </FormLabel>
+                      <FormMessage />
+                    </div>
+                  </FormItem>
+                )}
+              />
+            )}
             {eegSpecificDocs.map((doc) => (
               <div key={doc.id} className="flex flex-row items-start gap-3">
                 <Checkbox
