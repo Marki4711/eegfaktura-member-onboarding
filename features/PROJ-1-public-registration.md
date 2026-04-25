@@ -1,5 +1,10 @@
 # PROJ-1: Public Registration
 
+## Status: Deployed
+**Created:** 2026-04-18
+**Last Updated:** 2026-04-25
+**Deployed:** 2026-04-25
+
 ## Overview
 Enable potential EEG members to register themselves through a public web interface. Members can access a registration link, fill out their personal and metering point information, and submit their application for admin review.
 
