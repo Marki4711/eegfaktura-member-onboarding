@@ -12,23 +12,23 @@ import (
 type CreateApplicationRequest struct {
 	RCNumber             string                      `json:"rcNumber" validate:"required"`
 	MemberType           string                      `json:"memberType" validate:"required,oneof=private farmer municipality company association"`
-	Firstname            *string                     `json:"firstname,omitempty" validate:"omitempty,min=1,max=255"`
-	Lastname             *string                     `json:"lastname,omitempty" validate:"omitempty,min=1,max=255"`
+	Firstname            *string                     `json:"firstname,omitempty" validate:"omitempty,min=1,max=100"`
+	Lastname             *string                     `json:"lastname,omitempty" validate:"omitempty,min=1,max=100"`
 	BirthDate            *string                     `json:"birthDate,omitempty"  validate:"omitempty,len=10"`
-	CompanyName          *string                     `json:"companyName,omitempty" validate:"omitempty,min=1,max=255"`
+	CompanyName          *string                     `json:"companyName,omitempty" validate:"omitempty,min=1,max=150"`
 	UIDNumber            *string                     `json:"uidNumber,omitempty" validate:"omitempty,max=50"`
 	RegisterNumber       *string                     `json:"registerNumber,omitempty" validate:"omitempty,max=50"`
 	Email                string                      `json:"email" validate:"required,email"`
 	Phone                *string                     `json:"phone,omitempty"      validate:"omitempty,max=50"`
-	ResidentStreet       string                      `json:"residentStreet" validate:"required,min=1,max=255"`
+	ResidentStreet       string                      `json:"residentStreet" validate:"required,min=1,max=100"`
 	ResidentStreetNumber string                      `json:"residentStreetNumber" validate:"required,min=1,max=50"`
 	ResidentZip          string                      `json:"residentZip" validate:"required,min=1,max=20"`
-	ResidentCity         string                      `json:"residentCity" validate:"required,min=1,max=255"`
+	ResidentCity         string                      `json:"residentCity" validate:"required,min=1,max=100"`
 	PrivacyAccepted      bool                        `json:"privacyAccepted" validate:"required"`
 	PrivacyVersion       string                      `json:"privacyVersion" validate:"required"`
 	AccuracyConfirmed    bool                        `json:"accuracyConfirmed" validate:"required"`
 	IBAN                 string                      `json:"iban" validate:"required,min=15,max=34"`
-	AccountHolder        string                      `json:"accountHolder" validate:"required,min=1,max=255"`
+	AccountHolder        string                      `json:"accountHolder" validate:"required,min=1,max=150"`
 	SepaMandateAccepted  bool                        `json:"sepaMandateAccepted" validate:"required"`
 	MeteringPoints       []CreateMeteringPointRequest `json:"meteringPoints" validate:"required,min=1,max=10,dive"`
 	// Configurable application-level fields (PROJ-8)
@@ -59,23 +59,23 @@ type CreateMeteringPointRequest struct {
 // UpdateApplicationRequest represents the request to update an application
 type UpdateApplicationRequest struct {
 	MemberType           *string                     `json:"memberType,omitempty" validate:"omitempty,oneof=private farmer municipality company association"`
-	Firstname            *string                     `json:"firstname,omitempty" validate:"omitempty,min=1,max=255"`
-	Lastname             *string                     `json:"lastname,omitempty" validate:"omitempty,min=1,max=255"`
+	Firstname            *string                     `json:"firstname,omitempty" validate:"omitempty,min=1,max=100"`
+	Lastname             *string                     `json:"lastname,omitempty" validate:"omitempty,min=1,max=100"`
 	BirthDate            *string                     `json:"birthDate,omitempty"  validate:"omitempty,len=10"`
-	CompanyName          *string                     `json:"companyName,omitempty" validate:"omitempty,min=1,max=255"`
+	CompanyName          *string                     `json:"companyName,omitempty" validate:"omitempty,min=1,max=150"`
 	UIDNumber            *string                     `json:"uidNumber,omitempty" validate:"omitempty,max=50"`
 	RegisterNumber       *string                     `json:"registerNumber,omitempty" validate:"omitempty,max=50"`
 	Email                *string                     `json:"email,omitempty" validate:"omitempty,email"`
 	Phone                *string                     `json:"phone,omitempty"      validate:"omitempty,max=50"`
-	ResidentStreet       *string                     `json:"residentStreet,omitempty" validate:"omitempty,min=1,max=255"`
+	ResidentStreet       *string                     `json:"residentStreet,omitempty" validate:"omitempty,min=1,max=100"`
 	ResidentStreetNumber *string                     `json:"residentStreetNumber,omitempty" validate:"omitempty,min=1,max=50"`
 	ResidentZip          *string                     `json:"residentZip,omitempty" validate:"omitempty,min=1,max=20"`
-	ResidentCity         *string                     `json:"residentCity,omitempty" validate:"omitempty,min=1,max=255"`
+	ResidentCity         *string                     `json:"residentCity,omitempty" validate:"omitempty,min=1,max=100"`
 	PrivacyAccepted      *bool                       `json:"privacyAccepted,omitempty"`
 	PrivacyVersion       *string                     `json:"privacyVersion,omitempty"`
 	AccuracyConfirmed    *bool                       `json:"accuracyConfirmed,omitempty"`
 	IBAN                 *string                     `json:"iban,omitempty" validate:"omitempty,min=15,max=34"`
-	AccountHolder        *string                     `json:"accountHolder,omitempty" validate:"omitempty,min=1,max=255"`
+	AccountHolder        *string                     `json:"accountHolder,omitempty" validate:"omitempty,min=1,max=150"`
 	SepaMandateAccepted  *bool                       `json:"sepaMandateAccepted,omitempty"`
 	MeteringPoints       []CreateMeteringPointRequest `json:"meteringPoints,omitempty" validate:"omitempty,min=1,max=10,dive"`
 }
@@ -140,21 +140,21 @@ type SubmitResponse struct {
 // (privacyAccepted, accuracyConfirmed, etc.) which only the public user sets.
 type AdminUpdateApplicationRequest struct {
 	MemberType           *string                      `json:"memberType,omitempty" validate:"omitempty,oneof=private farmer municipality company association"`
-	Firstname            *string                      `json:"firstname,omitempty" validate:"omitempty,min=1,max=255"`
-	Lastname             *string                      `json:"lastname,omitempty" validate:"omitempty,min=1,max=255"`
+	Firstname            *string                      `json:"firstname,omitempty" validate:"omitempty,min=1,max=100"`
+	Lastname             *string                      `json:"lastname,omitempty" validate:"omitempty,min=1,max=100"`
 	BirthDate            *string                      `json:"birthDate,omitempty"  validate:"omitempty,len=10"`
-	CompanyName          *string                      `json:"companyName,omitempty" validate:"omitempty,min=1,max=255"`
+	CompanyName          *string                      `json:"companyName,omitempty" validate:"omitempty,min=1,max=150"`
 	UIDNumber            *string                      `json:"uidNumber,omitempty" validate:"omitempty,max=50"`
 	RegisterNumber       *string                      `json:"registerNumber,omitempty" validate:"omitempty,max=50"`
 	Email                *string                      `json:"email,omitempty" validate:"omitempty,email"`
 	Phone                *string                      `json:"phone,omitempty"      validate:"omitempty,max=50"`
-	ResidentStreet       *string                      `json:"residentStreet,omitempty" validate:"omitempty,min=1,max=255"`
+	ResidentStreet       *string                      `json:"residentStreet,omitempty" validate:"omitempty,min=1,max=100"`
 	ResidentStreetNumber *string                      `json:"residentStreetNumber,omitempty" validate:"omitempty,min=1,max=50"`
 	ResidentZip          *string                      `json:"residentZip,omitempty" validate:"omitempty,min=1,max=20"`
-	ResidentCity         *string                      `json:"residentCity,omitempty" validate:"omitempty,min=1,max=255"`
+	ResidentCity         *string                      `json:"residentCity,omitempty" validate:"omitempty,min=1,max=100"`
 	AdminNote            *string                      `json:"adminNote,omitempty"`
 	IBAN                 *string                      `json:"iban,omitempty" validate:"omitempty,min=15,max=34"`
-	AccountHolder        *string                      `json:"accountHolder,omitempty" validate:"omitempty,min=1,max=255"`
+	AccountHolder        *string                      `json:"accountHolder,omitempty" validate:"omitempty,min=1,max=150"`
 	MeteringPoints       []CreateMeteringPointRequest  `json:"meteringPoints,omitempty" validate:"omitempty,min=1,max=10,dive"`
 }
 

@@ -31,10 +31,10 @@ func NewExternalHandler(svc *application.ApplicationService) *ExternalHandler {
 // or accuracyConfirmed (implied by operator submitting on behalf of member).
 type externalApplicationRequest struct {
 	MemberType           string                       `json:"memberType"           validate:"required,oneof=private farmer municipality company association"`
-	Firstname            *string                      `json:"firstname,omitempty"  validate:"omitempty,min=1,max=255"`
-	Lastname             *string                      `json:"lastname,omitempty"   validate:"omitempty,min=1,max=255"`
+	Firstname            *string                      `json:"firstname,omitempty"  validate:"omitempty,min=1,max=100"`
+	Lastname             *string                      `json:"lastname,omitempty"   validate:"omitempty,min=1,max=100"`
 	BirthDate            *string                      `json:"birthDate,omitempty"  validate:"omitempty,len=10"`
-	CompanyName          *string                      `json:"companyName,omitempty" validate:"omitempty,min=1,max=255"`
+	CompanyName          *string                      `json:"companyName,omitempty" validate:"omitempty,min=1,max=150"`
 	UIDNumber            *string                      `json:"uidNumber,omitempty"   validate:"omitempty,max=50"`
 	RegisterNumber       *string                      `json:"registerNumber,omitempty" validate:"omitempty,max=50"`
 	Email                string                       `json:"email"                validate:"required,email"`
@@ -44,7 +44,7 @@ type externalApplicationRequest struct {
 	ResidentZip          string                       `json:"residentZip"          validate:"required,min=1,max=20"`
 	ResidentCity         string                       `json:"residentCity"         validate:"required,min=1,max=255"`
 	IBAN                 string                       `json:"iban"                 validate:"required,min=15,max=34"`
-	AccountHolder        string                       `json:"accountHolder"        validate:"required,min=1,max=255"`
+	AccountHolder        string                       `json:"accountHolder"        validate:"required,min=1,max=150"`
 	PrivacyAccepted      bool                         `json:"privacyAccepted"      validate:"required"`
 	SepaMandateAccepted  bool                         `json:"sepaMandateAccepted"  validate:"required"`
 	MeteringPoints       []shared.CreateMeteringPointRequest `json:"meteringPoints"  validate:"required,min=1,max=10,dive"`
