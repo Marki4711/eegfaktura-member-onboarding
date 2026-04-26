@@ -1,6 +1,6 @@
 # PROJ-22: Tailwind CSS v3 → v4 Upgrade
 
-## Status: Planned
+## Status: In Review
 **Created:** 2026-04-26
 **Last Updated:** 2026-04-26
 
@@ -21,21 +21,24 @@ Das Projekt verwendet derzeit Tailwind CSS v3 (`^3.4.1`). Tailwind CSS v4 ist ei
 ## Acceptance Criteria
 
 ### Migration
-- [ ] `tailwindcss` in `package.json` auf v4 aktualisiert
-- [ ] `tailwind.config.js` / `tailwind.config.ts` entfernt oder auf das neue v4-Format migriert
-- [ ] CSS-Entrypoint (`globals.css` o.ä.) auf `@import "tailwindcss"` umgestellt
-- [ ] PostCSS-Konfiguration (`postcss.config.js`) aktualisiert (v4 ändert den Plugin-Namen)
-- [ ] Alle `@apply`-Direktiven geprüft und ggf. angepasst (v4 schränkt `@apply` ein)
-- [ ] Alle benutzerdefinierten Theme-Werte (Farben, Abstände etc.) in CSS-Variablen übertragen
+- [x] `tailwindcss` in `package.json` auf v4 aktualisiert (v4.2.4)
+- [x] `tailwind.config.ts` entfernt — Theme in `@theme`-Block in `globals.css` übertragen
+- [x] CSS-Entrypoint `globals.css` auf `@import 'tailwindcss'` umgestellt
+- [x] PostCSS-Konfiguration auf `@tailwindcss/postcss` aktualisiert, `autoprefixer` entfernt (in v4 eingebaut)
+- [x] Alle `@apply`-Direktiven geprüft — keine vorhanden
+- [x] Alle Theme-Werte (Farben, borderRadius, Animationen) in `@theme`-Block in globals.css übertragen
+- [x] Dark-Mode-Konfiguration migriert: `darkMode: ["class"]` → `@custom-variant dark (&:is(.dark *))`
+- [x] 28 Komponenten-Dateien automatisch migriert (u.a. `focus-visible:outline-none` → `focus-visible:outline-hidden`)
+- [x] Bug in `pagination.tsx` behoben: `outline-solid` (ungültige Variante nach Migration) → `outline`
 
 ### Qualitätssicherung
-- [ ] `npm run build` schlägt nicht fehl
-- [ ] `npm run dev` startet ohne Fehler
-- [ ] Visuelle Überprüfung der wichtigsten Seiten: Registrierungsformular, Admin-Listenansicht, Admin-Detailansicht
+- [x] `npm run build` erfolgreich
+- [ ] `npm run dev` startet ohne Fehler — manuell zu prüfen
+- [ ] Visuelle Überprüfung: Registrierungsformular, Admin-Listenansicht, Admin-Detailansicht
 - [ ] Kein sichtbarer Layout-Bruch oder Farbabweichung gegenüber v3
 
 ### Dokumentation
-- [ ] `docs/security.md` — offene CVE-Einträge für next-auth/uuid (waren mit Tailwind-Version verlinkt) bleiben unberührt
+- [x] `docs/security.md` — unberührt
 
 ## Edge Cases
 
