@@ -42,6 +42,8 @@ Snyk wird als ergänzender Scanner für folgende Bereiche eingesetzt:
 | Dependency-CVEs (npm) | Dependabot, npm audit, Snyk OSS |
 | Dependency-CVEs (Go) | Dependabot, govulncheck, Snyk OSS |
 | Veraltete Base Images | Wöchentliche GitHub-Actions-Rebuilds, Snyk Container |
+| Kompromittierte Base Images (Supply Chain) | Trivy-Scan zwischen Build und Push (exit-code 1 bei CRITICAL) |
+| Kompromittierte GitHub Actions (Supply Chain) | SHA-Pinning aller Actions + Dependabot (github-actions, weekly) |
 | Secrets im Code | GitHub Secret Scanning, Push Protection |
 | XSS / Injection (SAST) | Snyk Code, CodeQL |
 | Container läuft als root | Snyk IaC, manuelle Helm-Review |
@@ -89,6 +91,25 @@ Implementierung
 6. Snyk/govulncheck erneut scannen
 7. PR erstellen mit Referenz auf CVE
 8. Review und Merge
+
+### GitHub Actions SHA-Pinning
+
+Alle Actions in `.github/workflows/` sind auf **vollständige Commit-SHAs** gepinnt, nicht auf Versions-Tags.
+
+**Warum:** Version-Tags sind mutable — ein Angreifer kann einen Tag per force-push auf einen Malware-Commit umleiten (demonstriert durch den Trivy-supply-chain-Angriff vom 2026-03-19, der `aquasecurity/trivy-action` Tags 0.0.1–0.34.2 für ~12 Stunden kompromittierte). SHA-Pins sind content-addressed und können nicht umgeleitet werden.
+
+**Format:**
+```yaml
+uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+#                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ SHA  ^^^ Tag als Kommentar
+```
+
+**Wartung:** Dependabot (`github-actions` Ecosystem, wöchentlich) öffnet automatisch PRs wenn neue Versionen erscheinen. Der PR enthält den neuen SHA und aktualisiert den Tag-Kommentar. Dependabot-PRs für Actions nach Prüfung mergen.
+
+**Neue Actions hinzufügen:**
+1. SHA ermitteln: `gh api repos/<owner>/<repo>/git/ref/tags/<tag> --jq '.object.sha'`
+2. Bei annotated tags einmal dereferenzieren: SHA auf den Commit-SHA prüfen (nicht Tag-Object-SHA)
+3. Im Workflow eintragen: `uses: <owner>/<repo>@<sha> # <tag>`
 
 ### False Positives dokumentieren
 

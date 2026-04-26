@@ -85,9 +85,12 @@ These rules replace any Supabase/Vercel/RLS assumptions from the starter kit tem
 
 ## CI/CD & Supply Chain
 
-- GitHub Actions workflows must pin action versions to commit SHA or tagged version — avoid `@latest`
+- GitHub Actions workflows must pin action versions to **full commit SHA** — avoid `@latest` and mutable version tags (e.g. `@v4`); tags can be force-pushed to malicious commits (demonstrated by the 2026-03-19 trivy-action supply chain attack)
+- Add the human-readable tag as a comment: `uses: actions/checkout@abc1234 # v6`
+- Dependabot (`github-actions` ecosystem, weekly) keeps SHA pins up-to-date automatically — do not bypass it
 - Do not add third-party actions without review
 - Weekly security rebuilds are scheduled (`0 4 * * 1`) — they rebuild images with updated base layers
+- Trivy scans run between local build and push — a compromised base image is caught before the image reaches the registry
 
 ## Code Review Triggers (require human approval before merge)
 
