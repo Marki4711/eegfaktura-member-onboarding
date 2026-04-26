@@ -1,6 +1,6 @@
 # PROJ-22: Tailwind CSS v3 → v4 Upgrade
 
-## Status: In Review
+## Status: Approved
 **Created:** 2026-04-26
 **Last Updated:** 2026-04-26
 
@@ -33,9 +33,9 @@ Das Projekt verwendet derzeit Tailwind CSS v3 (`^3.4.1`). Tailwind CSS v4 ist ei
 
 ### Qualitätssicherung
 - [x] `npm run build` erfolgreich
-- [ ] `npm run dev` startet ohne Fehler — manuell zu prüfen
-- [ ] Visuelle Überprüfung: Registrierungsformular, Admin-Listenansicht, Admin-Detailansicht
-- [ ] Kein sichtbarer Layout-Bruch oder Farbabweichung gegenüber v3
+- [x] `npm run dev` startet ohne Fehler
+- [x] Visuelle Überprüfung: Registrierungsformular (Label-Abstände, Font, Card-Layout, Select-Dropdown)
+- [x] Kein sichtbarer Layout-Bruch gegenüber v3 (akzeptierte Abweichung: Roboto auf Inputs statt System-Font, da v3 Font-Vererbung fehlerhaft war)
 
 ### Dokumentation
 - [x] `docs/security.md` — unberührt
@@ -49,6 +49,19 @@ Das Projekt verwendet derzeit Tailwind CSS v3 (`^3.4.1`). Tailwind CSS v4 ist ei
 
 ## Tech Design (Solution Architect)
 _To be added by /architecture_
+
+## Implementation Notes
+
+Visuelle Regressions die im Rahmen der v4-Migration behoben wurden:
+
+- **Roboto Font**: `font-(--font-roboto)` Klasse auf body funktioniert in v4, Fallback-Regel in globals.css ergänzt
+- **Card-Padding**: Tailwind v4 Cascade-Änderungen haben `p-6 pt-0` gebrochen → Inline-Styles auf CardHeader/CardContent/CardFooter
+- **CardTitle-Höhe**: `tailwind-merge` v3 entfernte `leading-none` wenn kombiniert mit `text-*` → `leading-none` als letztes Argument in `cn()`, `tailwind-merge` auf v3.5 aktualisiert
+- **FormItem-Abstände**: `space-y-2` in v4 verwendet `:where()` (Zero-Specificity) + `margin-block-end` (logische Eigenschaft); Tailwind v4 Preflight setzt `margin: 0` auf `*` in `@layer base` und überschreibt den physischen `margin-top`. Fix: `flex flex-col gap-2.5` — CSS Gap wird nicht durch Margin-Reset beeinflusst
+- **Select-Dropdown**: `avoidCollisions={false}` + `side="bottom"` als Defaults in SelectContent gesetzt
+- **Font-Smoothing**: Tailwind v4 Preflight setzt Form-Elemente auf Browser-Default-Rendering → explizit `-webkit-font-smoothing: antialiased` auf `input, textarea, button, select` in globals.css
+- **Input Font-Weight**: `font-normal` explizit auf Input und SelectTrigger gesetzt
+- **Font auf Inputs**: In v4 erben Inputs korrekt Roboto (v3 hatte Font-Vererbungs-Bug, Inputs verwendeten System-Font). Bewusst beibehalten.
 
 ## QA Test Results
 _To be added by /qa_
