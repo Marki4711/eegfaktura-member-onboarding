@@ -34,8 +34,8 @@ Central tracking for all features.
 | PROJ-17 | Excel-Export für eegFaktura-Import | Deployed | `features/PROJ-17-excel-export.md` | 2026-04-25 |
 | PROJ-18 | Datenschutzerklärung & Central Policy Toggle | Deployed | `features/PROJ-18-datenschutz-policy-toggle.md` | 2026-04-25 |
 | PROJ-19 | Manuelle Aktivierung der Registrierung | Deployed | `features/PROJ-19-registration-activation.md` | 2026-04-25 |
-| PROJ-20 | Vollständige Antragsdaten in EEG-Einreichungsbenachrichtigung | In Progress | `features/PROJ-20-submission-notification-extended.md` | 2026-04-26 |
-| PROJ-21 | Genehmigungs-Benachrichtigung mit Beitrittsbestätigung PDF | In Progress | `features/PROJ-21-approval-notification-pdf.md` | 2026-04-26 |
+| PROJ-20 | Vollständige Antragsdaten in EEG-Einreichungsbenachrichtigung | Approved | `features/PROJ-20-submission-notification-extended.md` | 2026-04-26 |
+| PROJ-21 | Genehmigungs-Benachrichtigung mit Beitrittsbestätigung PDF | Approved | `features/PROJ-21-approval-notification-pdf.md` | 2026-04-26 |
 | PROJ-22 | Tailwind CSS v3 → v4 Upgrade | Planned | `features/PROJ-22-tailwindcss-v4-upgrade.md` | 2026-04-26 |
 
 ## Next Available ID: PROJ-23

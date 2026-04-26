@@ -1,6 +1,6 @@
 # PROJ-21: Genehmigungs-Benachrichtigung mit Beitrittsbestätigung PDF
 
-## Status: In Progress
+## Status: Approved
 **Created:** 2026-04-26
 **Last Updated:** 2026-04-26
 
@@ -348,7 +348,110 @@ adminService := application.NewAdminApplicationService(
 Keine neuen externen Abhängigkeiten. `github.com/go-pdf/fpdf` und `golang.org/x/text/encoding/charmap` sind bereits im Projekt vorhanden.
 
 ## QA Test Results
-_To be added by /qa_
+
+**QA Date:** 2026-04-26
+**Result:** APPROVED — 1 bug fixed during QA (re-approval transition), no remaining critical/high bugs
+
+### Acceptance Criteria Results
+
+#### Auslöser
+- [x] Benachrichtigung bei `approved`-Übergang: goroutine in `ChangeStatus()` nach `tx.Commit()` — PASS
+- [x] Beliebiger vorheriger Status → `approved`: `adminTransitions` deckt submitted/under_review/needs_info → approved ab — PASS
+- [x] **Re-Approval (`import_failed → approved`):** BUG gefunden und behoben — `StatusImportFailed: {StatusApproved}` wurde zu `adminTransitions` hinzugefügt; Test `TestFPDFApprovalGenerator_ReApprovalStatusLog` bestätigt PDF-Rendering mit import_failed-Einträgen — FIXED ✓
+- [x] EEG ohne `contact_email`: goroutine bricht stumm ab — PASS
+
+#### E-Mail an EEG-Betreiber
+- [x] Empfänger: `*entrypoint.ContactEmail` — PASS
+- [x] Betreff: „Mitgliedsantrag genehmigt – [Name] ([Referenz])": `TestSendApprovalEmail_SubjectContainsMemberNameAndRef` — PASS
+- [x] Inhalt: Mitgliedname, Referenz, Anhang-Hinweis — PASS
+- [x] PDF-Anhang: Dateiname `beitrittsbestaetigung-[referenznummer].pdf` — PASS (service.go L398)
+- [x] E-Mail auf Deutsch: `TestApprovalTemplate_IsGerman` — PASS
+
+#### PDF-Inhalt: Kopfzeile
+- [x] Titel "Beitrittsbestätigung" — PASS
+- [x] EEG-Name und RC-Nummer — PASS
+- [x] Ausstellungsdatum: `data.ApprovedAt.Format("02.01.2006")` — PASS
+
+#### PDF-Inhalt: Mitgliedsdaten
+- [x] Mitgliedstyp — PASS
+- [x] Name / Firmenname: `TestFPDFApprovalGenerator_CompanyMember` — PASS
+- [x] Geburtsdatum (falls vorhanden): nil-Guard in `approval_pdf.go` — PASS
+- [x] Adresse — PASS
+- [x] E-Mail — PASS
+- [x] Telefon (falls vorhanden) — PASS
+
+#### PDF-Inhalt: Bankverbindung
+- [x] IBAN (bedingt, nur wenn vorhanden): `if data.IBAN != ""` — PASS
+- [x] Kontoinhaber (falls vorhanden) — PASS
+- [x] SEPA-Mandatsart — PASS
+
+#### PDF-Inhalt: Zählpunkte
+- [x] Tabelle: Zählpunktnummer, Richtung, Teilnahmefaktor — PASS
+
+#### PDF-Inhalt: Zustimmungen
+- [x] Liste aller Dokumente + Zustimmungsdatum — PASS; leerer Abschnitt entfällt bei `len(data.Consents) == 0` — PASS
+
+#### PDF-Inhalt: Statusverlauf
+- [x] Tabelle: Von → Nach, Zeitstempel, Kommentar — PASS; `TestFPDFApprovalGenerator_LargeStatusLog` prüft Seitenumbruch — PASS
+
+#### PDF-Inhalt: Mitgliedsnummer
+- [x] Beschriftetes Leerfeld „Mitgliedsnummer: ___" — PASS
+- [x] Hinweis „Wird von [EEG-Name] vergeben" — PASS
+
+#### PDF-Inhalt: Konfigurierbare Felder
+- [x] Optionaler Abschnitt nur bei befüllten Feldern: `TestFPDFApprovalGenerator_WithConfigurableFields` — PASS
+- [x] Leere Felder nicht aufgeführt: `buildApprovalConfigurableFields()` — PASS
+
+#### Fehlerverhalten
+- [x] PDF-Generierung schlägt fehl → E-Mail ohne Anhang + Hinweis: `pdfFailed bool`-Parameter + `{{if .PDFFailed}}`-Block — PASS; `TestSendApprovalEmail_PDFFailedHintInBody` — PASS
+- [x] E-Mail-Versand schlägt fehl → Fehler geloggt, Status-Übergang bleibt gültig (goroutine) — PASS
+- [x] Kein Absturz bei NULL-Werten: `TestFPDFApprovalGenerator_EmptyOptionalFields` — PASS
+
+#### Template
+- [x] Neues Template `application_approved_eeg.html` — PASS
+- [x] PDF-Generator in `internal/pdf/approval_pdf.go` — PASS
+- [x] E-Mail auf Deutsch — PASS
+
+### Bugs Found and Fixed
+
+| Bug | Severity | Status |
+|-----|----------|--------|
+| `import_failed → approved` fehlte in `adminTransitions` — Re-Approval-Übergang wurde mit 409 Conflict abgelehnt | High | FIXED — `StatusImportFailed: {StatusApproved}` hinzugefügt |
+
+### Security Smoke Test
+
+- **Auth/Authz:** `ChangeStatus`-Handler prüft `checkTenantAccess` — korrekte Tenant-Isolation ✓
+- **Injection:** Keine neuen SQL-Queries; PDF-Generator keine User-Inputs in Shell/Pfad ✓
+- **XSS:** `html/template` auto-escaping; `TestApprovalTemplate_XSSEscaped` bestätigt ✓
+- **Sensible Daten in PDF:** IBAN im PDF by-design (interne Admin-Dokumentation, Spec-Anforderung) ✓
+- **PDF-Dateiname:** `beitrittsbestaetigung-[referenceNumber].pdf` — ReferenceNumber ist systemgeneriert, kein Path Traversal möglich ✓
+- **Dependencies:** `govulncheck ./...` — No vulnerabilities ✓
+
+### Tests Written
+
+**Neue Unit Tests (`internal/pdf/approval_pdf_test.go`):**
+- `TestFPDFApprovalGenerator_GeneratesValidPDF`
+- `TestFPDFApprovalGenerator_OutputSizeReasonable`
+- `TestFPDFApprovalGenerator_ContainsXRefTable`
+- `TestFPDFApprovalGenerator_EmptyOptionalFields`
+- `TestFPDFApprovalGenerator_CompanyMember`
+- `TestFPDFApprovalGenerator_UmlautsEncoded`
+- `TestFPDFApprovalGenerator_WithConfigurableFields`
+- `TestFPDFApprovalGenerator_ReApprovalStatusLog`
+- `TestFPDFApprovalGenerator_DifferentFromSEPA`
+- `TestFPDFApprovalGenerator_LargeStatusLog`
+
+**Neue Unit Tests (`internal/mail/service_test.go`):**
+- `TestSendApprovalEmail_SendsToContactEmail`
+- `TestSendApprovalEmail_SkipsWhenNoContactEmail`
+- `TestSendApprovalEmail_SkipsWhenContactEmailEmpty`
+- `TestSendApprovalEmail_SubjectContainsMemberNameAndRef`
+- `TestSendApprovalEmail_PDFFailedHintInBody`
+- `TestSendApprovalEmail_CompanyMember`
+- `TestApprovalTemplate_IsGerman`
+- `TestApprovalTemplate_XSSEscaped`
+
+Alle Tests: `go test ./... -count=1` — **PASS**
 
 ## Deployment
 _To be added by /deploy_

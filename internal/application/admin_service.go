@@ -32,12 +32,15 @@ type ApplicationListFilters struct {
 }
 
 // adminTransitions defines which status changes the admin endpoint may perform.
-// Import-related transitions (approved→imported etc.) are handled by the
-// dedicated import endpoint (PROJ-3) and must not appear here.
+// Forward import transitions (approved→imported etc.) are handled by the dedicated
+// import endpoint (PROJ-4). The reset transition import_failed→approved is an admin
+// action (re-approve after failed import) and is handled here so the approval email
+// is re-sent consistently via ChangeStatus.
 var adminTransitions = map[shared.ApplicationStatus][]shared.ApplicationStatus{
-	shared.StatusSubmitted:   {shared.StatusUnderReview},
-	shared.StatusUnderReview: {shared.StatusNeedsInfo, shared.StatusApproved, shared.StatusRejected},
-	shared.StatusNeedsInfo:   {shared.StatusSubmitted},
+	shared.StatusSubmitted:    {shared.StatusUnderReview},
+	shared.StatusUnderReview:  {shared.StatusNeedsInfo, shared.StatusApproved, shared.StatusRejected},
+	shared.StatusNeedsInfo:    {shared.StatusSubmitted},
+	shared.StatusImportFailed: {shared.StatusApproved},
 }
 
 // AdminApplicationService implements admin review business logic.

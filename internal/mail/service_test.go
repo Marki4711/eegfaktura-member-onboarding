@@ -306,3 +306,286 @@ func TestSendSubmissionEmails_EEGSkippedWhenContactEmailEmpty(t *testing.T) {
 		t.Errorf("expected only 1 send call (member), got %d", len(spy.calls))
 	}
 }
+
+// TestSendSubmissionEmails_ConfigurableFieldsIncluded verifies that visible, non-empty
+// configurable fields are rendered in the EEG email body.
+func TestSendSubmissionEmails_ConfigurableFieldsIncluded(t *testing.T) {
+	spy := &spySender{}
+	svc := newTestService(t, spy)
+	contactEmail := "eeg@example.at"
+	ep := &shared.RegistrationEntrypoint{ContactEmail: &contactEmail}
+
+	app := testApp()
+	hp := true
+	app.HeatPump = &hp
+	persons := 3
+	app.PersonsInHousehold = &persons
+
+	fieldConfig := map[string]string{
+		"heat_pump":            "visible",
+		"persons_in_household": "required",
+	}
+
+	svc.SendSubmissionEmails(app, nil, ep, fieldConfig, nil)
+
+	if len(spy.calls) != 2 {
+		t.Fatalf("expected 2 send calls, got %d", len(spy.calls))
+	}
+	body := spy.calls[1].body
+	if !strings.Contains(body, "Wärmepumpe vorhanden") {
+		t.Error("eeg email missing heat_pump label")
+	}
+	if !strings.Contains(body, "Personen im Haushalt") {
+		t.Error("eeg email missing persons_in_household label")
+	}
+}
+
+// TestSendSubmissionEmails_HiddenFieldExcluded verifies hidden configurable fields
+// do not appear in the EEG email body.
+func TestSendSubmissionEmails_HiddenFieldExcluded(t *testing.T) {
+	spy := &spySender{}
+	svc := newTestService(t, spy)
+	contactEmail := "eeg@example.at"
+	ep := &shared.RegistrationEntrypoint{ContactEmail: &contactEmail}
+
+	app := testApp()
+	hp := true
+	app.HeatPump = &hp
+
+	fieldConfig := map[string]string{
+		"heat_pump": "hidden",
+	}
+
+	svc.SendSubmissionEmails(app, nil, ep, fieldConfig, nil)
+
+	if len(spy.calls) != 2 {
+		t.Fatalf("expected 2 send calls, got %d", len(spy.calls))
+	}
+	if strings.Contains(spy.calls[1].body, "Wärmepumpe") {
+		t.Error("eeg email contains hidden field 'Wärmepumpe'")
+	}
+}
+
+// TestSendSubmissionEmails_AdminDetailURLIncluded verifies the admin link is rendered
+// in the EEG email when adminBaseURL is set.
+func TestSendSubmissionEmails_AdminDetailURLIncluded(t *testing.T) {
+	spy := &spySender{}
+	svc, err := NewSMTPMailService(spy, "https://admin.example.at")
+	if err != nil {
+		t.Fatalf("NewSMTPMailService: %v", err)
+	}
+	contactEmail := "eeg@example.at"
+	ep := &shared.RegistrationEntrypoint{ContactEmail: &contactEmail}
+
+	app := testApp()
+	svc.SendSubmissionEmails(app, nil, ep, nil, nil)
+
+	if len(spy.calls) != 2 {
+		t.Fatalf("expected 2 send calls, got %d", len(spy.calls))
+	}
+	if !strings.Contains(spy.calls[1].body, "https://admin.example.at/admin/applications/"+app.ID.String()) {
+		t.Errorf("eeg email missing admin detail URL, body: %s", spy.calls[1].body)
+	}
+}
+
+// ─── SendApprovalEmail tests ──────────────────────────────────────────────────
+
+// TestSendApprovalEmail_SendsToContactEmail verifies the approval email is sent to the EEG contact.
+func TestSendApprovalEmail_SendsToContactEmail(t *testing.T) {
+	spy := &spySender{}
+	svc := newTestService(t, spy)
+	contactEmail := "eeg@example.at"
+	ep := &shared.RegistrationEntrypoint{ContactEmail: &contactEmail}
+
+	if err := svc.SendApprovalEmail(testApp(), ep, nil, false); err != nil {
+		t.Fatalf("SendApprovalEmail returned unexpected error: %v", err)
+	}
+	if len(spy.calls) != 1 {
+		t.Fatalf("expected 1 send call, got %d", len(spy.calls))
+	}
+	if spy.calls[0].to != contactEmail {
+		t.Errorf("approval email sent to wrong address: got %s, want %s", spy.calls[0].to, contactEmail)
+	}
+}
+
+// TestSendApprovalEmail_SkipsWhenNoContactEmail verifies no email is sent when contact_email is nil.
+func TestSendApprovalEmail_SkipsWhenNoContactEmail(t *testing.T) {
+	spy := &spySender{}
+	svc := newTestService(t, spy)
+	ep := &shared.RegistrationEntrypoint{ContactEmail: nil}
+
+	if err := svc.SendApprovalEmail(testApp(), ep, nil, false); err != nil {
+		t.Fatalf("SendApprovalEmail returned unexpected error: %v", err)
+	}
+	if len(spy.calls) != 0 {
+		t.Errorf("expected 0 send calls when contact_email is nil, got %d", len(spy.calls))
+	}
+}
+
+// TestSendApprovalEmail_SkipsWhenContactEmailEmpty verifies empty contact_email is treated as nil.
+func TestSendApprovalEmail_SkipsWhenContactEmailEmpty(t *testing.T) {
+	spy := &spySender{}
+	svc := newTestService(t, spy)
+	empty := ""
+	ep := &shared.RegistrationEntrypoint{ContactEmail: &empty}
+
+	if err := svc.SendApprovalEmail(testApp(), ep, nil, false); err != nil {
+		t.Fatalf("SendApprovalEmail returned unexpected error: %v", err)
+	}
+	if len(spy.calls) != 0 {
+		t.Errorf("expected 0 send calls when contact_email is empty, got %d", len(spy.calls))
+	}
+}
+
+// TestSendApprovalEmail_SubjectContainsMemberNameAndRef verifies the subject format.
+func TestSendApprovalEmail_SubjectContainsMemberNameAndRef(t *testing.T) {
+	spy := &spySender{}
+	svc := newTestService(t, spy)
+	contactEmail := "eeg@example.at"
+	ep := &shared.RegistrationEntrypoint{ContactEmail: &contactEmail}
+
+	if err := svc.SendApprovalEmail(testApp(), ep, nil, false); err != nil {
+		t.Fatalf("SendApprovalEmail error: %v", err)
+	}
+	subject := spy.calls[0].subject
+	if !strings.Contains(subject, "Josef Muster") {
+		t.Errorf("approval email subject missing member name: %s", subject)
+	}
+	if !strings.Contains(subject, "REF-2026-001") {
+		t.Errorf("approval email subject missing reference number: %s", subject)
+	}
+	if !strings.Contains(subject, "genehmigt") {
+		t.Errorf("approval email subject missing 'genehmigt': %s", subject)
+	}
+}
+
+// TestSendApprovalEmail_PDFFailedHintInBody verifies that when PDF generation fails,
+// the email body contains the fallback hint text.
+func TestSendApprovalEmail_PDFFailedHintInBody(t *testing.T) {
+	spy := &spySender{}
+	svc := newTestService(t, spy)
+	contactEmail := "eeg@example.at"
+	ep := &shared.RegistrationEntrypoint{ContactEmail: &contactEmail}
+
+	if err := svc.SendApprovalEmail(testApp(), ep, nil, true); err != nil {
+		t.Fatalf("SendApprovalEmail error: %v", err)
+	}
+	if !strings.Contains(spy.calls[0].body, "konnte nicht") {
+		t.Error("approval email body missing PDF-failed hint text")
+	}
+}
+
+// TestSendApprovalEmail_CompanyMember verifies company member name is used in the subject.
+func TestSendApprovalEmail_CompanyMember(t *testing.T) {
+	spy := &spySender{}
+	svc := newTestService(t, spy)
+	contactEmail := "eeg@example.at"
+	ep := &shared.RegistrationEntrypoint{ContactEmail: &contactEmail}
+
+	app := testApp()
+	app.MemberType = shared.MemberTypeCompany
+	companyName := "Muster GmbH"
+	app.CompanyName = &companyName
+
+	if err := svc.SendApprovalEmail(app, ep, nil, false); err != nil {
+		t.Fatalf("SendApprovalEmail error: %v", err)
+	}
+	if !strings.Contains(spy.calls[0].subject, "Muster GmbH") {
+		t.Errorf("approval email subject should contain company name, got: %s", spy.calls[0].subject)
+	}
+}
+
+// TestApprovalTemplate_IsGerman verifies the approval email body is in German.
+func TestApprovalTemplate_IsGerman(t *testing.T) {
+	tpl, err := template.ParseFS(templateFS, "templates/application_approved_eeg.html")
+	if err != nil {
+		t.Fatalf("failed to parse approval template: %v", err)
+	}
+	var buf bytes.Buffer
+	if err := tpl.Execute(&buf, approvedEEGTemplateData{
+		MemberName:      "Josef Muster",
+		ReferenceNumber: "REF-2026-001",
+		EEGName:         "Test EEG",
+	}); err != nil {
+		t.Fatalf("template execution failed: %v", err)
+	}
+	if !strings.Contains(buf.String(), "genehmigt") {
+		t.Error("approval template does not appear to be in German")
+	}
+}
+
+// TestApprovalTemplate_XSSEscaped verifies HTML escaping in the approval template.
+func TestApprovalTemplate_XSSEscaped(t *testing.T) {
+	tpl, err := template.ParseFS(templateFS, "templates/application_approved_eeg.html")
+	if err != nil {
+		t.Fatalf("failed to parse approval template: %v", err)
+	}
+	var buf bytes.Buffer
+	if err := tpl.Execute(&buf, approvedEEGTemplateData{
+		MemberName:      "<script>alert(1)</script>",
+		ReferenceNumber: "R",
+		EEGName:         "E",
+	}); err != nil {
+		t.Fatalf("template execution failed: %v", err)
+	}
+	if strings.Contains(buf.String(), "<script>") {
+		t.Error("XSS: script tag not escaped in approval template")
+	}
+}
+
+// TestBuildConfigurableFields_HiddenFieldExcluded verifies hidden fields are excluded.
+func TestBuildConfigurableFields_HiddenFieldExcluded(t *testing.T) {
+	hp := true
+	app := &shared.Application{HeatPump: &hp}
+	fieldConfig := map[string]string{"heat_pump": "hidden"}
+
+	result := buildConfigurableFields(app, fieldConfig)
+	if len(result) != 0 {
+		t.Errorf("expected 0 fields for hidden state, got %d", len(result))
+	}
+}
+
+// TestBuildConfigurableFields_EmptyStateExcluded verifies fields with no config state are excluded.
+func TestBuildConfigurableFields_EmptyStateExcluded(t *testing.T) {
+	hp := true
+	app := &shared.Application{HeatPump: &hp}
+	fieldConfig := map[string]string{} // heat_pump not in config
+
+	result := buildConfigurableFields(app, fieldConfig)
+	if len(result) != 0 {
+		t.Errorf("expected 0 fields when state is missing, got %d", len(result))
+	}
+}
+
+// TestBuildConfigurableFields_VisibleFieldIncluded verifies visible fields with values are included.
+func TestBuildConfigurableFields_VisibleFieldIncluded(t *testing.T) {
+	hp := true
+	app := &shared.Application{HeatPump: &hp}
+	fieldConfig := map[string]string{"heat_pump": "visible"}
+
+	result := buildConfigurableFields(app, fieldConfig)
+	if len(result) != 1 {
+		t.Fatalf("expected 1 field, got %d", len(result))
+	}
+	if result[0].Label != "Wärmepumpe vorhanden" {
+		t.Errorf("wrong label: %s", result[0].Label)
+	}
+	if result[0].Value != "Ja" {
+		t.Errorf("wrong value: %s", result[0].Value)
+	}
+}
+
+// TestBuildConfigurableFields_BoolFalseIncluded verifies bool false fields still appear.
+func TestBuildConfigurableFields_BoolFalseIncluded(t *testing.T) {
+	hp := false
+	app := &shared.Application{HeatPump: &hp}
+	fieldConfig := map[string]string{"heat_pump": "required"}
+
+	result := buildConfigurableFields(app, fieldConfig)
+	if len(result) != 1 {
+		t.Fatalf("expected 1 field for false bool, got %d", len(result))
+	}
+	if result[0].Value != "Nein" {
+		t.Errorf("expected 'Nein' for false bool, got: %s", result[0].Value)
+	}
+}

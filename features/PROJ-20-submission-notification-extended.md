@@ -1,6 +1,6 @@
 # PROJ-20: Vollständige Antragsdaten in EEG-Einreichungsbenachrichtigung
 
-## Status: In Progress
+## Status: Approved
 **Created:** 2026-04-26
 **Last Updated:** 2026-04-26
 
@@ -273,7 +273,74 @@ XSS-Schutz: `html/template` escapet automatisch — unverändertes Verhalten aus
 Keine neuen externen Abhängigkeiten.
 
 ## QA Test Results
-_To be added by /qa_
+
+**QA Date:** 2026-04-26
+**Result:** APPROVED — no critical or high bugs
+
+### Acceptance Criteria Results
+
+#### Antragstellerdaten
+- [x] Alle Antragstellerdaten je nach Mitgliedstyp (Privatperson/Unternehmen): `eegTemplateData` enthält alle Felder, Template zeigt/versteckt sie bedingt — PASS
+- [x] Kontaktdaten (E-Mail, Telefon): implementiert mit `{{if .Phone}}` — PASS
+- [x] Wohnadresse: Straße, Hausnummer, PLZ, Ort vorhanden — PASS
+- [x] Mitgliedstyp deutlich erkennbar (Privatperson/Landwirt/Unternehmen): `memberTypeLabels`-Map übersetzt auf Deutsch — PASS
+
+#### Bankverbindung
+- [x] IBAN vollständig (kein Masking): korrekt, `iban := derefString(app.IBAN)` — PASS
+- [x] Kontoinhaber (falls verschieden): `{{if .AccountHolder}}` — PASS
+- [x] SEPA-Ermächtigung: `resolveSepaMandateType()` gibt "Basislastschrift"/"Firmenlastschrift"/"Per E-Mail" — PASS
+
+#### Konfigurierbare Felder
+- [x] Nicht-hidden Felder mit Wert aufgelistet: `buildConfigurableFields()` filtert korrekt — PASS (unit tests bestätigen)
+- [x] Felder ohne Wert werden nicht aufgeführt: nil-Check vor `add()` — PASS
+- [x] Felder mit `hidden`-State werden ausgelassen: `buildConfigurableFields()` prüft `state == "hidden"` — PASS
+
+#### Zählpunkte
+- [x] Bestehende Darstellung mit `meteringPointView` — PASS; Richtung ist vorübersetzt ("Verbrauch"/"Einspeisung")
+
+#### Zusatzinformationen
+- [x] Referenznummer — PASS
+- [x] Einreichungsdatum und -uhrzeit: formatiert als "02.01.2006 15:04", fallback `time.Now()` wenn nil — PASS
+- [x] Link zur Admin-Detailansicht wenn `ADMIN_BASE_URL` gesetzt: `adminDetailURL = adminBaseURL + "/admin/applications/" + app.ID.String()` — PASS (unit test `TestSendSubmissionEmails_AdminDetailURLIncluded` bestätigt)
+- [x] RC-Nummer der EEG: `RCNumber: app.RCNumber` — PASS
+
+#### Fehlerverhalten
+- [x] Template-Rendering-Fehler geloggt, `200 OK` bleibt bestehen (goroutine): goroutine kehrt bei Render-Fehler zurück ohne HTTP-Antwort zu beeinflussen — PASS
+- [x] Kein Absturz bei NULL-Werten: alle optionalen Felder durch `derefString()` und nil-Checks geschützt — PASS
+
+#### Template
+- [x] Bestehendes Template `application_submitted_eeg.html` ersetzt — PASS
+- [x] E-Mail auf Deutsch: Test `TestEEGTemplate_IsGerman` — PASS
+- [x] Klar gegliedertes HTML-Layout (5 Abschnitte): Antragsteller, Bankverbindung, Zählpunkte, Konfigurierbare Felder, Referenz — PASS
+
+### Bugs Found
+
+Keine Bugs in PROJ-20.
+
+### Security Smoke Test
+
+| Severity | Datei | Funktion | Risiko | Fix | Confidence |
+|----------|-------|----------|--------|-----|-----------|
+| Low (pre-existing) | `internal/mail/service.go` | `SendSubmissionEmails` | E-Mail-Adresse in Logs (`app.Email`) | Aus PROJ-6 geerbt; separates Cleanup-Ticket sinnvoll | High |
+
+- **Auth/Authz:** HTTP-Handler prüft `checkTenantAccess` vor `ChangeStatus` — Tenant-Isolation korrekt ✓
+- **Injection:** `html/template` auto-escaping, keine neuen SQL-Queries ✓
+- **XSS:** Tests `TestEEGTemplate_XSSEscaped` bestätigen korrekte Escaping ✓
+- **Secrets:** IBAN im EEG-E-Mail-Body ist by-design (interne Admin-E-Mail, Spec-Anforderung) ✓
+- **Dependencies:** `govulncheck ./...` — No vulnerabilities found ✓
+- **Admin-Link:** `ADMIN_BASE_URL` ist optional, defaults to `""` (kein Link wenn nicht gesetzt) ✓
+
+### Tests Written
+
+- `TestSendSubmissionEmails_ConfigurableFieldsIncluded`
+- `TestSendSubmissionEmails_HiddenFieldExcluded`
+- `TestSendSubmissionEmails_AdminDetailURLIncluded`
+- `TestBuildConfigurableFields_HiddenFieldExcluded`
+- `TestBuildConfigurableFields_EmptyStateExcluded`
+- `TestBuildConfigurableFields_VisibleFieldIncluded`
+- `TestBuildConfigurableFields_BoolFalseIncluded`
+
+Alle Tests: `go test ./... -count=1` — **PASS**
 
 ## Deployment
 _To be added by /deploy_
