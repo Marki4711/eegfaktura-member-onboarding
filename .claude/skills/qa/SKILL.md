@@ -117,12 +117,10 @@ npm audit --audit-level=high 2>/dev/null
 - Werden Binary-Inhalte mit `application/octet-stream` oder dem korrekten MIME-Typ ausgeliefert?
 
 #### 3.10 Eingabe-Längenbeschränkungen
-Für jeden neuen oder geänderten API-Endpunkt prüfen:
-- Haben alle String-Felder ein `max=`-Limit in den Go `validate`-Tags?
-- Sind Datumsfelder (`birthDate`, `membershipStartDate`) mit einer sinnvollen Längenbeschränkung versehen (z.B. `max=10`)?
-- Ist das `phone`-Feld auf `max=50` begrenzt?
-- Fehlt ein Limit bei einem Freitext-Feld (z.B. `AdminNote`, Kommentarfelder)? → mind. `max=2000`
-- Sind Beschränkungen **serverseitig** in Go gesetzt (nicht nur im Frontend)?
+Jedes String-Feld in einem neuen oder geänderten API-Request-Struct braucht ein `max=`-Limit in Go.
+Das Limit soll den **realistisch längsten plausiblen Wert** abbilden, nicht die DB-Spaltengröße.
+
+Fehlende oder offensichtlich zu großzügige Limits (z.B. `max=255` für ein Namensfeld) → **Medium**-Finding.
 
 Fehlende Limits sind ein **Medium**-Finding.
 
