@@ -119,7 +119,7 @@ npm audit --audit-level=high 2>/dev/null
 #### 3.10 Eingabe-Längenbeschränkungen
 Für jeden neuen oder geänderten API-Endpunkt prüfen:
 - Haben alle String-Felder ein `max=`-Limit in den Go `validate`-Tags?
-- Sind Datumsfelder (`birthDate`, `membershipStartDate`) mit `len=10` auf das Format `YYYY-MM-DD` begrenzt?
+- Sind Datumsfelder (`birthDate`, `membershipStartDate`) mit einer sinnvollen Längenbeschränkung versehen (z.B. `max=10`)?
 - Ist das `phone`-Feld auf `max=50` begrenzt?
 - Fehlt ein Limit bei einem Freitext-Feld (z.B. `AdminNote`, Kommentarfelder)? → mind. `max=2000`
 - Sind Beschränkungen **serverseitig** in Go gesetzt (nicht nur im Frontend)?
