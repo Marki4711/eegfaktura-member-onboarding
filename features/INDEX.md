@@ -37,5 +37,6 @@ Central tracking for all features.
 | PROJ-20 | Vollständige Antragsdaten in EEG-Einreichungsbenachrichtigung | Deployed | `features/PROJ-20-submission-notification-extended.md` | 2026-04-26 |
 | PROJ-21 | Genehmigungs-Benachrichtigung mit Beitrittsbestätigung PDF | Deployed | `features/PROJ-21-approval-notification-pdf.md` | 2026-04-26 |
 | PROJ-22 | Tailwind CSS v3 → v4 Upgrade | Planned | `features/PROJ-22-tailwindcss-v4-upgrade.md` | 2026-04-26 |
+| PROJ-23 | Stammdaten-Import aus eegFaktura-Excel | Planned | `features/PROJ-23-stammdaten-import.md` | 2026-04-26 |
 
-## Next Available ID: PROJ-23
+## Next Available ID: PROJ-24

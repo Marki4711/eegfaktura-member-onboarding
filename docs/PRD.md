@@ -43,6 +43,7 @@ Version 1 includes:
 | P2 | Email Notifications | Planned | `features/PROJ-6-email-notifications.md` |
 | P2 | Externe Registrierungs-API | Planned | `features/PROJ-13-external-registration-api.md` |
 | P2 | Cloudflare Turnstile Spam-Schutz | Planned | `features/PROJ-16-turnstile-spam-protection.md` |
+| P2 | Stammdaten-Import aus eegFaktura-Excel | Planned | `features/PROJ-23-stammdaten-import.md` |
 
 ## 5. Success Metrics
 
