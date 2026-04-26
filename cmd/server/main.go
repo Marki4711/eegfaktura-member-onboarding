@@ -77,7 +77,7 @@ func main() {
 			log.Fatalf("SMTP_FROM must be set when SMTP_HOST is configured")
 		}
 		mailer := mail.NewMailer(cfg.SMTP.Host, cfg.SMTP.Port, cfg.SMTP.User, cfg.SMTP.Password, cfg.SMTP.From)
-		svc, err := mail.NewSMTPMailService(mailer)
+		svc, err := mail.NewSMTPMailService(mailer, cfg.AdminBaseURL)
 		if err != nil {
 			log.Fatalf("Failed to initialize mail service: %v", err)
 		}
@@ -87,9 +87,10 @@ func main() {
 
 	// Initialize services
 	pdfGenerator := pdf.NewFPDFGenerator()
+	approvalPDFGenerator := pdf.NewFPDFApprovalGenerator()
 	registrationService := application.NewRegistrationService(entrypointRepo, fieldConfigRepo, legalDocumentRepo, cfg.CentralPolicy.Title, cfg.CentralPolicy.URL)
 	applicationService := application.NewApplicationService(db, appRepo, meteringRepo, statusLogRepo, entrypointRepo, fieldConfigRepo, consentRepo, mailService, pdfGenerator)
-	adminService := application.NewAdminApplicationService(db, appRepo, meteringRepo, statusLogRepo, fieldConfigRepo, entrypointRepo, consentRepo, mailService)
+	adminService := application.NewAdminApplicationService(db, appRepo, meteringRepo, statusLogRepo, fieldConfigRepo, entrypointRepo, consentRepo, mailService, approvalPDFGenerator)
 
 	// Initialize handlers
 	registrationHandler := internalhttp.NewRegistrationHandler(registrationService)

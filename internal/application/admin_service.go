@@ -3,12 +3,14 @@ package application
 import (
 	"database/sql"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/your-org/eegfaktura-member-onboarding/internal/excel"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/mail"
+	"github.com/your-org/eegfaktura-member-onboarding/internal/pdf"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/shared"
 )
 
@@ -40,14 +42,15 @@ var adminTransitions = map[shared.ApplicationStatus][]shared.ApplicationStatus{
 
 // AdminApplicationService implements admin review business logic.
 type AdminApplicationService struct {
-	db              *sql.DB
-	appRepo         *ApplicationRepository
-	meteringRepo    *MeteringPointRepository
-	statusLogRepo   *StatusLogRepository
-	fieldConfigRepo *FieldConfigRepository
-	entrypointRepo  *RegistrationEntrypointRepository
-	consentRepo     *DocumentConsentRepository
-	mailService     mail.MailService
+	db                   *sql.DB
+	appRepo              *ApplicationRepository
+	meteringRepo         *MeteringPointRepository
+	statusLogRepo        *StatusLogRepository
+	fieldConfigRepo      *FieldConfigRepository
+	entrypointRepo       *RegistrationEntrypointRepository
+	consentRepo          *DocumentConsentRepository
+	mailService          mail.MailService
+	approvalPDFGenerator pdf.ApprovalPDFGenerator
 }
 
 // NewAdminApplicationService creates an AdminApplicationService.
@@ -60,16 +63,18 @@ func NewAdminApplicationService(
 	entrypointRepo *RegistrationEntrypointRepository,
 	consentRepo *DocumentConsentRepository,
 	mailService mail.MailService,
+	approvalPDFGenerator pdf.ApprovalPDFGenerator,
 ) *AdminApplicationService {
 	return &AdminApplicationService{
-		db:              db,
-		appRepo:         appRepo,
-		meteringRepo:    meteringRepo,
-		statusLogRepo:   statusLogRepo,
-		fieldConfigRepo: fieldConfigRepo,
-		entrypointRepo:  entrypointRepo,
-		consentRepo:     consentRepo,
-		mailService:     mailService,
+		db:                   db,
+		appRepo:              appRepo,
+		meteringRepo:         meteringRepo,
+		statusLogRepo:        statusLogRepo,
+		fieldConfigRepo:      fieldConfigRepo,
+		entrypointRepo:       entrypointRepo,
+		consentRepo:          consentRepo,
+		mailService:          mailService,
+		approvalPDFGenerator: approvalPDFGenerator,
 	}
 }
 
@@ -349,6 +354,57 @@ func (s *AdminApplicationService) ChangeStatus(id uuid.UUID, toStatus shared.App
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
+	// Trigger approval notification asynchronously after a successful commit.
+	if toStatus == shared.StatusApproved {
+		appID := id
+		go func() {
+			reloadedApp, err := s.appRepo.GetByID(appID)
+			if err != nil {
+				slog.Error("approval mail: failed to reload app", "application_id", appID, "error", err)
+				return
+			}
+			entrypoint, err := s.entrypointRepo.GetByRCNumber(reloadedApp.RCNumber)
+			if err != nil {
+				slog.Error("approval mail: failed to load entrypoint", "application_id", appID, "error", err)
+				return
+			}
+			if entrypoint.ContactEmail == nil || *entrypoint.ContactEmail == "" {
+				return
+			}
+			mps, err := s.meteringRepo.GetByApplicationID(appID)
+			if err != nil {
+				slog.Error("approval mail: failed to load metering points", "application_id", appID, "error", err)
+				return
+			}
+			statusLog, err := s.statusLogRepo.GetByApplicationID(appID)
+			if err != nil {
+				slog.Error("approval mail: failed to load status log", "application_id", appID, "error", err)
+				return
+			}
+			consents, err := s.consentRepo.GetByApplicationID(appID)
+			if err != nil {
+				slog.Error("approval mail: failed to load consents", "application_id", appID, "error", err)
+				return
+			}
+			fieldConfig, fcErr := s.fieldConfigRepo.Get(reloadedApp.RCNumber)
+			if fcErr != nil {
+				slog.Warn("approval mail: failed to load field config", "application_id", appID, "error", fcErr)
+				fieldConfig = map[string]FieldConfigEntry{}
+			}
+
+			pdfData := buildApprovalPDFData(reloadedApp, mps, statusLog, consents, entrypoint, toStateMap(fieldConfig))
+			pdfBytes, pdfErr := s.approvalPDFGenerator.GenerateApproval(pdfData)
+			pdfFailed := pdfErr != nil
+			if pdfFailed {
+				slog.Error("approval mail: failed to generate PDF", "application_id", appID, "error", pdfErr)
+			}
+
+			if err := s.mailService.SendApprovalEmail(reloadedApp, entrypoint, pdfBytes, pdfFailed); err != nil {
+				slog.Error("approval mail: failed to send email", "application_id", appID, "error", err)
+			}
+		}()
+	}
+
 	return &shared.ChangeStatusResponse{
 		ID:     id,
 		Status: string(toStatus),
@@ -379,6 +435,175 @@ func (s *AdminApplicationService) DeleteApplication(id uuid.UUID) error {
 // DeleteDrafts deletes all draft applications for the given RC numbers and returns the count.
 func (s *AdminApplicationService) DeleteDrafts(rcNumbers []string) (int64, error) {
 	return s.appRepo.DeleteDraftsByRCNumbers(rcNumbers)
+}
+
+func buildApprovalPDFData(
+	app *shared.Application,
+	meteringPoints []shared.MeteringPoint,
+	statusLog []shared.StatusLogEntry,
+	consents []shared.DocumentConsent,
+	entrypoint *shared.RegistrationEntrypoint,
+	fieldConfig map[string]string,
+) pdf.ApprovalPDFData {
+	eegName := derefStr(entrypoint.EEGName)
+
+	approvedAt := time.Now()
+	if app.ApprovedAt != nil {
+		approvedAt = *app.ApprovedAt
+	}
+
+	mpPDFs := make([]pdf.MeteringPointPDF, len(meteringPoints))
+	for i, mp := range meteringPoints {
+		dir := "Verbrauch"
+		if mp.Direction == shared.DirectionProduction {
+			dir = "Einspeisung"
+		}
+		mpPDFs[i] = pdf.MeteringPointPDF{
+			MeteringPoint:       mp.MeteringPoint,
+			Direction:           dir,
+			ParticipationFactor: mp.ParticipationFactor,
+		}
+	}
+
+	consentPDFs := make([]pdf.ConsentPDF, len(consents))
+	for i, c := range consents {
+		consentPDFs[i] = pdf.ConsentPDF{
+			Title:       c.Title,
+			URL:         c.URL,
+			ConsentedAt: c.ConsentedAt,
+		}
+	}
+
+	slPDFs := make([]pdf.StatusLogPDF, len(statusLog))
+	for i, sl := range statusLog {
+		from := ""
+		if sl.FromStatus != nil {
+			from = *sl.FromStatus
+		}
+		reason := ""
+		if sl.Reason != nil {
+			reason = *sl.Reason
+		}
+		slPDFs[i] = pdf.StatusLogPDF{
+			FromStatus: from,
+			ToStatus:   sl.ToStatus,
+			Timestamp:  sl.CreatedAt,
+			Reason:     reason,
+		}
+	}
+
+	memberTypeLabel := approvalMemberTypeLabel(app.MemberType)
+
+	return pdf.ApprovalPDFData{
+		EEGName:              eegName,
+		RCNumber:             app.RCNumber,
+		ApprovedAt:           approvedAt,
+		ReferenceNumber:      app.ReferenceNumber,
+		MemberType:           memberTypeLabel,
+		Firstname:            derefStr(app.Firstname),
+		Lastname:             derefStr(app.Lastname),
+		BirthDate:            app.BirthDate,
+		CompanyName:          derefStr(app.CompanyName),
+		UIDNumber:            derefStr(app.UIDNumber),
+		RegisterNumber:       derefStr(app.RegisterNumber),
+		Email:                app.Email,
+		Phone:                derefStr(app.Phone),
+		ResidentStreet:       app.ResidentStreet,
+		ResidentStreetNumber: app.ResidentStreetNumber,
+		ResidentZip:          app.ResidentZip,
+		ResidentCity:         app.ResidentCity,
+		IBAN:                 derefStr(app.IBAN),
+		AccountHolder:        derefStr(app.AccountHolder),
+		SepaMandateType:      approvalSepaMandateType(app, entrypoint),
+		MeteringPoints:       mpPDFs,
+		Consents:             consentPDFs,
+		StatusLog:            slPDFs,
+		ConfigurableFields:   buildApprovalConfigurableFields(app, fieldConfig),
+	}
+}
+
+func approvalMemberTypeLabel(mt shared.MemberType) string {
+	switch mt {
+	case shared.MemberTypePrivate:
+		return "Privatperson"
+	case shared.MemberTypeFarmer:
+		return "Landwirt"
+	case shared.MemberTypeCompany:
+		return "Unternehmen"
+	case shared.MemberTypeMunicipality:
+		return "Gemeinde"
+	case shared.MemberTypeAssociation:
+		return "Verein"
+	default:
+		return string(mt)
+	}
+}
+
+func approvalSepaMandateType(app *shared.Application, ep *shared.RegistrationEntrypoint) string {
+	if !app.SepaMandateAccepted {
+		return "Per E-Mail"
+	}
+	if ep.UseCompanySEPAMandate &&
+		(app.MemberType == shared.MemberTypeCompany || app.MemberType == shared.MemberTypeAssociation) {
+		return "Firmenlastschrift"
+	}
+	return "Basislastschrift"
+}
+
+func buildApprovalConfigurableFields(app *shared.Application, fieldConfig map[string]string) []pdf.ConfigurableFieldPDF {
+	var result []pdf.ConfigurableFieldPDF
+
+	add := func(name, label, value string) {
+		state := fieldConfig[name]
+		if state == "hidden" || state == "" {
+			return
+		}
+		if value == "" {
+			return
+		}
+		result = append(result, pdf.ConfigurableFieldPDF{Label: label, Value: value})
+	}
+
+	if app.HeatPump != nil {
+		v := "Nein"
+		if *app.HeatPump {
+			v = "Ja"
+		}
+		add("heat_pump", "Wärmepumpe vorhanden", v)
+	}
+	if app.ElectricVehicle != nil {
+		v := "Nein"
+		if *app.ElectricVehicle {
+			v = "Ja"
+		}
+		add("electric_vehicle", "Elektrofahrzeug vorhanden", v)
+	}
+	if app.ElectricHotWater != nil {
+		v := "Nein"
+		if *app.ElectricHotWater {
+			v = "Ja"
+		}
+		add("electric_hot_water", "Warmwasser elektrisch", v)
+	}
+	if app.PersonsInHousehold != nil {
+		add("persons_in_household", "Personen im Haushalt", fmt.Sprintf("%d", *app.PersonsInHousehold))
+	}
+	if app.ConsumptionPreviousYear != nil {
+		add("consumption_previous_year", "Verbrauch Vorjahr (kWh)", fmt.Sprintf("%d", *app.ConsumptionPreviousYear))
+	}
+	if app.ConsumptionForecast != nil {
+		add("consumption_forecast", "Verbrauch Prognose (kWh)", fmt.Sprintf("%d", *app.ConsumptionForecast))
+	}
+	if app.FeedInForecast != nil {
+		add("feed_in_forecast", "Einspeisung Prognose (kWh)", fmt.Sprintf("%d", *app.FeedInForecast))
+	}
+	if app.PvPowerKwp != nil {
+		add("pv_power_kwp", "PV-Leistung (kWp)", fmt.Sprintf("%.2f", *app.PvPowerKwp))
+	}
+	if app.MembershipStartDate != nil {
+		add("membership_start_date", "Beitrittsdatum", app.MembershipStartDate.Format("02.01.2006"))
+	}
+	return result
 }
 
 func isAdminTransitionAllowed(from, to shared.ApplicationStatus) bool {

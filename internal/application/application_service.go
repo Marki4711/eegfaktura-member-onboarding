@@ -478,7 +478,7 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID, consents []shared.C
 					attachment = pdfBytes
 				}
 			}
-			go s.mailService.SendSubmissionEmails(app, meteringPoints, entrypoint, attachment)
+			go s.mailService.SendSubmissionEmails(app, meteringPoints, entrypoint, toStateMap(fieldConfig), attachment)
 		}
 	}
 
@@ -800,4 +800,14 @@ func derefStr(s *string) string {
 		return ""
 	}
 	return *s
+}
+
+// toStateMap extracts only the state string from a FieldConfigEntry map.
+// Used to pass a minimal representation to the mail service.
+func toStateMap(fieldConfig map[string]FieldConfigEntry) map[string]string {
+	m := make(map[string]string, len(fieldConfig))
+	for k, v := range fieldConfig {
+		m[k] = v.State
+	}
+	return m
 }

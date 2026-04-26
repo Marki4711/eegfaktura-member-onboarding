@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"html/template"
 	"log/slog"
+	"strings"
+	"time"
 
 	"github.com/your-org/eegfaktura-member-onboarding/internal/shared"
 )
@@ -13,28 +15,34 @@ import (
 //go:embed templates/*.html
 var templateFS embed.FS
 
-// MailService defines the contract for sending submission notification emails.
+// MailService defines the contract for sending notification emails.
 type MailService interface {
-	SendSubmissionEmails(app *shared.Application, meteringPoints []shared.MeteringPoint, entrypoint *shared.RegistrationEntrypoint, attachment []byte)
+	SendSubmissionEmails(app *shared.Application, meteringPoints []shared.MeteringPoint, entrypoint *shared.RegistrationEntrypoint, fieldConfig map[string]string, attachment []byte)
 	SendMemberConfirmation(app *shared.Application) error
+	SendApprovalEmail(app *shared.Application, entrypoint *shared.RegistrationEntrypoint, pdfBytes []byte, pdfFailed bool) error
 }
 
 // NoOpMailService silently drops all mail calls. Used when SMTP is not configured.
 type NoOpMailService struct{}
 
-func (n *NoOpMailService) SendSubmissionEmails(_ *shared.Application, _ []shared.MeteringPoint, _ *shared.RegistrationEntrypoint, _ []byte) {
+func (n *NoOpMailService) SendSubmissionEmails(_ *shared.Application, _ []shared.MeteringPoint, _ *shared.RegistrationEntrypoint, _ map[string]string, _ []byte) {
 }
 func (n *NoOpMailService) SendMemberConfirmation(_ *shared.Application) error { return nil }
+func (n *NoOpMailService) SendApprovalEmail(_ *shared.Application, _ *shared.RegistrationEntrypoint, _ []byte, _ bool) error {
+	return nil
+}
 
 // SMTPMailService sends HTML emails via SMTP.
 type SMTPMailService struct {
-	sender    Sender
-	memberTpl *template.Template
-	eegTpl    *template.Template
+	sender       Sender
+	memberTpl    *template.Template
+	eegTpl       *template.Template
+	approvalTpl  *template.Template
+	adminBaseURL string
 }
 
 // NewSMTPMailService parses the embedded templates and returns a ready service.
-func NewSMTPMailService(sender Sender) (*SMTPMailService, error) {
+func NewSMTPMailService(sender Sender, adminBaseURL string) (*SMTPMailService, error) {
 	memberTpl, err := template.ParseFS(templateFS, "templates/application_submitted_member.html")
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse member template: %w", err)
@@ -43,7 +51,17 @@ func NewSMTPMailService(sender Sender) (*SMTPMailService, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse eeg template: %w", err)
 	}
-	return &SMTPMailService{sender: sender, memberTpl: memberTpl, eegTpl: eegTpl}, nil
+	approvalTpl, err := template.ParseFS(templateFS, "templates/application_approved_eeg.html")
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse approval template: %w", err)
+	}
+	return &SMTPMailService{
+		sender:       sender,
+		memberTpl:    memberTpl,
+		eegTpl:       eegTpl,
+		approvalTpl:  approvalTpl,
+		adminBaseURL: adminBaseURL,
+	}, nil
 }
 
 type memberTemplateData struct {
@@ -53,21 +71,176 @@ type memberTemplateData struct {
 	HasSEPAMandate  bool
 }
 
-type eegTemplateData struct {
-	Firstname       string
-	Lastname        string
-	Email           string
-	ReferenceNumber string
-	MeteringPoints  []shared.MeteringPoint
+// meteringPointView is a resolved metering point with translated direction label.
+type meteringPointView struct {
+	MeteringPoint       string
+	Direction           string
+	ParticipationFactor int
 }
 
-// SendSubmissionEmails sends the member confirmation and, if a contact email is
-// configured, the EEG notification. Errors are logged but never propagate to the caller.
-// If attachment is non-nil it is appended to the member confirmation email as sepa-lastschriftmandat.pdf.
-func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, meteringPoints []shared.MeteringPoint, entrypoint *shared.RegistrationEntrypoint, attachment []byte) {
+// ConfigurableFieldDisplay is a resolved label-value entry for email and PDF templates.
+type ConfigurableFieldDisplay struct {
+	Label string
+	Value string
+}
+
+type eegTemplateData struct {
+	// Identifikation
+	ReferenceNumber string
+	SubmittedAt     string
+	RCNumber        string
+
+	// Mitgliedstyp
+	MemberType string
+
+	// Person (nur bei private / farmer)
+	Firstname string
+	Lastname  string
+	BirthDate string
+
+	// Unternehmen / Organisation
+	CompanyName    string
+	UIDNumber      string
+	RegisterNumber string
+
+	// Kontakt
+	Email string
+	Phone string
+
+	// Adresse
+	ResidentStreet       string
+	ResidentStreetNumber string
+	ResidentZip          string
+	ResidentCity         string
+
+	// Bankverbindung
+	IBAN            string
+	AccountHolder   string
+	SepaMandateType string
+
+	// Zählpunkte
+	MeteringPoints []meteringPointView
+
+	// Konfigurierbare Felder (gefiltert: nicht-hidden, nicht leer)
+	ConfigurableFields []ConfigurableFieldDisplay
+
+	// Admin-Link (leer wenn ADMIN_BASE_URL nicht konfiguriert)
+	AdminDetailURL string
+}
+
+type approvedEEGTemplateData struct {
+	MemberName      string
+	ReferenceNumber string
+	EEGName         string
+	PDFFailed       bool
+}
+
+var configurableFieldLabels = map[string]string{
+	"persons_in_household":      "Personen im Haushalt",
+	"consumption_previous_year": "Verbrauch Vorjahr (kWh)",
+	"consumption_forecast":      "Verbrauch Prognose (kWh)",
+	"feed_in_forecast":          "Einspeisung Prognose (kWh)",
+	"pv_power_kwp":              "PV-Leistung (kWp)",
+	"heat_pump":                 "Wärmepumpe vorhanden",
+	"electric_vehicle":          "Elektrofahrzeug vorhanden",
+	"electric_hot_water":        "Warmwasser elektrisch",
+	"membership_start_date":     "Beitrittsdatum",
+}
+
+var memberTypeLabels = map[string]string{
+	"private":      "Privatperson",
+	"farmer":       "Landwirt",
+	"company":      "Unternehmen",
+	"municipality": "Gemeinde",
+	"association":  "Verein",
+}
+
+// buildConfigurableFields returns the display list for non-hidden configurable fields with values.
+func buildConfigurableFields(app *shared.Application, fieldConfig map[string]string) []ConfigurableFieldDisplay {
+	var result []ConfigurableFieldDisplay
+
+	add := func(name, value string) {
+		label, hasLabel := configurableFieldLabels[name]
+		if !hasLabel {
+			return
+		}
+		state := fieldConfig[name]
+		if state == "hidden" || state == "" {
+			return
+		}
+		if value == "" {
+			return
+		}
+		result = append(result, ConfigurableFieldDisplay{Label: label, Value: value})
+	}
+
+	if app.HeatPump != nil {
+		v := "Nein"
+		if *app.HeatPump {
+			v = "Ja"
+		}
+		add("heat_pump", v)
+	}
+	if app.ElectricVehicle != nil {
+		v := "Nein"
+		if *app.ElectricVehicle {
+			v = "Ja"
+		}
+		add("electric_vehicle", v)
+	}
+	if app.ElectricHotWater != nil {
+		v := "Nein"
+		if *app.ElectricHotWater {
+			v = "Ja"
+		}
+		add("electric_hot_water", v)
+	}
+	if app.PersonsInHousehold != nil {
+		add("persons_in_household", fmt.Sprintf("%d", *app.PersonsInHousehold))
+	}
+	if app.ConsumptionPreviousYear != nil {
+		add("consumption_previous_year", fmt.Sprintf("%d", *app.ConsumptionPreviousYear))
+	}
+	if app.ConsumptionForecast != nil {
+		add("consumption_forecast", fmt.Sprintf("%d", *app.ConsumptionForecast))
+	}
+	if app.FeedInForecast != nil {
+		add("feed_in_forecast", fmt.Sprintf("%d", *app.FeedInForecast))
+	}
+	if app.PvPowerKwp != nil {
+		add("pv_power_kwp", fmt.Sprintf("%.2f", *app.PvPowerKwp))
+	}
+	if app.MembershipStartDate != nil {
+		add("membership_start_date", app.MembershipStartDate.Format("02.01.2006"))
+	}
+	return result
+}
+
+func resolveSepaMandateType(app *shared.Application, ep *shared.RegistrationEntrypoint) string {
+	if !app.SepaMandateAccepted {
+		return "Per E-Mail"
+	}
+	if ep.UseCompanySEPAMandate &&
+		(app.MemberType == shared.MemberTypeCompany || app.MemberType == shared.MemberTypeAssociation) {
+		return "Firmenlastschrift"
+	}
+	return "Basislastschrift"
+}
+
+func memberDisplayName(app *shared.Application) string {
+	switch app.MemberType {
+	case shared.MemberTypePrivate, shared.MemberTypeFarmer:
+		return strings.TrimSpace(derefString(app.Firstname) + " " + derefString(app.Lastname))
+	default:
+		return derefString(app.CompanyName)
+	}
+}
+
+// SendSubmissionEmails sends the member confirmation and EEG notification emails.
+// Errors are logged but never propagate to the caller.
+func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, meteringPoints []shared.MeteringPoint, entrypoint *shared.RegistrationEntrypoint, fieldConfig map[string]string, attachment []byte) {
 	slog.Info("mail: sending submission emails", "application_id", app.ID, "ref", app.ReferenceNumber, "to", app.Email)
 
-	// Member confirmation
 	var memberBuf bytes.Buffer
 	if err := s.memberTpl.Execute(&memberBuf, memberTemplateData{
 		Firstname:       derefString(app.Firstname),
@@ -97,22 +270,85 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 		return
 	}
 
-	firstname := derefString(app.Firstname)
-	lastname := derefString(app.Lastname)
+	// Build metering point views (translated direction labels)
+	mpViews := make([]meteringPointView, len(meteringPoints))
+	for i, mp := range meteringPoints {
+		dir := "Verbrauch"
+		if mp.Direction == shared.DirectionProduction {
+			dir = "Einspeisung"
+		}
+		mpViews[i] = meteringPointView{
+			MeteringPoint:       mp.MeteringPoint,
+			Direction:           dir,
+			ParticipationFactor: mp.ParticipationFactor,
+		}
+	}
+
+	// Admin detail link (optional)
+	adminDetailURL := ""
+	if s.adminBaseURL != "" {
+		adminDetailURL = s.adminBaseURL + "/admin/applications/" + app.ID.String()
+	}
+
+	// Member type label
+	memberTypeLabel := memberTypeLabels[string(app.MemberType)]
+	if memberTypeLabel == "" {
+		memberTypeLabel = string(app.MemberType)
+	}
+
+	birthDate := ""
+	if app.BirthDate != nil {
+		birthDate = app.BirthDate.Format("02.01.2006")
+	}
+
+	iban := ""
+	if app.IBAN != nil {
+		iban = *app.IBAN
+	}
+
+	accountHolder := ""
+	if app.AccountHolder != nil {
+		accountHolder = *app.AccountHolder
+	}
+
+	submittedAt := time.Now().Format("02.01.2006 15:04")
+	if app.SubmittedAt != nil {
+		submittedAt = app.SubmittedAt.Format("02.01.2006 15:04")
+	}
+
+	tplData := eegTemplateData{
+		ReferenceNumber:      app.ReferenceNumber,
+		SubmittedAt:          submittedAt,
+		RCNumber:             app.RCNumber,
+		MemberType:           memberTypeLabel,
+		Firstname:            derefString(app.Firstname),
+		Lastname:             derefString(app.Lastname),
+		BirthDate:            birthDate,
+		CompanyName:          derefString(app.CompanyName),
+		UIDNumber:            derefString(app.UIDNumber),
+		RegisterNumber:       derefString(app.RegisterNumber),
+		Email:                app.Email,
+		Phone:                derefString(app.Phone),
+		ResidentStreet:       app.ResidentStreet,
+		ResidentStreetNumber: app.ResidentStreetNumber,
+		ResidentZip:          app.ResidentZip,
+		ResidentCity:         app.ResidentCity,
+		IBAN:                 iban,
+		AccountHolder:        accountHolder,
+		SepaMandateType:      resolveSepaMandateType(app, entrypoint),
+		MeteringPoints:       mpViews,
+		ConfigurableFields:   buildConfigurableFields(app, fieldConfig),
+		AdminDetailURL:       adminDetailURL,
+	}
 
 	var eegBuf bytes.Buffer
-	if err := s.eegTpl.Execute(&eegBuf, eegTemplateData{
-		Firstname:       firstname,
-		Lastname:        lastname,
-		Email:           app.Email,
-		ReferenceNumber: app.ReferenceNumber,
-		MeteringPoints:  meteringPoints,
-	}); err != nil {
+	if err := s.eegTpl.Execute(&eegBuf, tplData); err != nil {
 		slog.Error("mail: failed to render EEG template", "application_id", app.ID, "error", err)
 		return
 	}
 
-	subject := fmt.Sprintf("Neuer Beitrittsantrag: %s %s (%s)", firstname, lastname, app.ReferenceNumber)
+	displayName := memberDisplayName(app)
+	subject := fmt.Sprintf("Neuer Beitrittsantrag: %s (%s)", displayName, app.ReferenceNumber)
 	if err := s.sender.Send(*entrypoint.ContactEmail, subject, eegBuf.String()); err != nil {
 		slog.Error("mail: failed to send EEG notification", "application_id", app.ID, "to", *entrypoint.ContactEmail, "error", err)
 	} else {
@@ -132,6 +368,39 @@ func (s *SMTPMailService) SendMemberConfirmation(app *shared.Application) error 
 	}
 	subject := fmt.Sprintf("Ihre Beitrittserklärung wurde eingereicht (%s)", app.ReferenceNumber)
 	return s.sender.Send(app.Email, subject, buf.String())
+}
+
+// SendApprovalEmail sends the approval notification with optional PDF attachment to the EEG contact.
+// Returns nil immediately when contact_email is not configured.
+func (s *SMTPMailService) SendApprovalEmail(app *shared.Application, entrypoint *shared.RegistrationEntrypoint, pdfBytes []byte, pdfFailed bool) error {
+	if entrypoint.ContactEmail == nil || *entrypoint.ContactEmail == "" {
+		return nil
+	}
+
+	eegName := ""
+	if entrypoint.EEGName != nil {
+		eegName = *entrypoint.EEGName
+	}
+
+	memberName := memberDisplayName(app)
+
+	var buf bytes.Buffer
+	if err := s.approvalTpl.Execute(&buf, approvedEEGTemplateData{
+		MemberName:      memberName,
+		ReferenceNumber: app.ReferenceNumber,
+		EEGName:         eegName,
+		PDFFailed:       pdfFailed,
+	}); err != nil {
+		return fmt.Errorf("render approval template: %w", err)
+	}
+
+	subject := fmt.Sprintf("Mitgliedsantrag genehmigt – %s (%s)", memberName, app.ReferenceNumber)
+	filename := fmt.Sprintf("beitrittsbestaetigung-%s.pdf", app.ReferenceNumber)
+
+	if len(pdfBytes) > 0 {
+		return s.sender.SendWithAttachment(*entrypoint.ContactEmail, subject, buf.String(), filename, pdfBytes)
+	}
+	return s.sender.Send(*entrypoint.ContactEmail, subject, buf.String())
 }
 
 func derefString(s *string) string {

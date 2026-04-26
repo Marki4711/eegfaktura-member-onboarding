@@ -4,34 +4,141 @@
   <meta charset="UTF-8">
   <title>Neuer Beitrittsantrag eingegangen</title>
 </head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 700px;">
   <p>Guten Tag,</p>
+  <p>es ist ein neuer Beitrittsantrag eingegangen.</p>
 
-  <p>es ist ein neuer Beitrittsantrag eingegangen. Bitte prüfen Sie diesen im Adminbereich.</p>
-
-  <table style="border-collapse: collapse; margin: 16px 0;">
+  <!-- Antragsteller -->
+  <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-top: 24px;">Antragsteller</h3>
+  <table style="border-collapse: collapse; margin: 8px 0; width: 100%;">
+    <tr>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold; width: 40%;">Mitgliedstyp:</td>
+      <td style="padding: 4px 0;">{{.MemberType}}</td>
+    </tr>
+    {{if .Firstname}}
     <tr>
       <td style="padding: 4px 16px 4px 0; font-weight: bold;">Name:</td>
       <td style="padding: 4px 0;">{{.Firstname}} {{.Lastname}}</td>
     </tr>
+    {{end}}
+    {{if .CompanyName}}
+    <tr>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold;">Firmenname:</td>
+      <td style="padding: 4px 0;">{{.CompanyName}}</td>
+    </tr>
+    {{end}}
+    {{if .UIDNumber}}
+    <tr>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold;">UID-Nummer:</td>
+      <td style="padding: 4px 0;">{{.UIDNumber}}</td>
+    </tr>
+    {{end}}
+    {{if .RegisterNumber}}
+    <tr>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold;">Firmenbuchnummer:</td>
+      <td style="padding: 4px 0;">{{.RegisterNumber}}</td>
+    </tr>
+    {{end}}
+    {{if .BirthDate}}
+    <tr>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold;">Geburtsdatum:</td>
+      <td style="padding: 4px 0;">{{.BirthDate}}</td>
+    </tr>
+    {{end}}
     <tr>
       <td style="padding: 4px 16px 4px 0; font-weight: bold;">E-Mail:</td>
       <td style="padding: 4px 0;">{{.Email}}</td>
     </tr>
+    {{if .Phone}}
     <tr>
-      <td style="padding: 4px 16px 4px 0; font-weight: bold;">Antragsnummer:</td>
-      <td style="padding: 4px 0;">{{.ReferenceNumber}}</td>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold;">Telefon:</td>
+      <td style="padding: 4px 0;">{{.Phone}}</td>
+    </tr>
+    {{end}}
+    <tr>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold;">Adresse:</td>
+      <td style="padding: 4px 0;">{{.ResidentStreet}} {{.ResidentStreetNumber}}, {{.ResidentZip}} {{.ResidentCity}}</td>
     </tr>
   </table>
 
-  <p><strong>Angemeldete Zählpunkte:</strong></p>
-  <ul>
-    {{range .MeteringPoints}}<li>{{.MeteringPoint}} ({{.Direction}})</li>
+  <!-- Bankverbindung -->
+  {{if .IBAN}}
+  <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-top: 24px;">Bankverbindung</h3>
+  <table style="border-collapse: collapse; margin: 8px 0; width: 100%;">
+    <tr>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold; width: 40%;">IBAN:</td>
+      <td style="padding: 4px 0;">{{.IBAN}}</td>
+    </tr>
+    {{if .AccountHolder}}
+    <tr>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold;">Kontoinhaber:</td>
+      <td style="padding: 4px 0;">{{.AccountHolder}}</td>
+    </tr>
     {{end}}
-  </ul>
+    <tr>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold;">SEPA-Ermächtigung:</td>
+      <td style="padding: 4px 0;">{{.SepaMandateType}}</td>
+    </tr>
+  </table>
+  {{end}}
 
-  <p>Bitte melden Sie sich im Adminbereich an, um den Antrag zu bearbeiten.</p>
+  <!-- Zählpunkte -->
+  <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-top: 24px;">Zählpunkte</h3>
+  <table style="border-collapse: collapse; margin: 8px 0; width: 100%;">
+    <thead>
+      <tr style="background: #f5f5f5;">
+        <th style="padding: 6px 12px; text-align: left; border-bottom: 1px solid #ddd;">Zählpunktnummer</th>
+        <th style="padding: 6px 12px; text-align: left; border-bottom: 1px solid #ddd;">Richtung</th>
+        <th style="padding: 6px 12px; text-align: right; border-bottom: 1px solid #ddd;">Teilnahmefaktor</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .MeteringPoints}}
+      <tr>
+        <td style="padding: 6px 12px; border-bottom: 1px solid #eee;">{{.MeteringPoint}}</td>
+        <td style="padding: 6px 12px; border-bottom: 1px solid #eee;">{{.Direction}}</td>
+        <td style="padding: 6px 12px; border-bottom: 1px solid #eee; text-align: right;">{{.ParticipationFactor}} %</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
 
-  <p>Mit freundlichen Grüßen<br>Ihr eegFaktura-System</p>
+  <!-- Konfigurierbare Felder -->
+  {{if .ConfigurableFields}}
+  <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-top: 24px;">Zusätzliche Informationen</h3>
+  <table style="border-collapse: collapse; margin: 8px 0; width: 100%;">
+    {{range .ConfigurableFields}}
+    <tr>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold; width: 40%;">{{.Label}}:</td>
+      <td style="padding: 4px 0;">{{.Value}}</td>
+    </tr>
+    {{end}}
+  </table>
+  {{end}}
+
+  <!-- Referenz -->
+  <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-top: 24px;">Referenz</h3>
+  <table style="border-collapse: collapse; margin: 8px 0; width: 100%;">
+    <tr>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold; width: 40%;">Antragsnummer:</td>
+      <td style="padding: 4px 0;">{{.ReferenceNumber}}</td>
+    </tr>
+    <tr>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold;">Eingereicht am:</td>
+      <td style="padding: 4px 0;">{{.SubmittedAt}}</td>
+    </tr>
+    <tr>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold;">RC-Nummer:</td>
+      <td style="padding: 4px 0;">{{.RCNumber}}</td>
+    </tr>
+    {{if .AdminDetailURL}}
+    <tr>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold;">Zum Antrag:</td>
+      <td style="padding: 4px 0;"><a href="{{.AdminDetailURL}}">{{.AdminDetailURL}}</a></td>
+    </tr>
+    {{end}}
+  </table>
+
+  <p style="margin-top: 24px;">Mit freundlichen Grüßen<br>Ihr eegFaktura-System</p>
 </body>
 </html>

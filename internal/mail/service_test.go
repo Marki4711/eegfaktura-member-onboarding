@@ -23,14 +23,14 @@ func TestNoOpMailService_Noop(t *testing.T) {
 		ReferenceNumber: "REF-2026-001",
 	}
 	ep := &shared.RegistrationEntrypoint{}
-	svc.SendSubmissionEmails(app, nil, ep, nil) // must not panic
+	svc.SendSubmissionEmails(app, nil, ep, nil, nil) // must not panic
 }
 
 // TestNewSMTPMailService_ParsesTemplates verifies that embedded HTML templates
 // parse without error at startup time.
 func TestNewSMTPMailService_ParsesTemplates(t *testing.T) {
 	mailer := NewMailer("localhost", 587, "", "", "noreply@example.com")
-	svc, err := NewSMTPMailService(mailer)
+	svc, err := NewSMTPMailService(mailer, "")
 	if err != nil {
 		t.Fatalf("NewSMTPMailService failed: %v", err)
 	}
@@ -39,6 +39,9 @@ func TestNewSMTPMailService_ParsesTemplates(t *testing.T) {
 	}
 	if svc.eegTpl == nil {
 		t.Error("eeg template is nil")
+	}
+	if svc.approvalTpl == nil {
+		t.Error("approval template is nil")
 	}
 }
 
@@ -95,9 +98,9 @@ func TestEEGTemplate_ContainsExpectedFields(t *testing.T) {
 		t.Fatalf("failed to parse eeg template: %v", err)
 	}
 
-	points := []shared.MeteringPoint{
-		{MeteringPoint: "AT0031000000000000000000990022105", Direction: "CONSUMPTION"},
-		{MeteringPoint: "AT0031000000000000000000990022106", Direction: "PRODUCTION"},
+	points := []meteringPointView{
+		{MeteringPoint: "AT0031000000000000000000990022105", Direction: "Verbrauch", ParticipationFactor: 100},
+		{MeteringPoint: "AT0031000000000000000000990022106", Direction: "Einspeisung", ParticipationFactor: 50},
 	}
 
 	var buf bytes.Buffer
@@ -113,13 +116,13 @@ func TestEEGTemplate_ContainsExpectedFields(t *testing.T) {
 
 	body := buf.String()
 	checks := map[string]string{
-		"firstname":         "Josef",
-		"lastname":          "Muster",
-		"email":             "max.mustermann@example.org",
-		"reference number":  "REF-2026-001",
-		"metering point 1":  "AT0031000000000000000000990022105",
-		"metering point 2":  "AT0031000000000000000000990022106",
-		"direction":         "CONSUMPTION",
+		"firstname":        "Josef",
+		"lastname":         "Muster",
+		"email":            "max.mustermann@example.org",
+		"reference number": "REF-2026-001",
+		"metering point 1": "AT0031000000000000000000990022105",
+		"metering point 2": "AT0031000000000000000000990022106",
+		"direction":        "Verbrauch",
 	}
 	for label, want := range checks {
 		if !strings.Contains(body, want) {
@@ -209,7 +212,7 @@ func (s *spySender) SendWithAttachment(to, subject, htmlBody, _ string, _ []byte
 
 func newTestService(t *testing.T, spy *spySender) *SMTPMailService {
 	t.Helper()
-	svc, err := NewSMTPMailService(spy)
+	svc, err := NewSMTPMailService(spy, "")
 	if err != nil {
 		t.Fatalf("NewSMTPMailService: %v", err)
 	}
@@ -221,6 +224,7 @@ func testApp() *shared.Application {
 	return &shared.Application{
 		ID:              uuid.New(),
 		RCNumber:        "RC123456",
+		MemberType:      shared.MemberTypePrivate,
 		Firstname:       &fn,
 		Lastname:        &ln,
 		Email:           "max.mustermann@example.org",
@@ -240,7 +244,7 @@ func TestSendSubmissionEmails_MemberAlwaysSent(t *testing.T) {
 	svc := newTestService(t, spy)
 	ep := &shared.RegistrationEntrypoint{}
 
-	svc.SendSubmissionEmails(testApp(), testMeteringPoints(), ep, nil)
+	svc.SendSubmissionEmails(testApp(), testMeteringPoints(), ep, nil, nil)
 
 	if len(spy.calls) != 1 {
 		t.Fatalf("expected 1 send call, got %d", len(spy.calls))
@@ -261,7 +265,7 @@ func TestSendSubmissionEmails_EEGSentWhenContactEmailSet(t *testing.T) {
 	contactEmail := "eeg@example.at"
 	ep := &shared.RegistrationEntrypoint{ContactEmail: &contactEmail}
 
-	svc.SendSubmissionEmails(testApp(), testMeteringPoints(), ep, nil)
+	svc.SendSubmissionEmails(testApp(), testMeteringPoints(), ep, nil, nil)
 
 	if len(spy.calls) != 2 {
 		t.Fatalf("expected 2 send calls, got %d", len(spy.calls))
@@ -281,7 +285,7 @@ func TestSendSubmissionEmails_EEGSkippedWhenNoContactEmail(t *testing.T) {
 	svc := newTestService(t, spy)
 	ep := &shared.RegistrationEntrypoint{ContactEmail: nil}
 
-	svc.SendSubmissionEmails(testApp(), testMeteringPoints(), ep, nil)
+	svc.SendSubmissionEmails(testApp(), testMeteringPoints(), ep, nil, nil)
 
 	if len(spy.calls) != 1 {
 		t.Errorf("expected only 1 send call (member), got %d", len(spy.calls))
@@ -296,7 +300,7 @@ func TestSendSubmissionEmails_EEGSkippedWhenContactEmailEmpty(t *testing.T) {
 	empty := ""
 	ep := &shared.RegistrationEntrypoint{ContactEmail: &empty}
 
-	svc.SendSubmissionEmails(testApp(), testMeteringPoints(), ep, nil)
+	svc.SendSubmissionEmails(testApp(), testMeteringPoints(), ep, nil, nil)
 
 	if len(spy.calls) != 1 {
 		t.Errorf("expected only 1 send call (member), got %d", len(spy.calls))

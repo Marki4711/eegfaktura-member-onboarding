@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Mitgliedsantrag genehmigt</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 700px;">
+  <p>Guten Tag,</p>
+
+  <p>der folgende Mitgliedsantrag wurde genehmigt:</p>
+
+  <table style="border-collapse: collapse; margin: 16px 0;">
+    <tr>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold;">Mitglied:</td>
+      <td style="padding: 4px 0;">{{.MemberName}}</td>
+    </tr>
+    <tr>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold;">Antragsnummer:</td>
+      <td style="padding: 4px 0;">{{.ReferenceNumber}}</td>
+    </tr>
+    {{if .EEGName}}
+    <tr>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold;">EEG:</td>
+      <td style="padding: 4px 0;">{{.EEGName}}</td>
+    </tr>
+    {{end}}
+  </table>
+
+  {{if .PDFFailed}}
+  <p><strong>Hinweis:</strong> Die Beitrittsbestätigung konnte nicht als PDF generiert werden. Bitte öffnen Sie den Antrag im Adminbereich, um die Daten einzusehen.</p>
+  {{else}}
+  <p>Die Beitrittsbestätigung finden Sie als PDF-Anhang dieser E-Mail.</p>
+  {{end}}
+
+  <p style="margin-top: 24px;">Mit freundlichen Grüßen<br>Ihr eegFaktura-System</p>
+</body>
+</html>

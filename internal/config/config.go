@@ -17,6 +17,7 @@ type Config struct {
 	Keycloak      KeycloakConfig
 	Turnstile     TurnstileConfig
 	CentralPolicy CentralPolicyConfig
+	AdminBaseURL  string
 }
 
 // CentralPolicyConfig holds title and URL of the operator's central privacy policy.
@@ -108,6 +109,7 @@ func Load() (*Config, error) {
 			Title: getEnv("CENTRAL_POLICY_TITLE", "Datenschutzerklärung"),
 			URL:   getEnv("CENTRAL_POLICY_URL", ""),
 		},
+		AdminBaseURL: getEnv("ADMIN_BASE_URL", ""),
 	}
 
 	return config, nil
