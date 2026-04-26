@@ -34,9 +34,9 @@ type CreateApplicationRequest struct {
 	// Configurable application-level fields (PROJ-8)
 	MembershipStartDate     *string  `json:"membershipStartDate,omitempty"`
 	PersonsInHousehold      *int     `json:"personsInHousehold,omitempty" validate:"omitempty,min=0"`
-	ConsumptionPreviousYear *int     `json:"consumptionPreviousYear,omitempty" validate:"omitempty,min=0"`
-	ConsumptionForecast     *int     `json:"consumptionForecast,omitempty" validate:"omitempty,min=0"`
-	FeedInForecast          *int     `json:"feedInForecast,omitempty" validate:"omitempty,min=0"`
+	ConsumptionPreviousYear *int64   `json:"consumptionPreviousYear,omitempty" validate:"omitempty,min=0"`
+	ConsumptionForecast     *int64   `json:"consumptionForecast,omitempty" validate:"omitempty,min=0"`
+	FeedInForecast          *int64   `json:"feedInForecast,omitempty" validate:"omitempty,min=0"`
 	PvPowerKwp              *float64 `json:"pvPowerKwp,omitempty" validate:"omitempty,min=0"`
 	HeatPump                *bool    `json:"heatPump,omitempty"`
 	ElectricVehicle         *bool    `json:"electricVehicle,omitempty"`

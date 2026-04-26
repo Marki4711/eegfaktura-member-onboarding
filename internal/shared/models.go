@@ -105,9 +105,9 @@ type Application struct {
 	// Configurable application-level fields (PROJ-8)
 	MembershipStartDate     *time.Time `json:"membershipStartDate,omitempty" db:"membership_start_date"`
 	PersonsInHousehold      *int       `json:"personsInHousehold,omitempty" db:"persons_in_household"`
-	ConsumptionPreviousYear *int       `json:"consumptionPreviousYear,omitempty" db:"consumption_previous_year"`
-	ConsumptionForecast     *int       `json:"consumptionForecast,omitempty" db:"consumption_forecast"`
-	FeedInForecast          *int       `json:"feedInForecast,omitempty" db:"feed_in_forecast"`
+	ConsumptionPreviousYear *int64     `json:"consumptionPreviousYear,omitempty" db:"consumption_previous_year"`
+	ConsumptionForecast     *int64     `json:"consumptionForecast,omitempty" db:"consumption_forecast"`
+	FeedInForecast          *int64     `json:"feedInForecast,omitempty" db:"feed_in_forecast"`
 	PvPowerKwp              *float64   `json:"pvPowerKwp,omitempty" db:"pv_power_kwp"`
 	HeatPump                *bool      `json:"heatPump,omitempty" db:"heat_pump"`
 	ElectricVehicle         *bool      `json:"electricVehicle,omitempty" db:"electric_vehicle"`

@@ -256,15 +256,15 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		app.PersonsInHousehold = &v
 	}
 	if consumptionPreviousYear.Valid {
-		v := int(consumptionPreviousYear.Int64)
+		v := consumptionPreviousYear.Int64
 		app.ConsumptionPreviousYear = &v
 	}
 	if consumptionForecast.Valid {
-		v := int(consumptionForecast.Int64)
+		v := consumptionForecast.Int64
 		app.ConsumptionForecast = &v
 	}
 	if feedInForecast.Valid {
-		v := int(feedInForecast.Int64)
+		v := feedInForecast.Int64
 		app.FeedInForecast = &v
 	}
 	if pvPowerKwp.Valid {

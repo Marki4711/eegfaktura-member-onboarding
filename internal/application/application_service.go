@@ -1,9 +1,11 @@
 package application
 
 import (
+	"crypto/rand"
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"math/big"
 	"strings"
 	"time"
 
@@ -502,10 +504,15 @@ func parseDateString(s *string) (*time.Time, error) {
 	return &t, nil
 }
 
-// generateReferenceNumber generates a unique reference number
+// generateReferenceNumber generates a unique reference number.
+// Uses crypto/rand for the suffix to avoid collisions under concurrent load.
 func (s *ApplicationService) generateReferenceNumber() string {
-	now := time.Now()
-	return fmt.Sprintf("MO-%s-%06d", now.Format("2006"), now.Unix()%1000000)
+	// Range 100000–999999 guarantees always 6 digits.
+	n, err := rand.Int(rand.Reader, big.NewInt(900_000))
+	if err != nil {
+		n = big.NewInt(time.Now().UnixNano() % 900_000)
+	}
+	return fmt.Sprintf("MO-%d-%06d", time.Now().Year(), n.Int64()+100_000)
 }
 
 // trimStringPtr trims whitespace from a *string, returning nil if the pointer is nil.
@@ -575,7 +582,7 @@ func applyAdminValues(app *shared.Application, fieldConfig map[string]FieldConfi
 	})
 	apply("consumption_previous_year", func(v string) {
 		if app.ConsumptionPreviousYear == nil {
-			var n int
+			var n int64
 			if _, err := fmt.Sscanf(v, "%d", &n); err == nil {
 				app.ConsumptionPreviousYear = &n
 			}
@@ -583,7 +590,7 @@ func applyAdminValues(app *shared.Application, fieldConfig map[string]FieldConfi
 	})
 	apply("consumption_forecast", func(v string) {
 		if app.ConsumptionForecast == nil {
-			var n int
+			var n int64
 			if _, err := fmt.Sscanf(v, "%d", &n); err == nil {
 				app.ConsumptionForecast = &n
 			}
@@ -591,7 +598,7 @@ func applyAdminValues(app *shared.Application, fieldConfig map[string]FieldConfi
 	})
 	apply("feed_in_forecast", func(v string) {
 		if app.FeedInForecast == nil {
-			var n int
+			var n int64
 			if _, err := fmt.Sscanf(v, "%d", &n); err == nil {
 				app.FeedInForecast = &n
 			}
@@ -646,6 +653,11 @@ func validateConfigurableRequiredFields(app *shared.Application, fieldConfig map
 			errs[jsonKey] = label + " ist erforderlich"
 		}
 	}
+	checkInt64 := func(name, jsonKey string, val *int64, label string) {
+		if effectiveState(fieldConfig, name) == "required" && val == nil {
+			errs[jsonKey] = label + " ist erforderlich"
+		}
+	}
 	checkFloat := func(name, jsonKey string, val *float64, label string) {
 		if effectiveState(fieldConfig, name) == "required" && val == nil {
 			errs[jsonKey] = label + " ist erforderlich"
@@ -662,9 +674,9 @@ func validateConfigurableRequiredFields(app *shared.Application, fieldConfig map
 	checkStr("uid_number", "uidNumber", app.UIDNumber, "UID-Nummer")
 	checkTime("membership_start_date", "membershipStartDate", app.MembershipStartDate, "Beitrittsdatum")
 	checkInt("persons_in_household", "personsInHousehold", app.PersonsInHousehold, "Anzahl Personen im Haushalt")
-	checkInt("consumption_previous_year", "consumptionPreviousYear", app.ConsumptionPreviousYear, "Verbrauch Vorjahr")
-	checkInt("consumption_forecast", "consumptionForecast", app.ConsumptionForecast, "Verbrauch Prognose")
-	checkInt("feed_in_forecast", "feedInForecast", app.FeedInForecast, "Einspeisung Prognose")
+	checkInt64("consumption_previous_year", "consumptionPreviousYear", app.ConsumptionPreviousYear, "Verbrauch Vorjahr")
+	checkInt64("consumption_forecast", "consumptionForecast", app.ConsumptionForecast, "Verbrauch Prognose")
+	checkInt64("feed_in_forecast", "feedInForecast", app.FeedInForecast, "Einspeisung Prognose")
 	checkFloat("pv_power_kwp", "pvPowerKwp", app.PvPowerKwp, "PV-Leistung")
 	checkBool("heat_pump", "heatPump", app.HeatPump, "Wärmepumpe vorhanden")
 	checkBool("electric_vehicle", "electricVehicle", app.ElectricVehicle, "E-Auto vorhanden")
