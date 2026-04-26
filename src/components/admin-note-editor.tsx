@@ -66,7 +66,7 @@ export function AdminNoteEditor({ application, onRefresh }: Props) {
   if (!editing) {
     return (
       <div className="space-y-2">
-        <div className="min-h-[3rem] rounded-md border bg-muted/30 p-3 text-sm">
+        <div className="min-h-12 rounded-md border bg-muted/30 p-3 text-sm">
           {application.adminNote ? (
             <p className="whitespace-pre-wrap">{application.adminNote}</p>
           ) : (
