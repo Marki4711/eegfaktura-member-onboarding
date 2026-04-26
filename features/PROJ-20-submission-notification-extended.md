@@ -1,8 +1,8 @@
 # PROJ-20: Vollständige Antragsdaten in EEG-Einreichungsbenachrichtigung
 
-## Status: Planned
+## Status: Architected
 **Created:** 2026-04-26
-**Last Updated:** 2026-04-26
+**Last Updated:** 2026-04-25
 
 ## Dependencies
 - Requires: PROJ-6 (E-Mail-Benachrichtigungen) — erweitert das bestehende EEG-Benachrichtigungs-Template
@@ -68,7 +68,209 @@ Die bestehende EEG-Einreichungsbenachrichtigung (PROJ-6) enthält nur: Name, E-M
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+
+### Betroffene Komponenten
+
+Rein Backend — kein Frontend-Eingriff, keine neuen Endpunkte, keine DB-Migrationen.
+
+```
+internal/
+  config/config.go                            ← erweitert: ADMIN_BASE_URL-Feld
+  mail/
+    service.go                                ← erweitert: eegTemplateData + Rendering-Logik
+    templates/
+      application_submitted_eeg.html          ← ersetzt: vollständige Antragsdaten
+```
+
+Keine neuen Pakete, keine neuen Abhängigkeiten.
+
+### Datenmodell-Erweiterungen
+
+Keine DB-Änderungen — alle benötigten Daten sind bereits in `shared.Application`, `shared.MeteringPoint` und `shared.RegistrationEntrypoint` vorhanden.
+
+### Template-Variablen: `eegTemplateData`
+
+Der bestehende `eegTemplateData`-Struct in `internal/mail/service.go` wird durch einen vollständigen Struct ersetzt:
+
+```go
+type eegTemplateData struct {
+    // Identifikation
+    ReferenceNumber string
+    SubmittedAt     string   // formatiert als "02.01.2006 15:04"
+    RCNumber        string
+
+    // Mitgliedstyp
+    MemberType      string   // "Privatperson" / "Landwirt" / "Unternehmen" / ...
+
+    // Person (nur bei private / farmer)
+    Firstname       string
+    Lastname        string
+    BirthDate       string   // formatiert als "02.01.2006" oder "" wenn nil
+
+    // Unternehmen / Organisation (nur bei company / municipality / association)
+    CompanyName     string
+    UIDNumber       string
+    RegisterNumber  string
+
+    // Kontakt
+    Email           string
+    Phone           string   // "" wenn nil
+
+    // Adresse
+    ResidentStreet       string
+    ResidentStreetNumber string
+    ResidentZip          string
+    ResidentCity         string
+
+    // Bankverbindung
+    IBAN            string   // "" wenn nil (Abschnitt wird im Template ausgelassen)
+    AccountHolder   string   // "" wenn nil
+
+    // Zählpunkte
+    MeteringPoints  []shared.MeteringPoint
+
+    // Konfigurierbare Felder (gefiltert: nur nicht-hidden, nicht leer)
+    ConfigurableFields []ConfigurableFieldDisplay
+
+    // Admin-Link (leer wenn ADMIN_BASE_URL nicht konfiguriert)
+    AdminDetailURL  string
+}
+
+// ConfigurableFieldDisplay ist ein aufgelöster Name-Wert-Eintrag für das Template.
+type ConfigurableFieldDisplay struct {
+    Label string   // lesbarer Feldname auf Deutsch
+    Value string   // formatierter Wert (bool → "Ja"/"Nein", int → Zahl, etc.)
+}
+```
+
+### Optionale Felder: NULL-Behandlung im Template
+
+Alle optionalen Felder werden in `service.go` vor der Template-Übergabe zu leeren Strings aufgelöst (kein Template-seitiges Dereferenzieren von Pointern). Fehlende optionale Werte ergeben `""`.
+
+Das Template nutzt Go's `{{if .FieldName}}` um Abschnitte auszublenden:
+
+```html
+{{if .BirthDate}}
+<tr><th>Geburtsdatum</th><td>{{.BirthDate}}</td></tr>
+{{end}}
+
+{{if .IBAN}}
+<h3>Bankverbindung</h3>
+...
+{{end}}
+
+{{if .ConfigurableFields}}
+<h3>Zusätzliche Informationen</h3>
+...
+{{end}}
+```
+
+### Konfigurierbare Felder: Filterlogik
+
+In `service.go` wird eine Hilfsfunktion `buildConfigurableFields(app, fieldConfig)` eingeführt:
+
+```
+for each known configurable field:
+    entry := fieldConfig[fieldName]
+    if entry.State == "hidden"  → skip
+    if value is nil/zero        → skip
+    append ConfigurableFieldDisplay{Label: "<Deutsch>", Value: "<formatiert>"}
+```
+
+Feldnamen-zu-Label-Mapping (statische Map in `service.go`):
+- `persons_in_household` → „Personen im Haushalt"
+- `consumption_previous_year` → „Verbrauch Vorjahr (kWh)"
+- `consumption_forecast` → „Verbrauch Prognose (kWh)"
+- `feed_in_forecast` → „Einspeisung Prognose (kWh)"
+- `pv_power_kwp` → „PV-Leistung (kWp)"
+- `heat_pump` → „Wärmepumpe vorhanden"
+- `electric_vehicle` → „Elektrofahrzeug vorhanden"
+- `electric_hot_water` → „Warmwasser elektrisch"
+- `membership_start_date` → „Beitrittsdatum"
+
+Da `SendSubmissionEmails` bereits `entrypoint *shared.RegistrationEntrypoint` enthält, wird der FieldConfig-Lookup ebenfalls im Service (nicht im Handler) durchgeführt. Der `SMTPMailService` erhält dafür Zugriff auf den `FieldConfigRepository` — oder alternativ wird der aufgelöste `fieldConfig`-Wert als zusätzlicher Parameter übergeben.
+
+**Entscheidung:** Der aufgelöste `fieldConfig map[string]FieldConfigEntry` wird als neuer Parameter an `SendSubmissionEmails` übergeben. Das Interface ändert sich entsprechend:
+
+```go
+// Vorher
+SendSubmissionEmails(app, meteringPoints, entrypoint, attachment []byte)
+
+// Nachher
+SendSubmissionEmails(app, meteringPoints, entrypoint, fieldConfig map[string]FieldConfigEntry, attachment []byte)
+```
+
+`FieldConfigEntry` wird aus dem `application`-Paket exportiert oder in `shared` verschoben (bestehende interne Typ-Definition wird wiederverwendet). Da `mail` nicht von `application` importieren darf, wird ein reduzierter `FieldState`-Typ in `shared` definiert:
+
+```go
+// internal/shared/models.go (Erweiterung)
+type FieldConfigMap map[string]FieldConfigState
+
+type FieldConfigState struct {
+    State      string
+    AdminValue *string
+}
+```
+
+Alternativ (einfacher): `map[string]string` für `state` ohne `AdminValue` — ausreichend für das Template-Rendering.
+
+**Endentscheidung (einfachstes Modell):** `fieldConfig map[string]string` (Feldname → State: `"visible"`, `"required"`, `"hidden"`, `"admin_only"`). Dieses Modell ist bereits in `RegistrationConfig.FieldConfig` als `map[string]string` vorhanden und kann direkt verwendet werden.
+
+Der Aufrufer in `application_service.go` baut bereits `fieldConfig map[string]FieldConfigEntry`. Vor dem Goroutinen-Aufruf wird eine Funktion `toStateMap(fieldConfig map[string]FieldConfigEntry) map[string]string` aufgerufen, die nur den `State`-String extrahiert.
+
+### Admin-Link: neue Env-Variable `ADMIN_BASE_URL`
+
+```go
+// internal/config/config.go — Erweiterung
+type Config struct {
+    ...
+    AdminBaseURL string   // ADMIN_BASE_URL — optional; leer = kein Link
+}
+```
+
+```bash
+# .env.local.example
+ADMIN_BASE_URL=https://admin.example.com
+```
+
+Link-Konstruktion in `service.go`:
+```go
+adminDetailURL := ""
+if adminBaseURL != "" {
+    adminDetailURL = adminBaseURL + "/admin/applications/" + app.ID.String()
+}
+```
+
+`adminBaseURL` wird einmalig beim Start in `SMTPMailService` injiziert (neues Feld `adminBaseURL string`).
+
+### Auslöse-Logik (unverändert zu PROJ-6)
+
+```
+POST /api/public/applications/{id}/submit
+  → SubmitApplication()
+      → Status-Übergang draft → submitted
+      → fieldConfig laden (bereits vorhanden)
+      → toStateMap(fieldConfig) aufrufen
+      → go s.mailService.SendSubmissionEmails(app, meteringPoints, entrypoint, stateMap, attachment)
+```
+
+Der Goroutinen-Aufruf bleibt asynchron — kein Blockieren des Request-Pfads.
+
+### Template-Struktur
+
+`application_submitted_eeg.html` wird mit klar gegliederten Abschnitten neu geschrieben:
+
+1. **Antragsteller** — Mitgliedstyp, Name/Firmenname, Geburtsdatum (wenn vorhanden), Kontakt, Adresse
+2. **Bankverbindung** — IBAN, Kontoinhaber (nur wenn IBAN vorhanden)
+3. **Zählpunkte** — Tabelle: Nummer, Richtung, Teilnahmefaktor
+4. **Zusätzliche Informationen** — konfigurierbare Felder (nur wenn mindestens ein Wert vorhanden)
+5. **Referenz** — Referenznummer, Einreichungsdatum, RC-Nummer, Admin-Link (wenn konfiguriert)
+
+XSS-Schutz: `html/template` escapet automatisch — unverändertes Verhalten aus PROJ-6.
+
+### Neue Abhängigkeiten
+
+Keine neuen externen Abhängigkeiten.
 
 ## QA Test Results
 _To be added by /qa_

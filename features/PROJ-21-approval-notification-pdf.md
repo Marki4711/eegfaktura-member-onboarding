@@ -1,8 +1,8 @@
 # PROJ-21: Genehmigungs-Benachrichtigung mit Beitrittsbestätigung PDF
 
-## Status: Planned
+## Status: Architected
 **Created:** 2026-04-26
-**Last Updated:** 2026-04-26
+**Last Updated:** 2026-04-25
 
 ## Dependencies
 - Requires: PROJ-6 (E-Mail-Benachrichtigungen) — nutzt bestehende SMTP-Infrastruktur
@@ -100,7 +100,252 @@ Das PDF ist ein strukturiertes A4-Dokument mit folgendem Inhalt:
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+
+### Betroffene Komponenten
+
+Rein Backend — kein Frontend-Eingriff, keine neuen öffentlichen Endpunkte, keine DB-Migrationen.
+
+```
+internal/
+  config/config.go                              ← erweitert: ADMIN_BASE_URL (bereits in PROJ-20 hinzugefügt, hier wiederverwendet)
+  pdf/
+    approval_pdf.go                             ← neu: ApprovalPDFGenerator Interface + FPDFApprovalGenerator
+  mail/
+    service.go                                  ← erweitert: MailService Interface + SendApprovalEmail-Methode
+    templates/
+      application_approved_eeg.html             ← neu: Genehmigungs-E-Mail-Template
+  application/
+    admin_service.go                            ← erweitert: ChangeStatus löst Approval-Mail aus
+```
+
+### Datenmodell-Erweiterungen
+
+Keine DB-Änderungen — alle benötigten Daten existieren bereits:
+- Antragsdaten: `shared.Application`
+- Zählpunkte: `MeteringPointRepository.GetByApplicationID()`
+- Statusverlauf: `StatusLogRepository.GetByApplicationID()`
+- Zustimmungen: `DocumentConsentRepository.GetByApplicationID()`
+- EEG-Kontaktdaten: `RegistrationEntrypointRepository.GetByRCNumber()`
+- Konfigurierbare Felder: `FieldConfigRepository.Get()` (für PDF-Abschnitt)
+
+### PDF-Generator: `internal/pdf/approval_pdf.go`
+
+Neues Interface und Implementierung, analog zu `SEPAMandateGenerator` in `generator.go`:
+
+```go
+// ApprovalPDFData hält alle Daten für die Beitrittsbestätigung.
+type ApprovalPDFData struct {
+    // Kopfzeile
+    EEGName         string
+    RCNumber        string
+    ApprovedAt      time.Time
+
+    // Mitgliedsdaten
+    MemberType      string   // "Privatperson" / "Landwirt" / "Unternehmen" / ...
+    Firstname       string
+    Lastname        string
+    BirthDate       *time.Time
+    CompanyName     string
+    UIDNumber       string
+    RegisterNumber  string
+    Email           string
+    Phone           string
+    ResidentStreet       string
+    ResidentStreetNumber string
+    ResidentZip          string
+    ResidentCity         string
+
+    // Bankverbindung
+    IBAN            string
+    AccountHolder   string
+    SepaMandateType string   // "Basislastschrift" / "Firmenlastschrift" (aus UseCompanySEPA + MemberType)
+
+    // Zählpunkte
+    MeteringPoints  []MeteringPointPDF
+
+    // Zustimmungen
+    Consents        []ConsentPDF
+
+    // Statusverlauf
+    StatusLog       []StatusLogPDF
+
+    // Konfigurierbare Felder (nur befüllte, nicht-hidden)
+    ConfigurableFields []ConfigurableFieldDisplay
+
+    // Referenz
+    ReferenceNumber string
+}
+
+type MeteringPointPDF struct {
+    MeteringPoint       string
+    Direction           string   // "Verbrauch" / "Einspeisung"
+    ParticipationFactor int
+}
+
+type ConsentPDF struct {
+    Title       string
+    URL         string
+    ConsentedAt time.Time
+}
+
+type StatusLogPDF struct {
+    FromStatus string   // "" wenn nil (erster Eintrag)
+    ToStatus   string
+    Timestamp  time.Time
+    Reason     string   // "" wenn nil
+}
+
+// ApprovalPDFGenerator erzeugt die Beitrittsbestätigung als PDF-Bytes.
+type ApprovalPDFGenerator interface {
+    GenerateApproval(data ApprovalPDFData) ([]byte, error)
+}
+```
+
+**Implementierung** `FPDFApprovalGenerator` in `approval_pdf.go`:
+- Bibliothek: `github.com/go-pdf/fpdf` (bereits im Projekt vorhanden, keine neue Abhängigkeit)
+- Encoding: Windows-1252 via `charmap.Windows1252` (wie in `generator.go` etabliert)
+- Layout: DIN A4, strukturierte Abschnitte mit fpdf-Tabellen und Trennlinien
+- Abschnitte in dieser Reihenfolge: Kopfzeile → Mitgliedsdaten → Bankverbindung → Zählpunkte → Zustimmungen → Statusverlauf → Mitgliedsnummer-Leerfeld → optionale konfigurierbare Felder
+
+**Fehlerverhalten:** `GenerateApproval` gibt `(nil, error)` zurück. Der Aufrufer loggt den Fehler und sendet die E-Mail ohne PDF-Anhang (inkl. Hinweistext im E-Mail-Body).
+
+### E-Mail: `application_approved_eeg.html`
+
+Neues Template in `internal/mail/templates/`. Template-Variablen:
+
+```go
+type approvedEEGTemplateData struct {
+    MemberName      string   // "Vorname Nachname" oder Firmenname
+    ReferenceNumber string
+    EEGName         string
+    PDFFailed       bool     // true wenn PDF-Generierung fehlschlug → Hinweistext im Body
+}
+```
+
+Betreff (in `service.go` zusammengebaut):
+```
+"Mitgliedsantrag genehmigt – [MemberName] ([ReferenceNumber])"
+```
+
+Anhang-Dateiname: `beitrittsbestaetigung-[referenceNumber].pdf`
+
+### MailService-Interface-Erweiterung
+
+```go
+// internal/mail/service.go
+
+type MailService interface {
+    SendSubmissionEmails(app, meteringPoints, entrypoint, fieldConfig, attachment)
+    SendMemberConfirmation(app) error
+    SendApprovalEmail(app *shared.Application, entrypoint *shared.RegistrationEntrypoint, pdfBytes []byte, pdfFailed bool) error
+}
+```
+
+`NoOpMailService` implementiert die neue Methode als No-Op (gibt `nil` zurück).
+
+`SMTPMailService.SendApprovalEmail`:
+1. Bestimme `MemberName` (Vorname+Nachname oder Firmenname)
+2. Prüfe `entrypoint.ContactEmail` — ist nil/leer: sofort `nil` zurückgeben, kein Log-Warn (bestehendes Verhalten aus PROJ-6)
+3. Rendere `application_approved_eeg.html`
+4. Sende E-Mail: mit PDF-Anhang wenn `pdfBytes != nil`, ohne Anhang wenn `pdfFailed = true`
+5. Fehler beim Versand: loggen + zurückgeben (der Aufrufer ignoriert den Fehler und loggt seinerseits)
+
+`approvalTpl` wird analog zu `memberTpl`/`eegTpl` einmalig bei `NewSMTPMailService` geparst und in `SMTPMailService` gehalten.
+
+### Auslöse-Logik: `AdminApplicationService.ChangeStatus`
+
+Der Auslöser sitzt in `admin_service.go` — konsistent mit PROJ-6, wo der Submit-Trigger in `application_service.go` sitzt. Der Admin-Service kennt bereits alle nötigen Repositories.
+
+```
+POST /api/admin/applications/{id}/status  { toStatus: "approved" }
+  → ChangeStatus(id, "approved", reason, actorID)
+      → Transition validieren (isAdminTransitionAllowed)
+      → DB-Transaktion: UpdateStatusAdminTx + StatusLogEntry schreiben
+      → Commit
+      → toStatus == "approved"?
+          JA →
+              go func() {
+                  // Daten laden (außerhalb der Transaktion, asynchron)
+                  app      ← appRepo.GetByID(id)
+                  mps      ← meteringRepo.GetByApplicationID(id)
+                  statusLog ← statusLogRepo.GetByApplicationID(id)
+                  consents  ← consentRepo.GetByApplicationID(id)
+                  entrypoint ← entrypointRepo.GetByRCNumber(app.RCNumber)
+                  fieldConfig ← fieldConfigRepo.Get(app.RCNumber)
+
+                  // Fehler bei den Lookups: loggen, abbrechen
+                  if err != nil { slog.Error(...); return }
+
+                  // contact_email fehlt: stumm abbrechen (kein Fehler)
+                  if entrypoint.ContactEmail == nil { return }
+
+                  // PDF generieren
+                  data := buildApprovalPDFData(app, mps, statusLog, consents, entrypoint, fieldConfig)
+                  pdfBytes, pdfErr := s.approvalPDFGenerator.GenerateApproval(data)
+                  pdfFailed := pdfErr != nil
+                  if pdfFailed {
+                      slog.Error("pdf: failed to generate approval PDF", "application_id", id, "error", pdfErr)
+                  }
+
+                  // E-Mail senden
+                  if err := s.mailService.SendApprovalEmail(app, entrypoint, pdfBytes, pdfFailed); err != nil {
+                      slog.Error("mail: failed to send approval email", "application_id", id, "error", err)
+                  }
+              }()
+          NEIN → keine Aktion
+      → ChangeStatusResponse zurückgeben
+```
+
+**Asynchron via Goroutine** — der HTTP-Handler bekommt sofort eine Antwort; E-Mail/PDF-Fehler blockieren den Status-Übergang nicht. Dies ist konsistent mit dem Versand-Muster aus PROJ-6 und PROJ-12.
+
+### `AdminApplicationService` — neue Felder
+
+```go
+type AdminApplicationService struct {
+    db                  *sql.DB
+    appRepo             *ApplicationRepository
+    meteringRepo        *MeteringPointRepository
+    statusLogRepo       *StatusLogRepository
+    fieldConfigRepo     *FieldConfigRepository
+    entrypointRepo      *RegistrationEntrypointRepository
+    consentRepo         *DocumentConsentRepository
+    mailService         mail.MailService
+    approvalPDFGenerator pdf.ApprovalPDFGenerator   // neu
+}
+```
+
+`NewAdminApplicationService` erhält `approvalPDFGenerator pdf.ApprovalPDFGenerator` als neuen Parameter. In `cmd/server/main.go` wird `pdf.NewFPDFApprovalGenerator()` injiziert (neue Konstruktorfunktion in `approval_pdf.go`).
+
+### `SepaMandateType`-Bestimmung im PDF
+
+Der Typ wird aus bestehenden Feldern abgeleitet — kein neues DB-Feld:
+
+```go
+func resolveSepaMandateType(app *shared.Application, ep *shared.RegistrationEntrypoint) string {
+    if !app.SepaMandateAccepted {
+        return "Per E-Mail"
+    }
+    if ep.UseCompanySEPAMandate &&
+        (app.MemberType == shared.MemberTypeCompany || app.MemberType == shared.MemberTypeAssociation) {
+        return "Firmenlastschrift"
+    }
+    return "Basislastschrift"
+}
+```
+
+### Wiring in `cmd/server/main.go`
+
+```go
+approvalPDFGen := pdf.NewFPDFApprovalGenerator()
+adminService := application.NewAdminApplicationService(
+    db, appRepo, meteringRepo, statusLogRepo, fieldConfigRepo,
+    entrypointRepo, consentRepo, mailService, approvalPDFGen,
+)
+```
+
+### Neue Abhängigkeiten
+
+Keine neuen externen Abhängigkeiten. `github.com/go-pdf/fpdf` und `golang.org/x/text/encoding/charmap` sind bereits im Projekt vorhanden.
 
 ## QA Test Results
 _To be added by /qa_
