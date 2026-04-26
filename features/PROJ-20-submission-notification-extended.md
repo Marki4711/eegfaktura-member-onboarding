@@ -1,8 +1,8 @@
 # PROJ-20: Vollständige Antragsdaten in EEG-Einreichungsbenachrichtigung
 
-## Status: Architected
+## Status: In Progress
 **Created:** 2026-04-26
-**Last Updated:** 2026-04-25
+**Last Updated:** 2026-04-26
 
 ## Dependencies
 - Requires: PROJ-6 (E-Mail-Benachrichtigungen) — erweitert das bestehende EEG-Benachrichtigungs-Template
