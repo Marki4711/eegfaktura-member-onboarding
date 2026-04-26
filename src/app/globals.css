@@ -133,6 +133,11 @@
     font-family: var(--font-roboto), ui-sans-serif, system-ui, sans-serif;
   }
 
+  input, textarea, button, select {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   input[type="date"]::-webkit-calendar-picker-indicator {
     filter: invert(1) brightness(0.7);
     cursor: pointer;
