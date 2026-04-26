@@ -35,7 +35,7 @@ export function AdminIntroTextEditor({ rcNumber }: Props) {
     content: "",
     editorProps: {
       attributes: {
-        class: "min-h-[160px] px-3 py-2 text-sm focus:outline-hidden",
+        class: "min-h-[160px] px-3 py-2 text-sm focus:outline-none",
       },
     },
     onUpdate: () => setSaveResult(null),
@@ -177,7 +177,7 @@ export function AdminIntroTextEditor({ rcNumber }: Props) {
         </div>
 
         {/* Editor area */}
-        <div className="prose prose-sm dark:prose-invert max-w-none focus:[&_.ProseMirror]:outline-hidden">
+        <div className="prose prose-sm dark:prose-invert max-w-none [&_.ProseMirror]:focus:outline-none">
           <EditorContent editor={editor} />
         </div>
       </div>
