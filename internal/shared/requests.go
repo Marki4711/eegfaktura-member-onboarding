@@ -14,12 +14,12 @@ type CreateApplicationRequest struct {
 	MemberType           string                      `json:"memberType" validate:"required,oneof=private farmer municipality company association"`
 	Firstname            *string                     `json:"firstname,omitempty" validate:"omitempty,min=1,max=255"`
 	Lastname             *string                     `json:"lastname,omitempty" validate:"omitempty,min=1,max=255"`
-	BirthDate            *string                     `json:"birthDate,omitempty"`
+	BirthDate            *string                     `json:"birthDate,omitempty"  validate:"omitempty,len=10"`
 	CompanyName          *string                     `json:"companyName,omitempty" validate:"omitempty,min=1,max=255"`
 	UIDNumber            *string                     `json:"uidNumber,omitempty" validate:"omitempty,max=50"`
 	RegisterNumber       *string                     `json:"registerNumber,omitempty" validate:"omitempty,max=50"`
 	Email                string                      `json:"email" validate:"required,email"`
-	Phone                *string                     `json:"phone,omitempty"`
+	Phone                *string                     `json:"phone,omitempty"      validate:"omitempty,max=50"`
 	ResidentStreet       string                      `json:"residentStreet" validate:"required,min=1,max=255"`
 	ResidentStreetNumber string                      `json:"residentStreetNumber" validate:"required,min=1,max=50"`
 	ResidentZip          string                      `json:"residentZip" validate:"required,min=1,max=20"`
@@ -32,7 +32,7 @@ type CreateApplicationRequest struct {
 	SepaMandateAccepted  bool                        `json:"sepaMandateAccepted" validate:"required"`
 	MeteringPoints       []CreateMeteringPointRequest `json:"meteringPoints" validate:"required,min=1,max=10,dive"`
 	// Configurable application-level fields (PROJ-8)
-	MembershipStartDate     *string  `json:"membershipStartDate,omitempty"`
+	MembershipStartDate     *string  `json:"membershipStartDate,omitempty" validate:"omitempty,len=10"`
 	PersonsInHousehold      *int     `json:"personsInHousehold,omitempty" validate:"omitempty,min=0"`
 	ConsumptionPreviousYear *int64   `json:"consumptionPreviousYear,omitempty" validate:"omitempty,min=0"`
 	ConsumptionForecast     *int64   `json:"consumptionForecast,omitempty" validate:"omitempty,min=0"`
@@ -61,12 +61,12 @@ type UpdateApplicationRequest struct {
 	MemberType           *string                     `json:"memberType,omitempty" validate:"omitempty,oneof=private farmer municipality company association"`
 	Firstname            *string                     `json:"firstname,omitempty" validate:"omitempty,min=1,max=255"`
 	Lastname             *string                     `json:"lastname,omitempty" validate:"omitempty,min=1,max=255"`
-	BirthDate            *string                     `json:"birthDate,omitempty"`
+	BirthDate            *string                     `json:"birthDate,omitempty"  validate:"omitempty,len=10"`
 	CompanyName          *string                     `json:"companyName,omitempty" validate:"omitempty,min=1,max=255"`
 	UIDNumber            *string                     `json:"uidNumber,omitempty" validate:"omitempty,max=50"`
 	RegisterNumber       *string                     `json:"registerNumber,omitempty" validate:"omitempty,max=50"`
 	Email                *string                     `json:"email,omitempty" validate:"omitempty,email"`
-	Phone                *string                     `json:"phone,omitempty"`
+	Phone                *string                     `json:"phone,omitempty"      validate:"omitempty,max=50"`
 	ResidentStreet       *string                     `json:"residentStreet,omitempty" validate:"omitempty,min=1,max=255"`
 	ResidentStreetNumber *string                     `json:"residentStreetNumber,omitempty" validate:"omitempty,min=1,max=50"`
 	ResidentZip          *string                     `json:"residentZip,omitempty" validate:"omitempty,min=1,max=20"`
@@ -142,12 +142,12 @@ type AdminUpdateApplicationRequest struct {
 	MemberType           *string                      `json:"memberType,omitempty" validate:"omitempty,oneof=private farmer municipality company association"`
 	Firstname            *string                      `json:"firstname,omitempty" validate:"omitempty,min=1,max=255"`
 	Lastname             *string                      `json:"lastname,omitempty" validate:"omitempty,min=1,max=255"`
-	BirthDate            *string                      `json:"birthDate,omitempty"`
+	BirthDate            *string                      `json:"birthDate,omitempty"  validate:"omitempty,len=10"`
 	CompanyName          *string                      `json:"companyName,omitempty" validate:"omitempty,min=1,max=255"`
 	UIDNumber            *string                      `json:"uidNumber,omitempty" validate:"omitempty,max=50"`
 	RegisterNumber       *string                      `json:"registerNumber,omitempty" validate:"omitempty,max=50"`
 	Email                *string                      `json:"email,omitempty" validate:"omitempty,email"`
-	Phone                *string                      `json:"phone,omitempty"`
+	Phone                *string                      `json:"phone,omitempty"      validate:"omitempty,max=50"`
 	ResidentStreet       *string                      `json:"residentStreet,omitempty" validate:"omitempty,min=1,max=255"`
 	ResidentStreetNumber *string                      `json:"residentStreetNumber,omitempty" validate:"omitempty,min=1,max=50"`
 	ResidentZip          *string                      `json:"residentZip,omitempty" validate:"omitempty,min=1,max=20"`
