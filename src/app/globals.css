@@ -130,6 +130,7 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-roboto), ui-sans-serif, system-ui, sans-serif;
   }
 
   input[type="date"]::-webkit-calendar-picker-indicator {
@@ -137,3 +138,4 @@
     cursor: pointer;
   }
 }
+
