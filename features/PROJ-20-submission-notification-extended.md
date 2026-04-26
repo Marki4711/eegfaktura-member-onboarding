@@ -1,6 +1,6 @@
 # PROJ-20: Vollständige Antragsdaten in EEG-Einreichungsbenachrichtigung
 
-## Status: Approved
+## Status: Deployed
 **Created:** 2026-04-26
 **Last Updated:** 2026-04-26
 
@@ -343,4 +343,8 @@ Keine Bugs in PROJ-20.
 Alle Tests: `go test ./... -count=1` — **PASS**
 
 ## Deployment
-_To be added by /deploy_
+
+**Deployed:** 2026-04-26
+**Image SHA:** `sha-ab0b64e`
+**Helm release:** `eegfaktura-member-onboarding`
+**New env var:** `ADMIN_BASE_URL` — optional; leer = kein Admin-Link in der E-Mail

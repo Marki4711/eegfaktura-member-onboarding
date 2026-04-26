@@ -1,6 +1,6 @@
 # PROJ-21: Genehmigungs-Benachrichtigung mit Beitrittsbestätigung PDF
 
-## Status: Approved
+## Status: Deployed
 **Created:** 2026-04-26
 **Last Updated:** 2026-04-26
 
@@ -454,4 +454,8 @@ Keine neuen externen Abhängigkeiten. `github.com/go-pdf/fpdf` und `golang.org/x
 Alle Tests: `go test ./... -count=1` — **PASS**
 
 ## Deployment
-_To be added by /deploy_
+
+**Deployed:** 2026-04-26
+**Image SHA:** `sha-ab0b64e`
+**Helm release:** `eegfaktura-member-onboarding`
+**Hinweis:** Kein neues Pflicht-Env-Var; `ADMIN_BASE_URL` aus PROJ-20 wird wiederverwendet (optional)
