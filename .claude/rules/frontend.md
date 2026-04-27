@@ -34,8 +34,8 @@ When a field needs explanatory text, use a Popover with an `Info` icon next to t
 import { Info } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-<Label className="flex items-center gap-1">
-  Feldname
+<div className="flex items-center gap-1">
+  <Label htmlFor="field-id">Feldname</Label>
   <Popover>
     <PopoverTrigger type="button" className="cursor-help">
       <Info className="h-3.5 w-3.5 text-muted-foreground" />
@@ -44,7 +44,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
       Erklärungstext hier.
     </PopoverContent>
   </Popover>
-</Label>
+</div>
 ```
 Reference implementation: `src/components/admin-edit-form.tsx` (Mitgliedsnummer field).
 

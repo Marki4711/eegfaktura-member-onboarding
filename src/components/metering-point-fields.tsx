@@ -20,11 +20,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { resolveFieldState, CONFIGURABLE_FIELDS, type FieldConfig } from "@/lib/api";
 import type { RegistrationFormValues } from "./registration-form";
 
@@ -113,19 +112,17 @@ export function MeteringPointFields({ form, fieldConfig }: MeteringPointFieldsPr
                   name={`meteringPoints.${index}.participationFactor`}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="flex items-center gap-1">
-                        Faktor
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger type="button" className="cursor-help">
-                              <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-60">
-                              Der Teilnahmefaktor gibt an, mit welchem prozentualen Anteil dieser Zählpunkt an der Energiegemeinschaft teilnimmt. Standardmäßig 100 %.
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </FormLabel>
+                      <div className="flex items-center gap-1">
+                        <FormLabel>Faktor</FormLabel>
+                        <Popover>
+                          <PopoverTrigger type="button" className="cursor-help">
+                            <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                          </PopoverTrigger>
+                          <PopoverContent className="max-w-60 text-sm">
+                            Der Teilnahmefaktor gibt an, mit welchem prozentualen Anteil dieser Zählpunkt an der Energiegemeinschaft teilnimmt. Standardmäßig 100 %.
+                          </PopoverContent>
+                        </Popover>
+                      </div>
                       <FormControl>
                         <div className="relative">
                           <Input

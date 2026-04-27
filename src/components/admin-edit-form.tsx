@@ -227,8 +227,8 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
         <div className="space-y-6 py-2">
           {/* Mitgliedsnummer */}
           <div className="space-y-1">
-            <Label htmlFor="edit-member-number" className="flex items-center gap-1">
-              Mitgliedsnummer
+            <div className="flex items-center gap-1">
+              <Label htmlFor="edit-member-number">Mitgliedsnummer</Label>
               <Popover>
                 <PopoverTrigger type="button" className="cursor-help">
                   <Info className="h-3.5 w-3.5 text-muted-foreground" />
@@ -237,7 +237,7 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
                   Wird bei der ersten Einreichung automatisch vergeben (fortlaufend pro EEG), kann hier aber manuell angepasst werden.
                 </PopoverContent>
               </Popover>
-            </Label>
+            </div>
             <Input
               id="edit-member-number"
               type="number"
