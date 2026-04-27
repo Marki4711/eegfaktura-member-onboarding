@@ -26,7 +26,7 @@ func (r *ApplicationRepository) Create(app *shared.Application) error {
 	query := `
 		INSERT INTO member_onboarding.application (
 			reference_number, rc_number, status, started_at,
-			member_type, firstname, lastname, birth_date,
+			member_type, titel, firstname, lastname, birth_date,
 			company_name, uid_number, register_number,
 			email, phone,
 			resident_street, resident_street_number, resident_zip, resident_city,
@@ -38,22 +38,22 @@ func (r *ApplicationRepository) Create(app *shared.Application) error {
 			created_at, updated_at
 		) VALUES (
 			$1, $2, $3, $4,
-			$5, $6, $7, $8,
-			$9, $10, $11,
-			$12, $13,
-			$14, $15, $16, $17,
-			$18, $19, $20, $21,
-			$22, $23, $24, $25,
-			$26, $27, $28,
-			$29, $30, $31,
-			$32, $33, $34,
-			$35, $36
+			$5, $6, $7, $8, $9,
+			$10, $11, $12,
+			$13, $14,
+			$15, $16, $17, $18,
+			$19, $20, $21, $22,
+			$23, $24, $25, $26,
+			$27, $28, $29,
+			$30, $31, $32,
+			$33, $34, $35,
+			$36, $37
 		) RETURNING id`
 
 	now := app.CreatedAt
 	args := []interface{}{
 		app.ReferenceNumber, app.RCNumber, app.Status, app.StartedAt,
-		app.MemberType, app.Firstname, app.Lastname, app.BirthDate,
+		app.MemberType, app.Titel, app.Firstname, app.Lastname, app.BirthDate,
 		app.CompanyName, app.UIDNumber, app.RegisterNumber,
 		app.Email, app.Phone,
 		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity,
@@ -78,7 +78,7 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 	query := `
 		INSERT INTO member_onboarding.application (
 			reference_number, rc_number, status, started_at,
-			member_type, firstname, lastname, birth_date,
+			member_type, titel, firstname, lastname, birth_date,
 			company_name, uid_number, register_number,
 			email, phone,
 			resident_street, resident_street_number, resident_zip, resident_city,
@@ -90,22 +90,22 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 			created_at, updated_at
 		) VALUES (
 			$1, $2, $3, $4,
-			$5, $6, $7, $8,
-			$9, $10, $11,
-			$12, $13,
-			$14, $15, $16, $17,
-			$18, $19, $20, $21,
-			$22, $23, $24, $25,
-			$26, $27, $28,
-			$29, $30, $31,
-			$32, $33, $34,
-			$35, $36
+			$5, $6, $7, $8, $9,
+			$10, $11, $12,
+			$13, $14,
+			$15, $16, $17, $18,
+			$19, $20, $21, $22,
+			$23, $24, $25, $26,
+			$27, $28, $29,
+			$30, $31, $32,
+			$33, $34, $35,
+			$36, $37
 		) RETURNING id`
 
 	now := app.CreatedAt
 	args := []interface{}{
 		app.ReferenceNumber, app.RCNumber, app.Status, app.StartedAt,
-		app.MemberType, app.Firstname, app.Lastname, app.BirthDate,
+		app.MemberType, app.Titel, app.Firstname, app.Lastname, app.BirthDate,
 		app.CompanyName, app.UIDNumber, app.RegisterNumber,
 		app.Email, app.Phone,
 		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity,
@@ -129,7 +129,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	query := `
 		SELECT id, reference_number, rc_number, status, started_at, submitted_at,
 		       approved_at, rejected_at, imported_at,
-		       member_type, firstname, lastname, birth_date,
+		       member_type, titel, firstname, lastname, birth_date,
 		       company_name, uid_number, register_number,
 		       email, phone,
 		       resident_street, resident_street_number, resident_zip, resident_city,
@@ -146,7 +146,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 
 	app := &shared.Application{}
 	var phone, privacyVersion, iban, accountHolder, reviewedByUserID, adminNote, needsInfoReason, targetParticipantID, importErrorMessage sql.NullString
-	var firstname, lastname, companyName, uidNumber, registerNumber sql.NullString
+	var titel, firstname, lastname, companyName, uidNumber, registerNumber sql.NullString
 	var birthDate, startedAt, submittedAt, approvedAt, rejectedAt, importedAt, privacyAcceptedAt, sepaMandateAcceptedAt, importStartedAt, importFinishedAt sql.NullTime
 	var membershipStartDate sql.NullTime
 	var personsInHousehold, consumptionPreviousYear, consumptionForecast, feedInForecast sql.NullInt64
@@ -156,7 +156,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	err := r.db.QueryRow(query, id).Scan(
 		&app.ID, &app.ReferenceNumber, &app.RCNumber, &app.Status, &startedAt,
 		&submittedAt, &approvedAt, &rejectedAt, &importedAt,
-		&app.MemberType, &firstname, &lastname, &birthDate,
+		&app.MemberType, &titel, &firstname, &lastname, &birthDate,
 		&companyName, &uidNumber, &registerNumber,
 		&app.Email, &phone,
 		&app.ResidentStreet, &app.ResidentStreetNumber, &app.ResidentZip, &app.ResidentCity,
@@ -176,6 +176,9 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		return nil, fmt.Errorf("failed to get application: %w", err)
 	}
 
+	if titel.Valid {
+		app.Titel = &titel.String
+	}
 	if firstname.Valid {
 		app.Firstname = &firstname.String
 	}
@@ -288,22 +291,22 @@ func (r *ApplicationRepository) Update(app *shared.Application) error {
 	query := `
 		UPDATE member_onboarding.application SET
 			member_type = $1,
-			firstname = $2, lastname = $3, birth_date = $4,
-			company_name = $5, uid_number = $6, register_number = $7,
-			email = $8, phone = $9,
-			resident_street = $10, resident_street_number = $11, resident_zip = $12,
-			resident_city = $13, privacy_accepted = $14,
-			privacy_version = $15, accuracy_confirmed = $16,
-			iban = $17, account_holder = $18, sepa_mandate_accepted = $19, sepa_mandate_accepted_at = $20,
-			membership_start_date = $21, persons_in_household = $22, consumption_previous_year = $23,
-			consumption_forecast = $24, feed_in_forecast = $25, pv_power_kwp = $26,
-			heat_pump = $27, electric_vehicle = $28, electric_hot_water = $29,
+			titel = $2, firstname = $3, lastname = $4, birth_date = $5,
+			company_name = $6, uid_number = $7, register_number = $8,
+			email = $9, phone = $10,
+			resident_street = $11, resident_street_number = $12, resident_zip = $13,
+			resident_city = $14, privacy_accepted = $15,
+			privacy_version = $16, accuracy_confirmed = $17,
+			iban = $18, account_holder = $19, sepa_mandate_accepted = $20, sepa_mandate_accepted_at = $21,
+			membership_start_date = $22, persons_in_household = $23, consumption_previous_year = $24,
+			consumption_forecast = $25, feed_in_forecast = $26, pv_power_kwp = $27,
+			heat_pump = $28, electric_vehicle = $29, electric_hot_water = $30,
 			updated_at = NOW()
-		WHERE id = $30`
+		WHERE id = $31`
 
 	_, err := r.db.Exec(query,
 		app.MemberType,
-		app.Firstname, app.Lastname, app.BirthDate,
+		app.Titel, app.Firstname, app.Lastname, app.BirthDate,
 		app.CompanyName, app.UIDNumber, app.RegisterNumber,
 		app.Email, app.Phone,
 		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity,
@@ -326,22 +329,22 @@ func (r *ApplicationRepository) UpdateTx(tx *sql.Tx, app *shared.Application) er
 	query := `
 		UPDATE member_onboarding.application SET
 			member_type = $1,
-			firstname = $2, lastname = $3, birth_date = $4,
-			company_name = $5, uid_number = $6, register_number = $7,
-			email = $8, phone = $9,
-			resident_street = $10, resident_street_number = $11, resident_zip = $12,
-			resident_city = $13, privacy_accepted = $14,
-			privacy_version = $15, accuracy_confirmed = $16,
-			iban = $17, account_holder = $18, sepa_mandate_accepted = $19, sepa_mandate_accepted_at = $20,
-			membership_start_date = $21, persons_in_household = $22, consumption_previous_year = $23,
-			consumption_forecast = $24, feed_in_forecast = $25, pv_power_kwp = $26,
-			heat_pump = $27, electric_vehicle = $28, electric_hot_water = $29,
+			titel = $2, firstname = $3, lastname = $4, birth_date = $5,
+			company_name = $6, uid_number = $7, register_number = $8,
+			email = $9, phone = $10,
+			resident_street = $11, resident_street_number = $12, resident_zip = $13,
+			resident_city = $14, privacy_accepted = $15,
+			privacy_version = $16, accuracy_confirmed = $17,
+			iban = $18, account_holder = $19, sepa_mandate_accepted = $20, sepa_mandate_accepted_at = $21,
+			membership_start_date = $22, persons_in_household = $23, consumption_previous_year = $24,
+			consumption_forecast = $25, feed_in_forecast = $26, pv_power_kwp = $27,
+			heat_pump = $28, electric_vehicle = $29, electric_hot_water = $30,
 			updated_at = NOW()
-		WHERE id = $30`
+		WHERE id = $31`
 
 	_, err := tx.Exec(query,
 		app.MemberType,
-		app.Firstname, app.Lastname, app.BirthDate,
+		app.Titel, app.Firstname, app.Lastname, app.BirthDate,
 		app.CompanyName, app.UIDNumber, app.RegisterNumber,
 		app.Email, app.Phone,
 		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity,
@@ -495,18 +498,18 @@ func (r *ApplicationRepository) UpdateAdminTx(tx *sql.Tx, app *shared.Applicatio
 	query := `
 		UPDATE member_onboarding.application SET
 			member_type = $1,
-			firstname = $2, lastname = $3, birth_date = $4,
-			company_name = $5, uid_number = $6, register_number = $7,
-			email = $8, phone = $9,
-			resident_street = $10, resident_street_number = $11, resident_zip = $12,
-			resident_city = $13, admin_note = $14,
-			iban = $15, account_holder = $16,
+			titel = $2, firstname = $3, lastname = $4, birth_date = $5,
+			company_name = $6, uid_number = $7, register_number = $8,
+			email = $9, phone = $10,
+			resident_street = $11, resident_street_number = $12, resident_zip = $13,
+			resident_city = $14, admin_note = $15,
+			iban = $16, account_holder = $17,
 			updated_at = NOW()
-		WHERE id = $17`
+		WHERE id = $18`
 
 	_, err := tx.Exec(query,
 		app.MemberType,
-		app.Firstname, app.Lastname, app.BirthDate,
+		app.Titel, app.Firstname, app.Lastname, app.BirthDate,
 		app.CompanyName, app.UIDNumber, app.RegisterNumber,
 		app.Email, app.Phone,
 		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity,

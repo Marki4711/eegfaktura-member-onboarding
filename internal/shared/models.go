@@ -73,6 +73,7 @@ type Application struct {
 	RejectedAt           *time.Time        `json:"rejectedAt,omitempty" db:"rejected_at"`
 	ImportedAt           *time.Time        `json:"importedAt,omitempty" db:"imported_at"`
 	MemberType           MemberType        `json:"memberType" db:"member_type"`
+	Titel                *string           `json:"titel,omitempty" db:"titel"`
 	Firstname            *string           `json:"firstname,omitempty" db:"firstname"`
 	Lastname             *string           `json:"lastname,omitempty" db:"lastname"`
 	BirthDate            *time.Time        `json:"birthDate,omitempty" db:"birth_date"`

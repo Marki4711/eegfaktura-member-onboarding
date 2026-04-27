@@ -229,7 +229,12 @@ func writeDataRow(f *excelize.File, rowNum int, app *shared.Application, mp *sha
 	if err := setInt("S", mp.ParticipationFactor); err != nil {
 		return err
 	}
-	// T: TitelVor — empty
+	// T: TitelVor
+	if app.Titel != nil {
+		if err := set("T", *app.Titel); err != nil {
+			return err
+		}
+	}
 	// U: Name 1 — first name (private) or company name (business)
 	name1 := ""
 	if app.CompanyName != nil && *app.CompanyName != "" {

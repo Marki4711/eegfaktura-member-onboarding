@@ -78,6 +78,7 @@ const meteringPointSchema = z.object({
 
 const baseSchema = z.object({
   memberType: z.enum(["private", "farmer", "municipality", "company", "association"] as const),
+  titel: z.string().trim().max(50).optional(),
   firstname: z.string().trim().max(255).optional(),
   lastname: z.string().trim().max(255).optional(),
   birthDate: z.string().optional(),
@@ -242,6 +243,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
     resolver: zodResolver(buildFormSchema(fieldConfig, sepaMandateEnabled)),
     defaultValues: {
       memberType: "private",
+      titel: "",
       firstname: "",
       lastname: "",
       birthDate: "",
@@ -291,10 +293,11 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
       form.setValue("registerNumber", "");
       form.clearErrors(["companyName", "uidNumber", "registerNumber"]);
     } else {
+      form.setValue("titel", "");
       form.setValue("firstname", "");
       form.setValue("lastname", "");
       form.setValue("birthDate", "");
-      form.clearErrors(["firstname", "lastname", "birthDate"]);
+      form.clearErrors(["titel", "firstname", "lastname", "birthDate"]);
     }
   }
 
@@ -341,6 +344,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
       const app = await createApplication({
         rcNumber: config.rcNumber,
         memberType: values.memberType,
+        titel: isPersonType ? values.titel || undefined : undefined,
         firstname: isPersonType ? values.firstname || undefined : undefined,
         lastname: isPersonType ? values.lastname || undefined : undefined,
         birthDate: isPersonType ? values.birthDate || undefined : undefined,
@@ -522,6 +526,21 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
           <CardContent className="space-y-4">
             {isPerson ? (
               <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="titel"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Titel</FormLabel>
+                        <FormControl>
+                          <Input autoComplete="honorific-prefix" placeholder="z.B. Dr., Mag., DI" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}

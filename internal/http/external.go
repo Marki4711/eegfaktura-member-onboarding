@@ -31,6 +31,7 @@ func NewExternalHandler(svc *application.ApplicationService) *ExternalHandler {
 // or accuracyConfirmed (implied by operator submitting on behalf of member).
 type externalApplicationRequest struct {
 	MemberType           string                       `json:"memberType"           validate:"required,oneof=private farmer municipality company association"`
+	Titel                *string                      `json:"titel,omitempty"      validate:"omitempty,max=50"`
 	Firstname            *string                      `json:"firstname,omitempty"  validate:"omitempty,min=1,max=100"`
 	Lastname             *string                      `json:"lastname,omitempty"   validate:"omitempty,min=1,max=100"`
 	BirthDate            *string                      `json:"birthDate,omitempty"  validate:"omitempty,len=10"`
@@ -108,6 +109,7 @@ func (h *ExternalHandler) SubmitExternalApplication(w http.ResponseWriter, r *ht
 	createReq := shared.CreateApplicationRequest{
 		RCNumber:             strings.ToUpper(rcNumber),
 		MemberType:           req.MemberType,
+		Titel:                req.Titel,
 		Firstname:            req.Firstname,
 		Lastname:             req.Lastname,
 		BirthDate:            req.BirthDate,

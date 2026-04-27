@@ -126,6 +126,7 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 		Status:                  shared.StatusDraft,
 		StartedAt:               &now,
 		MemberType:              shared.MemberType(strings.TrimSpace(req.MemberType)),
+		Titel:                   trimStringPtr(req.Titel),
 		Firstname:               trimStringPtr(req.Firstname),
 		Lastname:                trimStringPtr(req.Lastname),
 		BirthDate:               birthDate,
@@ -225,6 +226,9 @@ func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateAp
 
 	if req.MemberType != nil {
 		app.MemberType = shared.MemberType(strings.TrimSpace(*req.MemberType))
+	}
+	if req.Titel != nil {
+		app.Titel = trimStringPtr(req.Titel)
 	}
 	if req.Firstname != nil {
 		app.Firstname = trimStringPtr(req.Firstname)

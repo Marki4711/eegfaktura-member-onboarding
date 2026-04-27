@@ -104,6 +104,7 @@ export interface MeteringPointRequest {
 export interface CreateApplicationRequest {
   rcNumber: string;
   memberType: MemberType;
+  titel?: string;
   firstname?: string;
   lastname?: string;
   birthDate?: string;
@@ -309,6 +310,7 @@ export interface AdminApplicationDetail {
   rejectedAt: string | null;
   importedAt: string | null;
   memberType: MemberType;
+  titel?: string | null;
   firstname?: string | null;
   lastname?: string | null;
   birthDate: string | null;
@@ -344,6 +346,7 @@ export interface AdminApplicationDetail {
 
 export interface AdminUpdateApplicationRequest {
   memberType?: MemberType;
+  titel?: string;
   firstname?: string;
   lastname?: string;
   birthDate?: string;

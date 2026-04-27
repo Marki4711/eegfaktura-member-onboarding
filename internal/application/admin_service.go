@@ -195,6 +195,9 @@ func (s *AdminApplicationService) AdminUpdateApplication(id uuid.UUID, req share
 	if req.MemberType != nil {
 		app.MemberType = shared.MemberType(*req.MemberType)
 	}
+	if req.Titel != nil {
+		app.Titel = trimStringPtr(req.Titel)
+	}
 	if req.Firstname != nil {
 		app.Firstname = trimStringPtr(req.Firstname)
 	}
@@ -503,6 +506,7 @@ func buildApprovalPDFData(
 		ApprovedAt:           approvedAt,
 		ReferenceNumber:      app.ReferenceNumber,
 		MemberType:           memberTypeLabel,
+		Titel:                derefStr(app.Titel),
 		Firstname:            derefStr(app.Firstname),
 		Lastname:             derefStr(app.Lastname),
 		BirthDate:            app.BirthDate,

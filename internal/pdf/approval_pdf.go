@@ -17,6 +17,7 @@ type ApprovalPDFData struct {
 	ReferenceNumber string
 
 	MemberType      string
+	Titel           string
 	Firstname       string
 	Lastname        string
 	BirthDate       *time.Time
@@ -137,7 +138,7 @@ func (g *FPDFApprovalGenerator) GenerateApproval(data ApprovalPDFData) ([]byte, 
 	sectionHeader("MITGLIEDSDATEN")
 	dataRow("Mitgliedstyp:", data.MemberType)
 	if data.Firstname != "" || data.Lastname != "" {
-		name := strings.TrimSpace(data.Firstname + " " + data.Lastname)
+		name := strings.TrimSpace(data.Titel + " " + data.Firstname + " " + data.Lastname)
 		dataRow("Name:", name)
 	}
 	if data.CompanyName != "" {

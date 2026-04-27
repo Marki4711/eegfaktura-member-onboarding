@@ -53,6 +53,7 @@ let mpKeyCounter = 0;
 export function AdminEditForm({ open, application, onClose, onRefresh }: Props) {
   const { data: session } = useSession();
   const [memberType, setMemberType] = useState<MemberType>(application.memberType ?? "private");
+  const [titel, setTitel] = useState(application.titel ?? "");
   const [firstname, setFirstname] = useState(application.firstname ?? "");
   const [lastname, setLastname] = useState(application.lastname ?? "");
   const [birthDate, setBirthDate] = useState(toDateInputValue(application.birthDate));
@@ -87,6 +88,7 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
       setUidNumber("");
       setRegisterNumber("");
     } else {
+      setTitel("");
       setFirstname("");
       setLastname("");
       setBirthDate("");
@@ -109,7 +111,7 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
       prev.map((mp) => {
         if (mp.key !== key) return mp;
         if (field === "participationFactor") {
-          return { ...mp, participationFactor: parseInt(value, 10) || 0 };
+          return { ...mp, participationFactor: parseInt(value, 10) };
         }
         return { ...mp, [field]: value };
       })
@@ -142,7 +144,7 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
     if (meteringPoints.length === 0) return "Mindestens ein Zählpunkt ist erforderlich.";
     for (const mp of meteringPoints) {
       if (!mp.meteringPoint.trim()) return "Alle Zählpunktnummern müssen ausgefüllt sein.";
-      if (mp.participationFactor < 1 || mp.participationFactor > 100) {
+      if (!Number.isFinite(mp.participationFactor) || mp.participationFactor < 1 || mp.participationFactor > 100) {
         return "Teilnahmefaktor muss zwischen 1 und 100 liegen.";
       }
     }
@@ -168,6 +170,7 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
     try {
       await updateApplication(application.id, {
         memberType,
+        titel: isPerson ? titel.trim() || undefined : undefined,
         firstname: isPerson ? firstname.trim() || undefined : undefined,
         lastname: isPerson ? lastname.trim() || undefined : undefined,
         birthDate: isPerson ? birthDate || undefined : undefined,
@@ -228,6 +231,15 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
             </h3>
             {isPerson ? (
               <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1 col-span-2">
+                  <Label htmlFor="edit-titel">Titel</Label>
+                  <Input
+                    id="edit-titel"
+                    value={titel}
+                    placeholder="z.B. Dr., Mag., DI"
+                    onChange={(e) => setTitel(e.target.value)}
+                  />
+                </div>
                 <div className="space-y-1">
                   <Label htmlFor="edit-firstname">Vorname *</Label>
                   <Input

@@ -12,6 +12,7 @@ import (
 type CreateApplicationRequest struct {
 	RCNumber             string                      `json:"rcNumber" validate:"required"`
 	MemberType           string                      `json:"memberType" validate:"required,oneof=private farmer municipality company association"`
+	Titel                *string                     `json:"titel,omitempty" validate:"omitempty,max=50"`
 	Firstname            *string                     `json:"firstname,omitempty" validate:"omitempty,min=1,max=100"`
 	Lastname             *string                     `json:"lastname,omitempty" validate:"omitempty,min=1,max=100"`
 	BirthDate            *string                     `json:"birthDate,omitempty"  validate:"omitempty,len=10"`
@@ -59,6 +60,7 @@ type CreateMeteringPointRequest struct {
 // UpdateApplicationRequest represents the request to update an application
 type UpdateApplicationRequest struct {
 	MemberType           *string                     `json:"memberType,omitempty" validate:"omitempty,oneof=private farmer municipality company association"`
+	Titel                *string                     `json:"titel,omitempty" validate:"omitempty,max=50"`
 	Firstname            *string                     `json:"firstname,omitempty" validate:"omitempty,min=1,max=100"`
 	Lastname             *string                     `json:"lastname,omitempty" validate:"omitempty,min=1,max=100"`
 	BirthDate            *string                     `json:"birthDate,omitempty"  validate:"omitempty,len=10"`
@@ -140,6 +142,7 @@ type SubmitResponse struct {
 // (privacyAccepted, accuracyConfirmed, etc.) which only the public user sets.
 type AdminUpdateApplicationRequest struct {
 	MemberType           *string                      `json:"memberType,omitempty" validate:"omitempty,oneof=private farmer municipality company association"`
+	Titel                *string                      `json:"titel,omitempty" validate:"omitempty,max=50"`
 	Firstname            *string                      `json:"firstname,omitempty" validate:"omitempty,min=1,max=100"`
 	Lastname             *string                      `json:"lastname,omitempty" validate:"omitempty,min=1,max=100"`
 	BirthDate            *string                      `json:"birthDate,omitempty"  validate:"omitempty,len=10"`
