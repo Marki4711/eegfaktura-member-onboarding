@@ -21,6 +21,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 import { toast } from "sonner";
 import { updateApplication } from "@/lib/api";
 import type { AdminApplicationDetail, MeteringPointRequest, MemberType } from "@/lib/api";
@@ -220,8 +227,20 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
 
         <div className="space-y-6 py-2">
           {/* Mitgliedsnummer */}
-          <div className="space-y-1.5">
-            <Label htmlFor="edit-member-number">Mitgliedsnummer</Label>
+          <div className="space-y-1">
+            <Label htmlFor="edit-member-number" className="flex items-center gap-1">
+              Mitgliedsnummer
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger type="button" className="cursor-help">
+                    <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-60">
+                    Wird bei der ersten Einreichung automatisch vergeben (fortlaufend pro EEG), kann hier aber manuell angepasst werden.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </Label>
             <Input
               id="edit-member-number"
               type="number"
@@ -229,9 +248,6 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
               value={memberNumber}
               onChange={(e) => setMemberNumber(e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">
-              Wird bei der ersten Einreichung automatisch vergeben (fortlaufend pro EEG), kann hier aber manuell angepasst werden.
-            </p>
           </div>
 
           <Separator />
