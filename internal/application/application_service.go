@@ -509,15 +509,17 @@ func parseDateString(s *string) (*time.Time, error) {
 	return &t, nil
 }
 
-// generateReferenceNumber generates a unique reference number.
-// Uses crypto/rand for the suffix to avoid collisions under concurrent load.
+// generateReferenceNumber returns a collision-free reference number backed by a
+// DB sequence. Format: MO-YYYY-NNNNNN (sequence is global, never resets per year).
+// Falls back to a crypto/rand value only if the DB query fails unexpectedly.
 func (s *ApplicationService) generateReferenceNumber() string {
-	// Range 100000–999999 guarantees always 6 digits.
-	n, err := rand.Int(rand.Reader, big.NewInt(900_000))
-	if err != nil {
-		n = big.NewInt(time.Now().UnixNano() % 900_000)
+	var seq int64
+	if err := s.db.QueryRow("SELECT nextval('member_onboarding.application_reference_number_seq')").Scan(&seq); err != nil {
+		slog.Error("generateReferenceNumber: sequence query failed, using fallback", "error", err)
+		n, _ := rand.Int(rand.Reader, big.NewInt(900_000))
+		return fmt.Sprintf("MO-%d-%06d", time.Now().Year(), n.Int64()+100_000)
 	}
-	return fmt.Sprintf("MO-%d-%06d", time.Now().Year(), n.Int64()+100_000)
+	return fmt.Sprintf("MO-%d-%06d", time.Now().Year(), seq)
 }
 
 // trimStringPtr trims whitespace from a *string, returning nil if the pointer is nil.
