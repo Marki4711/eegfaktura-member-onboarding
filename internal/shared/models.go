@@ -96,6 +96,10 @@ type Application struct {
 	SepaMandateAcceptedAt   *time.Time        `json:"sepaMandateAcceptedAt,omitempty" db:"sepa_mandate_accepted_at"`
 	ReviewedByUserID        *string           `json:"reviewedByUserId,omitempty" db:"reviewed_by_user_id"`
 	AdminNote            *string           `json:"adminNote,omitempty" db:"admin_note"`
+	Einzugsart           string            `json:"einzugsart" db:"einzugsart"`
+	BankName             *string           `json:"bankName,omitempty" db:"bank_name"`
+	MandateReference     *string           `json:"mandateReference,omitempty" db:"mandate_reference"`
+	MandateDate          *time.Time        `json:"mandateDate,omitempty" db:"mandate_date"`
 	NeedsInfoReason      *string           `json:"needsInfoReason,omitempty" db:"needs_info_reason"`
 	TargetParticipantID  *string           `json:"targetParticipantId,omitempty" db:"target_participant_id"`
 	ImportStartedAt      *time.Time        `json:"importStartedAt,omitempty" db:"import_started_at"`

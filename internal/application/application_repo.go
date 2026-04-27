@@ -140,6 +140,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		       membership_start_date, persons_in_household, consumption_previous_year,
 		       consumption_forecast, feed_in_forecast, pv_power_kwp,
 		       heat_pump, electric_vehicle, electric_hot_water,
+		       einzugsart, bank_name, mandate_reference, mandate_date,
 		       created_at, updated_at
 		FROM member_onboarding.application
 		WHERE id = $1`
@@ -147,8 +148,9 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	app := &shared.Application{}
 	var phone, privacyVersion, iban, accountHolder, reviewedByUserID, adminNote, needsInfoReason, targetParticipantID, importErrorMessage sql.NullString
 	var titel, firstname, lastname, companyName, uidNumber, registerNumber sql.NullString
+	var bankName, mandateReference sql.NullString
 	var birthDate, startedAt, submittedAt, approvedAt, rejectedAt, importedAt, privacyAcceptedAt, sepaMandateAcceptedAt, importStartedAt, importFinishedAt sql.NullTime
-	var membershipStartDate sql.NullTime
+	var membershipStartDate, mandateDate sql.NullTime
 	var personsInHousehold, consumptionPreviousYear, consumptionForecast, feedInForecast sql.NullInt64
 	var pvPowerKwp sql.NullFloat64
 	var heatPump, electricVehicle, electricHotWater sql.NullBool
@@ -167,6 +169,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		&membershipStartDate, &personsInHousehold, &consumptionPreviousYear,
 		&consumptionForecast, &feedInForecast, &pvPowerKwp,
 		&heatPump, &electricVehicle, &electricHotWater,
+		&app.Einzugsart, &bankName, &mandateReference, &mandateDate,
 		&app.CreatedAt, &app.UpdatedAt,
 	)
 	if err != nil {
@@ -281,6 +284,15 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	}
 	if electricHotWater.Valid {
 		app.ElectricHotWater = &electricHotWater.Bool
+	}
+	if bankName.Valid {
+		app.BankName = &bankName.String
+	}
+	if mandateReference.Valid {
+		app.MandateReference = &mandateReference.String
+	}
+	if mandateDate.Valid {
+		app.MandateDate = &mandateDate.Time
 	}
 
 	return app, nil
@@ -504,8 +516,9 @@ func (r *ApplicationRepository) UpdateAdminTx(tx *sql.Tx, app *shared.Applicatio
 			resident_street = $11, resident_street_number = $12, resident_zip = $13,
 			resident_city = $14, admin_note = $15,
 			iban = $16, account_holder = $17,
+			einzugsart = $18, bank_name = $19, mandate_reference = $20, mandate_date = $21,
 			updated_at = NOW()
-		WHERE id = $18`
+		WHERE id = $22`
 
 	_, err := tx.Exec(query,
 		app.MemberType,
@@ -514,6 +527,7 @@ func (r *ApplicationRepository) UpdateAdminTx(tx *sql.Tx, app *shared.Applicatio
 		app.Email, app.Phone,
 		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity,
 		app.AdminNote, app.IBAN, app.AccountHolder,
+		app.Einzugsart, app.BankName, app.MandateReference, app.MandateDate,
 		app.ID,
 	)
 	if err != nil {

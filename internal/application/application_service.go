@@ -147,6 +147,7 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 		AccountHolder:           func() *string { s := strings.TrimSpace(req.AccountHolder); return &s }(),
 		SepaMandateAccepted:     req.SepaMandateAccepted,
 		SepaMandateAcceptedAt:   sepaMandateAcceptedAt,
+		Einzugsart:              "core",
 		CreatedAt:               now,
 		UpdatedAt:               now,
 		MembershipStartDate:     membershipStartDate,

@@ -156,8 +156,12 @@ type AdminUpdateApplicationRequest struct {
 	ResidentZip          *string                      `json:"residentZip,omitempty" validate:"omitempty,min=1,max=20"`
 	ResidentCity         *string                      `json:"residentCity,omitempty" validate:"omitempty,min=1,max=100"`
 	AdminNote            *string                      `json:"adminNote,omitempty"`
-	IBAN                 *string                      `json:"iban,omitempty" validate:"omitempty,min=15,max=34"`
+	IBAN                 *string                      `json:"iban,omitempty" validate:"omitempty,min=15,max=50"`
 	AccountHolder        *string                      `json:"accountHolder,omitempty" validate:"omitempty,min=1,max=150"`
+	Einzugsart           *string                      `json:"einzugsart,omitempty" validate:"omitempty,oneof=kein_sepa b2b core"`
+	BankName             *string                      `json:"bankName,omitempty" validate:"omitempty,max=255"`
+	MandateReference     *string                      `json:"mandateReference,omitempty" validate:"omitempty,max=255"`
+	MandateDate          *string                      `json:"mandateDate,omitempty" validate:"omitempty,len=10"`
 	MeteringPoints       []CreateMeteringPointRequest  `json:"meteringPoints,omitempty" validate:"omitempty,min=1,max=10,dive"`
 }
 

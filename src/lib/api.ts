@@ -332,6 +332,10 @@ export interface AdminApplicationDetail {
   sepaMandateAccepted: boolean;
   sepaMandateAcceptedAt: string | null;
   adminNote: string | null;
+  einzugsart: string;
+  bankName?: string | null;
+  mandateReference?: string | null;
+  mandateDate?: string | null;
   needsInfoReason: string | null;
   targetParticipantId: string | null;
   importStartedAt: string | null;
@@ -360,6 +364,10 @@ export interface AdminUpdateApplicationRequest {
   residentZip: string;
   residentCity: string;
   adminNote?: string;
+  einzugsart?: string;
+  bankName?: string;
+  mandateReference?: string;
+  mandateDate?: string;
   meteringPoints: MeteringPointRequest[];
 }
 

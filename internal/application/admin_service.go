@@ -241,6 +241,22 @@ func (s *AdminApplicationService) AdminUpdateApplication(id uuid.UUID, req share
 	if req.AdminNote != nil {
 		app.AdminNote = req.AdminNote
 	}
+	if req.Einzugsart != nil {
+		app.Einzugsart = *req.Einzugsart
+	}
+	if req.BankName != nil {
+		app.BankName = trimStringPtr(req.BankName)
+	}
+	if req.MandateReference != nil {
+		app.MandateReference = trimStringPtr(req.MandateReference)
+	}
+	if req.MandateDate != nil {
+		parsed, err := parseDateString(req.MandateDate)
+		if err != nil {
+			return nil, shared.NewValidationError("Validation failed", map[string]string{"mandateDate": err.Error()})
+		}
+		app.MandateDate = parsed
+	}
 	clearMemberTypeFields(app)
 	if err = validateMemberTypeFields(app); err != nil {
 		return nil, err

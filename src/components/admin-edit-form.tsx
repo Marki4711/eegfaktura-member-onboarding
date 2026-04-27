@@ -67,6 +67,12 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
   const [residentZip, setResidentZip] = useState(application.residentZip);
   const [residentCity, setResidentCity] = useState(application.residentCity);
   const [adminNote, setAdminNote] = useState(application.adminNote ?? "");
+  const [einzugsart, setEinzugsart] = useState(application.einzugsart ?? "core");
+  const [bankName, setBankName] = useState(application.bankName ?? "");
+  const [mandateReference, setMandateReference] = useState(application.mandateReference ?? "");
+  const [mandateDate, setMandateDate] = useState(
+    application.mandateDate ? application.mandateDate.split("T")[0] : ""
+  );
   const [meteringPoints, setMeteringPoints] = useState<FormMeteringPoint[]>(
     application.meteringPoints.map((mp) => ({
       key: ++mpKeyCounter,
@@ -184,6 +190,10 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
         residentZip: residentZip.trim(),
         residentCity: residentCity.trim(),
         adminNote: adminNote,
+        einzugsart: einzugsart,
+        bankName: bankName.trim() || undefined,
+        mandateReference: mandateReference.trim() || undefined,
+        mandateDate: mandateDate || undefined,
         meteringPoints: payload,
       }, session?.accessToken);
       toast.success("Änderungen gespeichert");
@@ -428,6 +438,58 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
                   </Button>
                 </div>
               ))}
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Einzugsart */}
+          <div>
+            <h3 className="text-sm font-semibold mb-3">Einzugsart</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1 col-span-2">
+                <Label htmlFor="edit-einzugsart">Einzugsart</Label>
+                <Select value={einzugsart} onValueChange={setEinzugsart}>
+                  <SelectTrigger id="edit-einzugsart">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="core">Core</SelectItem>
+                    <SelectItem value="b2b">B2B</SelectItem>
+                    <SelectItem value="kein_sepa">Kein Sepa</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {einzugsart !== "kein_sepa" && (
+                <>
+                  <div className="space-y-1 col-span-2">
+                    <Label htmlFor="edit-bank-name">Bankverbindung</Label>
+                    <Input
+                      id="edit-bank-name"
+                      value={bankName}
+                      onChange={(e) => setBankName(e.target.value)}
+                      placeholder="z.B. Raiffeisen Wien"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="edit-mandate-reference">Mandatsreferenz</Label>
+                    <Input
+                      id="edit-mandate-reference"
+                      value={mandateReference}
+                      onChange={(e) => setMandateReference(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="edit-mandate-date">Mandatsdatum</Label>
+                    <Input
+                      id="edit-mandate-date"
+                      type="date"
+                      value={mandateDate}
+                      onChange={(e) => setMandateDate(e.target.value)}
+                    />
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
