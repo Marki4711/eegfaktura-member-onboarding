@@ -239,7 +239,15 @@ func TestValidateIBAN_Invalid(t *testing.T) {
 
 func TestNormalizeIBAN_StripSpacesAndUppercase(t *testing.T) {
 	got := normalizeIBAN("at61 1904 3002 3457 3201")
-	want := "AT611904300234573201"
+	want := "AT61 1904 3002 3457 3201"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestNormalizeIBAN_GermanFormatted(t *testing.T) {
+	got := normalizeIBAN("DE89370400440532013000")
+	want := "DE89 3704 0044 0532 0130 00"
 	if got != want {
 		t.Errorf("got %q, want %q", got, want)
 	}

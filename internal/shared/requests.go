@@ -28,7 +28,7 @@ type CreateApplicationRequest struct {
 	PrivacyAccepted      bool                        `json:"privacyAccepted" validate:"required"`
 	PrivacyVersion       string                      `json:"privacyVersion" validate:"required"`
 	AccuracyConfirmed    bool                        `json:"accuracyConfirmed" validate:"required"`
-	IBAN                 string                      `json:"iban" validate:"required,min=15,max=34"`
+	IBAN                 string                      `json:"iban" validate:"required,min=15,max=50"`
 	AccountHolder        string                      `json:"accountHolder" validate:"required,min=1,max=150"`
 	SepaMandateAccepted  bool                        `json:"sepaMandateAccepted" validate:"required"`
 	MeteringPoints       []CreateMeteringPointRequest `json:"meteringPoints" validate:"required,min=1,max=10,dive"`
@@ -76,7 +76,7 @@ type UpdateApplicationRequest struct {
 	PrivacyAccepted      *bool                       `json:"privacyAccepted,omitempty"`
 	PrivacyVersion       *string                     `json:"privacyVersion,omitempty"`
 	AccuracyConfirmed    *bool                       `json:"accuracyConfirmed,omitempty"`
-	IBAN                 *string                     `json:"iban,omitempty" validate:"omitempty,min=15,max=34"`
+	IBAN                 *string                     `json:"iban,omitempty" validate:"omitempty,min=15,max=50"`
 	AccountHolder        *string                     `json:"accountHolder,omitempty" validate:"omitempty,min=1,max=150"`
 	SepaMandateAccepted  *bool                       `json:"sepaMandateAccepted,omitempty"`
 	MeteringPoints       []CreateMeteringPointRequest `json:"meteringPoints,omitempty" validate:"omitempty,min=1,max=10,dive"`

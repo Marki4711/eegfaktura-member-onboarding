@@ -528,13 +528,23 @@ func trimStringPtr(s *string) *string {
 	return &trimmed
 }
 
-// normalizeIBAN strips whitespace and uppercases an IBAN string.
+// normalizeIBAN strips whitespace, uppercases, and reformats an IBAN into groups of 4.
 func normalizeIBAN(iban string) string {
-	return strings.ToUpper(strings.ReplaceAll(iban, " ", ""))
+	compact := strings.ToUpper(strings.ReplaceAll(iban, " ", ""))
+	var buf strings.Builder
+	for i, ch := range compact {
+		if i > 0 && i%4 == 0 {
+			buf.WriteByte(' ')
+		}
+		buf.WriteRune(ch)
+	}
+	return buf.String()
 }
 
 // validateIBAN checks IBAN structure and MOD-97 checksum.
+// Accepts both compact and space-formatted IBANs.
 func validateIBAN(iban string) bool {
+	iban = strings.ReplaceAll(iban, " ", "")
 	if len(iban) < 15 || len(iban) > 34 {
 		return false
 	}
