@@ -9,6 +9,13 @@ on:
   schedule:
     - cron: '0 4 * * 1'
 
+# Serialize runs on the same ref so the update-helm job never races against
+# a concurrent run's git push. cancel-in-progress: false queues instead of
+# cancelling, so every commit gets its image built and its Helm tags updated.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-backend:
     name: Backend
