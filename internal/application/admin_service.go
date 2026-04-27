@@ -381,6 +381,8 @@ func (s *AdminApplicationService) ChangeStatus(id uuid.UUID, toStatus shared.App
 	if toStatus == shared.StatusApproved {
 		appID := id
 		go func() {
+			acquireMailSem()
+			defer releaseMailSem()
 			reloadedApp, err := s.appRepo.GetByID(appID)
 			if err != nil {
 				slog.Error("approval mail: failed to reload app", "application_id", appID, "error", err)

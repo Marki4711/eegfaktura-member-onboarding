@@ -485,7 +485,11 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID, consents []shared.C
 					attachment = pdfBytes
 				}
 			}
-			go s.mailService.SendSubmissionEmails(app, meteringPoints, entrypoint, toStateMap(fieldConfig), attachment)
+			go func() {
+				acquireMailSem()
+				defer releaseMailSem()
+				s.mailService.SendSubmissionEmails(app, meteringPoints, entrypoint, toStateMap(fieldConfig), attachment)
+			}()
 		}
 	}
 
