@@ -302,6 +302,7 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
           </CardHeader>
           <CardContent>
             <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+              <Field label="Mitgliedsnummer" value={application.memberNumber != null ? String(application.memberNumber) : null} />
               <Field label="Mitgliedstyp" value={MEMBER_TYPE_LABELS[application.memberType] ?? application.memberType} />
             </dl>
             {(application.memberType === "private" || application.memberType === "farmer") ? (
@@ -403,7 +404,6 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
           </CardHeader>
           <CardContent>
             <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              <Field label="Mitgliedsnummer" value={application.memberNumber != null ? String(application.memberNumber) : null} />
               <Field label="Referenznummer" value={application.referenceNumber} />
               <Field label="RC-Nummer" value={application.rcNumber} />
               <Field label="Erstellt am" value={formatDateTime(application.createdAt)} />

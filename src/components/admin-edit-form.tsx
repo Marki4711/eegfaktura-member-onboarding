@@ -219,6 +219,21 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
         </DialogHeader>
 
         <div className="space-y-6 py-2">
+          {/* Mitgliedsnummer */}
+          <div className="space-y-1">
+            <Label htmlFor="edit-member-number">Mitgliedsnummer</Label>
+            <Input
+              id="edit-member-number"
+              type="number"
+              min={1}
+              value={memberNumber}
+              onChange={(e) => setMemberNumber(e.target.value)}
+              placeholder="Wird automatisch vergeben"
+            />
+          </div>
+
+          <Separator />
+
           {/* Member type */}
           <div>
             <h3 className="text-sm font-semibold mb-3">Mitgliedstyp</h3>
@@ -494,21 +509,6 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
                 </>
               )}
             </div>
-          </div>
-
-          <Separator />
-
-          {/* Mitgliedsnummer */}
-          <div className="space-y-1">
-            <Label htmlFor="edit-member-number">Mitgliedsnummer</Label>
-            <Input
-              id="edit-member-number"
-              type="number"
-              min={1}
-              value={memberNumber}
-              onChange={(e) => setMemberNumber(e.target.value)}
-              placeholder="Wird automatisch vergeben"
-            />
           </div>
 
           <Separator />
