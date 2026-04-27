@@ -22,11 +22,10 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Info } from "lucide-react";
 import { toast } from "sonner";
 import { updateApplication } from "@/lib/api";
@@ -230,16 +229,14 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
           <div className="space-y-1">
             <Label htmlFor="edit-member-number" className="flex items-center gap-1">
               Mitgliedsnummer
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger type="button" className="cursor-help">
-                    <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-60">
-                    Wird bei der ersten Einreichung automatisch vergeben (fortlaufend pro EEG), kann hier aber manuell angepasst werden.
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Popover>
+                <PopoverTrigger type="button" className="cursor-help">
+                  <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                </PopoverTrigger>
+                <PopoverContent className="max-w-60 text-sm">
+                  Wird bei der ersten Einreichung automatisch vergeben (fortlaufend pro EEG), kann hier aber manuell angepasst werden.
+                </PopoverContent>
+              </Popover>
             </Label>
             <Input
               id="edit-member-number"

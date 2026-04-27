@@ -294,7 +294,12 @@ func writeDataRow(f *excelize.File, rowNum int, app *shared.Application, mp *sha
 			return err
 		}
 	}
-	// AG: MitgliedsNr — leer lassen (wird in eegFaktura vergeben)
+	// AG: MitgliedsNr
+	if app.MemberNumber != nil {
+		if err := setInt("AG", *app.MemberNumber); err != nil {
+			return err
+		}
+	}
 	// AH: Zählpunktstatus — NEW (Zählpunkt wird neu angelegt)
 	if err := set("AH", "NEW"); err != nil {
 		return err

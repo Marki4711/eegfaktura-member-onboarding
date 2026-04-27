@@ -28,27 +28,25 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 - Keep components small and focused
 - Use TypeScript interfaces for all props
 
-## Hint / Tooltip Pattern (MANDATORY)
-When a field needs explanatory text, use a Tooltip with an `Info` icon next to the label — never a `<p>` block below the input:
+## Hint / Popover Pattern (MANDATORY)
+When a field needs explanatory text, use a Popover with an `Info` icon next to the label — never a `<p>` block below the input. Use Popover (not Tooltip) so it works on touch devices:
 ```tsx
 import { Info } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 <Label className="flex items-center gap-1">
   Feldname
-  <TooltipProvider>
-    <Tooltip>
-      <TooltipTrigger type="button" className="cursor-help">
-        <Info className="h-3.5 w-3.5 text-muted-foreground" />
-      </TooltipTrigger>
-      <TooltipContent className="max-w-60">
-        Erklärungstext hier.
-      </TooltipContent>
-    </Tooltip>
-  </TooltipProvider>
+  <Popover>
+    <PopoverTrigger type="button" className="cursor-help">
+      <Info className="h-3.5 w-3.5 text-muted-foreground" />
+    </PopoverTrigger>
+    <PopoverContent className="max-w-60 text-sm">
+      Erklärungstext hier.
+    </PopoverContent>
+  </Popover>
 </Label>
 ```
-Reference implementation: `src/components/metering-point-fields.tsx` (Teilnahmefaktor field).
+Reference implementation: `src/components/admin-edit-form.tsx` (Mitgliedsnummer field).
 
 ## Auth (NextAuth + Keycloak)
 - Admin pages are protected via the `(admin)` layout — do not add global middleware
