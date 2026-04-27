@@ -821,8 +821,13 @@ func buildSEPAMandateData(app *shared.Application, ep *shared.RegistrationEntryp
 		ep.EEGZip == nil || ep.EEGCity == nil || ep.CreditorID == nil {
 		return nil
 	}
-	name := derefStr(app.Firstname) + " " + derefStr(app.Lastname)
-	if name == " " && app.CompanyName != nil && *app.CompanyName != "" {
+	// Use AccountHolder as the debtor name — it reflects what the bank account is registered under.
+	// Fall back to first+last name (or company name) if AccountHolder is not set.
+	name := strings.TrimSpace(derefStr(app.AccountHolder))
+	if name == "" {
+		name = strings.TrimSpace(derefStr(app.Firstname) + " " + derefStr(app.Lastname))
+	}
+	if name == "" && app.CompanyName != nil {
 		name = *app.CompanyName
 	}
 	return &pdf.SEPAMandateData{

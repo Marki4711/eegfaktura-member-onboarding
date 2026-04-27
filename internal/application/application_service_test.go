@@ -290,42 +290,40 @@ func TestBuildSEPAMandateData_ReturnsNilWhenEEGFieldsMissing(t *testing.T) {
 	}
 }
 
-func TestBuildSEPAMandateData_PrivateMember_UsesFirstnameLastname(t *testing.T) {
+func TestBuildSEPAMandateData_UsesAccountHolder(t *testing.T) {
 	ep := baseEntrypoint(true)
 	app := baseApp(shared.MemberTypePrivate)
 	app.Firstname = strPtr("Max")
 	app.Lastname = strPtr("Muster")
+	app.AccountHolder = strPtr("Maria Muster")
 	m := buildSEPAMandateData(app, ep)
 	if m == nil {
 		t.Fatal("expected non-nil mandate data")
 	}
-	if m.MemberName != "Max Muster" {
-		t.Errorf("expected 'Max Muster', got %q", m.MemberName)
+	if m.MemberName != "Maria Muster" {
+		t.Errorf("expected AccountHolder 'Maria Muster', got %q", m.MemberName)
 	}
 }
 
-func TestBuildSEPAMandateData_CompanyMember_UsesFirstnameLastname(t *testing.T) {
-	// buildSEPAMandateData itself always returns firstname+lastname.
-	// The B2B name override (company_name priority) happens at the call site in SubmitApplication.
+func TestBuildSEPAMandateData_FallbackToFirstnameLastname(t *testing.T) {
 	ep := baseEntrypoint(true)
-	app := baseApp(shared.MemberTypeCompany)
+	app := baseApp(shared.MemberTypePrivate)
 	app.Firstname = strPtr("Max")
 	app.Lastname = strPtr("Muster")
-	app.CompanyName = strPtr("Muster GmbH")
+	// AccountHolder not set — falls back to firstname+lastname
 	m := buildSEPAMandateData(app, ep)
 	if m == nil {
 		t.Fatal("expected non-nil mandate data")
 	}
-	// base function: firstname+lastname (override happens at call site for B2B)
 	if m.MemberName != "Max Muster" {
-		t.Errorf("base function: expected 'Max Muster', got %q", m.MemberName)
+		t.Errorf("fallback: expected 'Max Muster', got %q", m.MemberName)
 	}
 }
 
-func TestBuildSEPAMandateData_CompanyMember_FallbackWhenNamesEmpty(t *testing.T) {
+func TestBuildSEPAMandateData_FallbackToCompanyName(t *testing.T) {
 	ep := baseEntrypoint(true)
 	app := baseApp(shared.MemberTypeCompany)
-	// No firstname/lastname — only company_name
+	// No AccountHolder, no firstname/lastname — only company_name
 	app.CompanyName = strPtr("Muster GmbH")
 	m := buildSEPAMandateData(app, ep)
 	if m == nil {
