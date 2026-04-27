@@ -220,7 +220,7 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
 
         <div className="space-y-6 py-2">
           {/* Mitgliedsnummer */}
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <Label htmlFor="edit-member-number">Mitgliedsnummer</Label>
             <Input
               id="edit-member-number"
@@ -229,6 +229,9 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
               value={memberNumber}
               onChange={(e) => setMemberNumber(e.target.value)}
             />
+            <p className="text-xs text-muted-foreground">
+              Wird bei der ersten Einreichung automatisch vergeben (fortlaufend pro EEG), kann hier aber manuell angepasst werden.
+            </p>
           </div>
 
           <Separator />
