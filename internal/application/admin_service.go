@@ -273,10 +273,11 @@ func (s *AdminApplicationService) AdminUpdateApplication(id uuid.UUID, req share
 		points := make([]shared.MeteringPoint, len(req.MeteringPoints))
 		for i, mp := range req.MeteringPoints {
 			points[i] = shared.MeteringPoint{
-				MeteringPoint: mp.MeteringPoint,
-				Direction:     shared.MeterDirection(mp.Direction),
-				CreatedAt:     now,
-				UpdatedAt:     now,
+				MeteringPoint:       mp.MeteringPoint,
+				Direction:           shared.MeterDirection(mp.Direction),
+				ParticipationFactor: mp.ParticipationFactor,
+				CreatedAt:           now,
+				UpdatedAt:           now,
 			}
 		}
 		if err := s.meteringRepo.CreateBulkTx(tx, id, points); err != nil {
