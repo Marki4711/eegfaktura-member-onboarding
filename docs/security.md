@@ -142,11 +142,6 @@ Die folgenden Punkte sind als known Issues dokumentiert und werden in nachfolgen
 
 | Issue | Severity | Status |
 |-------|----------|--------|
-| Container laufen als root (kein `securityContext`) | High | Behoben — `runAsNonRoot: true`, `runAsUser: 1000/999` in allen Helm-Templates |
-| `allowPrivilegeEscalation` nicht gesetzt | Medium | Behoben — `allowPrivilegeEscalation: false` in allen Containers |
-| `readOnlyRootFilesystem` nicht gesetzt (Backend) | Medium | Behoben — `readOnlyRootFilesystem: true` für Backend + Migrate |
-| `capabilities.drop` nicht gesetzt | Medium | Behoben — `capabilities.drop: ALL` in allen Containers |
-| Next.js High-CVEs (CVE-2025-59471/72, CVE-2026-23864/69) | High | Behoben — Upgrade auf `next@16.2.3` |
 | next-auth/uuid Moderate-CVEs | Medium | Offen — Fix erfordert Breaking Change (next-auth Downgrade) |
 | Go-Version in Dockerfile-Base-Image | Medium | Durch wöchentliche Rebuilds mitigiert |
 
