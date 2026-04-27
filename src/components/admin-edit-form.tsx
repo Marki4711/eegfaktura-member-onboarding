@@ -228,7 +228,6 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
               min={1}
               value={memberNumber}
               onChange={(e) => setMemberNumber(e.target.value)}
-              placeholder="Wird automatisch vergeben"
             />
           </div>
 
