@@ -40,7 +40,7 @@ func (r *RegistrationEntrypointRepository) GetByRCNumber(rcNumber string) (*shar
 		SELECT id, rc_number, eeg_id, is_active, contact_email, intro_text,
 		       eeg_name, eeg_street, eeg_street_number, eeg_zip, eeg_city,
 		       creditor_id, sepa_mandate_enabled, use_company_sepa_mandate,
-		       show_central_policy, created_at, updated_at
+		       show_central_policy, member_number_start, created_at, updated_at
 		FROM member_onboarding.registration_entrypoint
 		WHERE rc_number = $1`
 
@@ -49,7 +49,7 @@ func (r *RegistrationEntrypointRepository) GetByRCNumber(rcNumber string) (*shar
 		&ep.ID, &ep.RCNumber, &ep.EegID, &ep.IsActive, &ep.ContactEmail, &ep.IntroText,
 		&ep.EEGName, &ep.EEGStreet, &ep.EEGStreetNumber, &ep.EEGZip, &ep.EEGCity,
 		&ep.CreditorID, &ep.SEPAMandateEnabled, &ep.UseCompanySEPAMandate,
-		&ep.ShowCentralPolicy, &ep.CreatedAt, &ep.UpdatedAt,
+		&ep.ShowCentralPolicy, &ep.MemberNumberStart, &ep.CreatedAt, &ep.UpdatedAt,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -138,6 +138,28 @@ func (r *RegistrationEntrypointRepository) SaveIntroText(rcNumber string, introT
 		WHERE rc_number = $2`, introText, rcNumber)
 	if err != nil {
 		return fmt.Errorf("failed to save intro text for %s: %w", rcNumber, err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check rows affected: %w", err)
+	}
+	if rows == 0 {
+		return shared.ErrNotFound
+	}
+	return nil
+}
+
+// SaveMemberNumberStart persists the per-EEG starting value for member number auto-increment.
+func (r *RegistrationEntrypointRepository) SaveMemberNumberStart(rcNumber string, start int) error {
+	if start < 1 {
+		return fmt.Errorf("member_number_start must be >= 1")
+	}
+	result, err := r.db.Exec(`
+		UPDATE member_onboarding.registration_entrypoint
+		SET member_number_start = $1, updated_at = NOW()
+		WHERE rc_number = $2`, start, rcNumber)
+	if err != nil {
+		return fmt.Errorf("failed to save member_number_start for %s: %w", rcNumber, err)
 	}
 	rows, err := result.RowsAffected()
 	if err != nil {

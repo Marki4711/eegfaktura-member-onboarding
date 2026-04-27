@@ -163,6 +163,7 @@ type AdminUpdateApplicationRequest struct {
 	MandateReference     *string                      `json:"mandateReference,omitempty" validate:"omitempty,max=255"`
 	MandateDate          *string                      `json:"mandateDate,omitempty" validate:"omitempty,len=10"`
 	MeteringPoints       []CreateMeteringPointRequest  `json:"meteringPoints,omitempty" validate:"omitempty,min=1,max=10,dive"`
+	MemberNumber         *int                          `json:"memberNumber,omitempty" validate:"omitempty,min=1"`
 }
 
 // ChangeStatusRequest is the admin status-transition payload.

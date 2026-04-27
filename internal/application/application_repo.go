@@ -141,6 +141,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		       consumption_forecast, feed_in_forecast, pv_power_kwp,
 		       heat_pump, electric_vehicle, electric_hot_water,
 		       einzugsart, bank_name, mandate_reference, mandate_date,
+		       member_number,
 		       created_at, updated_at
 		FROM member_onboarding.application
 		WHERE id = $1`
@@ -154,6 +155,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	var personsInHousehold, consumptionPreviousYear, consumptionForecast, feedInForecast sql.NullInt64
 	var pvPowerKwp sql.NullFloat64
 	var heatPump, electricVehicle, electricHotWater sql.NullBool
+	var memberNumber sql.NullInt64
 
 	err := r.db.QueryRow(query, id).Scan(
 		&app.ID, &app.ReferenceNumber, &app.RCNumber, &app.Status, &startedAt,
@@ -170,6 +172,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		&consumptionForecast, &feedInForecast, &pvPowerKwp,
 		&heatPump, &electricVehicle, &electricHotWater,
 		&app.Einzugsart, &bankName, &mandateReference, &mandateDate,
+		&memberNumber,
 		&app.CreatedAt, &app.UpdatedAt,
 	)
 	if err != nil {
@@ -294,8 +297,45 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	if mandateDate.Valid {
 		app.MandateDate = &mandateDate.Time
 	}
+	if memberNumber.Valid {
+		v := int(memberNumber.Int64)
+		app.MemberNumber = &v
+	}
 
 	return app, nil
+}
+
+// AssignMemberNumberTx assigns the next available member number for the EEG to the
+// given application, using a row lock on registration_entrypoint to prevent races.
+// No-op when the application already has a member number.
+func (r *ApplicationRepository) AssignMemberNumberTx(tx *sql.Tx, appID uuid.UUID, rcNumber string) error {
+	var memberNumberStart int
+	err := tx.QueryRow(`
+		SELECT member_number_start
+		FROM member_onboarding.registration_entrypoint
+		WHERE rc_number = $1
+		FOR UPDATE`, rcNumber).Scan(&memberNumberStart)
+	if err != nil {
+		return fmt.Errorf("failed to lock entrypoint for member number: %w", err)
+	}
+
+	var nextNumber int
+	err = tx.QueryRow(`
+		SELECT COALESCE(MAX(member_number), $1 - 1) + 1
+		FROM member_onboarding.application
+		WHERE rc_number = $2`, memberNumberStart, rcNumber).Scan(&nextNumber)
+	if err != nil {
+		return fmt.Errorf("failed to compute next member number: %w", err)
+	}
+
+	_, err = tx.Exec(`
+		UPDATE member_onboarding.application
+		SET member_number = $1
+		WHERE id = $2 AND member_number IS NULL`, nextNumber, appID)
+	if err != nil {
+		return fmt.Errorf("failed to assign member number: %w", err)
+	}
+	return nil
 }
 
 // Update updates an application
@@ -517,8 +557,9 @@ func (r *ApplicationRepository) UpdateAdminTx(tx *sql.Tx, app *shared.Applicatio
 			resident_city = $14, admin_note = $15,
 			iban = $16, account_holder = $17,
 			einzugsart = $18, bank_name = $19, mandate_reference = $20, mandate_date = $21,
+			member_number = $22,
 			updated_at = NOW()
-		WHERE id = $22`
+		WHERE id = $23`
 
 	_, err := tx.Exec(query,
 		app.MemberType,
@@ -528,6 +569,7 @@ func (r *ApplicationRepository) UpdateAdminTx(tx *sql.Tx, app *shared.Applicatio
 		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity,
 		app.AdminNote, app.IBAN, app.AccountHolder,
 		app.Einzugsart, app.BankName, app.MandateReference, app.MandateDate,
+		app.MemberNumber,
 		app.ID,
 	)
 	if err != nil {

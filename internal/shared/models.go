@@ -24,6 +24,7 @@ type RegistrationEntrypoint struct {
 	SEPAMandateEnabled         bool      `json:"sepaMandateEnabled"         db:"sepa_mandate_enabled"`
 	UseCompanySEPAMandate      bool      `json:"useCompanySEPAMandate"      db:"use_company_sepa_mandate"`
 	ShowCentralPolicy          bool      `json:"showCentralPolicy"          db:"show_central_policy"`
+	MemberNumberStart          int       `json:"memberNumberStart"          db:"member_number_start"`
 	CreatedAt                  time.Time `json:"createdAt"                  db:"created_at"`
 	UpdatedAt          time.Time `json:"updatedAt"          db:"updated_at"`
 }
@@ -117,6 +118,7 @@ type Application struct {
 	HeatPump                *bool      `json:"heatPump,omitempty" db:"heat_pump"`
 	ElectricVehicle         *bool      `json:"electricVehicle,omitempty" db:"electric_vehicle"`
 	ElectricHotWater        *bool      `json:"electricHotWater,omitempty" db:"electric_hot_water"`
+	MemberNumber            *int       `json:"memberNumber,omitempty" db:"member_number"`
 }
 
 // MeteringPoint represents a metering point entity

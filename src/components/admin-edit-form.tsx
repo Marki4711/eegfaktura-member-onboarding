@@ -67,6 +67,9 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
   const [residentZip, setResidentZip] = useState(application.residentZip);
   const [residentCity, setResidentCity] = useState(application.residentCity);
   const [adminNote, setAdminNote] = useState(application.adminNote ?? "");
+  const [memberNumber, setMemberNumber] = useState(
+    application.memberNumber != null ? String(application.memberNumber) : ""
+  );
   const [einzugsart, setEinzugsart] = useState(application.einzugsart ?? "core");
   const [bankName, setBankName] = useState(application.bankName ?? "");
   const [mandateReference, setMandateReference] = useState(application.mandateReference ?? "");
@@ -194,6 +197,7 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
         bankName: bankName.trim() || undefined,
         mandateReference: mandateReference.trim() || undefined,
         mandateDate: mandateDate || undefined,
+        memberNumber: memberNumber.trim() ? parseInt(memberNumber.trim(), 10) || undefined : undefined,
         meteringPoints: payload,
       }, session?.accessToken);
       toast.success("Änderungen gespeichert");
@@ -490,6 +494,21 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
                 </>
               )}
             </div>
+          </div>
+
+          <Separator />
+
+          {/* Mitgliedsnummer */}
+          <div className="space-y-1">
+            <Label htmlFor="edit-member-number">Mitgliedsnummer</Label>
+            <Input
+              id="edit-member-number"
+              type="number"
+              min={1}
+              value={memberNumber}
+              onChange={(e) => setMemberNumber(e.target.value)}
+              placeholder="Wird automatisch vergeben"
+            />
           </div>
 
           <Separator />

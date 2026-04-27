@@ -458,6 +458,19 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID, consents []shared.C
 		}
 	}
 
+	// Assign member number on first submission (draft → submitted).
+	if oldStatus == string(shared.StatusDraft) {
+		tx, txErr := s.db.Begin()
+		if txErr != nil {
+			slog.Error("member number: failed to begin tx", "application_id", id, "error", txErr)
+		} else if assignErr := s.appRepo.AssignMemberNumberTx(tx, id, app.RCNumber); assignErr != nil {
+			tx.Rollback()
+			slog.Error("member number: failed to assign", "application_id", id, "error", assignErr)
+		} else if commitErr := tx.Commit(); commitErr != nil {
+			slog.Error("member number: failed to commit", "application_id", id, "error", commitErr)
+		}
+	}
+
 	// Send submission emails only on first submission (draft → submitted).
 	if oldStatus == string(shared.StatusDraft) {
 		entrypoint, epErr := s.entrypointRepo.GetByRCNumber(app.RCNumber)

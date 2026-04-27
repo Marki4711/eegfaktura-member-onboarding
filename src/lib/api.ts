@@ -336,6 +336,7 @@ export interface AdminApplicationDetail {
   bankName?: string | null;
   mandateReference?: string | null;
   mandateDate?: string | null;
+  memberNumber?: number | null;
   needsInfoReason: string | null;
   targetParticipantId: string | null;
   importStartedAt: string | null;
@@ -368,6 +369,7 @@ export interface AdminUpdateApplicationRequest {
   bankName?: string;
   mandateReference?: string;
   mandateDate?: string;
+  memberNumber?: number;
   meteringPoints: MeteringPointRequest[];
 }
 
@@ -493,6 +495,7 @@ export interface EEGSettings {
   sepaMandateEnabled: boolean;
   useCompanySEPAMandate: boolean;
   showCentralPolicy?: boolean;
+  memberNumberStart?: number;
 }
 
 export function getEEGSettings(rcNumber: string, token?: string): Promise<EEGSettings> {
