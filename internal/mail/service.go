@@ -18,7 +18,7 @@ var templateFS embed.FS
 // MailService defines the contract for sending notification emails.
 type MailService interface {
 	SendSubmissionEmails(app *shared.Application, meteringPoints []shared.MeteringPoint, entrypoint *shared.RegistrationEntrypoint, fieldConfig map[string]string, attachment []byte)
-	SendMemberConfirmation(app *shared.Application) error
+	SendMemberConfirmation(app *shared.Application, entrypoint *shared.RegistrationEntrypoint) error
 	SendApprovalEmail(app *shared.Application, entrypoint *shared.RegistrationEntrypoint, pdfBytes []byte, pdfFailed bool) error
 }
 
@@ -27,7 +27,9 @@ type NoOpMailService struct{}
 
 func (n *NoOpMailService) SendSubmissionEmails(_ *shared.Application, _ []shared.MeteringPoint, _ *shared.RegistrationEntrypoint, _ map[string]string, _ []byte) {
 }
-func (n *NoOpMailService) SendMemberConfirmation(_ *shared.Application) error { return nil }
+func (n *NoOpMailService) SendMemberConfirmation(_ *shared.Application, _ *shared.RegistrationEntrypoint) error {
+	return nil
+}
 func (n *NoOpMailService) SendApprovalEmail(_ *shared.Application, _ *shared.RegistrationEntrypoint, _ []byte, _ bool) error {
 	return nil
 }
@@ -69,6 +71,13 @@ type memberTemplateData struct {
 	Lastname        string
 	ReferenceNumber string
 	HasSEPAMandate  bool
+	// EEG-Daten (leer wenn nicht konfiguriert)
+	EEGName         string
+	EEGStreet       string
+	EEGStreetNumber string
+	EEGZip          string
+	EEGCity         string
+	CreditorID      string
 }
 
 // meteringPointView is a resolved metering point with translated direction label.
@@ -247,6 +256,12 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 		Lastname:        derefString(app.Lastname),
 		ReferenceNumber: app.ReferenceNumber,
 		HasSEPAMandate:  len(attachment) > 0,
+		EEGName:         derefString(entrypoint.EEGName),
+		EEGStreet:       derefString(entrypoint.EEGStreet),
+		EEGStreetNumber: derefString(entrypoint.EEGStreetNumber),
+		EEGZip:          derefString(entrypoint.EEGZip),
+		EEGCity:         derefString(entrypoint.EEGCity),
+		CreditorID:      derefString(entrypoint.CreditorID),
 	}); err != nil {
 		slog.Error("mail: failed to render member template", "application_id", app.ID, "error", err)
 	} else {
@@ -357,12 +372,18 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 }
 
 // SendMemberConfirmation sends only the member confirmation email and returns any error.
-func (s *SMTPMailService) SendMemberConfirmation(app *shared.Application) error {
+func (s *SMTPMailService) SendMemberConfirmation(app *shared.Application, entrypoint *shared.RegistrationEntrypoint) error {
 	var buf bytes.Buffer
 	if err := s.memberTpl.Execute(&buf, memberTemplateData{
 		Firstname:       derefString(app.Firstname),
 		Lastname:        derefString(app.Lastname),
 		ReferenceNumber: app.ReferenceNumber,
+		EEGName:         derefString(entrypoint.EEGName),
+		EEGStreet:       derefString(entrypoint.EEGStreet),
+		EEGStreetNumber: derefString(entrypoint.EEGStreetNumber),
+		EEGZip:          derefString(entrypoint.EEGZip),
+		EEGCity:         derefString(entrypoint.EEGCity),
+		CreditorID:      derefString(entrypoint.CreditorID),
 	}); err != nil {
 		return fmt.Errorf("render member template: %w", err)
 	}

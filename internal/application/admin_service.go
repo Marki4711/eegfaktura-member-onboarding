@@ -97,7 +97,11 @@ func (s *AdminApplicationService) ResendMemberConfirmation(id uuid.UUID) error {
 	if err != nil {
 		return err
 	}
-	return s.mailService.SendMemberConfirmation(app)
+	entrypoint, err := s.entrypointRepo.GetByRCNumber(app.RCNumber)
+	if err != nil {
+		return err
+	}
+	return s.mailService.SendMemberConfirmation(app, entrypoint)
 }
 
 // ListApplications returns a paginated, filtered list of applications for admin review.
