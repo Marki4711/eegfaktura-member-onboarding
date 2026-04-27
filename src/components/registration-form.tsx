@@ -534,7 +534,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                       <FormItem>
                         <FormLabel>Titel</FormLabel>
                         <FormControl>
-                          <Input autoComplete="honorific-prefix" placeholder="z.B. Dr., Mag., DI" {...field} />
+                          <Input autoComplete="honorific-prefix" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

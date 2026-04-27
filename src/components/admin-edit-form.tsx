@@ -246,7 +246,6 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
                   <Input
                     id="edit-titel"
                     value={titel}
-                    placeholder="z.B. Dr., Mag., DI"
                     onChange={(e) => setTitel(e.target.value)}
                   />
                 </div>
