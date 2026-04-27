@@ -24,6 +24,7 @@ func TestNoOpMailService_Noop(t *testing.T) {
 	}
 	ep := &shared.RegistrationEntrypoint{}
 	svc.SendSubmissionEmails(app, nil, ep, nil, nil) // must not panic
+	_ = svc.SendMemberConfirmation(app, ep)          // must not panic
 }
 
 // TestNewSMTPMailService_ParsesTemplates verifies that embedded HTML templates
@@ -200,12 +201,12 @@ type spyCall struct {
 	body    string
 }
 
-func (s *spySender) Send(to, subject, htmlBody string) error {
+func (s *spySender) Send(to, subject, htmlBody, _ string) error {
 	s.calls = append(s.calls, spyCall{to: to, subject: subject, body: htmlBody})
 	return nil
 }
 
-func (s *spySender) SendWithAttachment(to, subject, htmlBody, _ string, _ []byte) error {
+func (s *spySender) SendWithAttachment(to, subject, htmlBody, _, _ string, _ []byte) error {
 	s.calls = append(s.calls, spyCall{to: to, subject: subject, body: htmlBody})
 	return nil
 }

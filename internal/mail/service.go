@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"embed"
 	"fmt"
+	"html"
 	"html/template"
 	"log/slog"
+	"regexp"
 	"strings"
 	"time"
 
@@ -266,11 +268,13 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 		slog.Error("mail: failed to render member template", "application_id", app.ID, "error", err)
 	} else {
 		subject := fmt.Sprintf("Ihre Beitrittserklärung wurde eingereicht (%s)", app.ReferenceNumber)
+		memberHTML := memberBuf.String()
+		memberPlain := htmlToText(memberHTML)
 		var sendErr error
 		if len(attachment) > 0 {
-			sendErr = s.sender.SendWithAttachment(app.Email, subject, memberBuf.String(), "sepa-lastschriftmandat.pdf", attachment)
+			sendErr = s.sender.SendWithAttachment(app.Email, subject, memberHTML, memberPlain, "sepa-lastschriftmandat.pdf", attachment)
 		} else {
-			sendErr = s.sender.Send(app.Email, subject, memberBuf.String())
+			sendErr = s.sender.Send(app.Email, subject, memberHTML, memberPlain)
 		}
 		if sendErr != nil {
 			slog.Error("mail: failed to send member confirmation", "application_id", app.ID, "to", app.Email, "error", sendErr)
@@ -364,7 +368,8 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 
 	displayName := memberDisplayName(app)
 	subject := fmt.Sprintf("Neuer Beitrittsantrag: %s (%s)", displayName, app.ReferenceNumber)
-	if err := s.sender.Send(*entrypoint.ContactEmail, subject, eegBuf.String()); err != nil {
+	eegHTML := eegBuf.String()
+	if err := s.sender.Send(*entrypoint.ContactEmail, subject, eegHTML, htmlToText(eegHTML)); err != nil {
 		slog.Error("mail: failed to send EEG notification", "application_id", app.ID, "to", *entrypoint.ContactEmail, "error", err)
 	} else {
 		slog.Info("mail: EEG notification sent", "application_id", app.ID, "to", *entrypoint.ContactEmail)
@@ -388,7 +393,8 @@ func (s *SMTPMailService) SendMemberConfirmation(app *shared.Application, entryp
 		return fmt.Errorf("render member template: %w", err)
 	}
 	subject := fmt.Sprintf("Ihre Beitrittserklärung wurde eingereicht (%s)", app.ReferenceNumber)
-	return s.sender.Send(app.Email, subject, buf.String())
+	htmlBody := buf.String()
+	return s.sender.Send(app.Email, subject, htmlBody, htmlToText(htmlBody))
 }
 
 // SendApprovalEmail sends the approval notification with optional PDF attachment to the EEG contact.
@@ -417,11 +423,13 @@ func (s *SMTPMailService) SendApprovalEmail(app *shared.Application, entrypoint 
 
 	subject := fmt.Sprintf("Mitgliedsantrag genehmigt – %s (%s)", memberName, app.ReferenceNumber)
 	filename := fmt.Sprintf("beitrittsbestaetigung-%s.pdf", app.ReferenceNumber)
+	approvalHTML := buf.String()
+	approvalPlain := htmlToText(approvalHTML)
 
 	if len(pdfBytes) > 0 {
-		return s.sender.SendWithAttachment(*entrypoint.ContactEmail, subject, buf.String(), filename, pdfBytes)
+		return s.sender.SendWithAttachment(*entrypoint.ContactEmail, subject, approvalHTML, approvalPlain, filename, pdfBytes)
 	}
-	return s.sender.Send(*entrypoint.ContactEmail, subject, buf.String())
+	return s.sender.Send(*entrypoint.ContactEmail, subject, approvalHTML, approvalPlain)
 }
 
 func derefString(s *string) string {
@@ -429,4 +437,30 @@ func derefString(s *string) string {
 		return ""
 	}
 	return *s
+}
+
+var (
+	reBlock    = regexp.MustCompile(`(?i)<(br\s*/?>|/?(p|h[1-6]|tr|li|div|blockquote|hr)[^>]*)>`)
+	reListItem = regexp.MustCompile(`(?i)<li[^>]*>`)
+	reTag      = regexp.MustCompile(`<[^>]+>`)
+	reSpaces   = regexp.MustCompile(`[ \t]+`)
+	reNewlines = regexp.MustCompile(`\n{3,}`)
+)
+
+// htmlToText converts an HTML email body to a plain-text alternative.
+// It replaces block elements with newlines, strips remaining tags,
+// and decodes HTML entities.
+func htmlToText(h string) string {
+	s := reListItem.ReplaceAllString(h, "\n- ")
+	s = reBlock.ReplaceAllString(s, "\n")
+	s = reTag.ReplaceAllString(s, "")
+	s = html.UnescapeString(s)
+	// Normalise whitespace per line, then collapse excessive blank lines.
+	lines := strings.Split(s, "\n")
+	for i, l := range lines {
+		lines[i] = reSpaces.ReplaceAllString(strings.TrimSpace(l), " ")
+	}
+	s = strings.Join(lines, "\n")
+	s = reNewlines.ReplaceAllString(s, "\n\n")
+	return strings.TrimSpace(s)
 }
