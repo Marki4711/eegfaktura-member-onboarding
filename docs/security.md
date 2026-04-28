@@ -217,8 +217,8 @@ Danach Claude Code neu starten. Prüfen mit: `claude mcp list` → `Snyk: ✓ Co
 - [x] GitHub Push Protection aktiviert
 - [x] GitHub Dependabot Security Updates aktiviert
 - [x] CodeQL aktiviert
-- [ ] GitHub-Repository auf snyk.io importieren (für CI-Alerts im PR-Flow)
-- [ ] Optional: Snyk-GitHub-Action in `.github/workflows/` ergänzen (empfohlen für CI-Gate)
+- [x] GitHub-Repository auf snyk.io importieren (für CI-Alerts im PR-Flow) — `snyk monitor` läuft auch in CI automatisch
+- [x] Snyk-GitHub-Action in `.github/workflows/snyk.yml` ergänzt — SAST + SCA (Go + npm), `SNYK_TOKEN` als GitHub Secret gesetzt
 
 ## Dokumentierte False Positives
 
