@@ -66,6 +66,13 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 		return nil, shared.ErrGone
 	}
 
+	// Explicit consent check — must not store personal data without agreement.
+	if !req.PrivacyAccepted || !req.AccuracyConfirmed {
+		return nil, shared.NewValidationError("Validation failed", map[string]string{
+			"privacyAccepted": "Datenschutzerklärung und Richtigkeit müssen bestätigt werden",
+		})
+	}
+
 	// Load field config (best-effort — fail open so a DB error doesn't block registrations)
 	fieldConfig, fcErr := s.fieldConfigRepo.Get(strings.ToUpper(req.RCNumber))
 	if fcErr != nil {
