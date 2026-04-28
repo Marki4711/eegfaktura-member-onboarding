@@ -60,6 +60,6 @@ jobs:
       # Keep snyk.io project snapshot up to date
       - name: Snyk Monitor (snapshot)
         if: github.ref == 'refs/heads/main'
-        run: snyk monitor --all-projects --project-name="eegfaktura-member-onboarding"
+        run: snyk monitor --all-projects
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
