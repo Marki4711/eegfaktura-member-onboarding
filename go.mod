@@ -1,6 +1,6 @@
 module github.com/your-org/eegfaktura-member-onboarding
 
-go 1.25.6
+go 1.26.2
 
 require (
 	github.com/MicahParks/keyfunc/v3 v3.8.0
