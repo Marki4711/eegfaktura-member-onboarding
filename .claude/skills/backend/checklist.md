@@ -7,6 +7,8 @@
 - [ ] Indexes created on performance-critical columns
 - [ ] Foreign keys set with appropriate ON DELETE behavior
 - [ ] All planned API endpoints implemented in `internal/http/`
+- [ ] Swagger annotations added to every new handler function (`@Summary`, `@Tags`, `@Param`, `@Success`, `@Failure`, `@Router`, `@Security` where applicable)
+- [ ] `swag init --dir cmd/server,internal/http,internal/shared --output docs --parseDependency --parseInternal` ausgeführt und `docs/` committed
 - [ ] Keycloak auth middleware applied on all admin endpoints
 - [ ] Tenant isolation enforced (`checkTenantAccess` / `RCNumbers`)
 - [ ] Input validation in handler or service layer (not only frontend)
