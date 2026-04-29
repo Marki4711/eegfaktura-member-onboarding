@@ -1,6 +1,6 @@
 # PROJ-25: Bulk-Aktionen im Admin
 
-## Status: Planned
+## Status: In Progress
 **Created:** 2026-04-29
 **Last Updated:** 2026-04-29
 

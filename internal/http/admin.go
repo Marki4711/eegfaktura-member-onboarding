@@ -389,6 +389,84 @@ func (h *AdminHandler) ChangeStatus(w http.ResponseWriter, r *http.Request) {
 	h.writeJSON(w, http.StatusOK, resp)
 }
 
+// BulkAction handles POST /api/admin/applications/bulk-action
+//
+// @Summary      Bulk status action
+// @Description  Applies a status transition to multiple applications in one request. Applications with invalid transitions or mismatching tenant are skipped without error.
+// @Tags         Admin
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        body  body      shared.BulkActionRequest   true  "Bulk action payload"
+// @Success      200   {object}  shared.BulkActionResponse
+// @Failure      400   {object}  shared.ErrorResponse  "Validation error"
+// @Failure      401   {object}  shared.ErrorResponse
+// @Failure      500   {object}  shared.ErrorResponse
+// @Router       /api/admin/applications/bulk-action [post]
+func (h *AdminHandler) BulkAction(w http.ResponseWriter, r *http.Request) {
+	var req shared.BulkActionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Invalid JSON", nil)))
+		return
+	}
+	if err := h.validate.Struct(req); err != nil {
+		h.writeValidationError(w, err)
+		return
+	}
+	if req.Action == "reject" && req.Reason == "" {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string]string{
+			"reason": "a reason is required for bulk rejection",
+		})))
+		return
+	}
+
+	ids := make([]uuid.UUID, 0, len(req.IDs))
+	for _, s := range req.IDs {
+		parsed, err := uuid.Parse(s)
+		if err != nil {
+			h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string]string{
+				"ids": "invalid UUID: " + s,
+			})))
+			return
+		}
+		ids = append(ids, parsed)
+	}
+
+	toStatus := shared.ApplicationStatus(map[string]string{
+		"approve":      string(shared.StatusApproved),
+		"reject":       string(shared.StatusRejected),
+		"under_review": string(shared.StatusUnderReview),
+	}[req.Action])
+
+	var allowedRCNumbers []string
+	actorID := ""
+	if claims := ClaimsFromContext(r.Context()); claims != nil {
+		actorID = claims.Subject
+		if !claims.IsSuperuser() {
+			allowedRCNumbers = []string(claims.Tenant)
+		}
+	}
+
+	succeeded, skipped, err := h.adminService.BulkChangeStatus(ids, toStatus, req.Reason, actorID, allowedRCNumbers)
+	if err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+
+	succeededStrs := make([]string, len(succeeded))
+	for i, id := range succeeded {
+		succeededStrs[i] = id.String()
+	}
+	skippedStrs := make([]string, len(skipped))
+	for i, id := range skipped {
+		skippedStrs[i] = id.String()
+	}
+	h.writeJSON(w, http.StatusOK, shared.BulkActionResponse{
+		Succeeded: succeededStrs,
+		Skipped:   skippedStrs,
+	})
+}
+
 // ResendMemberConfirmation handles POST /api/admin/applications/{id}/resend-confirmation
 //
 // @Summary      Resend member confirmation email

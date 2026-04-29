@@ -390,6 +390,37 @@ definitions:
     - StatusRejected
     - StatusImported
     - StatusImportFailed
+  shared.BulkActionRequest:
+    properties:
+      action:
+        enum:
+        - approve
+        - reject
+        - under_review
+        type: string
+      ids:
+        items:
+          type: string
+        maxItems: 200
+        minItems: 1
+        type: array
+      reason:
+        type: string
+    required:
+    - action
+    - ids
+    type: object
+  shared.BulkActionResponse:
+    properties:
+      skipped:
+        items:
+          type: string
+        type: array
+      succeeded:
+        items:
+          type: string
+        type: array
+    type: object
   shared.ChangeStatusRequest:
     properties:
       reason:
@@ -1104,6 +1135,44 @@ paths:
       security:
       - BearerAuth: []
       summary: Change application status
+      tags:
+      - Admin
+  /api/admin/applications/bulk-action:
+    post:
+      consumes:
+      - application/json
+      description: Applies a status transition to multiple applications in one request.
+        Applications with invalid transitions or mismatching tenant are skipped without
+        error.
+      parameters:
+      - description: Bulk action payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/shared.BulkActionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/shared.BulkActionResponse'
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Bulk status action
       tags:
       - Admin
   /api/admin/applications/drafts:

@@ -217,3 +217,18 @@ type ChangeStatusResponse struct {
 	ID     uuid.UUID `json:"id"`
 	Status string    `json:"status"`
 }
+
+// BulkActionRequest is the payload for POST /api/admin/applications/bulk-action.
+// IDs must contain between 1 and 200 application UUIDs.
+// For action "reject", Reason is required.
+type BulkActionRequest struct {
+	Action string   `json:"action" validate:"required,oneof=approve reject under_review"`
+	IDs    []string `json:"ids"    validate:"required,min=1,max=200"`
+	Reason string   `json:"reason"`
+}
+
+// BulkActionResponse is returned after POST /api/admin/applications/bulk-action.
+type BulkActionResponse struct {
+	Succeeded []string `json:"succeeded"`
+	Skipped   []string `json:"skipped"`
+}

@@ -443,6 +443,55 @@ func (s *AdminApplicationService) ChangeStatus(id uuid.UUID, toStatus shared.App
 	}, nil
 }
 
+// BulkChangeStatus applies a status transition to multiple applications.
+// Applications whose transition is not allowed (wrong current status, wrong tenant,
+// or not found) are added to skipped instead of returning an error.
+// allowedRCNumbers may be nil (superuser — no restriction) or a non-nil slice
+// (tenant-admin — must match app.RCNumber).
+func (s *AdminApplicationService) BulkChangeStatus(
+	ids []uuid.UUID,
+	toStatus shared.ApplicationStatus,
+	reason, actorID string,
+	allowedRCNumbers []string,
+) (succeeded, skipped []uuid.UUID, err error) {
+	for _, id := range ids {
+		app, appErr := s.appRepo.GetByID(id)
+		if appErr != nil {
+			skipped = append(skipped, id)
+			continue
+		}
+		if allowedRCNumbers != nil && !containsStr(allowedRCNumbers, app.RCNumber) {
+			skipped = append(skipped, id)
+			continue
+		}
+		if !isAdminTransitionAllowed(app.Status, toStatus) {
+			skipped = append(skipped, id)
+			continue
+		}
+		if _, changeErr := s.ChangeStatus(id, toStatus, reason, actorID); changeErr != nil {
+			skipped = append(skipped, id)
+			continue
+		}
+		succeeded = append(succeeded, id)
+	}
+	if succeeded == nil {
+		succeeded = []uuid.UUID{}
+	}
+	if skipped == nil {
+		skipped = []uuid.UUID{}
+	}
+	return succeeded, skipped, nil
+}
+
+func containsStr(slice []string, s string) bool {
+	for _, v := range slice {
+		if v == s {
+			return true
+		}
+	}
+	return false
+}
+
 // DeleteApplication permanently removes an application.
 // Only draft and rejected applications may be deleted.
 func (s *AdminApplicationService) DeleteApplication(id uuid.UUID) error {

@@ -604,3 +604,26 @@ export function reorderLegalDocuments(rcNumber: string, ids: string[], token?: s
     { method: "PUT", body: JSON.stringify({ ids }) }
   );
 }
+
+
+// ---------- bulk actions admin API ----------
+
+export type BulkAction = "approve" | "reject" | "under_review";
+
+export interface BulkActionResponse {
+  succeeded: string[];
+  skipped: string[];
+}
+
+export function bulkAction(
+  action: BulkAction,
+  ids: string[],
+  reason: string,
+  token?: string
+): Promise<BulkActionResponse> {
+  return adminRequest<BulkActionResponse>(
+    "/api/admin/applications/bulk-action",
+    token,
+    { method: "POST", body: JSON.stringify({ action, ids, reason }) }
+  );
+}
