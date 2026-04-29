@@ -13,10 +13,10 @@ bin/
 # Local env
 .env*.local
 
-# Docs and specs (not needed in image)
-docs/
+# Specs and tooling (not needed in image)
 features/
 .claude/
+# docs/ is intentionally NOT excluded — docs/docs.go is compiled into the backend binary (swaggo)
 
 # Tests
 tests/
