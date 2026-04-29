@@ -1,0 +1,1976 @@
+{
+    "schemes": [
+        "https"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "REST API for EEG (Energiegemeinschaft) member self-service registration and admin review.\n\n**Auth schemes:**\n- **Public** endpoints (`/api/public/*`): no auth required. Rate-limited + optional Turnstile CAPTCHA.\n- **Admin** endpoints (`/api/admin/*`): Keycloak Bearer JWT (`Authorization: Bearer \u003ctoken\u003e`).\n- **External** endpoints (`/api/external/*`): API key (`Authorization: Bearer moak_\u003ckey\u003e`).",
+        "title": "eegfaktura Member Onboarding API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "member-onboarding.eegfaktura.at",
+    "basePath": "/",
+    "paths": {
+        "/api/admin/applications": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a paginated, filterable list of member applications. Tenant-admins only see their own EEG's applications; superusers see all.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "List applications",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by status (draft|submitted|under_review|needs_info|approved|rejected|imported|import_failed)",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by reference number (partial match)",
+                        "name": "reference_number",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by member lastname (partial match)",
+                        "name": "lastname",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by email (partial match)",
+                        "name": "email",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by metering point ID",
+                        "name": "metering_point",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by RC number (superuser only)",
+                        "name": "rc_number",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by submission date from (RFC3339)",
+                        "name": "submitted_from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by submission date to (RFC3339)",
+                        "name": "submitted_to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default 20)",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ApplicationListResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/applications/drafts": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Deletes all applications in status `draft` for the calling admin's EEGs. Superusers delete all drafts across all EEGs.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Delete all draft applications",
+                "responses": {
+                    "200": {
+                        "description": "deleted count",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/applications/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns full application data including metering points, status log, and document consents.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get application detail",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Application UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/shared.AdminApplicationDetailResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Tenant mismatch",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Allows admins to correct application data. All fields are optional; only provided fields are updated.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Update application (admin)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Application UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Fields to update",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/shared.AdminUpdateApplicationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/shared.AdminApplicationDetailResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Tenant mismatch",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Permanently deletes an application and all its metering points and status log entries.",
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Delete application",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Application UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Application deleted"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/applications/{id}/export/excel": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Downloads an Excel file (.xlsx) with the full application data formatted for eegFaktura import.",
+                "produces": [
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Export application as Excel",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Application UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Excel file",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/applications/{id}/resend-confirmation": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Resends the submission confirmation email to the member. Useful when the original email was not received.",
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Resend member confirmation email",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Application UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Email resent"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/applications/{id}/status": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Transitions the application to a new status. Only allowed transitions are accepted (see status model). Triggers email notifications for approved/rejected.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Change application status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Application UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Target status and optional reason",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/shared.ChangeStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ChangeStatusResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Unknown status value",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Tenant mismatch",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Invalid status transition",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/external/v1/applications": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Creates and immediately submits a member application in a single request. Intended for ERP/third-party integrations. The EEG RC number is derived from the API key — no rc_number field in the body.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "External"
+                ],
+                "summary": "Submit application (external)",
+                "parameters": [
+                    {
+                        "description": "Member application data",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/http.externalApplicationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "id and referenceNumber of the created application",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "RC number not found",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Duplicate metering point",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "410": {
+                        "description": "Registration deactivated",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/public/applications": {
+            "post": {
+                "description": "Creates a new member application in status `draft`. Rate-limited (10 req/10 min per IP). Protected by Cloudflare Turnstile when configured.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Public"
+                ],
+                "summary": "Create application draft",
+                "parameters": [
+                    {
+                        "description": "Application data",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/shared.CreateApplicationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ApplicationResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Duplicate metering point",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "410": {
+                        "description": "Registration deactivated",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Turnstile verification failed",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/public/applications/{id}": {
+            "put": {
+                "description": "Updates a member application in status `draft`. Only drafts can be updated; submitted applications return 409.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Public"
+                ],
+                "summary": "Update application draft",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Application UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated application data",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/shared.UpdateApplicationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ApplicationResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error or invalid UUID",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Application not found",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Application already submitted",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/public/applications/{id}/submit": {
+            "post": {
+                "description": "Transitions the application from `draft` to `submitted`. Triggers confirmation email to the member. Consents for legal documents can be passed in the request body.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Public"
+                ],
+                "summary": "Submit application",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Application UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Optional legal document consents",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/shared.SubmitRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/shared.SubmitResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid UUID",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Application not found",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Invalid status transition",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/public/registration/{rc_number}": {
+            "get": {
+                "description": "Returns EEG-specific configuration for the public registration form: field visibility, legal documents, intro text, SEPA settings.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Public"
+                ],
+                "summary": "Get registration config",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "EEG registration code (e.g. RC123456)",
+                        "name": "rc_number",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/shared.RegistrationConfig"
+                        }
+                    },
+                    "404": {
+                        "description": "RC number unknown",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "410": {
+                        "description": "Registration deactivated for this EEG",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "description": "Returns `{\"status\":\"ok\"}` when the service and database are reachable. Returns 503 when the database is unavailable.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "Health check",
+                "responses": {
+                    "200": {
+                        "description": "status: ok",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "status: degraded",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "http.externalApplicationRequest": {
+            "type": "object",
+            "required": [
+                "accountHolder",
+                "email",
+                "iban",
+                "memberType",
+                "meteringPoints",
+                "privacyAccepted",
+                "residentCity",
+                "residentStreet",
+                "residentStreetNumber",
+                "residentZip",
+                "sepaMandateAccepted"
+            ],
+            "properties": {
+                "accountHolder": {
+                    "type": "string",
+                    "maxLength": 150,
+                    "minLength": 1
+                },
+                "birthDate": {
+                    "type": "string"
+                },
+                "companyName": {
+                    "type": "string",
+                    "maxLength": 150,
+                    "minLength": 1
+                },
+                "consumptionForecast": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "consumptionPreviousYear": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "electricHotWater": {
+                    "type": "boolean"
+                },
+                "electricVehicle": {
+                    "type": "boolean"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "feedInForecast": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "firstname": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                },
+                "heatPump": {
+                    "type": "boolean"
+                },
+                "iban": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 15
+                },
+                "lastname": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                },
+                "memberType": {
+                    "type": "string",
+                    "enum": [
+                        "private",
+                        "farmer",
+                        "municipality",
+                        "company",
+                        "association"
+                    ]
+                },
+                "membershipStartDate": {
+                    "description": "Configurable fields (PROJ-8)",
+                    "type": "string"
+                },
+                "meteringPoints": {
+                    "type": "array",
+                    "maxItems": 10,
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/shared.CreateMeteringPointRequest"
+                    }
+                },
+                "personsInHousehold": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "phone": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "privacyAccepted": {
+                    "type": "boolean"
+                },
+                "pvPowerKwp": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "registerNumber": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "residentCity": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1
+                },
+                "residentStreet": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1
+                },
+                "residentStreetNumber": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 1
+                },
+                "residentZip": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "minLength": 1
+                },
+                "sepaMandateAccepted": {
+                    "type": "boolean"
+                },
+                "titel": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "uidNumber": {
+                    "type": "string",
+                    "maxLength": 50
+                }
+            }
+        },
+        "shared.AdminApplicationDetailResponse": {
+            "type": "object",
+            "properties": {
+                "accountHolder": {
+                    "type": "string"
+                },
+                "accuracyConfirmed": {
+                    "type": "boolean"
+                },
+                "adminNote": {
+                    "type": "string"
+                },
+                "approvedAt": {
+                    "type": "string"
+                },
+                "bankName": {
+                    "type": "string"
+                },
+                "birthDate": {
+                    "type": "string"
+                },
+                "companyName": {
+                    "type": "string"
+                },
+                "consents": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/shared.DocumentConsentView"
+                    }
+                },
+                "consumptionForecast": {
+                    "type": "integer"
+                },
+                "consumptionPreviousYear": {
+                    "type": "integer"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "einzugsart": {
+                    "type": "string"
+                },
+                "electricHotWater": {
+                    "type": "boolean"
+                },
+                "electricVehicle": {
+                    "type": "boolean"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "feedInForecast": {
+                    "type": "integer"
+                },
+                "firstname": {
+                    "type": "string"
+                },
+                "heatPump": {
+                    "type": "boolean"
+                },
+                "iban": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "importErrorMessage": {
+                    "type": "string"
+                },
+                "importFinishedAt": {
+                    "type": "string"
+                },
+                "importStartedAt": {
+                    "type": "string"
+                },
+                "importedAt": {
+                    "type": "string"
+                },
+                "lastname": {
+                    "type": "string"
+                },
+                "mandateDate": {
+                    "type": "string"
+                },
+                "mandateReference": {
+                    "type": "string"
+                },
+                "memberNumber": {
+                    "type": "integer"
+                },
+                "memberType": {
+                    "$ref": "#/definitions/shared.MemberType"
+                },
+                "membershipStartDate": {
+                    "description": "Configurable application-level fields (PROJ-8)",
+                    "type": "string"
+                },
+                "meteringPoints": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/shared.MeteringPoint"
+                    }
+                },
+                "needsInfoReason": {
+                    "type": "string"
+                },
+                "personsInHousehold": {
+                    "type": "integer"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "privacyAccepted": {
+                    "type": "boolean"
+                },
+                "privacyAcceptedAt": {
+                    "type": "string"
+                },
+                "privacyVersion": {
+                    "type": "string"
+                },
+                "pvPowerKwp": {
+                    "type": "number"
+                },
+                "rcNumber": {
+                    "type": "string"
+                },
+                "referenceNumber": {
+                    "type": "string"
+                },
+                "registerNumber": {
+                    "type": "string"
+                },
+                "rejectedAt": {
+                    "type": "string"
+                },
+                "residentCity": {
+                    "type": "string"
+                },
+                "residentStreet": {
+                    "type": "string"
+                },
+                "residentStreetNumber": {
+                    "type": "string"
+                },
+                "residentZip": {
+                    "type": "string"
+                },
+                "reviewedByUserId": {
+                    "type": "string"
+                },
+                "sepaMandateAccepted": {
+                    "type": "boolean"
+                },
+                "sepaMandateAcceptedAt": {
+                    "type": "string"
+                },
+                "startedAt": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/shared.ApplicationStatus"
+                },
+                "statusLog": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/shared.StatusLogEntry"
+                    }
+                },
+                "submittedAt": {
+                    "type": "string"
+                },
+                "targetParticipantId": {
+                    "type": "string"
+                },
+                "titel": {
+                    "type": "string"
+                },
+                "uidNumber": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "shared.AdminUpdateApplicationRequest": {
+            "type": "object",
+            "properties": {
+                "accountHolder": {
+                    "type": "string",
+                    "maxLength": 150,
+                    "minLength": 1
+                },
+                "adminNote": {
+                    "type": "string"
+                },
+                "bankName": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "birthDate": {
+                    "type": "string"
+                },
+                "companyName": {
+                    "type": "string",
+                    "maxLength": 150,
+                    "minLength": 1
+                },
+                "einzugsart": {
+                    "type": "string",
+                    "enum": [
+                        "kein_sepa",
+                        "b2b",
+                        "core"
+                    ]
+                },
+                "email": {
+                    "type": "string"
+                },
+                "firstname": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                },
+                "iban": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 15
+                },
+                "lastname": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                },
+                "mandateDate": {
+                    "type": "string"
+                },
+                "mandateReference": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "memberNumber": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "memberType": {
+                    "type": "string",
+                    "enum": [
+                        "private",
+                        "farmer",
+                        "municipality",
+                        "company",
+                        "association"
+                    ]
+                },
+                "meteringPoints": {
+                    "type": "array",
+                    "maxItems": 10,
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/shared.CreateMeteringPointRequest"
+                    }
+                },
+                "phone": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "registerNumber": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "residentCity": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                },
+                "residentStreet": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                },
+                "residentStreetNumber": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 1
+                },
+                "residentZip": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "minLength": 1
+                },
+                "titel": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "uidNumber": {
+                    "type": "string",
+                    "maxLength": 50
+                }
+            }
+        },
+        "shared.ApplicationListItem": {
+            "type": "object",
+            "properties": {
+                "companyName": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "firstname": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "lastname": {
+                    "type": "string"
+                },
+                "memberType": {
+                    "type": "string"
+                },
+                "rcNumber": {
+                    "type": "string"
+                },
+                "referenceNumber": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "submittedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "shared.ApplicationListResponse": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/shared.ApplicationListItem"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "pageSize": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "shared.ApplicationResponse": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "referenceNumber": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "shared.ApplicationStatus": {
+            "type": "string",
+            "enum": [
+                "draft",
+                "submitted",
+                "under_review",
+                "needs_info",
+                "approved",
+                "rejected",
+                "imported",
+                "import_failed"
+            ],
+            "x-enum-varnames": [
+                "StatusDraft",
+                "StatusSubmitted",
+                "StatusUnderReview",
+                "StatusNeedsInfo",
+                "StatusApproved",
+                "StatusRejected",
+                "StatusImported",
+                "StatusImportFailed"
+            ]
+        },
+        "shared.ChangeStatusRequest": {
+            "type": "object",
+            "required": [
+                "toStatus"
+            ],
+            "properties": {
+                "reason": {
+                    "type": "string"
+                },
+                "toStatus": {
+                    "type": "string"
+                }
+            }
+        },
+        "shared.ChangeStatusResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "shared.ConsentInput": {
+            "type": "object",
+            "properties": {
+                "isCentralPolicy": {
+                    "type": "boolean"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "shared.CreateApplicationRequest": {
+            "type": "object",
+            "required": [
+                "accountHolder",
+                "accuracyConfirmed",
+                "email",
+                "iban",
+                "memberType",
+                "meteringPoints",
+                "privacyAccepted",
+                "privacyVersion",
+                "rcNumber",
+                "residentCity",
+                "residentStreet",
+                "residentStreetNumber",
+                "residentZip",
+                "sepaMandateAccepted"
+            ],
+            "properties": {
+                "accountHolder": {
+                    "type": "string",
+                    "maxLength": 150,
+                    "minLength": 1
+                },
+                "accuracyConfirmed": {
+                    "type": "boolean"
+                },
+                "birthDate": {
+                    "type": "string"
+                },
+                "companyName": {
+                    "type": "string",
+                    "maxLength": 150,
+                    "minLength": 1
+                },
+                "consumptionForecast": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "consumptionPreviousYear": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "electricHotWater": {
+                    "type": "boolean"
+                },
+                "electricVehicle": {
+                    "type": "boolean"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "feedInForecast": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "firstname": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                },
+                "heatPump": {
+                    "type": "boolean"
+                },
+                "iban": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 15
+                },
+                "lastname": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                },
+                "memberType": {
+                    "type": "string",
+                    "enum": [
+                        "private",
+                        "farmer",
+                        "municipality",
+                        "company",
+                        "association"
+                    ]
+                },
+                "membershipStartDate": {
+                    "description": "Configurable application-level fields (PROJ-8)",
+                    "type": "string"
+                },
+                "meteringPoints": {
+                    "type": "array",
+                    "maxItems": 10,
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/shared.CreateMeteringPointRequest"
+                    }
+                },
+                "personsInHousehold": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "phone": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "privacyAccepted": {
+                    "type": "boolean"
+                },
+                "privacyVersion": {
+                    "type": "string"
+                },
+                "pvPowerKwp": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "rcNumber": {
+                    "type": "string"
+                },
+                "registerNumber": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "residentCity": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                },
+                "residentStreet": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                },
+                "residentStreetNumber": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 1
+                },
+                "residentZip": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "minLength": 1
+                },
+                "sepaMandateAccepted": {
+                    "type": "boolean"
+                },
+                "titel": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "turnstileToken": {
+                    "description": "Cloudflare Turnstile token (PROJ-16) — optional, verified server-side when TURNSTILE_SECRET_KEY is set",
+                    "type": "string"
+                },
+                "uidNumber": {
+                    "type": "string",
+                    "maxLength": 50
+                }
+            }
+        },
+        "shared.CreateMeteringPointRequest": {
+            "type": "object",
+            "required": [
+                "direction",
+                "meteringPoint",
+                "participationFactor"
+            ],
+            "properties": {
+                "direction": {
+                    "type": "string",
+                    "enum": [
+                        "CONSUMPTION",
+                        "PRODUCTION"
+                    ]
+                },
+                "installationName": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "installationNumber": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "meteringPoint": {
+                    "type": "string",
+                    "maxLength": 33
+                },
+                "participationFactor": {
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 1
+                },
+                "transformer": {
+                    "description": "Configurable metering-point-level fields (PROJ-8)",
+                    "type": "string",
+                    "maxLength": 100
+                }
+            }
+        },
+        "shared.DocumentConsentView": {
+            "type": "object",
+            "properties": {
+                "consentedAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "isCentralPolicy": {
+                    "type": "boolean"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "shared.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "fields": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "shared.LegalDocumentItem": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "isCentralPolicy": {
+                    "type": "boolean"
+                },
+                "required": {
+                    "type": "boolean"
+                },
+                "sortOrder": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "shared.MemberType": {
+            "type": "string",
+            "enum": [
+                "private",
+                "farmer",
+                "municipality",
+                "company",
+                "association"
+            ],
+            "x-enum-varnames": [
+                "MemberTypePrivate",
+                "MemberTypeFarmer",
+                "MemberTypeMunicipality",
+                "MemberTypeCompany",
+                "MemberTypeAssociation"
+            ]
+        },
+        "shared.MeterDirection": {
+            "type": "string",
+            "enum": [
+                "CONSUMPTION",
+                "PRODUCTION"
+            ],
+            "x-enum-varnames": [
+                "DirectionConsumption",
+                "DirectionProduction"
+            ]
+        },
+        "shared.MeteringPoint": {
+            "type": "object",
+            "properties": {
+                "applicationId": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "direction": {
+                    "$ref": "#/definitions/shared.MeterDirection"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "installationName": {
+                    "type": "string"
+                },
+                "installationNumber": {
+                    "type": "string"
+                },
+                "meteringPoint": {
+                    "type": "string"
+                },
+                "participationFactor": {
+                    "type": "integer"
+                },
+                "transformer": {
+                    "description": "Configurable metering-point-level fields (PROJ-8)",
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "shared.RegistrationConfig": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "fieldConfig": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "introText": {
+                    "type": "string"
+                },
+                "legalDocuments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/shared.LegalDocumentItem"
+                    }
+                },
+                "rcNumber": {
+                    "type": "string"
+                },
+                "sepaMandateEnabled": {
+                    "type": "boolean"
+                },
+                "showCentralPolicy": {
+                    "type": "boolean"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "shared.StatusLogEntry": {
+            "type": "object",
+            "properties": {
+                "applicationId": {
+                    "type": "string"
+                },
+                "changedByUserId": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "fromStatus": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "toStatus": {
+                    "type": "string"
+                }
+            }
+        },
+        "shared.SubmitRequest": {
+            "type": "object",
+            "properties": {
+                "consents": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/shared.ConsentInput"
+                    }
+                }
+            }
+        },
+        "shared.SubmitResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "referenceNumber": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/shared.ApplicationStatus"
+                },
+                "submittedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "shared.UpdateApplicationRequest": {
+            "type": "object",
+            "properties": {
+                "accountHolder": {
+                    "type": "string",
+                    "maxLength": 150,
+                    "minLength": 1
+                },
+                "accuracyConfirmed": {
+                    "type": "boolean"
+                },
+                "birthDate": {
+                    "type": "string"
+                },
+                "companyName": {
+                    "type": "string",
+                    "maxLength": 150,
+                    "minLength": 1
+                },
+                "email": {
+                    "type": "string"
+                },
+                "firstname": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                },
+                "iban": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 15
+                },
+                "lastname": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                },
+                "memberType": {
+                    "type": "string",
+                    "enum": [
+                        "private",
+                        "farmer",
+                        "municipality",
+                        "company",
+                        "association"
+                    ]
+                },
+                "meteringPoints": {
+                    "type": "array",
+                    "maxItems": 10,
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/shared.CreateMeteringPointRequest"
+                    }
+                },
+                "phone": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "privacyAccepted": {
+                    "type": "boolean"
+                },
+                "privacyVersion": {
+                    "type": "string"
+                },
+                "registerNumber": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "residentCity": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                },
+                "residentStreet": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                },
+                "residentStreetNumber": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 1
+                },
+                "residentZip": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "minLength": 1
+                },
+                "sepaMandateAccepted": {
+                    "type": "boolean"
+                },
+                "titel": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "uidNumber": {
+                    "type": "string",
+                    "maxLength": 50
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "description": "EEG API key. Format: \"Bearer moak_\u003ckey\u003e\"",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        },
+        "BearerAuth": {
+            "description": "Keycloak JWT. Format: \"Bearer \u003ctoken\u003e\"",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    }
+}

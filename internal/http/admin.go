@@ -166,6 +166,27 @@ func (h *AdminHandler) SyncEntrypoints(w http.ResponseWriter, r *http.Request) {
 }
 
 // ListApplications handles GET /api/admin/applications
+// ListApplications handles GET /api/admin/applications
+//
+// @Summary      List applications
+// @Description  Returns a paginated, filterable list of member applications. Tenant-admins only see their own EEG's applications; superusers see all.
+// @Tags         Admin
+// @Produce      json
+// @Security     BearerAuth
+// @Param        status          query  string  false  "Filter by status (draft|submitted|under_review|needs_info|approved|rejected|imported|import_failed)"
+// @Param        reference_number query string false "Filter by reference number (partial match)"
+// @Param        lastname        query  string  false  "Filter by member lastname (partial match)"
+// @Param        email           query  string  false  "Filter by email (partial match)"
+// @Param        metering_point  query  string  false  "Filter by metering point ID"
+// @Param        rc_number       query  string  false  "Filter by RC number (superuser only)"
+// @Param        submitted_from  query  string  false  "Filter by submission date from (RFC3339)"
+// @Param        submitted_to    query  string  false  "Filter by submission date to (RFC3339)"
+// @Param        page            query  int     false  "Page number (default 1)"
+// @Param        page_size       query  int     false  "Page size (default 20)"
+// @Success      200  {object}  shared.ApplicationListResponse
+// @Failure      401  {object}  shared.ErrorResponse
+// @Failure      500  {object}  shared.ErrorResponse
+// @Router       /api/admin/applications [get]
 func (h *AdminHandler) ListApplications(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
@@ -220,6 +241,19 @@ func (h *AdminHandler) ListApplications(w http.ResponseWriter, r *http.Request) 
 }
 
 // GetApplicationDetail handles GET /api/admin/applications/{id}
+//
+// @Summary      Get application detail
+// @Description  Returns full application data including metering points, status log, and document consents.
+// @Tags         Admin
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id   path      string  true  "Application UUID"
+// @Success      200  {object}  shared.AdminApplicationDetailResponse
+// @Failure      401  {object}  shared.ErrorResponse
+// @Failure      403  {object}  shared.ErrorResponse  "Tenant mismatch"
+// @Failure      404  {object}  shared.ErrorResponse
+// @Failure      500  {object}  shared.ErrorResponse
+// @Router       /api/admin/applications/{id} [get]
 func (h *AdminHandler) GetApplicationDetail(w http.ResponseWriter, r *http.Request) {
 	id, err := h.parseID(w, r)
 	if err != nil {
@@ -247,6 +281,22 @@ func (h *AdminHandler) GetApplicationDetail(w http.ResponseWriter, r *http.Reque
 }
 
 // UpdateApplication handles PUT /api/admin/applications/{id}
+//
+// @Summary      Update application (admin)
+// @Description  Allows admins to correct application data. All fields are optional; only provided fields are updated.
+// @Tags         Admin
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id    path      string                            true  "Application UUID"
+// @Param        body  body      shared.AdminUpdateApplicationRequest  true  "Fields to update"
+// @Success      200   {object}  shared.AdminApplicationDetailResponse
+// @Failure      400   {object}  shared.ErrorResponse  "Validation error"
+// @Failure      401   {object}  shared.ErrorResponse
+// @Failure      403   {object}  shared.ErrorResponse  "Tenant mismatch"
+// @Failure      404   {object}  shared.ErrorResponse
+// @Failure      500   {object}  shared.ErrorResponse
+// @Router       /api/admin/applications/{id} [put]
 func (h *AdminHandler) UpdateApplication(w http.ResponseWriter, r *http.Request) {
 	id, err := h.parseID(w, r)
 	if err != nil {
@@ -278,6 +328,22 @@ func (h *AdminHandler) UpdateApplication(w http.ResponseWriter, r *http.Request)
 }
 
 // ChangeStatus handles POST /api/admin/applications/{id}/status
+//
+// @Summary      Change application status
+// @Description  Transitions the application to a new status. Only allowed transitions are accepted (see status model). Triggers email notifications for approved/rejected.
+// @Tags         Admin
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id    path      string                    true  "Application UUID"
+// @Param        body  body      shared.ChangeStatusRequest  true  "Target status and optional reason"
+// @Success      200   {object}  shared.ChangeStatusResponse
+// @Failure      400   {object}  shared.ErrorResponse  "Unknown status value"
+// @Failure      401   {object}  shared.ErrorResponse
+// @Failure      403   {object}  shared.ErrorResponse  "Tenant mismatch"
+// @Failure      409   {object}  shared.ErrorResponse  "Invalid status transition"
+// @Failure      500   {object}  shared.ErrorResponse
+// @Router       /api/admin/applications/{id}/status [post]
 func (h *AdminHandler) ChangeStatus(w http.ResponseWriter, r *http.Request) {
 	id, err := h.parseID(w, r)
 	if err != nil {
@@ -324,6 +390,18 @@ func (h *AdminHandler) ChangeStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 // ResendMemberConfirmation handles POST /api/admin/applications/{id}/resend-confirmation
+//
+// @Summary      Resend member confirmation email
+// @Description  Resends the submission confirmation email to the member. Useful when the original email was not received.
+// @Tags         Admin
+// @Security     BearerAuth
+// @Param        id   path  string  true  "Application UUID"
+// @Success      204  "Email resent"
+// @Failure      401  {object}  shared.ErrorResponse
+// @Failure      403  {object}  shared.ErrorResponse
+// @Failure      404  {object}  shared.ErrorResponse
+// @Failure      500  {object}  shared.ErrorResponse
+// @Router       /api/admin/applications/{id}/resend-confirmation [post]
 func (h *AdminHandler) ResendMemberConfirmation(w http.ResponseWriter, r *http.Request) {
 	id, err := h.parseID(w, r)
 	if err != nil {
@@ -340,6 +418,18 @@ func (h *AdminHandler) ResendMemberConfirmation(w http.ResponseWriter, r *http.R
 }
 
 // DeleteApplication handles DELETE /api/admin/applications/{id}
+//
+// @Summary      Delete application
+// @Description  Permanently deletes an application and all its metering points and status log entries.
+// @Tags         Admin
+// @Security     BearerAuth
+// @Param        id   path  string  true  "Application UUID"
+// @Success      204  "Application deleted"
+// @Failure      401  {object}  shared.ErrorResponse
+// @Failure      403  {object}  shared.ErrorResponse
+// @Failure      404  {object}  shared.ErrorResponse
+// @Failure      500  {object}  shared.ErrorResponse
+// @Router       /api/admin/applications/{id} [delete]
 func (h *AdminHandler) DeleteApplication(w http.ResponseWriter, r *http.Request) {
 	id, err := h.parseID(w, r)
 	if err != nil {
@@ -366,7 +456,16 @@ func (h *AdminHandler) DeleteApplication(w http.ResponseWriter, r *http.Request)
 }
 
 // DeleteDraftApplications handles DELETE /api/admin/applications/drafts
-// Deletes all draft applications for the tenant's RC numbers and returns the count.
+//
+// @Summary      Delete all draft applications
+// @Description  Deletes all applications in status `draft` for the calling admin's EEGs. Superusers delete all drafts across all EEGs.
+// @Tags         Admin
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {object}  map[string]int  "deleted count"
+// @Failure      401  {object}  shared.ErrorResponse
+// @Failure      500  {object}  shared.ErrorResponse
+// @Router       /api/admin/applications/drafts [delete]
 func (h *AdminHandler) DeleteDraftApplications(w http.ResponseWriter, r *http.Request) {
 	claims := ClaimsFromContext(r.Context())
 	if claims == nil {
@@ -390,6 +489,19 @@ func (h *AdminHandler) DeleteDraftApplications(w http.ResponseWriter, r *http.Re
 }
 
 // ExportApplicationExcel handles GET /api/admin/applications/{id}/export/excel
+//
+// @Summary      Export application as Excel
+// @Description  Downloads an Excel file (.xlsx) with the full application data formatted for eegFaktura import.
+// @Tags         Admin
+// @Produce      application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+// @Security     BearerAuth
+// @Param        id   path  string  true  "Application UUID"
+// @Success      200  {file}    binary   "Excel file"
+// @Failure      401  {object}  shared.ErrorResponse
+// @Failure      403  {object}  shared.ErrorResponse
+// @Failure      404  {object}  shared.ErrorResponse
+// @Failure      500  {object}  shared.ErrorResponse
+// @Router       /api/admin/applications/{id}/export/excel [get]
 func (h *AdminHandler) ExportApplicationExcel(w http.ResponseWriter, r *http.Request) {
 	id, err := h.parseID(w, r)
 	if err != nil {

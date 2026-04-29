@@ -63,6 +63,21 @@ type externalApplicationRequest struct {
 
 // SubmitExternalApplication handles POST /api/external/v1/applications.
 // The RC number is read from the request context (set by APIKeyMiddleware).
+//
+// @Summary      Submit application (external)
+// @Description  Creates and immediately submits a member application in a single request. Intended for ERP/third-party integrations. The EEG RC number is derived from the API key — no rc_number field in the body.
+// @Tags         External
+// @Accept       json
+// @Produce      json
+// @Security     ApiKeyAuth
+// @Param        body  body     externalApplicationRequest  true  "Member application data"
+// @Success      201   {object} map[string]string           "id and referenceNumber of the created application"
+// @Failure      404   {object} shared.ErrorResponse  "RC number not found"
+// @Failure      409   {object} shared.ErrorResponse  "Duplicate metering point"
+// @Failure      410   {object} shared.ErrorResponse  "Registration deactivated"
+// @Failure      422   {object} shared.ErrorResponse  "Validation error"
+// @Failure      500   {object} shared.ErrorResponse
+// @Router       /api/external/v1/applications [post]
 func (h *ExternalHandler) SubmitExternalApplication(w http.ResponseWriter, r *http.Request) {
 	rcNumber := ExternalRCNumberFromContext(r.Context())
 	if rcNumber == "" {

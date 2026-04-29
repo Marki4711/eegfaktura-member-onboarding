@@ -1,0 +1,1381 @@
+basePath: /
+definitions:
+  http.externalApplicationRequest:
+    properties:
+      accountHolder:
+        maxLength: 150
+        minLength: 1
+        type: string
+      birthDate:
+        type: string
+      companyName:
+        maxLength: 150
+        minLength: 1
+        type: string
+      consumptionForecast:
+        minimum: 0
+        type: integer
+      consumptionPreviousYear:
+        minimum: 0
+        type: integer
+      electricHotWater:
+        type: boolean
+      electricVehicle:
+        type: boolean
+      email:
+        type: string
+      feedInForecast:
+        minimum: 0
+        type: integer
+      firstname:
+        maxLength: 100
+        minLength: 1
+        type: string
+      heatPump:
+        type: boolean
+      iban:
+        maxLength: 50
+        minLength: 15
+        type: string
+      lastname:
+        maxLength: 100
+        minLength: 1
+        type: string
+      memberType:
+        enum:
+        - private
+        - farmer
+        - municipality
+        - company
+        - association
+        type: string
+      membershipStartDate:
+        description: Configurable fields (PROJ-8)
+        type: string
+      meteringPoints:
+        items:
+          $ref: '#/definitions/shared.CreateMeteringPointRequest'
+        maxItems: 10
+        minItems: 1
+        type: array
+      personsInHousehold:
+        minimum: 0
+        type: integer
+      phone:
+        maxLength: 50
+        type: string
+      privacyAccepted:
+        type: boolean
+      pvPowerKwp:
+        minimum: 0
+        type: number
+      registerNumber:
+        maxLength: 50
+        type: string
+      residentCity:
+        maxLength: 255
+        minLength: 1
+        type: string
+      residentStreet:
+        maxLength: 255
+        minLength: 1
+        type: string
+      residentStreetNumber:
+        maxLength: 50
+        minLength: 1
+        type: string
+      residentZip:
+        maxLength: 20
+        minLength: 1
+        type: string
+      sepaMandateAccepted:
+        type: boolean
+      titel:
+        maxLength: 50
+        type: string
+      uidNumber:
+        maxLength: 50
+        type: string
+    required:
+    - accountHolder
+    - email
+    - iban
+    - memberType
+    - meteringPoints
+    - privacyAccepted
+    - residentCity
+    - residentStreet
+    - residentStreetNumber
+    - residentZip
+    - sepaMandateAccepted
+    type: object
+  shared.AdminApplicationDetailResponse:
+    properties:
+      accountHolder:
+        type: string
+      accuracyConfirmed:
+        type: boolean
+      adminNote:
+        type: string
+      approvedAt:
+        type: string
+      bankName:
+        type: string
+      birthDate:
+        type: string
+      companyName:
+        type: string
+      consents:
+        items:
+          $ref: '#/definitions/shared.DocumentConsentView'
+        type: array
+      consumptionForecast:
+        type: integer
+      consumptionPreviousYear:
+        type: integer
+      createdAt:
+        type: string
+      einzugsart:
+        type: string
+      electricHotWater:
+        type: boolean
+      electricVehicle:
+        type: boolean
+      email:
+        type: string
+      feedInForecast:
+        type: integer
+      firstname:
+        type: string
+      heatPump:
+        type: boolean
+      iban:
+        type: string
+      id:
+        type: string
+      importErrorMessage:
+        type: string
+      importFinishedAt:
+        type: string
+      importStartedAt:
+        type: string
+      importedAt:
+        type: string
+      lastname:
+        type: string
+      mandateDate:
+        type: string
+      mandateReference:
+        type: string
+      memberNumber:
+        type: integer
+      memberType:
+        $ref: '#/definitions/shared.MemberType'
+      membershipStartDate:
+        description: Configurable application-level fields (PROJ-8)
+        type: string
+      meteringPoints:
+        items:
+          $ref: '#/definitions/shared.MeteringPoint'
+        type: array
+      needsInfoReason:
+        type: string
+      personsInHousehold:
+        type: integer
+      phone:
+        type: string
+      privacyAccepted:
+        type: boolean
+      privacyAcceptedAt:
+        type: string
+      privacyVersion:
+        type: string
+      pvPowerKwp:
+        type: number
+      rcNumber:
+        type: string
+      referenceNumber:
+        type: string
+      registerNumber:
+        type: string
+      rejectedAt:
+        type: string
+      residentCity:
+        type: string
+      residentStreet:
+        type: string
+      residentStreetNumber:
+        type: string
+      residentZip:
+        type: string
+      reviewedByUserId:
+        type: string
+      sepaMandateAccepted:
+        type: boolean
+      sepaMandateAcceptedAt:
+        type: string
+      startedAt:
+        type: string
+      status:
+        $ref: '#/definitions/shared.ApplicationStatus'
+      statusLog:
+        items:
+          $ref: '#/definitions/shared.StatusLogEntry'
+        type: array
+      submittedAt:
+        type: string
+      targetParticipantId:
+        type: string
+      titel:
+        type: string
+      uidNumber:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  shared.AdminUpdateApplicationRequest:
+    properties:
+      accountHolder:
+        maxLength: 150
+        minLength: 1
+        type: string
+      adminNote:
+        type: string
+      bankName:
+        maxLength: 255
+        type: string
+      birthDate:
+        type: string
+      companyName:
+        maxLength: 150
+        minLength: 1
+        type: string
+      einzugsart:
+        enum:
+        - kein_sepa
+        - b2b
+        - core
+        type: string
+      email:
+        type: string
+      firstname:
+        maxLength: 100
+        minLength: 1
+        type: string
+      iban:
+        maxLength: 50
+        minLength: 15
+        type: string
+      lastname:
+        maxLength: 100
+        minLength: 1
+        type: string
+      mandateDate:
+        type: string
+      mandateReference:
+        maxLength: 255
+        type: string
+      memberNumber:
+        minimum: 1
+        type: integer
+      memberType:
+        enum:
+        - private
+        - farmer
+        - municipality
+        - company
+        - association
+        type: string
+      meteringPoints:
+        items:
+          $ref: '#/definitions/shared.CreateMeteringPointRequest'
+        maxItems: 10
+        minItems: 1
+        type: array
+      phone:
+        maxLength: 50
+        type: string
+      registerNumber:
+        maxLength: 50
+        type: string
+      residentCity:
+        maxLength: 100
+        minLength: 1
+        type: string
+      residentStreet:
+        maxLength: 100
+        minLength: 1
+        type: string
+      residentStreetNumber:
+        maxLength: 50
+        minLength: 1
+        type: string
+      residentZip:
+        maxLength: 20
+        minLength: 1
+        type: string
+      titel:
+        maxLength: 50
+        type: string
+      uidNumber:
+        maxLength: 50
+        type: string
+    type: object
+  shared.ApplicationListItem:
+    properties:
+      companyName:
+        type: string
+      email:
+        type: string
+      firstname:
+        type: string
+      id:
+        type: string
+      lastname:
+        type: string
+      memberType:
+        type: string
+      rcNumber:
+        type: string
+      referenceNumber:
+        type: string
+      status:
+        type: string
+      submittedAt:
+        type: string
+    type: object
+  shared.ApplicationListResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/shared.ApplicationListItem'
+        type: array
+      page:
+        type: integer
+      pageSize:
+        type: integer
+      total:
+        type: integer
+    type: object
+  shared.ApplicationResponse:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: string
+      referenceNumber:
+        type: string
+      status:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  shared.ApplicationStatus:
+    enum:
+    - draft
+    - submitted
+    - under_review
+    - needs_info
+    - approved
+    - rejected
+    - imported
+    - import_failed
+    type: string
+    x-enum-varnames:
+    - StatusDraft
+    - StatusSubmitted
+    - StatusUnderReview
+    - StatusNeedsInfo
+    - StatusApproved
+    - StatusRejected
+    - StatusImported
+    - StatusImportFailed
+  shared.ChangeStatusRequest:
+    properties:
+      reason:
+        type: string
+      toStatus:
+        type: string
+    required:
+    - toStatus
+    type: object
+  shared.ChangeStatusResponse:
+    properties:
+      id:
+        type: string
+      status:
+        type: string
+    type: object
+  shared.ConsentInput:
+    properties:
+      isCentralPolicy:
+        type: boolean
+      title:
+        type: string
+      url:
+        type: string
+    type: object
+  shared.CreateApplicationRequest:
+    properties:
+      accountHolder:
+        maxLength: 150
+        minLength: 1
+        type: string
+      accuracyConfirmed:
+        type: boolean
+      birthDate:
+        type: string
+      companyName:
+        maxLength: 150
+        minLength: 1
+        type: string
+      consumptionForecast:
+        minimum: 0
+        type: integer
+      consumptionPreviousYear:
+        minimum: 0
+        type: integer
+      electricHotWater:
+        type: boolean
+      electricVehicle:
+        type: boolean
+      email:
+        type: string
+      feedInForecast:
+        minimum: 0
+        type: integer
+      firstname:
+        maxLength: 100
+        minLength: 1
+        type: string
+      heatPump:
+        type: boolean
+      iban:
+        maxLength: 50
+        minLength: 15
+        type: string
+      lastname:
+        maxLength: 100
+        minLength: 1
+        type: string
+      memberType:
+        enum:
+        - private
+        - farmer
+        - municipality
+        - company
+        - association
+        type: string
+      membershipStartDate:
+        description: Configurable application-level fields (PROJ-8)
+        type: string
+      meteringPoints:
+        items:
+          $ref: '#/definitions/shared.CreateMeteringPointRequest'
+        maxItems: 10
+        minItems: 1
+        type: array
+      personsInHousehold:
+        minimum: 0
+        type: integer
+      phone:
+        maxLength: 50
+        type: string
+      privacyAccepted:
+        type: boolean
+      privacyVersion:
+        type: string
+      pvPowerKwp:
+        minimum: 0
+        type: number
+      rcNumber:
+        type: string
+      registerNumber:
+        maxLength: 50
+        type: string
+      residentCity:
+        maxLength: 100
+        minLength: 1
+        type: string
+      residentStreet:
+        maxLength: 100
+        minLength: 1
+        type: string
+      residentStreetNumber:
+        maxLength: 50
+        minLength: 1
+        type: string
+      residentZip:
+        maxLength: 20
+        minLength: 1
+        type: string
+      sepaMandateAccepted:
+        type: boolean
+      titel:
+        maxLength: 50
+        type: string
+      turnstileToken:
+        description: Cloudflare Turnstile token (PROJ-16) — optional, verified server-side
+          when TURNSTILE_SECRET_KEY is set
+        type: string
+      uidNumber:
+        maxLength: 50
+        type: string
+    required:
+    - accountHolder
+    - accuracyConfirmed
+    - email
+    - iban
+    - memberType
+    - meteringPoints
+    - privacyAccepted
+    - privacyVersion
+    - rcNumber
+    - residentCity
+    - residentStreet
+    - residentStreetNumber
+    - residentZip
+    - sepaMandateAccepted
+    type: object
+  shared.CreateMeteringPointRequest:
+    properties:
+      direction:
+        enum:
+        - CONSUMPTION
+        - PRODUCTION
+        type: string
+      installationName:
+        maxLength: 100
+        type: string
+      installationNumber:
+        maxLength: 50
+        type: string
+      meteringPoint:
+        maxLength: 33
+        type: string
+      participationFactor:
+        maximum: 100
+        minimum: 1
+        type: integer
+      transformer:
+        description: Configurable metering-point-level fields (PROJ-8)
+        maxLength: 100
+        type: string
+    required:
+    - direction
+    - meteringPoint
+    - participationFactor
+    type: object
+  shared.DocumentConsentView:
+    properties:
+      consentedAt:
+        type: string
+      id:
+        type: string
+      isCentralPolicy:
+        type: boolean
+      title:
+        type: string
+      url:
+        type: string
+    type: object
+  shared.ErrorResponse:
+    properties:
+      code:
+        type: string
+      fields:
+        additionalProperties:
+          type: string
+        type: object
+      message:
+        type: string
+    type: object
+  shared.LegalDocumentItem:
+    properties:
+      id:
+        type: string
+      isCentralPolicy:
+        type: boolean
+      required:
+        type: boolean
+      sortOrder:
+        type: integer
+      title:
+        type: string
+      url:
+        type: string
+    type: object
+  shared.MemberType:
+    enum:
+    - private
+    - farmer
+    - municipality
+    - company
+    - association
+    type: string
+    x-enum-varnames:
+    - MemberTypePrivate
+    - MemberTypeFarmer
+    - MemberTypeMunicipality
+    - MemberTypeCompany
+    - MemberTypeAssociation
+  shared.MeterDirection:
+    enum:
+    - CONSUMPTION
+    - PRODUCTION
+    type: string
+    x-enum-varnames:
+    - DirectionConsumption
+    - DirectionProduction
+  shared.MeteringPoint:
+    properties:
+      applicationId:
+        type: string
+      createdAt:
+        type: string
+      direction:
+        $ref: '#/definitions/shared.MeterDirection'
+      id:
+        type: string
+      installationName:
+        type: string
+      installationNumber:
+        type: string
+      meteringPoint:
+        type: string
+      participationFactor:
+        type: integer
+      transformer:
+        description: Configurable metering-point-level fields (PROJ-8)
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  shared.RegistrationConfig:
+    properties:
+      active:
+        type: boolean
+      fieldConfig:
+        additionalProperties:
+          type: string
+        type: object
+      introText:
+        type: string
+      legalDocuments:
+        items:
+          $ref: '#/definitions/shared.LegalDocumentItem'
+        type: array
+      rcNumber:
+        type: string
+      sepaMandateEnabled:
+        type: boolean
+      showCentralPolicy:
+        type: boolean
+      title:
+        type: string
+    type: object
+  shared.StatusLogEntry:
+    properties:
+      applicationId:
+        type: string
+      changedByUserId:
+        type: string
+      createdAt:
+        type: string
+      fromStatus:
+        type: string
+      id:
+        type: string
+      reason:
+        type: string
+      toStatus:
+        type: string
+    type: object
+  shared.SubmitRequest:
+    properties:
+      consents:
+        items:
+          $ref: '#/definitions/shared.ConsentInput'
+        type: array
+    type: object
+  shared.SubmitResponse:
+    properties:
+      id:
+        type: string
+      referenceNumber:
+        type: string
+      status:
+        $ref: '#/definitions/shared.ApplicationStatus'
+      submittedAt:
+        type: string
+    type: object
+  shared.UpdateApplicationRequest:
+    properties:
+      accountHolder:
+        maxLength: 150
+        minLength: 1
+        type: string
+      accuracyConfirmed:
+        type: boolean
+      birthDate:
+        type: string
+      companyName:
+        maxLength: 150
+        minLength: 1
+        type: string
+      email:
+        type: string
+      firstname:
+        maxLength: 100
+        minLength: 1
+        type: string
+      iban:
+        maxLength: 50
+        minLength: 15
+        type: string
+      lastname:
+        maxLength: 100
+        minLength: 1
+        type: string
+      memberType:
+        enum:
+        - private
+        - farmer
+        - municipality
+        - company
+        - association
+        type: string
+      meteringPoints:
+        items:
+          $ref: '#/definitions/shared.CreateMeteringPointRequest'
+        maxItems: 10
+        minItems: 1
+        type: array
+      phone:
+        maxLength: 50
+        type: string
+      privacyAccepted:
+        type: boolean
+      privacyVersion:
+        type: string
+      registerNumber:
+        maxLength: 50
+        type: string
+      residentCity:
+        maxLength: 100
+        minLength: 1
+        type: string
+      residentStreet:
+        maxLength: 100
+        minLength: 1
+        type: string
+      residentStreetNumber:
+        maxLength: 50
+        minLength: 1
+        type: string
+      residentZip:
+        maxLength: 20
+        minLength: 1
+        type: string
+      sepaMandateAccepted:
+        type: boolean
+      titel:
+        maxLength: 50
+        type: string
+      uidNumber:
+        maxLength: 50
+        type: string
+    type: object
+host: member-onboarding.eegfaktura.at
+info:
+  contact: {}
+  description: |-
+    REST API for EEG (Energiegemeinschaft) member self-service registration and admin review.
+
+    **Auth schemes:**
+    - **Public** endpoints (`/api/public/*`): no auth required. Rate-limited + optional Turnstile CAPTCHA.
+    - **Admin** endpoints (`/api/admin/*`): Keycloak Bearer JWT (`Authorization: Bearer <token>`).
+    - **External** endpoints (`/api/external/*`): API key (`Authorization: Bearer moak_<key>`).
+  title: eegfaktura Member Onboarding API
+  version: "1.0"
+paths:
+  /api/admin/applications:
+    get:
+      description: Returns a paginated, filterable list of member applications. Tenant-admins
+        only see their own EEG's applications; superusers see all.
+      parameters:
+      - description: Filter by status (draft|submitted|under_review|needs_info|approved|rejected|imported|import_failed)
+        in: query
+        name: status
+        type: string
+      - description: Filter by reference number (partial match)
+        in: query
+        name: reference_number
+        type: string
+      - description: Filter by member lastname (partial match)
+        in: query
+        name: lastname
+        type: string
+      - description: Filter by email (partial match)
+        in: query
+        name: email
+        type: string
+      - description: Filter by metering point ID
+        in: query
+        name: metering_point
+        type: string
+      - description: Filter by RC number (superuser only)
+        in: query
+        name: rc_number
+        type: string
+      - description: Filter by submission date from (RFC3339)
+        in: query
+        name: submitted_from
+        type: string
+      - description: Filter by submission date to (RFC3339)
+        in: query
+        name: submitted_to
+        type: string
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Page size (default 20)
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/shared.ApplicationListResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List applications
+      tags:
+      - Admin
+  /api/admin/applications/{id}:
+    delete:
+      description: Permanently deletes an application and all its metering points
+        and status log entries.
+      parameters:
+      - description: Application UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: Application deleted
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete application
+      tags:
+      - Admin
+    get:
+      description: Returns full application data including metering points, status
+        log, and document consents.
+      parameters:
+      - description: Application UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/shared.AdminApplicationDetailResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "403":
+          description: Tenant mismatch
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get application detail
+      tags:
+      - Admin
+    put:
+      consumes:
+      - application/json
+      description: Allows admins to correct application data. All fields are optional;
+        only provided fields are updated.
+      parameters:
+      - description: Application UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/shared.AdminUpdateApplicationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/shared.AdminApplicationDetailResponse'
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "403":
+          description: Tenant mismatch
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update application (admin)
+      tags:
+      - Admin
+  /api/admin/applications/{id}/export/excel:
+    get:
+      description: Downloads an Excel file (.xlsx) with the full application data
+        formatted for eegFaktura import.
+      parameters:
+      - description: Application UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+      responses:
+        "200":
+          description: Excel file
+          schema:
+            type: file
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Export application as Excel
+      tags:
+      - Admin
+  /api/admin/applications/{id}/resend-confirmation:
+    post:
+      description: Resends the submission confirmation email to the member. Useful
+        when the original email was not received.
+      parameters:
+      - description: Application UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: Email resent
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Resend member confirmation email
+      tags:
+      - Admin
+  /api/admin/applications/{id}/status:
+    post:
+      consumes:
+      - application/json
+      description: Transitions the application to a new status. Only allowed transitions
+        are accepted (see status model). Triggers email notifications for approved/rejected.
+      parameters:
+      - description: Application UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Target status and optional reason
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/shared.ChangeStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/shared.ChangeStatusResponse'
+        "400":
+          description: Unknown status value
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "403":
+          description: Tenant mismatch
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "409":
+          description: Invalid status transition
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Change application status
+      tags:
+      - Admin
+  /api/admin/applications/drafts:
+    delete:
+      description: Deletes all applications in status `draft` for the calling admin's
+        EEGs. Superusers delete all drafts across all EEGs.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: deleted count
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete all draft applications
+      tags:
+      - Admin
+  /api/external/v1/applications:
+    post:
+      consumes:
+      - application/json
+      description: Creates and immediately submits a member application in a single
+        request. Intended for ERP/third-party integrations. The EEG RC number is derived
+        from the API key — no rc_number field in the body.
+      parameters:
+      - description: Member application data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/http.externalApplicationRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: id and referenceNumber of the created application
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: RC number not found
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "409":
+          description: Duplicate metering point
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "410":
+          description: Registration deactivated
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Submit application (external)
+      tags:
+      - External
+  /api/public/applications:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new member application in status `draft`. Rate-limited
+        (10 req/10 min per IP). Protected by Cloudflare Turnstile when configured.
+      parameters:
+      - description: Application data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/shared.CreateApplicationRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/shared.ApplicationResponse'
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "409":
+          description: Duplicate metering point
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "410":
+          description: Registration deactivated
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "422":
+          description: Turnstile verification failed
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+      summary: Create application draft
+      tags:
+      - Public
+  /api/public/applications/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Updates a member application in status `draft`. Only drafts can
+        be updated; submitted applications return 409.
+      parameters:
+      - description: Application UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated application data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/shared.UpdateApplicationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/shared.ApplicationResponse'
+        "400":
+          description: Validation error or invalid UUID
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "404":
+          description: Application not found
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "409":
+          description: Application already submitted
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+      summary: Update application draft
+      tags:
+      - Public
+  /api/public/applications/{id}/submit:
+    post:
+      consumes:
+      - application/json
+      description: Transitions the application from `draft` to `submitted`. Triggers
+        confirmation email to the member. Consents for legal documents can be passed
+        in the request body.
+      parameters:
+      - description: Application UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Optional legal document consents
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/shared.SubmitRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/shared.SubmitResponse'
+        "400":
+          description: Invalid UUID
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "404":
+          description: Application not found
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "409":
+          description: Invalid status transition
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+      summary: Submit application
+      tags:
+      - Public
+  /api/public/registration/{rc_number}:
+    get:
+      description: 'Returns EEG-specific configuration for the public registration
+        form: field visibility, legal documents, intro text, SEPA settings.'
+      parameters:
+      - description: EEG registration code (e.g. RC123456)
+        in: path
+        name: rc_number
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/shared.RegistrationConfig'
+        "404":
+          description: RC number unknown
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "410":
+          description: Registration deactivated for this EEG
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+      summary: Get registration config
+      tags:
+      - Public
+  /health:
+    get:
+      description: Returns `{"status":"ok"}` when the service and database are reachable.
+        Returns 503 when the database is unavailable.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'status: ok'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: 'status: degraded'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Health check
+      tags:
+      - System
+schemes:
+- https
+securityDefinitions:
+  ApiKeyAuth:
+    description: 'EEG API key. Format: "Bearer moak_<key>"'
+    in: header
+    name: Authorization
+    type: apiKey
+  BearerAuth:
+    description: 'Keycloak JWT. Format: "Bearer <token>"'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

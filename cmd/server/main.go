@@ -1,3 +1,26 @@
+// @title           eegfaktura Member Onboarding API
+// @version         1.0
+// @description     REST API for EEG (Energiegemeinschaft) member self-service registration and admin review.
+// @description
+// @description     **Auth schemes:**
+// @description     - **Public** endpoints (`/api/public/*`): no auth required. Rate-limited + optional Turnstile CAPTCHA.
+// @description     - **Admin** endpoints (`/api/admin/*`): Keycloak Bearer JWT (`Authorization: Bearer <token>`).
+// @description     - **External** endpoints (`/api/external/*`): API key (`Authorization: Bearer moak_<key>`).
+//
+// @host            member-onboarding.eegfaktura.at
+// @BasePath        /
+// @schemes         https
+//
+// @securityDefinitions.apikey  BearerAuth
+// @in              header
+// @name            Authorization
+// @description     Keycloak JWT. Format: "Bearer <token>"
+//
+// @securityDefinitions.apikey  ApiKeyAuth
+// @in              header
+// @name            Authorization
+// @description     EEG API key. Format: "Bearer moak_<key>"
+
 package main
 
 import (
@@ -14,9 +37,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	_ "github.com/lib/pq"
+	httpswagger "github.com/swaggo/http-swagger/v2"
 
 	"github.com/your-org/eegfaktura-member-onboarding/internal/application"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/config"
+	_ "github.com/your-org/eegfaktura-member-onboarding/docs"
 	internalhttp "github.com/your-org/eegfaktura-member-onboarding/internal/http"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/mail"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/pdf"
@@ -108,6 +133,11 @@ func main() {
 	r.Use(middleware.RequestID)
 	r.Use(internalhttp.SlogRequestLogger)
 	r.Use(middleware.Recoverer)
+
+	// Swagger UI — publicly accessible, no auth required
+	r.Get("/api/docs/*", httpswagger.Handler(
+		httpswagger.URL("/api/docs/doc.json"),
+	))
 
 	// Health check
 	r.Get("/health", healthHandler.Health)

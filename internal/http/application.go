@@ -30,6 +30,20 @@ func NewApplicationHandler(applicationService *application.ApplicationService, t
 }
 
 // CreateApplication handles POST /api/public/applications
+//
+// @Summary      Create application draft
+// @Description  Creates a new member application in status `draft`. Rate-limited (10 req/10 min per IP). Protected by Cloudflare Turnstile when configured.
+// @Tags         Public
+// @Accept       json
+// @Produce      json
+// @Param        body  body     shared.CreateApplicationRequest  true  "Application data"
+// @Success      201   {object} shared.ApplicationResponse
+// @Failure      400   {object} shared.ErrorResponse  "Validation error"
+// @Failure      409   {object} shared.ErrorResponse  "Duplicate metering point"
+// @Failure      410   {object} shared.ErrorResponse  "Registration deactivated"
+// @Failure      422   {object} shared.ErrorResponse  "Turnstile verification failed"
+// @Failure      500   {object} shared.ErrorResponse
+// @Router       /api/public/applications [post]
 func (h *ApplicationHandler) CreateApplication(w http.ResponseWriter, r *http.Request) {
 	var req shared.CreateApplicationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -72,6 +86,20 @@ func (h *ApplicationHandler) CreateApplication(w http.ResponseWriter, r *http.Re
 }
 
 // UpdateApplication handles PUT /api/public/applications/{id}
+//
+// @Summary      Update application draft
+// @Description  Updates a member application in status `draft`. Only drafts can be updated; submitted applications return 409.
+// @Tags         Public
+// @Accept       json
+// @Produce      json
+// @Param        id    path     string                           true  "Application UUID"
+// @Param        body  body     shared.UpdateApplicationRequest  true  "Updated application data"
+// @Success      200   {object} shared.ApplicationResponse
+// @Failure      400   {object} shared.ErrorResponse  "Validation error or invalid UUID"
+// @Failure      404   {object} shared.ErrorResponse  "Application not found"
+// @Failure      409   {object} shared.ErrorResponse  "Application already submitted"
+// @Failure      500   {object} shared.ErrorResponse
+// @Router       /api/public/applications/{id} [put]
 func (h *ApplicationHandler) UpdateApplication(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := uuid.Parse(idStr)
@@ -102,6 +130,20 @@ func (h *ApplicationHandler) UpdateApplication(w http.ResponseWriter, r *http.Re
 }
 
 // SubmitApplication handles POST /api/public/applications/{id}/submit
+//
+// @Summary      Submit application
+// @Description  Transitions the application from `draft` to `submitted`. Triggers confirmation email to the member. Consents for legal documents can be passed in the request body.
+// @Tags         Public
+// @Accept       json
+// @Produce      json
+// @Param        id    path     string               true   "Application UUID"
+// @Param        body  body     shared.SubmitRequest false  "Optional legal document consents"
+// @Success      200   {object} shared.SubmitResponse
+// @Failure      400   {object} shared.ErrorResponse  "Invalid UUID"
+// @Failure      404   {object} shared.ErrorResponse  "Application not found"
+// @Failure      409   {object} shared.ErrorResponse  "Invalid status transition"
+// @Failure      500   {object} shared.ErrorResponse
+// @Router       /api/public/applications/{id}/submit [post]
 func (h *ApplicationHandler) SubmitApplication(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := uuid.Parse(idStr)
