@@ -405,6 +405,7 @@ definitions:
         minItems: 1
         type: array
       reason:
+        maxLength: 2000
         type: string
     required:
     - action

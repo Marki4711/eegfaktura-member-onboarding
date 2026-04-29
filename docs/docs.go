@@ -1491,7 +1491,8 @@ const docTemplate = `{
                     }
                 },
                 "reason": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 2000
                 }
             }
         },

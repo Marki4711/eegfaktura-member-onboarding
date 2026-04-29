@@ -224,7 +224,7 @@ type ChangeStatusResponse struct {
 type BulkActionRequest struct {
 	Action string   `json:"action" validate:"required,oneof=approve reject under_review"`
 	IDs    []string `json:"ids"    validate:"required,min=1,max=200"`
-	Reason string   `json:"reason"`
+	Reason string   `json:"reason" validate:"max=2000"`
 }
 
 // BulkActionResponse is returned after POST /api/admin/applications/bulk-action.

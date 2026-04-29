@@ -1,6 +1,6 @@
 # PROJ-25: Bulk-Aktionen im Admin
 
-## Status: Approved
+## Status: Deployed
 **Created:** 2026-04-29
 **Last Updated:** 2026-04-29
 
@@ -102,4 +102,15 @@ Alle anderen Security-Checks bestanden:
 **READY** — 1 Medium Security-Finding (kein Blocker), alle Acceptance Criteria bestanden.
 
 ## Deployment
-_To be added by /deploy_
+
+**Deployed:** 2026-04-29
+**Image SHA:** sha-1389cc4
+**Tag:** v1.25.0-PROJ-25
+
+Helm upgrade auf dem Deployment-Server erforderlich:
+```bash
+git pull
+helm upgrade eegfaktura-member-onboarding ./helm/member-onboarding \
+  -f helm/member-onboarding/values-env.yaml \
+  -f helm/member-onboarding/values-secret.yaml
+```
