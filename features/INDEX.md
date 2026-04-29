@@ -38,5 +38,7 @@ Central tracking for all features.
 | PROJ-21 | Genehmigungs-Benachrichtigung mit Beitrittsbestätigung PDF | Deployed | `features/PROJ-21-approval-notification-pdf.md` | 2026-04-26 |
 | PROJ-22 | Tailwind CSS v3 → v4 Upgrade | Planned | `features/PROJ-22-tailwindcss-v4-upgrade.md` | 2026-04-26 |
 | PROJ-23 | Stammdaten-Import aus eegFaktura-Excel | Planned | `features/PROJ-23-stammdaten-import.md` | 2026-04-26 |
+| PROJ-24 | OpenAPI/Swagger Dokumentation | Planned | `features/PROJ-24-openapi-documentation.md` | 2026-04-29 |
+| PROJ-25 | Bulk-Aktionen im Admin | Planned | `features/PROJ-25-bulk-actions.md` | 2026-04-29 |
 
-## Next Available ID: PROJ-24
+## Next Available ID: PROJ-26
