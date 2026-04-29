@@ -828,12 +828,9 @@ func buildSEPAMandateData(app *shared.Application, ep *shared.RegistrationEntryp
 		ep.EEGZip == nil || ep.EEGCity == nil || ep.CreditorID == nil {
 		return nil
 	}
-	// Use AccountHolder as the debtor name — it reflects what the bank account is registered under.
-	// Fall back to first+last name (or company name) if AccountHolder is not set.
+	// The SEPA mandate must show the account holder — the person the bank account is
+	// registered under — not the member's name. For companies, the company name is used.
 	name := strings.TrimSpace(derefStr(app.AccountHolder))
-	if name == "" {
-		name = strings.TrimSpace(derefStr(app.Firstname) + " " + derefStr(app.Lastname))
-	}
 	if name == "" && app.CompanyName != nil {
 		name = *app.CompanyName
 	}

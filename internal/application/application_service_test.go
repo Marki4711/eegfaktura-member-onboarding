@@ -305,18 +305,19 @@ func TestBuildSEPAMandateData_UsesAccountHolder(t *testing.T) {
 	}
 }
 
-func TestBuildSEPAMandateData_FallbackToFirstnameLastname(t *testing.T) {
+func TestBuildSEPAMandateData_AccountHolderEmptyYieldsEmptyName(t *testing.T) {
 	ep := baseEntrypoint(true)
 	app := baseApp(shared.MemberTypePrivate)
 	app.Firstname = strPtr("Max")
 	app.Lastname = strPtr("Muster")
-	// AccountHolder not set — falls back to firstname+lastname
+	// AccountHolder not set — SEPA mandate must not fall back to firstname+lastname.
+	// The PDF "Name:" field will be blank, prompting the admin to fill it in manually.
 	m := buildSEPAMandateData(app, ep)
 	if m == nil {
 		t.Fatal("expected non-nil mandate data")
 	}
-	if m.MemberName != "Max Muster" {
-		t.Errorf("fallback: expected 'Max Muster', got %q", m.MemberName)
+	if m.MemberName != "" {
+		t.Errorf("expected empty MemberName when AccountHolder is unset, got %q", m.MemberName)
 	}
 }
 
