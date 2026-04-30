@@ -174,6 +174,7 @@ func main() {
 				r.Post("/status", adminHandler.ChangeStatus)
 				r.Post("/resend-confirmation", adminHandler.ResendMemberConfirmation)
 				r.Get("/export/excel", adminHandler.ExportApplicationExcel)
+				r.Get("/approval-pdf", adminHandler.DownloadApprovalPDF)
 			})
 		})
 		r.Route("/settings", func(r chi.Router) {

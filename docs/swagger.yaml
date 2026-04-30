@@ -1016,6 +1016,48 @@ paths:
       summary: Update application (admin)
       tags:
       - Admin
+  /api/admin/applications/{id}/approval-pdf:
+    get:
+      description: Generates and downloads the Beitrittsbestätigung PDF for an approved
+        application. Available for status approved, imported, import_failed.
+      parameters:
+      - description: Application UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/pdf
+      responses:
+        "200":
+          description: PDF file
+          schema:
+            type: file
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Download approval PDF
+      tags:
+      - Admin
   /api/admin/applications/{id}/export/excel:
     get:
       description: Downloads an Excel file (.xlsx) with the full application data

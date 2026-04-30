@@ -602,6 +602,43 @@ func (h *AdminHandler) ExportApplicationExcel(w http.ResponseWriter, r *http.Req
 	w.Write(data)
 }
 
+// DownloadApprovalPDF handles GET /api/admin/applications/{id}/approval-pdf
+//
+// @Summary      Download approval PDF
+// @Description  Generates and downloads the Beitrittsbestätigung PDF for an approved application. Available for status approved, imported, import_failed.
+// @Tags         Admin
+// @Produce      application/pdf
+// @Security     BearerAuth
+// @Param        id   path  string  true  "Application UUID"
+// @Success      200  {file}    binary   "PDF file"
+// @Failure      401  {object}  shared.ErrorResponse
+// @Failure      403  {object}  shared.ErrorResponse
+// @Failure      404  {object}  shared.ErrorResponse
+// @Failure      409  {object}  shared.ErrorResponse
+// @Failure      500  {object}  shared.ErrorResponse
+// @Router       /api/admin/applications/{id}/approval-pdf [get]
+func (h *AdminHandler) DownloadApprovalPDF(w http.ResponseWriter, r *http.Request) {
+	id, err := h.parseID(w, r)
+	if err != nil {
+		return
+	}
+
+	if !h.checkTenantAccess(w, r, id) {
+		return
+	}
+
+	data, filename, err := h.adminService.GenerateApprovalPDF(id)
+	if err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", `attachment; filename="`+filename+`"`)
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+}
+
 // GetIntroText handles GET /api/admin/settings/intro-text?rc_number=...
 func (h *AdminHandler) GetIntroText(w http.ResponseWriter, r *http.Request) {
 	rcNumber := r.URL.Query().Get("rc_number")

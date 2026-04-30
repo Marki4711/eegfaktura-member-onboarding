@@ -751,3 +751,51 @@ func (s *AdminApplicationService) ExportApplicationExcel(id uuid.UUID) ([]byte, 
 	filename := app.ReferenceNumber + ".xlsx"
 	return data, filename, nil
 }
+
+var approvalPDFStatuses = map[shared.ApplicationStatus]bool{
+	shared.StatusApproved:     true,
+	shared.StatusImported:     true,
+	shared.StatusImportFailed: true,
+}
+
+func (s *AdminApplicationService) GenerateApprovalPDF(id uuid.UUID) ([]byte, string, error) {
+	app, err := s.appRepo.GetByID(id)
+	if err != nil {
+		return nil, "", err
+	}
+	if !approvalPDFStatuses[app.Status] {
+		return nil, "", shared.NewConflictError(
+			fmt.Sprintf("approval PDF not available for applications in status %s", app.Status),
+		)
+	}
+
+	mps, err := s.meteringRepo.GetByApplicationID(id)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to fetch metering points: %w", err)
+	}
+	statusLog, err := s.statusLogRepo.GetByApplicationID(id)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to fetch status log: %w", err)
+	}
+	consents, err := s.consentRepo.GetByApplicationID(id)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to fetch consents: %w", err)
+	}
+	entrypoint, err := s.entrypointRepo.GetByRCNumber(app.RCNumber)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to fetch entrypoint: %w", err)
+	}
+	fieldConfig, err := s.fieldConfigRepo.Get(app.RCNumber)
+	if err != nil {
+		fieldConfig = map[string]FieldConfigEntry{}
+	}
+
+	pdfData := buildApprovalPDFData(app, mps, statusLog, consents, entrypoint, toStateMap(fieldConfig))
+	pdfBytes, err := s.approvalPDFGenerator.GenerateApproval(pdfData)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to generate approval PDF: %w", err)
+	}
+
+	filename := "beitrittsbestaetigung-" + app.ReferenceNumber + ".pdf"
+	return pdfBytes, filename, nil
+}

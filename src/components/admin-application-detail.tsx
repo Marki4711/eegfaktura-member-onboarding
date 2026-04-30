@@ -24,7 +24,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { getApplicationDetail, resendMemberConfirmation, deleteApplication, downloadApplicationExcel, ApiResponseError } from "@/lib/api";
+import { getApplicationDetail, resendMemberConfirmation, deleteApplication, downloadApplicationExcel, downloadApprovalPDF, ApiResponseError } from "@/lib/api";
 import type { AdminApplicationDetail, MemberType, DocumentConsentView } from "@/lib/api";
 
 const EINZUGSART_LABELS: Record<string, string> = {
@@ -100,6 +100,8 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
   const [deleting, setDeleting] = useState(false);
   const [downloadingExcel, setDownloadingExcel] = useState(false);
   const [excelError, setExcelError] = useState<string | null>(null);
+  const [downloadingPDF, setDownloadingPDF] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
   const handleExcelDownload = async () => {
     if (!application) return;
@@ -119,6 +121,27 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
       setExcelError("Excel-Download fehlgeschlagen.");
     } finally {
       setDownloadingExcel(false);
+    }
+  };
+
+  const handlePDFDownload = async () => {
+    if (!application) return;
+    setDownloadingPDF(true);
+    setPdfError(null);
+    try {
+      const { blob, filename } = await downloadApprovalPDF(application.id, session?.accessToken);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setPdfError("PDF-Download fehlgeschlagen.");
+    } finally {
+      setDownloadingPDF(false);
     }
   };
 
@@ -244,12 +267,20 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
           {excelError && (
             <span className="text-xs text-destructive">{excelError}</span>
           )}
+          {pdfError && (
+            <span className="text-xs text-destructive">{pdfError}</span>
+          )}
           <Button variant="outline" size="sm" onClick={handleResend} disabled={resending}>
             {resending ? "Wird gesendet…" : "Bestätigung erneut senden"}
           </Button>
           {(application.status === "approved" || application.status === "imported" || application.status === "import_failed") && (
             <Button variant="outline" size="sm" onClick={handleExcelDownload} disabled={downloadingExcel}>
               {downloadingExcel ? "Wird erstellt…" : "Excel herunterladen"}
+            </Button>
+          )}
+          {(application.status === "approved" || application.status === "imported" || application.status === "import_failed") && (
+            <Button variant="outline" size="sm" onClick={handlePDFDownload} disabled={downloadingPDF}>
+              {downloadingPDF ? "Wird erstellt…" : "Beitrittsbestätigung herunterladen"}
             </Button>
           )}
           {(application.status === "draft" || application.status === "rejected") && (
