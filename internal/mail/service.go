@@ -19,7 +19,7 @@ var templateFS embed.FS
 
 // MailService defines the contract for sending notification emails.
 type MailService interface {
-	SendSubmissionEmails(app *shared.Application, meteringPoints []shared.MeteringPoint, entrypoint *shared.RegistrationEntrypoint, fieldConfig map[string]string, attachment []byte)
+	SendSubmissionEmails(app *shared.Application, meteringPoints []shared.MeteringPoint, entrypoint *shared.RegistrationEntrypoint, fieldConfig map[string]string, attachment []byte, consents []shared.DocumentConsent)
 	SendMemberConfirmation(app *shared.Application, entrypoint *shared.RegistrationEntrypoint) error
 	SendApprovalEmail(app *shared.Application, entrypoint *shared.RegistrationEntrypoint, pdfBytes []byte, pdfFailed bool) error
 }
@@ -27,7 +27,7 @@ type MailService interface {
 // NoOpMailService silently drops all mail calls. Used when SMTP is not configured.
 type NoOpMailService struct{}
 
-func (n *NoOpMailService) SendSubmissionEmails(_ *shared.Application, _ []shared.MeteringPoint, _ *shared.RegistrationEntrypoint, _ map[string]string, _ []byte) {
+func (n *NoOpMailService) SendSubmissionEmails(_ *shared.Application, _ []shared.MeteringPoint, _ *shared.RegistrationEntrypoint, _ map[string]string, _ []byte, _ []shared.DocumentConsent) {
 }
 func (n *NoOpMailService) SendMemberConfirmation(_ *shared.Application, _ *shared.RegistrationEntrypoint) error {
 	return nil
@@ -95,6 +95,13 @@ type memberTemplateData struct {
 	IBAN            string
 	AccountHolder   string
 	MeteringPoints  []meteringPointView
+	// Zustimmungen
+	PrivacyAccepted     bool
+	PrivacyVersion      string
+	AccuracyConfirmed   bool
+	SepaMandateAccepted bool
+	SEPAMandateEnabled  bool
+	DocumentConsents    []shared.DocumentConsent
 }
 
 // meteringPointView is a resolved metering point with translated direction label.
@@ -264,7 +271,7 @@ func memberDisplayName(app *shared.Application) string {
 
 // SendSubmissionEmails sends the member confirmation and EEG notification emails.
 // Errors are logged but never propagate to the caller.
-func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, meteringPoints []shared.MeteringPoint, entrypoint *shared.RegistrationEntrypoint, fieldConfig map[string]string, attachment []byte) {
+func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, meteringPoints []shared.MeteringPoint, entrypoint *shared.RegistrationEntrypoint, fieldConfig map[string]string, attachment []byte, consents []shared.DocumentConsent) {
 	slog.Info("mail: sending submission emails", "application_id", app.ID, "ref", app.ReferenceNumber, "to", app.Email)
 
 	memberMpViews := make([]meteringPointView, len(meteringPoints))
@@ -312,9 +319,15 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 		StreetNumber:    app.ResidentStreetNumber,
 		Zip:             app.ResidentZip,
 		City:            app.ResidentCity,
-		IBAN:            derefString(app.IBAN),
-		AccountHolder:   derefString(app.AccountHolder),
-		MeteringPoints:  memberMpViews,
+		IBAN:                derefString(app.IBAN),
+		AccountHolder:       derefString(app.AccountHolder),
+		MeteringPoints:      memberMpViews,
+		PrivacyAccepted:     app.PrivacyAccepted,
+		PrivacyVersion:      derefString(app.PrivacyVersion),
+		AccuracyConfirmed:   app.AccuracyConfirmed,
+		SepaMandateAccepted: app.SepaMandateAccepted,
+		SEPAMandateEnabled:  entrypoint.SEPAMandateEnabled,
+		DocumentConsents:    consents,
 	}); err != nil {
 		slog.Error("mail: failed to render member template", "application_id", app.ID, "error", err)
 	} else {

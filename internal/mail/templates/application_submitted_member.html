@@ -115,6 +115,40 @@
     </tr>
     {{end}}
     {{end}}
+    <tr style="background-color: #f5f5f5;">
+      <td colspan="2" style="padding: 6px 10px; font-weight: bold; border-bottom: 2px solid #ccc; border-top: 2px solid #ccc;">Erteilte Zustimmungen</td>
+    </tr>
+    {{if .PrivacyAccepted}}
+    <tr>
+      <td style="padding: 4px 10px; color: #666;">Datenschutzerklärung</td>
+      <td style="padding: 4px 10px;">Akzeptiert{{if .PrivacyVersion}} (Version {{.PrivacyVersion}}){{end}}</td>
+    </tr>
+    {{end}}
+    {{if .AccuracyConfirmed}}
+    <tr>
+      <td style="padding: 4px 10px; color: #666;">Richtigkeit der Angaben</td>
+      <td style="padding: 4px 10px;">Bestätigt</td>
+    </tr>
+    {{end}}
+    {{if .SEPAMandateEnabled}}
+      {{if .SepaMandateAccepted}}
+      <tr>
+        <td style="padding: 4px 10px; color: #666;">SEPA-Lastschriftmandat</td>
+        <td style="padding: 4px 10px;">Erteilt</td>
+      </tr>
+      {{end}}
+    {{else}}
+    <tr>
+      <td style="padding: 4px 10px; color: #666;">SEPA-Lastschriftmandat</td>
+      <td style="padding: 4px 10px;">Per E-Mail übermittelt</td>
+    </tr>
+    {{end}}
+    {{range .DocumentConsents}}
+    <tr>
+      <td style="padding: 4px 10px; color: #666;">{{.Title}}</td>
+      <td style="padding: 4px 10px;">Zugestimmt am {{.ConsentedAt.Format "02.01.2006"}}</td>
+    </tr>
+    {{end}}
   </table>
 
   <p style="margin-top: 16px;">Sollten Sie einen Fehler entdecken, wenden Sie sich bitte direkt an Ihre Energiegemeinschaft.</p>

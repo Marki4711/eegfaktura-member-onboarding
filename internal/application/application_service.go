@@ -505,10 +505,16 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID, consents []shared.C
 					attachment = pdfBytes
 				}
 			}
+			var savedConsents []shared.DocumentConsent
+			if s.consentRepo != nil {
+				if sc, err := s.consentRepo.GetByApplicationID(id); err == nil {
+					savedConsents = sc
+				}
+			}
 			go func() {
 				acquireMailSem()
 				defer releaseMailSem()
-				s.mailService.SendSubmissionEmails(app, meteringPoints, entrypoint, toStateMap(fieldConfig), attachment)
+				s.mailService.SendSubmissionEmails(app, meteringPoints, entrypoint, toStateMap(fieldConfig), attachment, savedConsents)
 			}()
 		}
 	}

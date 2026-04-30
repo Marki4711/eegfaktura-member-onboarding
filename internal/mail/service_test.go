@@ -23,7 +23,7 @@ func TestNoOpMailService_Noop(t *testing.T) {
 		ReferenceNumber: "REF-2026-001",
 	}
 	ep := &shared.RegistrationEntrypoint{}
-	svc.SendSubmissionEmails(app, nil, ep, nil, nil) // must not panic
+	svc.SendSubmissionEmails(app, nil, ep, nil, nil, nil) // must not panic
 	_ = svc.SendMemberConfirmation(app, ep)          // must not panic
 }
 
@@ -245,7 +245,7 @@ func TestSendSubmissionEmails_MemberAlwaysSent(t *testing.T) {
 	svc := newTestService(t, spy)
 	ep := &shared.RegistrationEntrypoint{}
 
-	svc.SendSubmissionEmails(testApp(), testMeteringPoints(), ep, nil, nil)
+	svc.SendSubmissionEmails(testApp(), testMeteringPoints(), ep, nil, nil, nil)
 
 	if len(spy.calls) != 1 {
 		t.Fatalf("expected 1 send call, got %d", len(spy.calls))
@@ -266,7 +266,7 @@ func TestSendSubmissionEmails_EEGSentWhenContactEmailSet(t *testing.T) {
 	contactEmail := "eeg@example.at"
 	ep := &shared.RegistrationEntrypoint{ContactEmail: &contactEmail}
 
-	svc.SendSubmissionEmails(testApp(), testMeteringPoints(), ep, nil, nil)
+	svc.SendSubmissionEmails(testApp(), testMeteringPoints(), ep, nil, nil, nil)
 
 	if len(spy.calls) != 2 {
 		t.Fatalf("expected 2 send calls, got %d", len(spy.calls))
@@ -286,7 +286,7 @@ func TestSendSubmissionEmails_EEGSkippedWhenNoContactEmail(t *testing.T) {
 	svc := newTestService(t, spy)
 	ep := &shared.RegistrationEntrypoint{ContactEmail: nil}
 
-	svc.SendSubmissionEmails(testApp(), testMeteringPoints(), ep, nil, nil)
+	svc.SendSubmissionEmails(testApp(), testMeteringPoints(), ep, nil, nil, nil)
 
 	if len(spy.calls) != 1 {
 		t.Errorf("expected only 1 send call (member), got %d", len(spy.calls))
@@ -301,7 +301,7 @@ func TestSendSubmissionEmails_EEGSkippedWhenContactEmailEmpty(t *testing.T) {
 	empty := ""
 	ep := &shared.RegistrationEntrypoint{ContactEmail: &empty}
 
-	svc.SendSubmissionEmails(testApp(), testMeteringPoints(), ep, nil, nil)
+	svc.SendSubmissionEmails(testApp(), testMeteringPoints(), ep, nil, nil, nil)
 
 	if len(spy.calls) != 1 {
 		t.Errorf("expected only 1 send call (member), got %d", len(spy.calls))
@@ -327,7 +327,7 @@ func TestSendSubmissionEmails_ConfigurableFieldsIncluded(t *testing.T) {
 		"persons_in_household": "required",
 	}
 
-	svc.SendSubmissionEmails(app, nil, ep, fieldConfig, nil)
+	svc.SendSubmissionEmails(app, nil, ep, fieldConfig, nil, nil)
 
 	if len(spy.calls) != 2 {
 		t.Fatalf("expected 2 send calls, got %d", len(spy.calls))
@@ -357,7 +357,7 @@ func TestSendSubmissionEmails_HiddenFieldExcluded(t *testing.T) {
 		"heat_pump": "hidden",
 	}
 
-	svc.SendSubmissionEmails(app, nil, ep, fieldConfig, nil)
+	svc.SendSubmissionEmails(app, nil, ep, fieldConfig, nil, nil)
 
 	if len(spy.calls) != 2 {
 		t.Fatalf("expected 2 send calls, got %d", len(spy.calls))
@@ -379,7 +379,7 @@ func TestSendSubmissionEmails_AdminDetailURLIncluded(t *testing.T) {
 	ep := &shared.RegistrationEntrypoint{ContactEmail: &contactEmail}
 
 	app := testApp()
-	svc.SendSubmissionEmails(app, nil, ep, nil, nil)
+	svc.SendSubmissionEmails(app, nil, ep, nil, nil, nil)
 
 	if len(spy.calls) != 2 {
 		t.Fatalf("expected 2 send calls, got %d", len(spy.calls))
