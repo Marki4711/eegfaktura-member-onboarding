@@ -3,6 +3,9 @@
 Alle nennenswerten Änderungen an diesem Projekt werden hier dokumentiert.
 Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+> Die Versionsnummern im CHANGELOG sind unabhängig von den Git-Tags vergeben,
+> da die ursprünglichen Tags nicht konsistent nummeriert wurden.
+
 ---
 
 ## [Unreleased]
@@ -22,7 +25,7 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ---
 
-## [v1.25.0] - 2026-04-29
+## [v1.8.0] - 2026-04-29
 
 ### Neu — PROJ-25: Bulk-Aktionen im Admin
 - Mehrere Anträge gleichzeitig genehmigen, ablehnen oder zur Prüfung setzen
@@ -31,10 +34,6 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 - Ergebnis-Zusammenfassung nach Ausführung (X erfolgreich, Y übersprungen)
 - Backend: `POST /api/admin/applications/bulk-action` mit Tenant-Isolation; max. 200 Anträge pro Request; ungültige Transitionen werden übersprungen (kein Fehler)
 
----
-
-## [v1.24.0] - 2026-04-29
-
 ### Neu — PROJ-24: OpenAPI/Swagger Dokumentation
 - Interaktive Swagger UI unter `/swagger/` verfügbar
 - Alle Admin- und Public-Endpunkte vollständig annotiert (Swaggo)
@@ -42,7 +41,7 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ---
 
-## [v1.20.0] - 2026-04-26
+## [v1.7.0] - 2026-04-26
 
 ### Neu — PROJ-20: Vollständige Antragsdaten in EEG-Einreichungsbenachrichtigung
 - EEG-Betreiber erhält bei jeder Neueinreichung alle Antragsdaten per E-Mail
@@ -58,26 +57,7 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ---
 
-## [v1.17.0] - 2026-04-25
-
-### Neu — PROJ-17: Excel-Export für eegFaktura-Import
-- Admin kann Antrag als `.xlsx`-Datei exportieren (`GET /api/admin/applications/{id}/export/excel`)
-- Datei im eegFaktura-Importformat (36 Spalten, eine Zeile pro Zählpunkt)
-- Nur für Status `approved`, `imported`, `import_failed`
-
-### Neu — PROJ-16: Cloudflare Turnstile Spam-Schutz
-- Öffentliches Registrierungsformular mit Turnstile-CAPTCHA geschützt
-- Aktivierung via `TURNSTILE_SECRET_KEY`-Umgebungsvariable (fehlt → deaktiviert)
-
-### Neu — PROJ-19: Manuelle Aktivierung der Registrierung
-- Neue EEGs sind standardmäßig inaktiv (`is_active = false`)
-- Admin kann Registrierung pro EEG aktivieren/deaktivieren (Settings-Seite)
-- Inaktive EEGs: öffentliches Formular liefert `410 Gone`
-
-### Neu — PROJ-18: Datenschutzerklärung & Central Policy Toggle
-- Zentrale Datenschutzerklärung (Betreiber-Policy) über Umgebungsvariablen konfigurierbar (`CENTRAL_POLICY_TITLE`, `CENTRAL_POLICY_URL`)
-- Pro EEG einstellbar, ob die zentrale Policy im Formular angezeigt wird (`showCentralPolicy`)
-- EEGs mit eigener Datenschutzerklärung als Rechtsdokument können die zentrale Policy ausblenden
+## [v1.6.0] - 2026-04-25
 
 ### Neu — PROJ-9: EEG-spezifische Rechtsdokumente
 - Admin kann beliebige Rechtsdokumente pro EEG konfigurieren (Satzung, AGB usw.)
@@ -85,26 +65,28 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 - Zustimmungen werden als unveränderliche Snapshots gespeichert (`document_consent`)
 - Max. 10 Dokumente pro EEG; sortierbar per Drag-and-Drop
 
+### Neu — PROJ-16: Cloudflare Turnstile Spam-Schutz
+- Öffentliches Registrierungsformular mit Turnstile-CAPTCHA geschützt
+- Aktivierung via `TURNSTILE_SECRET_KEY`-Umgebungsvariable (fehlt → deaktiviert)
+
+### Neu — PROJ-17: Excel-Export für eegFaktura-Import
+- Admin kann Antrag als `.xlsx`-Datei exportieren (`GET /api/admin/applications/{id}/export/excel`)
+- Datei im eegFaktura-Importformat (36 Spalten, eine Zeile pro Zählpunkt)
+- Nur für Status `approved`, `imported`, `import_failed`
+
+### Neu — PROJ-18: Datenschutzerklärung & Central Policy Toggle
+- Zentrale Datenschutzerklärung (Betreiber-Policy) über Umgebungsvariablen konfigurierbar (`CENTRAL_POLICY_TITLE`, `CENTRAL_POLICY_URL`)
+- Pro EEG einstellbar, ob die zentrale Policy im Formular angezeigt wird (`showCentralPolicy`)
+- EEGs mit eigener Datenschutzerklärung können die zentrale Policy ausblenden
+
+### Neu — PROJ-19: Manuelle Aktivierung der Registrierung
+- Neue EEGs sind standardmäßig inaktiv (`is_active = false`)
+- Admin kann Registrierung pro EEG aktivieren/deaktivieren (Settings-Seite)
+- Inaktive EEGs: öffentliches Formular liefert `410 Gone`
+
 ---
 
-## [v1.15.0] - 2026-04-24
-
-### Neu — PROJ-15: Konfigurierbare Felder Erweiterungen
-- Neuer Feld-Status `admin_only`: Feld ist im öffentlichen Formular verborgen, wird aber mit einem konfigurierten Admin-Standardwert automatisch befüllt
-- Zählpunktfelder konfigurierbar: `transformer`, `installation_number`, `installation_name`
-
-### Neu — PROJ-14: SEPA-Firmenlastschriftmandat
-- Für Mitglieder vom Typ `company` / `association` kann ein SEPA-B2B-Mandat (Firmenlastschrift) statt des Standard-CORE-Mandats generiert werden
-- Steuerbar über EEG-Einstellung `useCompanySEPAMandate`
-
-### Neu — PROJ-13: Externe Registrierungs-API
-- `POST /api/external/v1/applications` — Anträge direkt aus externen Systemen einreichen
-- API-Key-Authentifizierung (kein Keycloak); Key pro EEG generierbar/widerrufbar in den Admin-Settings
-- Rate Limiting: 10 Requests / 60 Sekunden (Burst) + 200 Einreichungen / Tag (Quota)
-
----
-
-## [v0.13.0] - 2026-04-24
+## [v1.5.0] - 2026-04-24
 
 ### Neu — PROJ-12: SEPA-Lastschriftmandat PDF
 - Automatische Generierung eines SEPA-Lastschriftmandats als PDF-Anhang in der Mitglieds-Bestätigungs-E-Mail
@@ -112,9 +94,22 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 - Unterstützt CORE- und B2B-Mandat
 - Kann auch per E-Mail zugesandt werden (`sepa_mandate_enabled = false`): Hinweis im PDF und in der Bestätigungs-E-Mail
 
+### Neu — PROJ-13: Externe Registrierungs-API
+- `POST /api/external/v1/applications` — Anträge direkt aus externen Systemen einreichen
+- API-Key-Authentifizierung (kein Keycloak); Key pro EEG generierbar/widerrufbar in den Admin-Settings
+- Rate Limiting: 10 Requests / 60 Sekunden (Burst) + 200 Einreichungen / Tag (Quota)
+
+### Neu — PROJ-14: SEPA-Firmenlastschriftmandat
+- Für Mitglieder vom Typ `company` / `association` kann ein SEPA-B2B-Mandat statt des Standard-CORE-Mandats generiert werden
+- Steuerbar über EEG-Einstellung `useCompanySEPAMandate`
+
+### Neu — PROJ-15: Konfigurierbare Felder Erweiterungen
+- Neuer Feld-Status `admin_only`: Feld ist im öffentlichen Formular verborgen, wird aber mit einem konfigurierten Admin-Standardwert automatisch befüllt
+- Zählpunktfelder konfigurierbar: `transformer`, `installation_number`, `installation_name`
+
 ---
 
-## [v1.9.0] - 2026-04-23
+## [v1.4.0] - 2026-04-23
 
 ### Neu — PROJ-11: Konfigurierbarer Einleitungstext
 - Admin kann pro EEG einen Einleitungstext für das Registrierungsformular hinterlegen (HTML, sanitisiert)
@@ -122,7 +117,7 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ---
 
-## [v1.8.0] - 2026-04-22
+## [v1.3.0] - 2026-04-22
 
 ### Neu — PROJ-8: Konfigurierbare Felder pro EEG
 - Admin kann pro EEG konfigurieren, welche optionalen Felder im Registrierungsformular sichtbar, versteckt oder Pflicht sind
@@ -130,7 +125,7 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ---
 
-## [v1.5.0] - 2026-04-21
+## [v1.2.0] - 2026-04-21
 
 ### Neu — PROJ-6: E-Mail-Benachrichtigungen
 - Mitglieds-Bestätigungs-E-Mail nach erfolgreicher Einreichung
@@ -141,7 +136,7 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ---
 
-## [v1.4.0] - 2026-04-20
+## [v1.1.0] - 2026-04-20
 
 ### Neu — PROJ-5: Keycloak-gesicherte Admin-Oberfläche
 - Admin-Bereich erfordert Keycloak-Login (JWT Bearer Token)
