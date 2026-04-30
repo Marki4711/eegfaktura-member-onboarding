@@ -80,6 +80,21 @@ type memberTemplateData struct {
 	EEGZip          string
 	EEGCity         string
 	CreditorID      string
+	// Antragsdaten zur Überprüfung durch das Mitglied
+	MemberType      string
+	CompanyName     string
+	UIDNumber       string
+	RegisterNumber  string
+	BirthDate       string
+	Email           string
+	Phone           string
+	Street          string
+	StreetNumber    string
+	Zip             string
+	City            string
+	IBAN            string
+	AccountHolder   string
+	MeteringPoints  []meteringPointView
 }
 
 // meteringPointView is a resolved metering point with translated direction label.
@@ -252,6 +267,28 @@ func memberDisplayName(app *shared.Application) string {
 func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, meteringPoints []shared.MeteringPoint, entrypoint *shared.RegistrationEntrypoint, fieldConfig map[string]string, attachment []byte) {
 	slog.Info("mail: sending submission emails", "application_id", app.ID, "ref", app.ReferenceNumber, "to", app.Email)
 
+	memberMpViews := make([]meteringPointView, len(meteringPoints))
+	for i, mp := range meteringPoints {
+		dir := "Verbrauch"
+		if mp.Direction == shared.DirectionProduction {
+			dir = "Einspeisung"
+		}
+		memberMpViews[i] = meteringPointView{
+			MeteringPoint:       mp.MeteringPoint,
+			Direction:           dir,
+			ParticipationFactor: mp.ParticipationFactor,
+		}
+	}
+
+	memberBirthDate := ""
+	if app.BirthDate != nil {
+		memberBirthDate = app.BirthDate.Format("02.01.2006")
+	}
+	memberTypeLabel := memberTypeLabels[string(app.MemberType)]
+	if memberTypeLabel == "" {
+		memberTypeLabel = string(app.MemberType)
+	}
+
 	var memberBuf bytes.Buffer
 	if err := s.memberTpl.Execute(&memberBuf, memberTemplateData{
 		Firstname:       derefString(app.Firstname),
@@ -264,6 +301,20 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 		EEGZip:          derefString(entrypoint.EEGZip),
 		EEGCity:         derefString(entrypoint.EEGCity),
 		CreditorID:      derefString(entrypoint.CreditorID),
+		MemberType:      memberTypeLabel,
+		CompanyName:     derefString(app.CompanyName),
+		UIDNumber:       derefString(app.UIDNumber),
+		RegisterNumber:  derefString(app.RegisterNumber),
+		BirthDate:       memberBirthDate,
+		Email:           app.Email,
+		Phone:           derefString(app.Phone),
+		Street:          app.ResidentStreet,
+		StreetNumber:    app.ResidentStreetNumber,
+		Zip:             app.ResidentZip,
+		City:            app.ResidentCity,
+		IBAN:            derefString(app.IBAN),
+		AccountHolder:   derefString(app.AccountHolder),
+		MeteringPoints:  memberMpViews,
 	}); err != nil {
 		slog.Error("mail: failed to render member template", "application_id", app.ID, "error", err)
 	} else {
@@ -309,8 +360,8 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 		adminDetailURL = s.adminBaseURL + "/admin/applications/" + app.ID.String()
 	}
 
-	// Member type label
-	memberTypeLabel := memberTypeLabels[string(app.MemberType)]
+	// Member type label (reused for EEG template)
+	memberTypeLabel = memberTypeLabels[string(app.MemberType)]
 	if memberTypeLabel == "" {
 		memberTypeLabel = string(app.MemberType)
 	}
