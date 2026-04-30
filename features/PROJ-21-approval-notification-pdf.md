@@ -62,19 +62,29 @@ Das PDF ist ein strukturiertes A4-Dokument mit folgendem Inhalt:
 - [ ] Tabelle: Zählpunktnummer, Richtung, Teilnahmefaktor
 
 #### Erteilte Zustimmungen
-- [ ] Liste aller Dokumente, denen zugestimmt wurde (Titel + URL)
-- [ ] Datum der Zustimmung (= Einreichungsdatum)
+- [ ] Datenschutzerklärung: „Akzeptiert (Version X.Y)" wenn `privacyAccepted = true`
+- [ ] Richtigkeit der Angaben: „Bestätigt" wenn `accuracyConfirmed = true`
+- [ ] SEPA-Lastschriftmandat: wenn `sepa_mandate_enabled = true` und Checkbox angehakt → „Erteilt"; wenn `sepa_mandate_enabled = false` → „Per E-Mail übermittelt"
+- [ ] Dokumentzustimmungen: für jedes `document_consent`-Eintrag: Titel + Datum der Zustimmung
+- [ ] Abschnitt entfällt nicht — es werden immer mindestens die boolean-Zustimmungen angezeigt
 
 #### Statusverlauf
-- [ ] Tabelle: Status (von → nach), Zeitstempel, ggf. Kommentar aus Admin-Notiz
+- [ ] Tabelle: Status (von → nach), Zeitstempel, ggf. Kommentar
+- [ ] Status-Labels werden auf Deutsch angezeigt (z. B. „Eingereicht" statt „submitted")
 
 #### Mitgliedsnummer
-- [ ] Sichtbares, beschriftetes Leerfeld: „Mitgliedsnummer: _________________________"
-- [ ] Hinweis: „Wird von [EEG-Name] vergeben"
+- [ ] Ist eine Mitgliedsnummer vergeben (`member_number` gesetzt), wird sie als **erste Information in MITGLIEDSDATEN** angezeigt (nicht als Leerfeld)
+- [ ] Ist noch keine Mitgliedsnummer vergeben, entfällt das Feld vollständig
 
 #### Konfigurierbare Felder (optional)
 - [ ] Falls konfigurierbare Felder ausgefüllt sind (Wärmepumpe, Personenanzahl usw.): werden als zusätzlicher Abschnitt aufgeführt
 - [ ] Leere Felder werden nicht aufgeführt
+
+### PDF-Download über Admin-GUI
+- [ ] Der Endpunkt `GET /api/admin/applications/{id}/approval-pdf` liefert das Beitrittsbestätigung-PDF on-demand
+- [ ] Nur verfügbar für Anträge in Status `approved`, `imported`, `import_failed`
+- [ ] In der Admin-Detailansicht ist ein Button „Beitrittsbestätigung herunterladen" sichtbar (für die oben genannten Status)
+- [ ] Die heruntergeladene Datei hat denselben Inhalt wie der automatische E-Mail-Anhang
 
 ### Fehlerverhalten
 - [ ] Schlägt die PDF-Generierung fehl, wird der Fehler geloggt; die E-Mail wird ohne PDF-Anhang gesendet (mit Hinweis „PDF konnte nicht generiert werden")
@@ -389,14 +399,17 @@ Keine neuen externen Abhängigkeiten. `github.com/go-pdf/fpdf` und `golang.org/x
 - [x] Tabelle: Zählpunktnummer, Richtung, Teilnahmefaktor — PASS
 
 #### PDF-Inhalt: Zustimmungen
-- [x] Liste aller Dokumente + Zustimmungsdatum — PASS; leerer Abschnitt entfällt bei `len(data.Consents) == 0` — PASS
+- [x] Dokumentzustimmungen (aus `document_consent`) mit Datum — PASS
+- [x] ~~Leerer Abschnitt entfällt bei `len(data.Consents) == 0`~~ — **POST-QA GEÄNDERT**: Abschnitt zeigt jetzt immer die boolean-Zustimmungen (Datenschutz, Richtigkeit, SEPA)
+- [x] Boolean-Zustimmungen (`PrivacyAccepted`, `AccuracyConfirmed`) werden explizit gelistet — **POST-QA ERGÄNZT** ✓
+- [x] SEPA: „Erteilt" wenn Checkbox, „Per E-Mail übermittelt" wenn `SEPAMandateEnabled = false` — **POST-QA ERGÄNZT** ✓
 
 #### PDF-Inhalt: Statusverlauf
 - [x] Tabelle: Von → Nach, Zeitstempel, Kommentar — PASS; `TestFPDFApprovalGenerator_LargeStatusLog` prüft Seitenumbruch — PASS
+- [x] Status-Labels auf Deutsch (`statusLabelsDE`-Map + `statusDE()`-Funktion) — **POST-QA ERGÄNZT** ✓
 
 #### PDF-Inhalt: Mitgliedsnummer
-- [x] Beschriftetes Leerfeld „Mitgliedsnummer: ___" — PASS
-- [x] Hinweis „Wird von [EEG-Name] vergeben" — PASS
+- [x] ~~Beschriftetes Leerfeld „Mitgliedsnummer: ___"~~ — **POST-QA GEÄNDERT**: Mitgliedsnummer wird als erster Datensatz in MITGLIEDSDATEN gezeigt wenn `app.MemberNumber != nil`; kein Leerfeld mehr ✓
 
 #### PDF-Inhalt: Konfigurierbare Felder
 - [x] Optionaler Abschnitt nur bei befüllten Feldern: `TestFPDFApprovalGenerator_WithConfigurableFields` — PASS

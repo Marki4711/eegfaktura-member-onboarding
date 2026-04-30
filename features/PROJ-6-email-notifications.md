@@ -31,6 +31,8 @@ E-Mails werden direkt per SMTP verschickt — kein externer Mail-Microservice, k
 - [ ] Wird ausgelöst wenn `fromStatus = draft` und `toStatus = submitted`
 - [ ] Empfänger: E-Mail-Adresse des Antragstellers
 - [ ] Die E-Mail enthält: Anrede mit Vorname + Nachname, Referenznummer des Antrags, Hinweis dass die EEG den Antrag prüfen wird
+- [ ] *(Nachträglich erweitert in 2026-04-30)* Die E-Mail enthält alle eingegebenen Antragsdaten in einer strukturierten Tabelle (Persönliche Daten, Adresse, Bankverbindung, Zählpunkte), damit das Mitglied die Richtigkeit selbst prüfen kann
+- [ ] *(Nachträglich erweitert)* Erteilte Zustimmungen (Datenschutz, Richtigkeit, SEPA, Dokumentzustimmungen) werden aufgelistet — gleiche Logik wie im Beitrittsbestätigung-PDF
 - [ ] Die E-Mail ist auf Deutsch
 
 ### E-Mail an die EEG (Benachrichtigung)
@@ -149,8 +151,8 @@ HTML-Templates werden per Go `embed.FS` direkt ins Binary eingebettet — kein V
 
 | Template | Empfänger | Template-Variablen |
 |----------|-----------|-------------------|
-| `application_submitted_member.html` | Antragsteller | Firstname, Lastname, ReferenceNumber |
-| `application_submitted_eeg.html` | EEG | Firstname, Lastname, Email, ReferenceNumber, MeteringPoints |
+| `application_submitted_member.html` | Antragsteller | Firstname, Lastname, ReferenceNumber, EEGName, alle Antragsdaten (Adresse, IBAN, Zählpunkte, Zustimmungen) — *erweitert 2026-04-30* |
+| `application_submitted_eeg.html` | EEG | vollständige Antragsdaten inkl. Admin-Link — *erweitert in PROJ-20* |
 
 ### Neue Abhängigkeit
 

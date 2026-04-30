@@ -710,11 +710,12 @@ Returns the EEG master data used for SEPA mandate PDF generation.
   "registrationActive": true,
   "sepaMandateEnabled": true,
   "useCompanySEPAMandate": false,
-  "showCentralPolicy": true
+  "showCentralPolicy": true,
+  "memberNumberStart": 1
 }
 ```
 
-All address/name fields are `null` when not yet configured. `registrationActive` is `false` by default — new EEGs are inactive until explicitly activated by an admin. `sepaMandateEnabled` defaults to `false`. `useCompanySEPAMandate` defaults to `false`. `showCentralPolicy` defaults to `true`.
+All address/name fields are `null` when not yet configured. `registrationActive` is `false` by default — new EEGs are inactive until explicitly activated by an admin. `sepaMandateEnabled` defaults to `false`. `useCompanySEPAMandate` defaults to `false`. `showCentralPolicy` defaults to `true`. `memberNumberStart` defaults to `1` — the first member number assigned for this EEG will be this value.
 
 ### Errors
 - `400` missing `rc_number`
@@ -738,7 +739,8 @@ All address/name fields are `null` when not yet configured. `registrationActive`
   "registrationActive": true,
   "sepaMandateEnabled": true,
   "useCompanySEPAMandate": false,
-  "showCentralPolicy": true
+  "showCentralPolicy": true,
+  "memberNumberStart": 1
 }
 ```
 
@@ -747,6 +749,8 @@ All address/name fields are `null` when not yet configured. `registrationActive`
 `showCentralPolicy`: when `false`, the central operator privacy policy is not shown in the public registration form. Intended for EEGs that have configured their own privacy policy as a custom document (see 6.16).
 
 `useCompanySEPAMandate`: when `true`, members of type `company` or `association` receive the SEPA B2B mandate PDF instead of the standard CORE mandate. Only evaluated when `sepaMandateEnabled = true`.
+
+`memberNumberStart`: starting value for the per-EEG member number auto-increment counter. The first member number assigned for this EEG will be this value. Defaults to `1` when not explicitly set.
 
 ### Response
 - `204 No Content`
@@ -828,7 +832,35 @@ The file contains:
 
 ---
 
-## 6.16 Legal documents — Admin CRUD
+## 6.16 Download approval PDF
+
+### GET `/api/admin/applications/{id}/approval-pdf`
+
+Generates and downloads the Beitrittsbestätigung (approval confirmation) as a PDF file for the given application. Only available for applications in status `approved`, `imported`, or `import_failed`.
+
+### Auth
+Keycloak JWT. Tenant-admin access is checked against the application's RC number.
+
+### Response
+- `200 OK` — PDF file
+  - `Content-Type: application/pdf`
+  - `Content-Disposition: attachment; filename="beitrittsbestaetigung-{referenceNumber}.pdf"`
+- `404 Not Found` — application not found
+- `403 Forbidden` — tenant mismatch
+- `409 Conflict` — application not in downloadable status
+
+The PDF contains the same data as the approval PDF automatically emailed to the EEG on status change to `approved`:
+- Header: title "Beitrittsbestätigung", EEG name, RC number, approval date, reference number
+- Mitgliedsdaten: member number (if assigned), member type, name/company, birth date, address, email, phone
+- Bankverbindung: IBAN, account holder, SEPA mandate type (Basislastschrift / Firmenlastschrift / Per E-Mail)
+- Zählpunkte: table with metering point number, direction, participation factor
+- Erteilte Zustimmungen: privacy acceptance (with version), accuracy confirmation, SEPA (checkbox or per-email note), document consents with dates
+- Statusverlauf: table with status transitions (from → to) in German labels, timestamps, comments
+- Weitere Angaben: configurable fields (if any are filled in)
+
+---
+
+## 6.17 Legal documents — Admin CRUD
 
 Manages the list of EEG-specific legal documents shown in the public registration form.
 

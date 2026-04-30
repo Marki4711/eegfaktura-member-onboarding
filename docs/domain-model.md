@@ -51,6 +51,7 @@ Fields:
 - `sepa_mandate_enabled` — boolean, default false; controls whether SEPA mandate PDF is attached to welcome email
 - `use_company_sepa_mandate` — boolean, default false; when true, members of type `company`/`association` receive the SEPA B2B mandate instead of the CORE mandate (only evaluated when `sepa_mandate_enabled = true`)
 - `show_central_policy` — boolean, default true; when false, the central operator privacy policy is not shown in the public registration form (for EEGs that configure their own policy as a legal document)
+- `member_number_start` — INT NOT NULL DEFAULT 1; starting value for the per-EEG member number auto-increment counter; the first member number assigned for this EEG will be this value
 - `created_at`
 - `updated_at`
 
@@ -94,6 +95,7 @@ Contains:
 - contact data
 - address data
 - consents
+- SEPA / bank data
 - admin note
 - import status
 
@@ -107,13 +109,14 @@ Fields:
 - `approved_at`
 - `rejected_at`
 - `imported_at`
+- `member_type`
+- `titel` — nullable VARCHAR(50), optional title prefix (e.g. "Mag.", "Dr.")
 - `firstname`
 - `lastname`
 - `birth_date`
 - `company_name`
 - `uid_number`
 - `register_number`
-- `member_type`
 - `email`
 - `phone`
 - `resident_street`
@@ -128,6 +131,10 @@ Fields:
 - `account_holder`
 - `sepa_mandate_accepted`
 - `sepa_mandate_accepted_at`
+- `einzugsart` — VARCHAR(20) NOT NULL DEFAULT 'core'; SEPA mandate type: `core` = Basislastschrift, `b2b` = Firmenlastschrift, `email` = per E-Mail
+- `bank_name` — nullable; bank name used in SEPA mandate
+- `mandate_reference` — nullable; SEPA mandate reference number
+- `mandate_date` — nullable DATE; date of SEPA mandate signature
 - `reviewed_by_user_id`
 - `admin_note`
 - `needs_info_reason`
@@ -146,6 +153,7 @@ Fields:
 - `heat_pump` *(nullable boolean, configurable)*
 - `electric_vehicle` *(nullable boolean, configurable)*
 - `electric_hot_water` *(nullable boolean, configurable)*
+- `member_number` — nullable INT; auto-assigned at first submission per EEG counter (starting at `registration_entrypoint.member_number_start`); shown as first data field in the approval PDF
 
 ### 3.3 `member_onboarding.metering_point`
 
@@ -217,6 +225,29 @@ Rules:
 - no foreign key to `legal_document` — deleting a document never affects stored consents
 - records are never updated after creation
 - an application may have zero consent entries if submitted without consent data
+
+---
+
+### 3.7 `member_onboarding.external_api_key`
+
+Stores the hashed API key for external integrations (see `POST /api/external/v1/applications`). At most one active key exists per EEG.
+
+Fields:
+- `id`
+- `rc_number` — UNIQUE, references `registration_entrypoint(rc_number)`, ON DELETE CASCADE
+- `key_hash` — VARCHAR(64); bcrypt hash of the API key; the plaintext key is never stored
+- `revoked_at` — nullable TIMESTAMPTZ; set when the key is revoked; `NULL` means active
+- `last_generated_at` — TIMESTAMPTZ; timestamp of the last key generation
+- `daily_count` — INT NOT NULL DEFAULT 0; number of submissions today (quota enforcement)
+- `quota_date` — nullable DATE; date window for `daily_count` (resets at UTC midnight)
+- `created_at`
+
+Rules:
+- At most one key record per EEG (UNIQUE on `rc_number`)
+- The plaintext API key is returned only once at generation time and never stored
+- `revoked_at IS NOT NULL` means the key is revoked; all external requests with this key receive `401`
+- Revoking does not delete the row; generating a new key replaces the hash in the existing row
+- Burst rate limit (10 requests / 60 seconds) is enforced in-memory per pod; daily quota (200 submissions / day) is DB-backed via `daily_count` + `quota_date`
 
 ---
 
