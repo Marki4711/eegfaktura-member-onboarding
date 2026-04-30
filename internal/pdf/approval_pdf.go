@@ -46,6 +46,8 @@ type ApprovalPDFData struct {
 	PrivacyVersion      string
 	AccuracyConfirmed   bool
 	SepaMandateAccepted bool
+
+	MemberNumber *int
 }
 
 // MeteringPointPDF holds metering point data for the approval PDF.
@@ -160,6 +162,9 @@ func (g *FPDFApprovalGenerator) GenerateApproval(data ApprovalPDFData) ([]byte, 
 
 	// ── MITGLIEDSDATEN ───────────────────────────────────────────────────────
 	sectionHeader("MITGLIEDSDATEN")
+	if data.MemberNumber != nil {
+		dataRow("Mitgliedsnummer:", fmt.Sprintf("%d", *data.MemberNumber))
+	}
 	dataRow("Mitgliedstyp:", data.MemberType)
 	if data.Firstname != "" || data.Lastname != "" {
 		name := strings.TrimSpace(data.Titel + " " + data.Firstname + " " + data.Lastname)
@@ -263,15 +268,6 @@ func (g *FPDFApprovalGenerator) GenerateApproval(data ApprovalPDFData) ([]byte, 
 		f.CellFormat(sc3, 5, w1252(ts), "0", 0, "L", false, 0, "")
 		f.CellFormat(sc4, 5, w1252(sl.Reason), "0", 1, "L", false, 0, "")
 	}
-
-	// ── MITGLIEDSNUMMER ───────────────────────────────────────────────────────
-	sectionHeader("MITGLIEDSNUMMER")
-	f.Ln(1)
-	setFont("", 9)
-	f.CellFormat(45, 7, w1252("Mitgliedsnummer:"), "0", 0, "L", false, 0, "")
-	f.CellFormat(90, 7, "", "B", 1, "L", false, 0, "")
-	setFont("", 8)
-	f.CellFormat(cw, 5, w1252("Wird von "+eegName+" vergeben"), "0", 1, "L", false, 0, "")
 
 	// ── WEITERE ANGABEN ───────────────────────────────────────────────────────
 	if len(data.ConfigurableFields) > 0 {
