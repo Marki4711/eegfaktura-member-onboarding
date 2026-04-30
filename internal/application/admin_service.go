@@ -601,6 +601,10 @@ func buildApprovalPDFData(
 		Consents:             consentPDFs,
 		StatusLog:            slPDFs,
 		ConfigurableFields:   buildApprovalConfigurableFields(app, fieldConfig),
+		PrivacyAccepted:      app.PrivacyAccepted,
+		PrivacyVersion:       derefStr(app.PrivacyVersion),
+		AccuracyConfirmed:    app.AccuracyConfirmed,
+		SepaMandateAccepted:  app.SepaMandateAccepted,
 	}
 }
 

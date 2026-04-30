@@ -40,6 +40,12 @@ type ApprovalPDFData struct {
 	Consents           []ConsentPDF
 	StatusLog          []StatusLogPDF
 	ConfigurableFields []ConfigurableFieldPDF
+
+	// Statutory consents stored as booleans on the application record.
+	PrivacyAccepted     bool
+	PrivacyVersion      string
+	AccuracyConfirmed   bool
+	SepaMandateAccepted bool
 }
 
 // MeteringPointPDF holds metering point data for the approval PDF.
@@ -68,6 +74,24 @@ type StatusLogPDF struct {
 type ConfigurableFieldPDF struct {
 	Label string
 	Value string
+}
+
+var statusLabelsDE = map[string]string{
+	"draft":         "Entwurf",
+	"submitted":     "Eingereicht",
+	"under_review":  "In Prüfung",
+	"needs_info":    "Rückfrage",
+	"approved":      "Genehmigt",
+	"rejected":      "Abgelehnt",
+	"imported":      "Importiert",
+	"import_failed": "Import fehlgeschlagen",
+}
+
+func statusDE(s string) string {
+	if label, ok := statusLabelsDE[s]; ok {
+		return label
+	}
+	return s
 }
 
 // ApprovalPDFGenerator generates the Beitrittsbestätigung as a PDF byte slice.
@@ -188,18 +212,32 @@ func (g *FPDFApprovalGenerator) GenerateApproval(data ApprovalPDFData) ([]byte, 
 	}
 
 	// ── ERTEILTE ZUSTIMMUNGEN ─────────────────────────────────────────────────
-	if len(data.Consents) > 0 {
-		sectionHeader("ERTEILTE ZUSTIMMUNGEN")
-		setFont("", 9)
-		for _, c := range data.Consents {
-			line := fmt.Sprintf("- %s — Zugestimmt am %s", c.Title, c.ConsentedAt.Format("02.01.2006"))
-			f.MultiCell(cw, 5, w1252(line), "0", "L", false)
-			if c.URL != "" {
-				setFont("", 8)
-				f.MultiCell(cw, 4, w1252("  "+c.URL), "0", "L", false)
-				setFont("", 9)
-			}
+	sectionHeader("ERTEILTE ZUSTIMMUNGEN")
+	setFont("", 9)
+	if data.PrivacyAccepted {
+		line := "- Datenschutzerklärung akzeptiert"
+		if data.PrivacyVersion != "" {
+			line += fmt.Sprintf(" (Version %s)", data.PrivacyVersion)
 		}
+		f.MultiCell(cw, 5, w1252(line), "0", "L", false)
+	}
+	if data.AccuracyConfirmed {
+		f.MultiCell(cw, 5, w1252("- Richtigkeit der Angaben bestätigt"), "0", "L", false)
+	}
+	if data.SepaMandateAccepted {
+		f.MultiCell(cw, 5, w1252("- SEPA-Lastschriftmandat erteilt"), "0", "L", false)
+	}
+	for _, c := range data.Consents {
+		line := fmt.Sprintf("- %s — Zugestimmt am %s", c.Title, c.ConsentedAt.Format("02.01.2006"))
+		f.MultiCell(cw, 5, w1252(line), "0", "L", false)
+		if c.URL != "" {
+			setFont("", 8)
+			f.MultiCell(cw, 4, w1252("  "+c.URL), "0", "L", false)
+			setFont("", 9)
+		}
+	}
+	if !data.PrivacyAccepted && !data.AccuracyConfirmed && !data.SepaMandateAccepted && len(data.Consents) == 0 {
+		f.MultiCell(cw, 5, w1252("Keine Zustimmungen erfasst."), "0", "L", false)
 	}
 
 	// ── STATUSVERLAUF ─────────────────────────────────────────────────────────
@@ -215,13 +253,13 @@ func (g *FPDFApprovalGenerator) GenerateApproval(data ApprovalPDFData) ([]byte, 
 	f.CellFormat(sc4, 6, w1252("Kommentar"), "B", 1, "L", false, 0, "")
 	setFont("", 9)
 	for _, sl := range data.StatusLog {
-		from := sl.FromStatus
+		from := statusDE(sl.FromStatus)
 		if from == "" {
 			from = "—"
 		}
 		ts := sl.Timestamp.Format("02.01.2006 15:04")
 		f.CellFormat(sc1, 5, w1252(from), "0", 0, "L", false, 0, "")
-		f.CellFormat(sc2, 5, w1252(sl.ToStatus), "0", 0, "L", false, 0, "")
+		f.CellFormat(sc2, 5, w1252(statusDE(sl.ToStatus)), "0", 0, "L", false, 0, "")
 		f.CellFormat(sc3, 5, w1252(ts), "0", 0, "L", false, 0, "")
 		f.CellFormat(sc4, 5, w1252(sl.Reason), "0", 1, "L", false, 0, "")
 	}
