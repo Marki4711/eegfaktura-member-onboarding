@@ -681,7 +681,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
         {/* Address */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Adresse</CardTitle>
+            <CardTitle className="text-base">Adresse (Rechnungsadresse)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-3 gap-4">
