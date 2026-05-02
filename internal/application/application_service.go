@@ -425,23 +425,11 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID, consents []shared.C
 	now := time.Now()
 	oldStatus := string(app.Status)
 
-	if err = s.appRepo.UpdateStatus(id, shared.StatusSubmitted, &now); err != nil {
-		return nil, err
-	}
-
-	statusLog := &shared.StatusLogEntry{
-		ApplicationID: id,
-		FromStatus:    &oldStatus,
-		ToStatus:      string(shared.StatusSubmitted),
-		CreatedAt:     now,
-	}
-	if err = s.statusLogRepo.Create(statusLog); err != nil {
-		slog.Error("failed to create status log", "application_id", id, "error", err)
-	}
-
-	// Persist consent snapshots when provided.
+	// All DB mutations (status, status log, consents, member number) run in one transaction
+	// so a partial failure cannot leave the application in an inconsistent state.
+	var consentRows []shared.DocumentConsent
 	if len(consents) > 0 && s.consentRepo != nil {
-		consentRows := make([]shared.DocumentConsent, 0, len(consents))
+		consentRows = make([]shared.DocumentConsent, 0, len(consents))
 		for _, c := range consents {
 			consentRows = append(consentRows, shared.DocumentConsent{
 				ID:              uuid.New(),
@@ -452,30 +440,42 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID, consents []shared.C
 				ConsentedAt:     now,
 			})
 		}
-		tx, txErr := s.db.Begin()
-		if txErr == nil {
-			if txErr = s.consentRepo.CreateBulkTx(tx, consentRows); txErr != nil {
-				tx.Rollback()
-				slog.Error("failed to save consents", "application_id", id, "error", txErr)
-			} else {
-				tx.Commit()
-			}
-		} else {
-			slog.Error("failed to begin consent transaction", "application_id", id, "error", txErr)
+	}
+
+	tx, txErr := s.db.Begin()
+	if txErr != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", txErr)
+	}
+	defer tx.Rollback()
+
+	if err = s.appRepo.UpdateStatusTx(tx, id, shared.StatusSubmitted, &now); err != nil {
+		return nil, err
+	}
+
+	statusLog := &shared.StatusLogEntry{
+		ApplicationID: id,
+		FromStatus:    &oldStatus,
+		ToStatus:      string(shared.StatusSubmitted),
+		CreatedAt:     now,
+	}
+	if err = s.statusLogRepo.CreateTx(tx, statusLog); err != nil {
+		return nil, fmt.Errorf("failed to create status log: %w", err)
+	}
+
+	if len(consentRows) > 0 {
+		if err = s.consentRepo.CreateBulkTx(tx, consentRows); err != nil {
+			return nil, fmt.Errorf("failed to save consents: %w", err)
 		}
 	}
 
-	// Assign member number on first submission (draft → submitted).
 	if oldStatus == string(shared.StatusDraft) {
-		tx, txErr := s.db.Begin()
-		if txErr != nil {
-			slog.Error("member number: failed to begin tx", "application_id", id, "error", txErr)
-		} else if assignErr := s.appRepo.AssignMemberNumberTx(tx, id, app.RCNumber); assignErr != nil {
-			tx.Rollback()
-			slog.Error("member number: failed to assign", "application_id", id, "error", assignErr)
-		} else if commitErr := tx.Commit(); commitErr != nil {
-			slog.Error("member number: failed to commit", "application_id", id, "error", commitErr)
+		if err = s.appRepo.AssignMemberNumberTx(tx, id, app.RCNumber); err != nil {
+			return nil, fmt.Errorf("failed to assign member number: %w", err)
 		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	// Send submission emails only on first submission (draft → submitted).

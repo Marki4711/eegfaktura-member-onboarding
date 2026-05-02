@@ -68,6 +68,12 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
+	// In production, Keycloak must be configured — fail fast rather than serving
+	// admin routes unprotected when JWKSUrl is missing.
+	if os.Getenv("ENVIRONMENT") == "production" && cfg.Keycloak.JWKSUrl == "" {
+		log.Fatalf("KEYCLOAK_JWKS_URL must be set in production")
+	}
+
 	// Connect to database
 	db, err := sql.Open("postgres", cfg.Database.DSN())
 	if err != nil {

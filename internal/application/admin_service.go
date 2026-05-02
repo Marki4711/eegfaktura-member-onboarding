@@ -448,12 +448,19 @@ func (s *AdminApplicationService) ChangeStatus(id uuid.UUID, toStatus shared.App
 // or not found) are added to skipped instead of returning an error.
 // allowedRCNumbers may be nil (superuser — no restriction) or a non-nil slice
 // (tenant-admin — must match app.RCNumber).
+const bulkActionMaxIDs = 50
+
 func (s *AdminApplicationService) BulkChangeStatus(
 	ids []uuid.UUID,
 	toStatus shared.ApplicationStatus,
 	reason, actorID string,
 	allowedRCNumbers []string,
 ) (succeeded, skipped []uuid.UUID, err error) {
+	if len(ids) > bulkActionMaxIDs {
+		return nil, nil, shared.NewValidationError("Validation failed", map[string]string{
+			"ids": fmt.Sprintf("bulk action is limited to %d applications", bulkActionMaxIDs),
+		})
+	}
 	for _, id := range ids {
 		app, appErr := s.appRepo.GetByID(id)
 		if appErr != nil {

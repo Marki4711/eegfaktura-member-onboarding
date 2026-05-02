@@ -428,6 +428,20 @@ func (r *ApplicationRepository) UpdateStatus(id uuid.UUID, status shared.Applica
 	return nil
 }
 
+// UpdateStatusTx updates application status inside an existing transaction.
+func (r *ApplicationRepository) UpdateStatusTx(tx *sql.Tx, id uuid.UUID, status shared.ApplicationStatus, submittedAt *time.Time) error {
+	query := `
+		UPDATE member_onboarding.application SET
+			status = $1, submitted_at = $2, updated_at = NOW()
+		WHERE id = $3`
+
+	_, err := tx.Exec(query, status, submittedAt, id)
+	if err != nil {
+		return fmt.Errorf("failed to update application status: %w", err)
+	}
+	return nil
+}
+
 // List returns a paginated, filtered list of applications for the admin view.
 func (r *ApplicationRepository) List(filters ApplicationListFilters, page, pageSize int) ([]shared.ApplicationListItem, int, error) {
 	conditions := []string{}

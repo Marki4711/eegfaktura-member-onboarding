@@ -318,6 +318,11 @@ func (h *AdminHandler) UpdateApplication(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	if req.AdminNote != nil {
+		sanitized := h.sanitizer.Sanitize(*req.AdminNote)
+		req.AdminNote = &sanitized
+	}
+
 	resp, err := h.adminService.AdminUpdateApplication(id, req)
 	if err != nil {
 		h.handleServiceError(w, err)
