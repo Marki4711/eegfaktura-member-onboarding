@@ -24,7 +24,7 @@ Central tracking for all features.
 | PROJ-7 | Mitgliedstypen | Deployed | `features/PROJ-7-member-types.md` | 2026-04-20 |
 | PROJ-8 | Konfigurierbare Felder pro EEG | Deployed | `features/PROJ-8-configurable-fields.md` | 2026-04-21 |
 | PROJ-9 | EEG-spezifische Rechtsdokumente | Deployed | `features/PROJ-9-legal-documents.md` | 2026-04-21 |
-| PROJ-10 | Admin Notifications | Planned | `features/PROJ-10-admin-notifications.md` | 2026-04-22 |
+| PROJ-10 | Admin Notifications | On Hold | `features/PROJ-10-admin-notifications.md` | 2026-04-22 |
 | PROJ-11 | Konfigurierbarer Einleitungstext | Deployed | `features/PROJ-11-registration-intro-text.md` | 2026-04-23 |
 | PROJ-12 | SEPA-Lastschriftmandat PDF | Deployed | `features/PROJ-12-sepa-mandate-pdf.md` | 2026-04-23 |
 | PROJ-13 | Externe Registrierungs-API | Deployed | `features/PROJ-13-external-registration-api.md` | 2026-04-24 |
@@ -36,8 +36,8 @@ Central tracking for all features.
 | PROJ-19 | Manuelle Aktivierung der Registrierung | Deployed | `features/PROJ-19-registration-activation.md` | 2026-04-25 |
 | PROJ-20 | Vollständige Antragsdaten in EEG-Einreichungsbenachrichtigung | Deployed | `features/PROJ-20-submission-notification-extended.md` | 2026-04-26 |
 | PROJ-21 | Genehmigungs-Benachrichtigung mit Beitrittsbestätigung PDF | Deployed | `features/PROJ-21-approval-notification-pdf.md` | 2026-04-26 |
-| PROJ-22 | Tailwind CSS v3 → v4 Upgrade | Planned | `features/PROJ-22-tailwindcss-v4-upgrade.md` | 2026-04-26 |
-| PROJ-23 | Stammdaten-Import aus eegFaktura-Excel | Planned | `features/PROJ-23-stammdaten-import.md` | 2026-04-26 |
+| PROJ-22 | Tailwind CSS v3 → v4 Upgrade | On Hold | `features/PROJ-22-tailwindcss-v4-upgrade.md` | 2026-04-26 |
+| PROJ-23 | Stammdaten-Import aus eegFaktura-Excel | On Hold | `features/PROJ-23-stammdaten-import.md` | 2026-04-26 |
 | PROJ-24 | OpenAPI/Swagger Dokumentation | Deployed | `features/PROJ-24-openapi-documentation.md` | 2026-04-29 |
 | PROJ-25 | Bulk-Aktionen im Admin | Deployed | `features/PROJ-25-bulk-actions.md` | 2026-04-29 |
 

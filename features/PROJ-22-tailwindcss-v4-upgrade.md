@@ -1,8 +1,8 @@
 # PROJ-22: Tailwind CSS v3 → v4 Upgrade
 
-## Status: Planned
+## Status: On Hold
 **Created:** 2026-04-26
-**Last Updated:** 2026-04-26
+**Last Updated:** 2026-05-02
 
 ## Dependencies
 - Requires: stabiles Zeitfenster ohne parallele Frontend-Features

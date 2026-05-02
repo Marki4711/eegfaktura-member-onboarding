@@ -1,8 +1,8 @@
 # PROJ-10: Admin Notifications
 
-## Status: Planned
+## Status: On Hold
 **Created:** 2026-04-22
-**Last Updated:** 2026-04-22
+**Last Updated:** 2026-05-02
 
 ## Dependencies
 - Requires: PROJ-5 (Keycloak-secured Admin Area) — notifications are user-bound and tied to the authenticated admin identity

@@ -1,8 +1,8 @@
 # PROJ-23: Stammdaten-Import aus eegFaktura-Excel-Export
 
-## Status: Planned
+## Status: On Hold
 **Created:** 2026-04-26
-**Last Updated:** 2026-04-26
+**Last Updated:** 2026-05-02
 
 ## Dependencies
 - Requires: PROJ-3 (Admin Frontend UI) — Import-Button in bestehender EEG-Einstellungsseite
