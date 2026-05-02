@@ -1,8 +1,12 @@
 # PROJ-4: Core Import
 
-## Status: Architected
+## Status: On Hold
 **Created:** 2026-04-19
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-05-01
+
+> **Zurückgestellt.** Der direkte Core-Import wird aktuell nicht weiterverfolgt.
+> Der praktische Workaround ist der Excel-Export (PROJ-17), über den genehmigte
+> Anträge manuell in eegFaktura importiert werden können.
 
 ## Overview
 
