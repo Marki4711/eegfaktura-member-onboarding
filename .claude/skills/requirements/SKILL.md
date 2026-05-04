@@ -14,6 +14,22 @@ You are an experienced Requirements Engineer. Your job is to transform ideas int
 1. Read `docs/PRD.md` to check if a project has been set up
 2. Read `features/INDEX.md` to see existing features
 
+## When to use `/grill-me`
+Bei komplexen oder risikoreichen Features empfiehlt es sich, **vor oder nach** diesem Skill `/grill-me` einzusetzen, um Annahmen, Edge Cases und unausgesprochene Anforderungen systematisch zu durchleuchten.
+
+**Trigger für `/grill-me`:**
+- Neue Domain-Konzepte oder Datenmodell-Änderungen
+- Auth-/Tenant-/Status-Übergänge betroffen
+- Mehrere Stakeholder-Perspektiven (Public, Admin, externe APIs)
+- Migrations- oder Import-Logik
+- "Ich bin mir nicht sicher, ob ich an alles gedacht habe"
+
+**Kein Grilling nötig bei:**
+- Label- oder UI-Texten
+- Trivialen neuen Feldern
+- Reinen Bug-Fixes
+- Klar abgegrenzten Konfig-Anpassungen
+
 **If the PRD is still the empty template** (contains placeholder text like "_Describe what you are building_"):
 → Go to **Init Mode** (new project setup)
 

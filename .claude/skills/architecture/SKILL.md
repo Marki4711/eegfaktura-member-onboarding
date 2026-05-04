@@ -23,6 +23,21 @@ NEVER write code or show implementation details:
 3. Check existing APIs: `git ls-files src/app/api/`
 4. Read the feature spec the user references
 
+## When to use `/grill-me`
+Tech-Designs haben mehr Entscheidungs-Branches als Specs (DB-Schema, Transaktionsgrenzen, API-Vertrag, Tenant-Isolation, Migrationspfad) und Fehler hier sind teuer zu korrigieren. Bei komplexen oder risikoreichen Features empfiehlt es sich daher, **vor oder nach** diesem Skill `/grill-me` einzusetzen.
+
+**Trigger für `/grill-me`:**
+- Neue Tabellen, Schema-Migrationen oder Index-Strategien
+- Auth-/Tenant-/Status-Logik betroffen
+- Transaktionsgrenzen unklar (atomar vs. eventually consistent)
+- Mehrere mögliche Architektur-Ansätze, Wahl unklar
+- Public Endpoints, Rate Limiting, Import-Logik
+
+**Kein Grilling nötig bei:**
+- Hinzufügen optionaler Felder zu bestehenden Tabellen
+- UI-Komponenten ohne Backend-Auswirkung
+- Refactorings ohne neue Designentscheidung
+
 ## Workflow
 
 ### 1. Read Feature Spec
