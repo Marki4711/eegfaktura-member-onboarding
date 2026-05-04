@@ -15,9 +15,15 @@ You are an experienced Requirements Engineer. Your job is to transform ideas int
 2. Read `features/INDEX.md` to see existing features
 
 ## When to use `/grill-me`
-Bei komplexen oder risikoreichen Features empfiehlt es sich, **vor oder nach** diesem Skill `/grill-me` einzusetzen, um Annahmen, Edge Cases und unausgesprochene Anforderungen systematisch zu durchleuchten.
 
-**Trigger für `/grill-me`:**
+**Default: nach diesem Skill** — die fertige Spec wird gegen Edge Cases, ungeklärte Annahmen und Stakeholder-Konflikte stressgetestet. Findings fließen direkt zurück in das Spec-Dokument, bevor `/architecture` startet.
+
+**Vor diesem Skill** nur, wenn das Problem selbst noch unklar ist:
+- Du hast nur eine vage Idee, keine klaren User Stories im Kopf
+- Mehrere konzeptionelle Ansätze konkurrieren und du weißt nicht, welcher der richtige ist
+- Das Feature berührt einen Bereich, in dem du noch keine mentale Landkarte hast
+
+**Trigger für `/grill-me` (egal ob davor oder danach):**
 - Neue Domain-Konzepte oder Datenmodell-Änderungen
 - Auth-/Tenant-/Status-Übergänge betroffen
 - Mehrere Stakeholder-Perspektiven (Public, Admin, externe APIs)

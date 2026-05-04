@@ -24,13 +24,20 @@ NEVER write code or show implementation details:
 4. Read the feature spec the user references
 
 ## When to use `/grill-me`
-Tech-Designs haben mehr Entscheidungs-Branches als Specs (DB-Schema, Transaktionsgrenzen, API-Vertrag, Tenant-Isolation, Migrationspfad) und Fehler hier sind teuer zu korrigieren. Bei komplexen oder risikoreichen Features empfiehlt es sich daher, **vor oder nach** diesem Skill `/grill-me` einzusetzen.
 
-**Trigger für `/grill-me`:**
+Tech-Designs haben mehr Entscheidungs-Branches als Specs (DB-Schema, Transaktionsgrenzen, API-Vertrag, Tenant-Isolation, Migrationspfad), und Fehler hier sind teuer zu korrigieren.
+
+**Default: nach diesem Skill** — das fertige Tech-Design wird gegen Annahmen, Transaktionsgrenzen und Migrationsrisiken stressgetestet. Findings fließen direkt zurück in das Tech-Design, bevor `/backend` oder `/frontend` startet.
+
+**Vor diesem Skill** nur, wenn die Designrichtung selbst unklar ist:
+- Mehrere fundamental unterschiedliche Architektur-Ansätze konkurrieren
+- Unklar, ob es überhaupt ein Schema-Change braucht oder ob bestehende Strukturen reichen
+- Spec lässt mehrere gültige Designs zu und du willst die Wahl klären, bevor du eine Variante ausarbeitest
+
+**Trigger für `/grill-me` (egal ob davor oder danach):**
 - Neue Tabellen, Schema-Migrationen oder Index-Strategien
 - Auth-/Tenant-/Status-Logik betroffen
 - Transaktionsgrenzen unklar (atomar vs. eventually consistent)
-- Mehrere mögliche Architektur-Ansätze, Wahl unklar
 - Public Endpoints, Rate Limiting, Import-Logik
 
 **Kein Grilling nötig bei:**
