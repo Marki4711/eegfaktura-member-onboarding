@@ -40,5 +40,6 @@ Central tracking for all features.
 | PROJ-23 | Stammdaten-Import aus eegFaktura-Excel | On Hold | `features/PROJ-23-stammdaten-import.md` | 2026-04-26 |
 | PROJ-24 | OpenAPI/Swagger Dokumentation | Deployed | `features/PROJ-24-openapi-documentation.md` | 2026-04-29 |
 | PROJ-25 | Bulk-Aktionen im Admin | Deployed | `features/PROJ-25-bulk-actions.md` | 2026-04-29 |
+| PROJ-26 | Eigener Mailserver pro EEG | Planned | `features/PROJ-26-per-eeg-smtp-override.md` | 2026-05-08 |
 
-## Next Available ID: PROJ-26
+## Next Available ID: PROJ-27

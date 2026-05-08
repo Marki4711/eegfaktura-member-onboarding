@@ -44,6 +44,7 @@ Version 1 includes:
 | P2 | Externe Registrierungs-API | Planned | `features/PROJ-13-external-registration-api.md` |
 | P2 | Cloudflare Turnstile Spam-Schutz | Planned | `features/PROJ-16-turnstile-spam-protection.md` |
 | P2 | Stammdaten-Import aus eegFaktura-Excel | Planned | `features/PROJ-23-stammdaten-import.md` |
+| P2 | Eigener Mailserver pro EEG | Planned | `features/PROJ-26-per-eeg-smtp-override.md` |
 
 ## 5. Success Metrics
 
