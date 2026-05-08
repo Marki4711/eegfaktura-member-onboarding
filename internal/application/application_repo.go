@@ -634,6 +634,40 @@ func (r *ApplicationRepository) Delete(id uuid.UUID) error {
 	return nil
 }
 
+// ImportResultUpdate carries the fields written when an import attempt completes.
+// Pass nil for fields that should remain unchanged. status, importStartedAt and
+// importFinishedAt are always set.
+type ImportResultUpdate struct {
+	Status              shared.ApplicationStatus
+	ImportStartedAt     time.Time
+	ImportFinishedAt    time.Time
+	ImportedAt          *time.Time
+	TargetParticipantID *string
+	ImportErrorMessage  *string
+}
+
+// UpdateImportResultTx writes the outcome of one import attempt inside the
+// caller's transaction. Used by the import service (PROJ-4) to keep the
+// status update and the status_log insert atomic.
+func (r *ApplicationRepository) UpdateImportResultTx(tx *sql.Tx, id uuid.UUID, u ImportResultUpdate) error {
+	query := `
+		UPDATE member_onboarding.application SET
+			status                = $1,
+			import_started_at     = $2,
+			import_finished_at    = $3,
+			imported_at           = COALESCE($4, imported_at),
+			target_participant_id = COALESCE($5, target_participant_id),
+			import_error_message  = $6,
+			updated_at            = NOW()
+		WHERE id = $7`
+
+	_, err := tx.Exec(query, u.Status, u.ImportStartedAt, u.ImportFinishedAt, u.ImportedAt, u.TargetParticipantID, u.ImportErrorMessage, id)
+	if err != nil {
+		return fmt.Errorf("failed to update import result: %w", err)
+	}
+	return nil
+}
+
 func (r *ApplicationRepository) UpdateStatusAdminTx(
 	tx *sql.Tx,
 	id uuid.UUID,

@@ -41,8 +41,10 @@ import (
 
 	"github.com/your-org/eegfaktura-member-onboarding/internal/application"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/config"
+	"github.com/your-org/eegfaktura-member-onboarding/internal/coreclient"
 	_ "github.com/your-org/eegfaktura-member-onboarding/docs"
 	internalhttp "github.com/your-org/eegfaktura-member-onboarding/internal/http"
+	"github.com/your-org/eegfaktura-member-onboarding/internal/importing"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/mail"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/pdf"
 )
@@ -123,10 +125,19 @@ func main() {
 	applicationService := application.NewApplicationService(db, appRepo, meteringRepo, statusLogRepo, entrypointRepo, fieldConfigRepo, consentRepo, mailService, pdfGenerator)
 	adminService := application.NewAdminApplicationService(db, appRepo, meteringRepo, statusLogRepo, fieldConfigRepo, entrypointRepo, consentRepo, mailService, approvalPDFGenerator)
 
+	// PROJ-4: Core import. Disabled when CORE_BASE_URL is empty — the import
+	// endpoint then returns 503.
+	var importService *importing.ImportService
+	if cfg.Core.BaseURL != "" {
+		coreHTTPClient := coreclient.NewHTTPCoreClient(cfg.Core.BaseURL, time.Duration(cfg.Core.TimeoutSeconds)*time.Second)
+		importService = importing.NewImportService(db, appRepo, meteringRepo, statusLogRepo, coreHTTPClient)
+		slog.Info("core import enabled", "core_base_url", cfg.Core.BaseURL)
+	}
+
 	// Initialize handlers
 	registrationHandler := internalhttp.NewRegistrationHandler(registrationService)
 	applicationHandler := internalhttp.NewApplicationHandler(applicationService, cfg.Turnstile.SecretKey)
-	adminHandler := internalhttp.NewAdminHandler(adminService, entrypointRepo, apiKeyRepo, legalDocumentRepo)
+	adminHandler := internalhttp.NewAdminHandler(adminService, entrypointRepo, apiKeyRepo, legalDocumentRepo, importService)
 	externalHandler := internalhttp.NewExternalHandler(applicationService)
 	healthHandler := internalhttp.NewHealthHandler(db)
 
@@ -181,6 +192,7 @@ func main() {
 				r.Post("/resend-confirmation", adminHandler.ResendMemberConfirmation)
 				r.Get("/export/excel", adminHandler.ExportApplicationExcel)
 				r.Get("/approval-pdf", adminHandler.DownloadApprovalPDF)
+				r.Post("/import", adminHandler.ImportApplication)
 			})
 		})
 		r.Route("/settings", func(r chi.Router) {

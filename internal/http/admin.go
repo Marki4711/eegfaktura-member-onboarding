@@ -16,6 +16,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 
 	"github.com/your-org/eegfaktura-member-onboarding/internal/application"
+	"github.com/your-org/eegfaktura-member-onboarding/internal/importing"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/shared"
 )
 
@@ -25,16 +26,19 @@ type AdminHandler struct {
 	entrypointRepo    *application.RegistrationEntrypointRepository
 	apiKeyRepo        *application.ExternalAPIKeyRepository
 	legalDocumentRepo *application.LegalDocumentRepository
+	importService     *importing.ImportService
 	validate          *validator.Validate
 	sanitizer         *bluemonday.Policy
 }
 
-// NewAdminHandler creates a new AdminHandler.
+// NewAdminHandler creates a new AdminHandler. importService may be nil when
+// CORE_BASE_URL is not configured — the import endpoint then returns 503.
 func NewAdminHandler(
 	adminService *application.AdminApplicationService,
 	entrypointRepo *application.RegistrationEntrypointRepository,
 	apiKeyRepo *application.ExternalAPIKeyRepository,
 	legalDocumentRepo *application.LegalDocumentRepository,
+	importService *importing.ImportService,
 ) *AdminHandler {
 	p := bluemonday.NewPolicy()
 	p.AllowElements("p", "br", "strong", "b", "em", "i", "ul", "ol", "li")
@@ -45,6 +49,7 @@ func NewAdminHandler(
 		entrypointRepo:    entrypointRepo,
 		apiKeyRepo:        apiKeyRepo,
 		legalDocumentRepo: legalDocumentRepo,
+		importService:     importService,
 		validate:          validator.New(),
 		sanitizer:         p,
 	}
@@ -642,6 +647,98 @@ func (h *AdminHandler) DownloadApprovalPDF(w http.ResponseWriter, r *http.Reques
 	w.Header().Set("Content-Disposition", `attachment; filename="`+filename+`"`)
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
+}
+
+// ImportApplication handles POST /api/admin/applications/{id}/import
+//
+// @Summary      Import an approved application into eegFaktura core
+// @Description  Triggers a synchronous import of an approved application into the eegFaktura core service. On success, the application transitions to status `imported` and `targetParticipantId` is populated. On failure, the status is set to `import_failed` and the error is recorded.
+// @Tags         Admin
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id   path  string  true  "Application UUID"
+// @Success      200  {object}  map[string]interface{}  "Import succeeded"
+// @Failure      400  {object}  shared.ErrorResponse  "Application has no metering points"
+// @Failure      401  {object}  shared.ErrorResponse
+// @Failure      403  {object}  shared.ErrorResponse  "Tenant mismatch"
+// @Failure      404  {object}  shared.ErrorResponse
+// @Failure      409  {object}  shared.ErrorResponse  "Application not in approved status"
+// @Failure      500  {object}  shared.ErrorResponse  "Core service error or DB error"
+// @Failure      503  {object}  shared.ErrorResponse  "Core service not configured"
+// @Router       /api/admin/applications/{id}/import [post]
+func (h *AdminHandler) ImportApplication(w http.ResponseWriter, r *http.Request) {
+	if h.importService == nil {
+		h.writeJSON(w, http.StatusServiceUnavailable, shared.ErrorResponse{
+			Code:    "service_unavailable",
+			Message: "Import endpoint not configured (CORE_BASE_URL is empty).",
+		})
+		return
+	}
+
+	id, err := h.parseID(w, r)
+	if err != nil {
+		return
+	}
+
+	if !h.checkTenantAccess(w, r, id) {
+		return
+	}
+
+	bearerToken := extractBearerToken(r)
+	if bearerToken == "" {
+		// Dev mode without Keycloak: forwarding to the core would fail anyway,
+		// because the core enforces JWT auth. Reject early with a clear message.
+		h.writeJSON(w, http.StatusServiceUnavailable, shared.ErrorResponse{
+			Code:    "service_unavailable",
+			Message: "Import requires an authenticated admin session (Keycloak).",
+		})
+		return
+	}
+
+	var actorID string
+	if claims := ClaimsFromContext(r.Context()); claims != nil {
+		actorID = claims.Subject
+	}
+
+	result, err := h.importService.Import(r.Context(), id, bearerToken, actorID)
+	if err != nil {
+		// Pre-import errors (404, 409, 400) — application untouched.
+		switch e := err.(type) {
+		case shared.ValidationError, shared.ConflictError:
+			h.handleServiceError(w, err)
+			return
+		default:
+			_ = e
+			if err == shared.ErrNotFound || err == shared.ErrConflict {
+				h.handleServiceError(w, err)
+				return
+			}
+		}
+
+		// Core or bookkeeping failure: result may carry the persisted outcome.
+		if result != nil && result.Status == shared.StatusImportFailed {
+			slog.Error("import: core call failed", "application_id", id, "error", err)
+			h.writeJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"success":       false,
+				"applicationId": id,
+				"status":        string(result.Status),
+				"message":       result.ErrorMessage,
+			})
+			return
+		}
+
+		slog.Error("import: unexpected error", "application_id", id, "error", err)
+		h.writeError(w, shared.NewErrorResponse(shared.ErrInternal))
+		return
+	}
+
+	slog.Info("admin: application imported", "application_id", id, "target_participant_id", result.TargetParticipantID, "user_id", actorID)
+	h.writeJSON(w, http.StatusOK, map[string]interface{}{
+		"success":             true,
+		"applicationId":       result.ApplicationID,
+		"status":              string(result.Status),
+		"targetParticipantId": result.TargetParticipantID,
+	})
 }
 
 // GetIntroText handles GET /api/admin/settings/intro-text?rc_number=...

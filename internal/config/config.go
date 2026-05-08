@@ -17,7 +17,16 @@ type Config struct {
 	Keycloak      KeycloakConfig
 	Turnstile     TurnstileConfig
 	CentralPolicy CentralPolicyConfig
+	Core          CoreConfig
 	AdminBaseURL  string
+}
+
+// CoreConfig holds connection settings for the eegFaktura core service used by
+// the import endpoint (PROJ-4). When BaseURL is empty, the import feature is
+// disabled and the endpoint returns 503.
+type CoreConfig struct {
+	BaseURL        string
+	TimeoutSeconds int
 }
 
 // CentralPolicyConfig holds title and URL of the operator's central privacy policy.
@@ -108,6 +117,10 @@ func Load() (*Config, error) {
 		CentralPolicy: CentralPolicyConfig{
 			Title: getEnv("CENTRAL_POLICY_TITLE", "Datenschutzerklärung"),
 			URL:   getEnv("CENTRAL_POLICY_URL", ""),
+		},
+		Core: CoreConfig{
+			BaseURL:        getEnv("CORE_BASE_URL", ""),
+			TimeoutSeconds: getIntEnv("CORE_TIMEOUT_SECONDS", 30),
 		},
 		AdminBaseURL: getEnv("ADMIN_BASE_URL", ""),
 	}
