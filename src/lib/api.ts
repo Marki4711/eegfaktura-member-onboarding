@@ -454,6 +454,22 @@ export function changeApplicationStatus(
   );
 }
 
+export interface ImportResponse {
+  success: boolean;
+  applicationId: string;
+  status: ApplicationStatus;
+  targetParticipantId?: string;
+  message?: string;
+}
+
+export function importApplication(id: string, token?: string): Promise<ImportResponse> {
+  return adminRequest<ImportResponse>(
+    `/api/admin/applications/${id}/import`,
+    token,
+    { method: "POST" }
+  );
+}
+
 export function syncEntrypoints(token?: string): Promise<void> {
   return adminRequest<void>("/api/admin/sync", token, { method: "POST" });
 }

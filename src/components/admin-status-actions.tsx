@@ -13,23 +13,22 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { changeApplicationStatus, ApiResponseError } from "@/lib/api";
+import { changeApplicationStatus, importApplication, ApiResponseError } from "@/lib/api";
 import type { ApplicationStatus } from "@/lib/api";
 
 interface Props {
   applicationId: string;
   status: ApplicationStatus;
+  targetParticipantId?: string | null;
+  importErrorMessage?: string | null;
   onRefresh: () => void;
 }
 
 type DialogTarget = "rejected" | "needs_info";
 
 const STATIC_NOTES: Partial<Record<ApplicationStatus, string>> = {
-  draft:         "Antrag noch nicht eingereicht. Keine Admin-Aktionen verfügbar.",
-  approved:      "Antrag genehmigt — Import über PROJ-4 verfügbar.",
-  rejected:      "Antrag abgelehnt. Keine weiteren Aktionen verfügbar.",
-  imported:      "Antrag wurde erfolgreich importiert.",
-  import_failed: "Import fehlgeschlagen — Reset über PROJ-4 verfügbar.",
+  draft:    "Antrag noch nicht eingereicht. Keine Admin-Aktionen verfügbar.",
+  rejected: "Antrag abgelehnt. Keine weiteren Aktionen verfügbar.",
 };
 
 const DIALOG_LABELS: Record<DialogTarget, { title: string; placeholder: string; confirm: string }> = {
@@ -37,7 +36,7 @@ const DIALOG_LABELS: Record<DialogTarget, { title: string; placeholder: string; 
   needs_info: { title: "Informationen anfordern", placeholder: "Welche Informationen werden benötigt?", confirm: "Anforderung senden" },
 };
 
-export function AdminStatusActions({ applicationId, status, onRefresh }: Props) {
+export function AdminStatusActions({ applicationId, status, targetParticipantId, importErrorMessage, onRefresh }: Props) {
   const { data: session } = useSession();
   const [dialogTarget, setDialogTarget] = useState<DialogTarget | null>(null);
   const [reason, setReason] = useState("");
@@ -72,6 +71,27 @@ export function AdminStatusActions({ applicationId, status, onRefresh }: Props) 
       onRefresh();
     } catch (err: unknown) {
       handleActionError(err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function triggerImport() {
+    if (!confirm("Diesen Antrag jetzt in eegFaktura importieren?")) return;
+    setLoading(true);
+    setError(null);
+    setIsConflict(false);
+    try {
+      const res = await importApplication(applicationId, session?.accessToken);
+      toast.success(`Import erfolgreich (Participant-ID: ${res.targetParticipantId ?? "—"})`);
+      onRefresh();
+    } catch (err: unknown) {
+      if (err instanceof ApiResponseError) {
+        setError(err.apiError.message || "Import fehlgeschlagen.");
+      } else {
+        setError(err instanceof Error ? err.message : "Import fehlgeschlagen.");
+      }
+      onRefresh();
     } finally {
       setLoading(false);
     }
@@ -157,7 +177,47 @@ export function AdminStatusActions({ applicationId, status, onRefresh }: Props) 
             {loading ? "Bitte warten..." : "Erneut einreichen"}
           </Button>
         )}
+
+        {status === "approved" && (
+          <Button onClick={triggerImport} disabled={loading}>
+            {loading ? "Import läuft..." : "In eegFaktura importieren"}
+          </Button>
+        )}
+
+        {status === "import_failed" && (
+          <>
+            <Button onClick={triggerImport} disabled={loading}>
+              {loading ? "Import läuft..." : "Import erneut versuchen"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => directAction("approved")}
+              disabled={loading}
+            >
+              Auf "Genehmigt" zurücksetzen
+            </Button>
+          </>
+        )}
       </div>
+
+      {status === "imported" && (
+        <div className="text-sm space-y-1">
+          <p className="text-muted-foreground italic">Antrag wurde erfolgreich importiert.</p>
+          {targetParticipantId && (
+            <p>
+              <span className="text-muted-foreground">Participant-ID im Core: </span>
+              <code className="font-mono">{targetParticipantId}</code>
+            </p>
+          )}
+        </div>
+      )}
+
+      {status === "import_failed" && importErrorMessage && (
+        <div className="mt-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm">
+          <p className="font-medium text-destructive">Letzter Import fehlgeschlagen:</p>
+          <p className="mt-1 break-words text-destructive/90">{importErrorMessage}</p>
+        </div>
+      )}
 
       {error && (
         <div className="mt-2 space-y-1">
