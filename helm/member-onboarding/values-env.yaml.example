@@ -96,7 +96,9 @@ backend:
   # Leer lassen = Import-Endpoint deaktiviert (Aufruf liefert 503).
   # Wenn gesetzt: Backend ruft <coreBaseUrl>/participant auf, mit dem Bearer-JWT
   # des angemeldeten Admins und dem tenant-Header (RC-Nummer).
-  coreBaseUrl: "https://eegfaktura-core.example.at"
+  # Achtung: Pfad-Präfix (typischerweise /api) gehört in die URL — die deployten
+  # eegFaktura-Cores stehen i.d.R. hinter einem Reverse-Proxy unter /api/*.
+  coreBaseUrl: "https://eegfaktura.example.at/api"
   coreTimeoutSeconds: 30
 
 # ── Seed data ──────────────────────────────────────────────────────────────────

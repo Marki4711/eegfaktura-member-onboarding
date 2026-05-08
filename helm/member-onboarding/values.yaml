@@ -70,7 +70,8 @@ backend:
   centralPolicyUrl: "" # Optional: absolute URL zur Datenschutzerklärung (z.B. https://onboarding.example.at/datenschutz)
   # Leer lassen = internes /datenschutz wird verlinkt
   # eegFaktura Core service (PROJ-4 Import). Leer = Import-Endpoint disabled (503).
-  coreBaseUrl: "" # z.B. https://eegfaktura-core.example.at
+  # Pfad-Präfix (typischerweise /api) gehört in die URL.
+  coreBaseUrl: "" # z.B. https://eegfaktura.example.at/api
   coreTimeoutSeconds: 30
 # ── Seed data ──────────────────────────────────────────────────────────────────
 seed:
