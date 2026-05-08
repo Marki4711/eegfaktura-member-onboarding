@@ -79,6 +79,10 @@ spec:
               value: {{ .Values.backend.centralPolicyTitle | quote }}
             - name: CENTRAL_POLICY_URL
               value: {{ .Values.backend.centralPolicyUrl | quote }}
+            - name: CORE_BASE_URL
+              value: {{ .Values.backend.coreBaseUrl | quote }}
+            - name: CORE_TIMEOUT_SECONDS
+              value: {{ .Values.backend.coreTimeoutSeconds | default 30 | quote }}
           resources:
             {{- toYaml .Values.backend.resources | nindent 12 }}
           readinessProbe:

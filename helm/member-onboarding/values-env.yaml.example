@@ -92,6 +92,13 @@ backend:
   #   # Pflichtfeld wenn host gesetzt — Absenderadresse
   #   from: noreply@example.com
 
+  # eegFaktura Core Service (PROJ-4 Import)
+  # Leer lassen = Import-Endpoint deaktiviert (Aufruf liefert 503).
+  # Wenn gesetzt: Backend ruft <coreBaseUrl>/participant auf, mit dem Bearer-JWT
+  # des angemeldeten Admins und dem tenant-Header (RC-Nummer).
+  coreBaseUrl: "https://eegfaktura-core.example.at"
+  coreTimeoutSeconds: 30
+
 # ── Seed data ──────────────────────────────────────────────────────────────────
 # Wird einmalig als post-install Hook ausgeführt.
 # Legt einen initialen Registrierungseinstiegspunkt an.
