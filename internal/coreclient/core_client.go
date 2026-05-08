@@ -113,6 +113,13 @@ func (c *HTTPCoreClient) CreateParticipant(ctx context.Context, payload any, bea
 		return "", &CoreHTTPError{StatusCode: resp.StatusCode, Body: truncate(string(respBody), 1000)}
 	}
 
+	// Detect non-JSON responses early. The most common misconfiguration is that
+	// CORE_BASE_URL points at a frontend / SPA that returns index.html with a
+	// 200, or at an auth proxy that returns an HTML login page.
+	if isHTMLResponse(resp.Header.Get("Content-Type"), respBody) {
+		return "", &CoreParseError{Detail: "core returned HTML instead of JSON — CORE_BASE_URL likely points to a frontend or auth proxy, not the API endpoint"}
+	}
+
 	var parsed struct {
 		ID string `json:"id"`
 	}
@@ -123,6 +130,26 @@ func (c *HTTPCoreClient) CreateParticipant(ctx context.Context, payload any, bea
 		return "", &CoreParseError{Detail: "response missing id field"}
 	}
 	return parsed.ID, nil
+}
+
+// isHTMLResponse returns true when the response body is HTML rather than JSON.
+// We check both the Content-Type header (when present) and the first
+// non-whitespace byte (since some misconfigured servers send no Content-Type).
+func isHTMLResponse(contentType string, body []byte) bool {
+	if strings.Contains(strings.ToLower(contentType), "text/html") {
+		return true
+	}
+	for _, b := range body {
+		switch b {
+		case ' ', '\t', '\r', '\n':
+			continue
+		case '<':
+			return true
+		default:
+			return false
+		}
+	}
+	return false
 }
 
 func truncate(s string, max int) string {

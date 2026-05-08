@@ -95,6 +95,40 @@ func TestCreateParticipant_MissingID(t *testing.T) {
 	}
 }
 
+func TestCreateParticipant_HTMLResponse(t *testing.T) {
+	cases := []struct {
+		name        string
+		contentType string
+		body        string
+	}{
+		{"explicit html content-type", "text/html; charset=utf-8", `{"id":"x"}`},
+		{"sniff html body without content-type", "", "<!DOCTYPE html><html><body>login</body></html>"},
+		{"sniff html with leading whitespace", "", "  \n<html></html>"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if tc.contentType != "" {
+					w.Header().Set("Content-Type", tc.contentType)
+				}
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(tc.body))
+			}))
+			defer srv.Close()
+
+			c := NewHTTPCoreClient(srv.URL, 5*time.Second)
+			_, err := c.CreateParticipant(context.Background(), struct{}{}, "tok", "RC")
+			var parseErr *CoreParseError
+			if !errors.As(err, &parseErr) {
+				t.Fatalf("expected *CoreParseError, got %T (%v)", err, err)
+			}
+			if !strings.Contains(parseErr.Detail, "HTML instead of JSON") {
+				t.Errorf("expected HTML hint in error, got %q", parseErr.Detail)
+			}
+		})
+	}
+}
+
 func TestCreateParticipant_NotConfigured(t *testing.T) {
 	c := NewHTTPCoreClient("", 5*time.Second)
 	_, err := c.CreateParticipant(context.Background(), struct{}{}, "tok", "RC")
