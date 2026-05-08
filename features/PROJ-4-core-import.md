@@ -155,7 +155,7 @@ This feature covers the full V1 import flow: trigger, payload assembly, core ser
 - Applications with up to 10 metering points must be handled correctly. The full metering point list is always fetched before building the payload.
 
 ### Concurrent import attempts
-- Two requests targeting the same application simultaneously: one will proceed and the other will receive a 409 after the first has updated the status. No mechanism for optimistic locking beyond the existing `updated_at` approach.
+- Two requests targeting the same application simultaneously are serialized through `ApplicationRepository.MarkImportInFlight`. Before calling the core, the import service performs a conditional UPDATE that matches `status='approved'` AND no other attempt is in-flight (`import_started_at IS NULL OR import_finished_at IS NOT NULL`). The winning request persists `import_started_at` and clears `import_finished_at`, marking the slot busy. The losing request's UPDATE matches zero rows and the service returns 409 ("another import is already in progress for this application"). The marker is cleared by `persistResult` writing `import_finished_at` together with the final status.
 
 ---
 

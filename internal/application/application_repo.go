@@ -634,6 +634,35 @@ func (r *ApplicationRepository) Delete(id uuid.UUID) error {
 	return nil
 }
 
+// MarkImportInFlight reserves an application for an in-flight import attempt.
+// It is the concurrency gate for PROJ-4: only one import per application may
+// run at a time. The conditional UPDATE matches when status='approved' AND
+// the row is not already in-flight (in-flight = started_at NOT NULL AND
+// finished_at NULL). On match it writes import_started_at and clears
+// import_finished_at; the caller can then safely call the core. Returns
+// (true, nil) when the slot was reserved, (false, nil) when another attempt
+// holds it or the status changed.
+func (r *ApplicationRepository) MarkImportInFlight(id uuid.UUID, startedAt time.Time) (bool, error) {
+	const query = `
+		UPDATE member_onboarding.application
+		SET import_started_at = $1,
+		    import_finished_at = NULL,
+		    updated_at = NOW()
+		WHERE id = $2
+		  AND status = 'approved'
+		  AND (import_started_at IS NULL OR import_finished_at IS NOT NULL)`
+
+	result, err := r.db.Exec(query, startedAt, id)
+	if err != nil {
+		return false, fmt.Errorf("failed to mark import in-flight: %w", err)
+	}
+	n, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("failed to read rows affected: %w", err)
+	}
+	return n == 1, nil
+}
+
 // ImportResultUpdate carries the fields written when an import attempt completes.
 // Pass nil for fields that should remain unchanged. status, importStartedAt and
 // importFinishedAt are always set.

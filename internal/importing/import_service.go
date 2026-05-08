@@ -53,16 +53,22 @@ type ImportResult struct {
 
 // Import runs one import attempt for the application identified by id.
 // bearerToken is the caller's Keycloak JWT, forwarded to the core. actorID is
-// the admin's username/sub used in the status_log entry.
+// the admin's username/sub used in the status_log entry. allowedTenants is
+// the verified set of RC numbers the caller is allowed to act on, or nil for
+// superusers (no tenant restriction). It is asserted as defense-in-depth on
+// top of the handler-level tenant check.
 //
 // Pre-import validation errors (wrong status, no metering points) are returned
 // as typed shared errors and the application is left untouched. Core failures
 // transition the application into import_failed and return a wrapped error so
 // the handler can render a 500 with the stored error message.
-func (s *ImportService) Import(ctx context.Context, id uuid.UUID, bearerToken, actorID string) (*ImportResult, error) {
+func (s *ImportService) Import(ctx context.Context, id uuid.UUID, bearerToken, actorID string, allowedTenants []string) (*ImportResult, error) {
 	app, err := s.appRepo.GetByID(id)
 	if err != nil {
 		return nil, err
+	}
+	if allowedTenants != nil && !containsString(allowedTenants, app.RCNumber) {
+		return nil, shared.ErrForbidden
 	}
 	if app.Status != shared.StatusApproved {
 		return nil, shared.NewConflictError(
@@ -81,6 +87,19 @@ func (s *ImportService) Import(ctx context.Context, id uuid.UUID, bearerToken, a
 	}
 
 	importStartedAt := time.Now()
+
+	// Reserve the in-flight slot before calling the core. This both persists
+	// import_started_at (so a crashed/timed-out attempt leaves a trail) and
+	// prevents a concurrent request from triggering a duplicate participant
+	// in the non-idempotent core. If we lose the race, return 409.
+	reserved, err := s.appRepo.MarkImportInFlight(id, importStartedAt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to reserve import slot: %w", err)
+	}
+	if !reserved {
+		return nil, shared.NewConflictError("another import is already in progress for this application")
+	}
+
 	payload := BuildPayload(app, meteringPoints, importStartedAt)
 
 	participantID, coreErr := s.coreClient.CreateParticipant(ctx, payload, bearerToken, app.RCNumber)
@@ -155,6 +174,15 @@ func (s *ImportService) persistResult(id uuid.UUID, fromStatus shared.Applicatio
 		return fmt.Errorf("failed to commit import-result transaction: %w", err)
 	}
 	return nil
+}
+
+func containsString(haystack []string, needle string) bool {
+	for _, s := range haystack {
+		if s == needle {
+			return true
+		}
+	}
+	return false
 }
 
 // normalizeError converts a coreclient error into a human-readable string for

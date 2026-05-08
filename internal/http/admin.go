@@ -696,11 +696,15 @@ func (h *AdminHandler) ImportApplication(w http.ResponseWriter, r *http.Request)
 	}
 
 	var actorID string
+	var allowedTenants []string
 	if claims := ClaimsFromContext(r.Context()); claims != nil {
 		actorID = claims.Subject
+		if !claims.IsSuperuser() {
+			allowedTenants = []string(claims.Tenant)
+		}
 	}
 
-	result, err := h.importService.Import(r.Context(), id, bearerToken, actorID)
+	result, err := h.importService.Import(r.Context(), id, bearerToken, actorID, allowedTenants)
 	if err != nil {
 		// Pre-import errors (404, 409, 400) — application untouched.
 		switch e := err.(type) {
