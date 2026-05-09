@@ -40,7 +40,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@supabase/supabase-js": "^2.39.3",
     "@tiptap/extension-link": "^3.22.4",
-    "@tiptap/react": "^3.22.4",
+    "@tiptap/react": "^3.23.1",
     "@tiptap/starter-kit": "^3.22.4",
     "@types/dompurify": "^3.2.0",
     "class-variance-authority": "^0.7.1",
