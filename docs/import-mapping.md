@@ -81,7 +81,7 @@ These fields are not managed in onboarding but are set technically during import
 | `meters[].processState` | `NEW` | technical default |
 | `meters[].participantId` | empty | set after core creation |
 | `meters[].registeredSince` | current import timestamp | set technically |
-| `meters[].partFact` | `100` | from `metering_point.participation_factor`; the deployed core maps JSON `partFact` to DB column `base.meteringpoint.allocation_factor` |
+| `meters[].partFact` | `100` | Teilnahmefaktor in % from `metering_point.participation_factor`; this is the value the eegFaktura UI's "Teilnehmer Faktor" input shows |
 | `meters[].participantState` | `{}` or core default | to be confirmed with core |
 
 ---
@@ -191,7 +191,7 @@ PROJ-4 end-to-end test and from `eegfaktura/eegfaktura-backend` source.
 | 3 | May `accountInfo` fields be empty? | Yes. `BankInfo.Iban` and `Owner` are `null.String` on the core model. |
 | 4 | Are `meters[].gridOperatorName/Id` required? | **Not on the meter.** They live on the `Eeg` entity and are looked up server-side via the `tenant` HTTP header. Onboarding sends nothing. |
 | 5 | Must `participantState` be provided? | No. The core's `RegisterParticipant` overwrites the participant `status` to `PENDING` regardless of input. We send `"NEW"` for symmetry; it is ignored. |
-| 6 | Is the Teilnahmefaktor required? | **JSON field is `partFact`** (deployed core maps it onto DB column `base.meteringpoint.allocation_factor`). We send `metering_point.participation_factor` (defaults to 100). NB: `allocation_factor` is the *clearing/distribution* factor in the core's storage; the eegFaktura UI's "Teilnehmer Faktor in %" input field reads its value from a separate path (EDA-registration / participantState, set via `PUT /meteringpoint/{pid}/update/{meter}/partfact`) — populating `allocation_factor` alone does NOT make the UI input show the value. |
+| 6 | Is the Teilnahmefaktor required? | **Yes — JSON field is `partFact`** in the participant payload. We send `metering_point.participation_factor` (defaults to 100). The deployed core stores it and the eegFaktura UI's "Teilnehmer Faktor in %" reads it back via the GET response. NB: the GET response also exposes a separate `allocationFactor` field (DB column `base.meteringpoint.allocation_factor`) — that's the clearing/distribution factor, not the UI input field, and we do not populate it on import. |
 | 7 | Is `processState` required on meter? | Yes, must be `"NEW"` on import. Confirmed from `eegfaktura-web/src/models/meteringpoint.model.ts` (`MeteringProcessStateType`). |
 
 Additional findings:
