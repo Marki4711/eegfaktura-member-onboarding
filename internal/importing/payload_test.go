@@ -121,6 +121,70 @@ func TestBuildPayload_OptionalFields(t *testing.T) {
 	}
 }
 
+func TestBuildPayload_NonPrivateMemberUsesCompanyNameInFirstNameOnly(t *testing.T) {
+	app := &shared.Application{
+		Email:                "office@stnikolaus.example",
+		ResidentStreet:       "S",
+		ResidentStreetNumber: "1",
+		ResidentZip:          "1",
+		ResidentCity:         "C",
+		MemberType:           shared.MemberTypeMunicipality,
+		Firstname:            nil, // not collected for company-type members
+		Lastname:             nil,
+		CompanyName:          strPtr("Gemeinde St. Nikolaus"),
+	}
+
+	got := BuildPayload(app, nil, time.Now())
+
+	if got.FirstName != "Gemeinde St. Nikolaus" {
+		t.Errorf("FirstName = %q, want %q (mapped from companyName)", got.FirstName, "Gemeinde St. Nikolaus")
+	}
+	if got.LastName != "" {
+		t.Errorf("LastName = %q, want empty (eegFaktura convention: company name only in firstName)", got.LastName)
+	}
+}
+
+func TestBuildPayload_PrivateMemberKeepsRealName(t *testing.T) {
+	app := &shared.Application{
+		Email:                "anna@example.com",
+		ResidentStreet:       "S",
+		ResidentStreetNumber: "1",
+		ResidentZip:          "1",
+		ResidentCity:         "C",
+		MemberType:           shared.MemberTypePrivate,
+		Firstname:            strPtr("Anna"),
+		Lastname:             strPtr("Beispiel"),
+		CompanyName:          strPtr("ignored for private members"),
+	}
+
+	got := BuildPayload(app, nil, time.Now())
+
+	if got.FirstName != "Anna" || got.LastName != "Beispiel" {
+		t.Errorf("private member name not preserved: got %q %q", got.FirstName, got.LastName)
+	}
+}
+
+func TestBuildPayload_NonPrivateWithContactPerson(t *testing.T) {
+	// If onboarding collected a contact person for a company, keep it.
+	app := &shared.Application{
+		Email:                "x@example.com",
+		ResidentStreet:       "S",
+		ResidentStreetNumber: "1",
+		ResidentZip:          "1",
+		ResidentCity:         "C",
+		MemberType:           shared.MemberTypeCompany,
+		Firstname:            strPtr("Harald"),
+		Lastname:             strPtr("Geissler"),
+		CompanyName:          strPtr("Acme GmbH"),
+	}
+
+	got := BuildPayload(app, nil, time.Now())
+
+	if got.FirstName != "Harald" || got.LastName != "Geissler" {
+		t.Errorf("contact person should be preserved: got %q %q", got.FirstName, got.LastName)
+	}
+}
+
 func TestBuildPayload_NilOptionalsAreEmpty(t *testing.T) {
 	app := &shared.Application{
 		Email:                "x@example.com",
