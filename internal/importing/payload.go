@@ -64,7 +64,7 @@ type CoreMeteringPoint struct {
 	Direction       string    `json:"direction"`
 	Status          string    `json:"status"`
 	ProcessState    string    `json:"processState"`
-	PartFact        int       `json:"partFact"`
+	AllocationFactor int      `json:"allocationFactor"`
 	EquipmentNumber string    `json:"equipmentNumber,omitempty"`
 	EquipmentName   string    `json:"equipmentName,omitempty"`
 	InverterID      string    `json:"inverterId,omitempty"`
@@ -96,7 +96,7 @@ func BuildPayload(app *shared.Application, meteringPoints []shared.MeteringPoint
 			Direction:       mapMeterDirection(mp.Direction),
 			Status:          "INIT",
 			ProcessState:    "NEW",
-			PartFact:        mp.ParticipationFactor,
+			AllocationFactor: mp.ParticipationFactor,
 			Street:          app.ResidentStreet,
 			StreetNumber:    app.ResidentStreetNumber,
 			City:            app.ResidentCity,

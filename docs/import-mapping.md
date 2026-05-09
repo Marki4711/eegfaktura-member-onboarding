@@ -81,7 +81,7 @@ These fields are not managed in onboarding but are set technically during import
 | `meters[].processState` | `NEW` | technical default |
 | `meters[].participantId` | empty | set after core creation |
 | `meters[].registeredSince` | current import timestamp | set technically |
-| `meters[].partFact` | `100` | technical default, if required |
+| `meters[].allocationFactor` | `100` | Teilnahmefaktor in %; from `metering_point.participation_factor` (column `allocation_factor` on the core's `base.meteringpoint`) |
 | `meters[].participantState` | `{}` or core default | to be confirmed with core |
 
 ---
@@ -163,7 +163,7 @@ These fields are added directly in eegFaktura after import or set by core defaul
       "registeredSince": "2026-04-18T12:00:00Z",
       "gridOperatorName": "",
       "gridOperatorId": "",
-      "partFact": 100,
+      "allocationFactor": 100,
       "tariff_id": null,
       "street": "Musterstraße",
       "streetNumber": "2",
@@ -191,7 +191,7 @@ PROJ-4 end-to-end test and from `eegfaktura/eegfaktura-backend` source.
 | 3 | May `accountInfo` fields be empty? | Yes. `BankInfo.Iban` and `Owner` are `null.String` on the core model. |
 | 4 | Are `meters[].gridOperatorName/Id` required? | **Not on the meter.** They live on the `Eeg` entity and are looked up server-side via the `tenant` HTTP header. Onboarding sends nothing. |
 | 5 | Must `participantState` be provided? | No. The core's `RegisterParticipant` overwrites the participant `status` to `PENDING` regardless of input. We send `"NEW"` for symmetry; it is ignored. |
-| 6 | Is `partFact` required? | **Yes — this is the Teilnahmefaktor in the eegFaktura UI.** We send `metering_point.participation_factor` (defaults to 100, configurable per metering point). |
+| 6 | Is the Teilnahmefaktor required? | **Yes — JSON field is `allocationFactor` (mapped to core column `base.meteringpoint.allocation_factor`).** We send `metering_point.participation_factor` (defaults to 100, configurable per metering point). Earlier doc versions called it `partFact`; that name belongs to the EDA registration message, not the participant payload. |
 | 7 | Is `processState` required on meter? | Yes, must be `"NEW"` on import. Confirmed from `eegfaktura-web/src/models/meteringpoint.model.ts` (`MeteringProcessStateType`). |
 
 Additional findings:

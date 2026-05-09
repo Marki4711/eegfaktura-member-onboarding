@@ -82,11 +82,11 @@ func TestBuildPayload_MetersUseResidentAddress(t *testing.T) {
 	if got.Meters[1].Direction != "GENERATION" {
 		t.Errorf("production meter direction = %q, want GENERATION (core enum, not PRODUCTION)", got.Meters[1].Direction)
 	}
-	if got.Meters[0].PartFact != 100 {
-		t.Errorf("consumption meter partFact = %d, want 100", got.Meters[0].PartFact)
+	if got.Meters[0].AllocationFactor != 100 {
+		t.Errorf("consumption meter allocationFactor = %d, want 100", got.Meters[0].AllocationFactor)
 	}
-	if got.Meters[1].PartFact != 75 {
-		t.Errorf("production meter partFact = %d, want 75 (from application data)", got.Meters[1].PartFact)
+	if got.Meters[1].AllocationFactor != 75 {
+		t.Errorf("production meter allocationFactor = %d, want 75 (from application data)", got.Meters[1].AllocationFactor)
 	}
 }
 
