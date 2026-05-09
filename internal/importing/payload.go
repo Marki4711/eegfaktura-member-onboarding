@@ -91,7 +91,7 @@ func BuildPayload(app *shared.Application, meteringPoints []shared.MeteringPoint
 	for _, mp := range meteringPoints {
 		meter := CoreMeteringPoint{
 			MeteringPoint:   mp.MeteringPoint,
-			Direction:       string(mp.Direction),
+			Direction:       mapMeterDirection(mp.Direction),
 			Status:          "INIT",
 			Street:          app.ResidentStreet,
 			StreetNumber:    app.ResidentStreetNumber,
@@ -176,6 +176,21 @@ func mapBusinessRole(t shared.MemberType) string {
 		return "EEG_PRIVATE"
 	}
 	return "EEG_BUSINESS"
+}
+
+// mapMeterDirection translates the onboarding meter direction to the value
+// that the eegFaktura core expects on the participant payload. Onboarding
+// stores PRODUCTION while the core enum uses GENERATION for the same concept
+// (see eegfaktura-backend/model/participant.go DirectionType).
+func mapMeterDirection(d shared.MeterDirection) string {
+	switch d {
+	case shared.DirectionProduction:
+		return "GENERATION"
+	case shared.DirectionConsumption:
+		return "CONSUMPTION"
+	default:
+		return "UNKNOWN"
+	}
 }
 
 func derefString(s *string) string {

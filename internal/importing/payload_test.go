@@ -73,8 +73,11 @@ func TestBuildPayload_MetersUseResidentAddress(t *testing.T) {
 			t.Errorf("meter %d registeredSince = %v, want %v", i, m.RegisteredSince, now)
 		}
 	}
-	if string(got.MeteringPoint[0].Direction) != "CONSUMPTION" {
-		t.Errorf("meter direction = %q, want CONSUMPTION", got.MeteringPoint[0].Direction)
+	if got.MeteringPoint[0].Direction != "CONSUMPTION" {
+		t.Errorf("consumption meter direction = %q, want CONSUMPTION", got.MeteringPoint[0].Direction)
+	}
+	if got.MeteringPoint[1].Direction != "GENERATION" {
+		t.Errorf("production meter direction = %q, want GENERATION (core enum, not PRODUCTION)", got.MeteringPoint[1].Direction)
 	}
 }
 
