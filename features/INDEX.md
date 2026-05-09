@@ -41,5 +41,6 @@ Central tracking for all features.
 | PROJ-24 | OpenAPI/Swagger Dokumentation | Deployed | `features/PROJ-24-openapi-documentation.md` | 2026-04-29 |
 | PROJ-25 | Bulk-Aktionen im Admin | Deployed | `features/PROJ-25-bulk-actions.md` | 2026-04-29 |
 | PROJ-26 | Eigener Mailserver pro EEG | Planned | `features/PROJ-26-per-eeg-smtp-override.md` | 2026-05-08 |
+| PROJ-27 | Tarif-Auswahl beim Import | Planned | `features/PROJ-27-tariff-selection-on-import.md` | 2026-05-09 |
 
-## Next Available ID: PROJ-27
+## Next Available ID: PROJ-28
