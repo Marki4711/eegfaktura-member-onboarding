@@ -144,23 +144,27 @@ func TestBuildPayload_NonPrivateMemberUsesCompanyNameInFirstNameOnly(t *testing.
 	}
 }
 
-func TestBuildPayload_PrivateMemberKeepsRealName(t *testing.T) {
-	app := &shared.Application{
-		Email:                "anna@example.com",
-		ResidentStreet:       "S",
-		ResidentStreetNumber: "1",
-		ResidentZip:          "1",
-		ResidentCity:         "C",
-		MemberType:           shared.MemberTypePrivate,
-		Firstname:            strPtr("Anna"),
-		Lastname:             strPtr("Beispiel"),
-		CompanyName:          strPtr("ignored for private members"),
-	}
-
-	got := BuildPayload(app, nil, time.Now())
-
-	if got.FirstName != "Anna" || got.LastName != "Beispiel" {
-		t.Errorf("private member name not preserved: got %q %q", got.FirstName, got.LastName)
+func TestBuildPayload_NaturalPersonsKeepRealName(t *testing.T) {
+	// Both private and farmer are natural persons — companyName must not override.
+	cases := []shared.MemberType{shared.MemberTypePrivate, shared.MemberTypeFarmer}
+	for _, mt := range cases {
+		t.Run(string(mt), func(t *testing.T) {
+			app := &shared.Application{
+				Email:                "anna@example.com",
+				ResidentStreet:       "S",
+				ResidentStreetNumber: "1",
+				ResidentZip:          "1",
+				ResidentCity:         "C",
+				MemberType:           mt,
+				Firstname:            strPtr("Anna"),
+				Lastname:             strPtr("Beispiel"),
+				CompanyName:          strPtr("ignored for natural persons"),
+			}
+			got := BuildPayload(app, nil, time.Now())
+			if got.FirstName != "Anna" || got.LastName != "Beispiel" {
+				t.Errorf("%s: name not preserved: got %q %q", mt, got.FirstName, got.LastName)
+			}
+		})
 	}
 }
 

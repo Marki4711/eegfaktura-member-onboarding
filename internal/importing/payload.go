@@ -143,23 +143,27 @@ func BuildPayload(app *shared.Application, meteringPoints []shared.MeteringPoint
 }
 
 // mapPersonName produces (firstName, lastName) for the core participant
-// payload. Private members keep their actual firstname/lastname. For
-// non-natural-person member types (company, association, municipality,
-// farmer), eegFaktura's convention is to place the organisation name in
-// firstName only and leave lastName empty.
+// payload. Natural-person member types (private, farmer) keep their actual
+// firstname/lastname. For non-natural-person member types (company,
+// association, municipality), eegFaktura's convention is to place the
+// organisation name in firstName only and leave lastName empty.
 func mapPersonName(app *shared.Application) (firstName, lastName string) {
 	firstName = derefString(app.Firstname)
 	lastName = derefString(app.Lastname)
 
-	if app.MemberType == shared.MemberTypePrivate {
+	if isNaturalPerson(app.MemberType) {
 		return firstName, lastName
 	}
 
-	// Non-private: organisation name goes into firstName only.
+	// Non-natural-person: organisation name goes into firstName only.
 	if companyName := derefString(app.CompanyName); companyName != "" && firstName == "" {
 		firstName = companyName
 	}
 	return firstName, lastName
+}
+
+func isNaturalPerson(t shared.MemberType) bool {
+	return t == shared.MemberTypePrivate || t == shared.MemberTypeFarmer
 }
 
 func derefString(s *string) string {
