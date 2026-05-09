@@ -189,6 +189,41 @@ func TestBuildPayload_NonPrivateWithContactPerson(t *testing.T) {
 	}
 }
 
+func TestBuildPayload_BusinessRoleAndRole(t *testing.T) {
+	cases := []struct {
+		memberType        shared.MemberType
+		wantBusinessRole  string
+	}{
+		{shared.MemberTypePrivate, "EEG_PRIVATE"},
+		{shared.MemberTypeFarmer, "EEG_PRIVATE"},
+		{shared.MemberTypeCompany, "EEG_BUSINESS"},
+		{shared.MemberTypeAssociation, "EEG_BUSINESS"},
+		{shared.MemberTypeMunicipality, "EEG_BUSINESS"},
+	}
+	for _, tc := range cases {
+		t.Run(string(tc.memberType), func(t *testing.T) {
+			app := &shared.Application{
+				Email:                "x@example.com",
+				ResidentStreet:       "S",
+				ResidentStreetNumber: "1",
+				ResidentZip:          "1",
+				ResidentCity:         "C",
+				MemberType:           tc.memberType,
+				Firstname:            strPtr("a"),
+				Lastname:             strPtr("b"),
+				CompanyName:          strPtr("c"),
+			}
+			got := BuildPayload(app, nil, time.Now())
+			if got.BusinessRole != tc.wantBusinessRole {
+				t.Errorf("%s: BusinessRole = %q, want %q", tc.memberType, got.BusinessRole, tc.wantBusinessRole)
+			}
+			if got.Role != "EEG_USER" {
+				t.Errorf("%s: Role = %q, want EEG_USER", tc.memberType, got.Role)
+			}
+		})
+	}
+}
+
 func TestBuildPayload_NilOptionalsAreEmpty(t *testing.T) {
 	app := &shared.Application{
 		Email:                "x@example.com",

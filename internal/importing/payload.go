@@ -14,8 +14,8 @@ import (
 // github.com/eegfaktura/eegfaktura-backend/model/participant.go.
 type CoreParticipantPayload struct {
 	ParticipantNumber string                 `json:"participantNumber,omitempty"`
-	BusinessRole      string                 `json:"businessRole"`
-	Role              string                 `json:"role"`
+	BusinessRole      string                 `json:"businessRole"` // EEG_PRIVATE | EEG_BUSINESS
+	Role              string                 `json:"role"`         // EEG_USER | EEG_ADMIN
 	FirstName         string                 `json:"firstname"`
 	LastName          string                 `json:"lastname"`
 	TitleBefore       string                 `json:"titleBefore"`
@@ -116,6 +116,8 @@ func BuildPayload(app *shared.Application, meteringPoints []shared.MeteringPoint
 		TitleBefore:      derefString(app.Titel),
 		ParticipantSince: participantSince,
 		Status:           "NEW",
+		Role:             "EEG_USER",
+		BusinessRole:     mapBusinessRole(app.MemberType),
 		Contact: CoreContact{
 			Email: app.Email,
 			Phone: derefString(app.Phone),
@@ -164,6 +166,16 @@ func mapPersonName(app *shared.Application) (firstName, lastName string) {
 
 func isNaturalPerson(t shared.MemberType) bool {
 	return t == shared.MemberTypePrivate || t == shared.MemberTypeFarmer
+}
+
+// mapBusinessRole maps the onboarding member type to the eegFaktura
+// businessRole enum (EEG_PRIVATE | EEG_BUSINESS). The frontend uses this to
+// switch between the Privat/Firma view of the participant detail.
+func mapBusinessRole(t shared.MemberType) string {
+	if isNaturalPerson(t) {
+		return "EEG_PRIVATE"
+	}
+	return "EEG_BUSINESS"
 }
 
 func derefString(s *string) string {
