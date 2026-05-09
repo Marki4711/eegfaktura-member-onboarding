@@ -2,7 +2,7 @@
 
 ## Status: Planned
 **Created:** 2026-05-09
-**Last Updated:** 2026-05-09
+**Last Updated:** 2026-05-09 (Q1 + Q7 resolved nach Verifikation gegen deployten Core)
 
 ## Dependencies
 - Requires: PROJ-4 (Core Import) — bestehende Import-Pipeline und `internal/coreclient`
@@ -26,12 +26,27 @@ Tarife werden im eegFaktura-Core verwaltet (Tabelle `base.tariff`, UUID-PKs, ein
 ## Acceptance Criteria
 
 ### Tarif-Lookup aus eegFaktura
-- [ ] Backend ruft die verfügbaren Tarife aus dem eegFaktura-Core ab (Endpoint laut Core-API, voraussichtlich `GET /tariff` mit `tenant`-Header und Bearer-Token des Admins)
-- [ ] Der Lookup nutzt **dasselbe Bearer-Token und denselben tenant-Header** wie der bestehende Import (PROJ-4) — keine zusätzlichen Credentials
+- [ ] Backend ruft die verfügbaren Tarife über `GET {coreBaseUrl}/eeg/tariff` aus dem eegFaktura-Core ab
+- [ ] Der Lookup nutzt **dasselbe Bearer-Token und denselben `tenant`-Header** wie der bestehende Import (PROJ-4) — keine zusätzlichen Credentials
 - [ ] Tarife werden **pro EEG (Tenant)** geladen — Tarife einer EEG dürfen niemals einer anderen EEG angeboten werden
+- [ ] Tarife mit `inactiveSince != null` werden im Onboarding-UI **nicht** angeboten (nur in der Anzeige bestehender, bereits zugewiesener IDs als "Tarif inaktiv (Name)" sichtbar)
 - [ ] Cache-Strategie: kurzlebiger In-Memory-Cache pro Tenant (z.B. 60 s) ist erlaubt, längere Cachezeiten sind nicht zulässig (siehe Open Question Q4)
 - [ ] Bei Core-Fehler (Timeout, 5xx, nicht erreichbar) liefert das Onboarding-Backend einen klaren Fehler und das UI zeigt den Zustand "Tarife konnten nicht geladen werden"
 - [ ] Bei Core-Fehler wird der Import **nicht blockiert** — der Admin kann ohne Tarif importieren (siehe Open Question Q3)
+
+### Tarif-Typen und Zuordnung
+
+Das Core-`tariff`-Objekt hat ein Feld `type` mit den Werten **`EEG`**, **`VZP`** oder **`EZP`**. Daraus ergibt sich die Filterung im UI:
+
+| Auswahlfeld im Onboarding | Erlaubte `type`-Werte | Hintergrund |
+|---|---|---|
+| Mitglieds-Tarif (Application-Level) | `EEG` | Mitgliedsbeitrag/Participant-Fee |
+| Zählpunkt-Tarif (`direction = CONSUMPTION`) | `VZP` | Verbraucher-Zählpunkt |
+| Zählpunkt-Tarif (`direction = GENERATION`) | `EZP` | Einspeise-Zählpunkt |
+
+- [ ] Das Mitglieds-Tarif-Dropdown zeigt nur Tarife mit `type == "EEG"`
+- [ ] Das Zählpunkt-Tarif-Dropdown zeigt pro Zähler nur Tarife mit dem zur Direction passenden `type` (`VZP` für CONSUMPTION, `EZP` für GENERATION)
+- [ ] Wechselt der Admin die Direction eines Zählpunkts in der Edit-Form, wird der zugewiesene Tarif **zurückgesetzt** (sonst wäre die Zuordnung type-inkonsistent) — UI-Hinweis zeigt das an
 
 ### Persistenz im Onboarding
 - [ ] `member_onboarding.application` bekommt eine neue Spalte `tariff_id UUID NULL` (Member-Tarif)
@@ -44,7 +59,7 @@ Tarife werden im eegFaktura-Core verwaltet (Tabelle `base.tariff`, UUID-PKs, ein
 ### Admin-UI (Edit-Form)
 - [ ] In der bestehenden Admin-Edit-Form (`admin-edit-form.tsx`) gibt es einen neuen Abschnitt "Tarif" mit einem Dropdown für den Mitglieds-Tarif
 - [ ] In der Zählpunkt-Tabelle gibt es eine neue Spalte "Tarif" mit einem Dropdown pro Zeile
-- [ ] Beide Dropdowns zeigen die aus dem Core geladenen Tarife (Anzeigename + Preisinfo, falls verfügbar)
+- [ ] Beide Dropdowns zeigen die aus dem Core geladenen Tarife im Format `{name} — {centPerKWh} ct/kWh{discount > 0 ? `, Rabatt {discount}%` : ``}{useVat ? ` (USt {vatInPercent}%)` : ``}` (Beispiel: `Abnahmetarif Rabatt10 — 13 ct/kWh, Rabatt 10% (USt 20%)`)
 - [ ] Beide Dropdowns haben eine "(kein Tarif)"-Option, mit der der Admin die Auswahl explizit leer lassen kann
 - [ ] Die Tarif-Liste wird beim **Öffnen der Edit-Form** geladen, nicht beim Import-Klick — der Admin sieht die Tarife sofort
 - [ ] Gibt es einen Ladefehler, wird ein Hinweis angezeigt ("Tarife nicht verfügbar — Antrag wird ohne Tarif importiert"); der Save/Import-Button bleibt aktiv
@@ -79,6 +94,8 @@ Tarife werden im eegFaktura-Core verwaltet (Tabelle `base.tariff`, UUID-PKs, ein
 - Was passiert, wenn ein Antrag importiert wird, dann re-importiert (bei `import_failed`)? → Tarif-IDs werden unverändert mitgesendet, Admin kann sie vor dem Re-Import bei Bedarf anpassen
 - Was passiert bei Bulk-Aktionen (PROJ-25, „Mehrere genehmigen + importieren")? → Falls Bulk-Approval einen Bulk-Import triggert, müssen die einzelnen Anträge bereits gespeicherte Tarif-IDs nutzen; eine Bulk-Tarif-Auswahl ist **out of scope** für PROJ-27 (Folge-Feature)
 - Was passiert, wenn die Core-Tarif-Liste 0 Einträge hat (keine Tarife konfiguriert)? → Dropdown zeigt nur "(kein Tarif)"; Hinweis-Text "Keine Tarife in eegFaktura definiert"
+- Was passiert, wenn für eine Direction keine passenden Tarife existieren (z.B. nur `VZP`-Tarife, aber ein Zählpunkt ist `GENERATION`)? → Zählpunkt-Dropdown zeigt nur "(kein Tarif)" mit Hinweis "Keine Erzeuger-Tarife (EZP) in eegFaktura definiert"
+- Was passiert, wenn ein zuvor gewählter Tarif zwischenzeitlich `inactiveSince` gesetzt bekommen hat? → Anzeige als "Tarif inaktiv: {name}"; der Admin muss eine neue Auswahl treffen oder explizit "(kein Tarif)" wählen, sonst blockiert der Import
 - Was passiert, wenn der Core neue Tarif-Felder einführt (z.B. preisinfo, gültigAb/Bis), die wir nicht kennen? → Onboarding zeigt nur Name und ID; zusätzliche Felder werden ignoriert (Forward-Compatibility)
 - Was passiert, wenn zwei Admins parallel die Tarif-Liste laden und einer einen Tarif während der Anzeige des anderen anpasst? → Beide sehen ihre jeweiligen Stände; spätestens beim Save wird der dann aktuelle Wert gespeichert (last-write-wins, wie heute)
 
@@ -92,11 +109,26 @@ Tarife werden im eegFaktura-Core verwaltet (Tabelle `base.tariff`, UUID-PKs, ein
 
 ## Open Questions / Options zu evaluieren
 
-### Q1: Welcher Core-Endpoint liefert die Tarife?
+### Q1: Welcher Core-Endpoint liefert die Tarife? — **RESOLVED 2026-05-09**
 
-Das aktuelle eegFaktura-Core-Modell (`POST /participant`) akzeptiert eine `tariffId`, aber der zugehörige Lookup-Endpoint ist im OSS-Stand nicht offensichtlich. Aus dem Frontend-Code kennen wir Aufrufe wie `GET /tariff` und `POST /tariff/{id}` — der genaue Endpoint und die Antwortform müssen verifiziert werden.
+**Endpoint:** `GET {coreBaseUrl}/eeg/tariff` (unter `/api/eeg/tariff` über den Ingress)
+**Auth:** Bearer-Token + `tenant`-Header, identisch zu `POST /participant`
+**Response:** JSON-Array von Tarif-Objekten. Felder, die wir im Onboarding nutzen:
 
-**Empfehlung:** Vor `/architecture` einen kurzen Probelauf gegen den deployten Core machen (`curl -H "Authorization: Bearer …" -H "tenant: RC…" {core}/tariff`) und das Ergebnis im Tech-Design dokumentieren.
+| Feld | Typ | Verwendung |
+|---|---|---|
+| `id` | UUID | wird in `application.tariff_id` / `metering_point.tariff_id` gespeichert |
+| `version` | int | nicht persistiert; informativ |
+| `type` | `"EEG" \| "VZP" \| "EZP"` | Filterung pro Auswahlfeld (siehe AC oben) |
+| `name` | string | Dropdown-Label |
+| `centPerKWh` | number | Dropdown-Label |
+| `discount` | number | Dropdown-Label, falls > 0 |
+| `useVat` / `vatInPercent` | bool / number | Dropdown-Label, falls `useVat == true` |
+| `inactiveSince` | timestamp \| null | Filtert inaktive Tarife in Auswahllisten aus |
+
+Alle anderen Felder (`participantFee`, `baseFee`, `meteringPointFee`, `freeKWh`, `billingPeriod`, `vatSupplementaryText`, `useMeteringPointFee`, `accountNetAmount`, `accountGrossAmount`, `businessNr`, `meteringPointVat`, `createdAt`) werden ignoriert — sie gehören zur Tarif-Detailpflege im eegFaktura-Core und sind für die Auswahl irrelevant.
+
+Beispiel-Response: siehe `docs/import-mapping.md` §10 (wird im Architecture-Schritt ergänzt).
 
 ### Q2: Lookup-Strategie — Backend-Proxy oder Frontend direkt?
 
@@ -140,14 +172,14 @@ Der Excel-Export wird genutzt, wenn der Direkt-Import (PROJ-4) nicht verfügbar 
 
 **Empfehlung:** (a). Die externe API ist für Integrationen mit EEG-eigenen Tools gedacht (siehe Memory-Note „External API scope review needed"); diese Tools können die Core-Tarife kennen und mitliefern. Validierung beim Eingang würde den Admin-Pfad inkonsistent machen (auch dort wird nicht validiert).
 
-### Q7: Tarif-Filterung nach Direction?
+### Q7: Tarif-Filterung nach Direction? — **RESOLVED 2026-05-09**
 
-In eegFaktura gibt es typischerweise Verbraucher-Tarife (für CONSUMPTION-Zähler) und Erzeuger-Tarife (für GENERATION-Zähler). 
+Der Core liefert pro Tarif ein Feld `type` mit den Werten `EEG`, `VZP` oder `EZP`. Damit ist die Filterung deterministisch:
+- Mitglieds-Tarif-Dropdown → nur `type == "EEG"`
+- Zählpunkt-Tarif-Dropdown bei CONSUMPTION → nur `type == "VZP"`
+- Zählpunkt-Tarif-Dropdown bei GENERATION → nur `type == "EZP"`
 
-- (a) Onboarding zeigt **alle** Tarife in jedem Dropdown, Admin entscheidet selbst
-- (b) Onboarding filtert pro Zählpunkt nach Direction (sofern Core das Tarif-Modell mit Direction ausliefert)
-
-**Empfehlung:** (a) für V1 — wir wissen nicht zuverlässig, welches Tarif-Feld die Direction codiert. (b) als Folge-Feature, sobald die Core-API geklärt ist (Q1).
+Implementiert in den ACs oben.
 
 ### Q8: Anzeige im Public-Frontend nach Submission?
 
