@@ -12,6 +12,41 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ---
 
+## [v1.10.0] - 2026-05-09
+
+### Neu — PROJ-4: Core Import
+
+Synchroner Import genehmigter Anträge in das eegFaktura-Core-System.
+
+- **Backend**: `POST /api/admin/applications/{id}/import` ruft den Core-Endpoint `POST /participant` auf. Bearer-Token des angemeldeten Admins wird durchgereicht, `tenant`-HTTP-Header wird auf die RC-Nummer der Application gesetzt.
+- **Architektur**: neue Pakete `internal/coreclient` (HTTP-Wrapper) und `internal/importing` (Orchestrierung + Payload-Mapping)
+- **Concurrency-Sperre**: `MarkImportInFlight` verhindert Duplikate im (nicht-idempotenten) Core durch parallele Klicks
+- **Defense-in-Depth**: Service-Level-Tenant-Check zusätzlich zum Handler-Check
+- **Frontend**: Status-Aktionen-Box zeigt „In eegFaktura importieren" für `approved`-Anträge, „Import erneut versuchen" + Error-Banner für `import_failed`, sowie die Participant-ID nach erfolgreichem Import
+- **Konfig**: `CORE_BASE_URL` (mit `/api`-Suffix) und `CORE_TIMEOUT_SECONDS` als neue Env-Vars; via Helm-Values `backend.coreBaseUrl` durchgereicht
+
+### Erkenntnisse aus dem Live-Rollout
+
+- **Keycloak Tenant-Mapper**: muss `Claim JSON Type: JSON` haben (nicht `String`), sonst lehnt der Core mit 401 leerem Body ab
+- **businessRole** muss gesetzt werden (`EEG_PRIVATE` / `EEG_BUSINESS`), sonst Privat-Tab im UI auch für Firmen
+- **firstname** der Core-Tabelle ist NOT NULL — für Firmen/Vereine/Gemeinden wird der Organisationsname dort eingestellt
+- **Meter-Direction**: Onboarding `PRODUCTION` → Core `GENERATION`
+
+Details siehe `features/PROJ-4-core-import.md` und `docs/import-mapping.md` §7–§9.
+
+### Geändert
+
+- `coreclient`: UTF-8-sichere Truncation, erkennt zusätzlich `context.Canceled` und `net.Error.Timeout()`, klare Sentinel-Errors
+- `ImportService`: Bookkeeping-Failure nach Core-Erfolg loggt Participant-ID + surface in Result (Operator kann manuell aufräumen)
+- Handler nutzt `errors.Is`/`errors.As` für robuste Error-Routing über Wrapping hinweg
+
+### Infrastruktur
+
+- Helm-Chart erweitert um `backend.coreBaseUrl` und `backend.coreTimeoutSeconds`
+- `values-env.yaml.example` dokumentiert beide Werte mit Beispiel inkl. `/api`-Suffix
+
+---
+
 ## [v1.9.0] - 2026-04-30
 
 ### Neu

@@ -1,8 +1,26 @@
 # PROJ-4: Core Import
 
-## Status: In Progress
+## Status: Deployed
 **Created:** 2026-04-19
-**Last Updated:** 2026-05-08
+**Last Updated:** 2026-05-09
+
+## Deployment
+
+- **Released:** 2026-05-09 with image `sha-8285fc7` (and follow-up Opus-review fixes in subsequent images)
+- **First successful end-to-end import:** `MO-2026-778412` (Gemeinde St. Nikolaus, RC `TE100200`) → core participant `b83c41ba-4b61-11f1-a4a2-fe4879f36266`
+- **Helm config required:** `backend.coreBaseUrl` must include the `/api` path prefix (see `docs/import-mapping.md` §7)
+- **Keycloak config required:** `tenant` mapper on the `eegfaktura-member-onboarding` client must use `Claim JSON Type: JSON` (not `String`); a `Group Membership` mapper writing into `access_groups` is recommended for parity with the eegFaktura web client
+
+## Lessons learned during V1 rollout (2026-05-08/09)
+
+The end-to-end test surfaced four issues not covered by the original spec, all now fixed:
+
+1. **`tenant` claim format mismatch.** Keycloak's default User-Attribute mapper serialised `tenant` as a stringified JSON array (`"[\"TE100200\"]"`); the core's `json.Unmarshal` into `[]string` failed and returned 401 with an empty body. Fix was Keycloak-side: change Claim JSON Type to `JSON`.
+2. **`businessRole` was empty.** The eegFaktura frontend uses `businessRole` (`EEG_PRIVATE` / `EEG_BUSINESS`) to switch the Privat/Firma view. Imported company members displayed as Privat. Fixed by mapping member_type → businessRole in the payload adapter.
+3. **`firstname` NOT NULL violation for company types.** Onboarding does not collect firstname/lastname for `company` / `municipality` / `association` member types — the core's participant table requires `firstname`. Fixed by placing the organisation name in `firstName` and leaving `lastName` empty.
+4. **Meter direction enum mismatch.** Onboarding's `PRODUCTION` is the core's `GENERATION`. Fixed by an explicit translation in `mapMeterDirection`.
+
+See `docs/import-mapping.md` §7–§9 for the validated contract.
 
 ## Overview
 
