@@ -191,7 +191,8 @@ PROJ-4 end-to-end test and from `eegfaktura/eegfaktura-backend` source.
 | 3 | May `accountInfo` fields be empty? | Yes. `BankInfo.Iban` and `Owner` are `null.String` on the core model. |
 | 4 | Are `meters[].gridOperatorName/Id` required? | **Not on the meter.** They live on the `Eeg` entity and are looked up server-side via the `tenant` HTTP header. Onboarding sends nothing. |
 | 5 | Must `participantState` be provided? | No. The core's `RegisterParticipant` overwrites the participant `status` to `PENDING` regardless of input. We send `"NEW"` for symmetry; it is ignored. |
-| 6 | Is `partFact = 100` correct? | **Field no longer exists** in the current core `MeteringPoint` model. Omitted. |
+| 6 | Is `partFact` required? | **Yes — this is the Teilnahmefaktor in the eegFaktura UI.** We send `metering_point.participation_factor` (defaults to 100, configurable per metering point). |
+| 7 | Is `processState` required on meter? | Yes, must be `"NEW"` on import. Confirmed from `eegfaktura-web/src/models/meteringpoint.model.ts` (`MeteringProcessStateType`). |
 
 Additional findings:
 

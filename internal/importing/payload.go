@@ -63,6 +63,8 @@ type CoreMeteringPoint struct {
 	MeteringPoint   string    `json:"meteringPoint"`
 	Direction       string    `json:"direction"`
 	Status          string    `json:"status"`
+	ProcessState    string    `json:"processState"`
+	PartFact        int       `json:"partFact"`
 	EquipmentNumber string    `json:"equipmentNumber,omitempty"`
 	EquipmentName   string    `json:"equipmentName,omitempty"`
 	InverterID      string    `json:"inverterId,omitempty"`
@@ -93,6 +95,8 @@ func BuildPayload(app *shared.Application, meteringPoints []shared.MeteringPoint
 			MeteringPoint:   mp.MeteringPoint,
 			Direction:       mapMeterDirection(mp.Direction),
 			Status:          "INIT",
+			ProcessState:    "NEW",
+			PartFact:        mp.ParticipationFactor,
 			Street:          app.ResidentStreet,
 			StreetNumber:    app.ResidentStreetNumber,
 			City:            app.ResidentCity,
@@ -120,9 +124,6 @@ func BuildPayload(app *shared.Application, meteringPoints []shared.MeteringPoint
 		ParticipantSince: participantSince,
 		// Status is set to NEW for symmetry with the core's enum, but the
 		// core overwrites it to PENDING in RegisterParticipant regardless.
-		// processState used to live on the meter level per docs/import-mapping.md
-		// but the current eegFaktura MeteringPoint model has no such field —
-		// it is intentionally omitted from the payload.
 		Status:       "NEW",
 		Role:         "EEG_USER",
 		BusinessRole: mapBusinessRole(app.MemberType),

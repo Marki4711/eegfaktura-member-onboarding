@@ -53,8 +53,8 @@ func TestBuildPayload_MetersUseResidentAddress(t *testing.T) {
 		ResidentCity:         "Wien",
 	}
 	mps := []shared.MeteringPoint{
-		{ID: uuid.New(), MeteringPoint: "AT0010000000000000001000000000001", Direction: shared.DirectionConsumption},
-		{ID: uuid.New(), MeteringPoint: "AT0010000000000000001000000000002", Direction: shared.DirectionProduction},
+		{ID: uuid.New(), MeteringPoint: "AT0010000000000000001000000000001", Direction: shared.DirectionConsumption, ParticipationFactor: 100},
+		{ID: uuid.New(), MeteringPoint: "AT0010000000000000001000000000002", Direction: shared.DirectionProduction, ParticipationFactor: 75},
 	}
 
 	got := BuildPayload(app, mps, now)
@@ -69,6 +69,9 @@ func TestBuildPayload_MetersUseResidentAddress(t *testing.T) {
 		if m.Status != "INIT" {
 			t.Errorf("meter %d status = %q, want INIT", i, m.Status)
 		}
+		if m.ProcessState != "NEW" {
+			t.Errorf("meter %d processState = %q, want NEW", i, m.ProcessState)
+		}
 		if !m.RegisteredSince.Equal(now) {
 			t.Errorf("meter %d registeredSince = %v, want %v", i, m.RegisteredSince, now)
 		}
@@ -78,6 +81,12 @@ func TestBuildPayload_MetersUseResidentAddress(t *testing.T) {
 	}
 	if got.Meters[1].Direction != "GENERATION" {
 		t.Errorf("production meter direction = %q, want GENERATION (core enum, not PRODUCTION)", got.Meters[1].Direction)
+	}
+	if got.Meters[0].PartFact != 100 {
+		t.Errorf("consumption meter partFact = %d, want 100", got.Meters[0].PartFact)
+	}
+	if got.Meters[1].PartFact != 75 {
+		t.Errorf("production meter partFact = %d, want 75 (from application data)", got.Meters[1].PartFact)
 	}
 }
 
