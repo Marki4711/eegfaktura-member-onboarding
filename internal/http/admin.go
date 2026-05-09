@@ -3,6 +3,7 @@ package http
 import (
 	"crypto/rand"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"math/big"
 	"net/http"
@@ -706,27 +707,47 @@ func (h *AdminHandler) ImportApplication(w http.ResponseWriter, r *http.Request)
 
 	result, err := h.importService.Import(r.Context(), id, bearerToken, actorID, allowedTenants)
 	if err != nil {
-		// Pre-import errors (404, 409, 400) — application untouched.
-		switch e := err.(type) {
-		case shared.ValidationError, shared.ConflictError:
+		// Pre-import typed errors — application untouched on disk.
+		var validationErr shared.ValidationError
+		var conflictErr shared.ConflictError
+		switch {
+		case errors.As(err, &validationErr), errors.As(err, &conflictErr):
 			h.handleServiceError(w, err)
 			return
-		default:
-			_ = e
-			if err == shared.ErrNotFound || err == shared.ErrConflict {
-				h.handleServiceError(w, err)
-				return
-			}
+		case errors.Is(err, shared.ErrNotFound),
+			errors.Is(err, shared.ErrConflict),
+			errors.Is(err, shared.ErrForbidden):
+			h.handleServiceError(w, err)
+			return
 		}
 
-		// Core or bookkeeping failure: result may carry the persisted outcome.
+		// Core call failed and bookkeeping recorded import_failed.
 		if result != nil && result.Status == shared.StatusImportFailed {
 			slog.Error("import: core call failed", "application_id", id, "error", err)
 			h.writeJSON(w, http.StatusInternalServerError, map[string]interface{}{
 				"success":       false,
 				"applicationId": id,
 				"status":        string(result.Status),
-				"message":       result.ErrorMessage,
+				"message":       result.ErrorMessage, // already normalized + bounded
+			})
+			return
+		}
+
+		// Bookkeeping failure after a successful core insert. The participant
+		// exists in the core but our DB couldn't persist it — surface enough
+		// info to allow manual cleanup, but avoid leaking the raw DB error.
+		if result != nil && result.TargetParticipantID != "" {
+			slog.Error("import: orphan participant created in core",
+				"application_id", id,
+				"target_participant_id", result.TargetParticipantID,
+				"error", err,
+			)
+			h.writeJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"success":             false,
+				"applicationId":       id,
+				"status":              string(result.Status),
+				"targetParticipantId": result.TargetParticipantID,
+				"message":             result.ErrorMessage,
 			})
 			return
 		}

@@ -678,6 +678,14 @@ type ImportResultUpdate struct {
 // UpdateImportResultTx writes the outcome of one import attempt inside the
 // caller's transaction. Used by the import service (PROJ-4) to keep the
 // status update and the status_log insert atomic.
+//
+// imported_at and target_participant_id use COALESCE so a failed retry
+// (which passes nil for them) does not wipe out values from a previous
+// successful attempt. import_error_message is intentionally NOT under
+// COALESCE: a successful attempt passes nil and we want that to clear any
+// stale failure message from a previous attempt (per spec line 109,
+// "previous import_error_message is overwritten by the new attempt's
+// outcome").
 func (r *ApplicationRepository) UpdateImportResultTx(tx *sql.Tx, id uuid.UUID, u ImportResultUpdate) error {
 	query := `
 		UPDATE member_onboarding.application SET

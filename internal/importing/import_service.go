@@ -18,6 +18,12 @@ import (
 // ImportService orchestrates the import of an approved application into the
 // eegFaktura core. The actual core call happens outside any DB transaction;
 // only the bookkeeping writes (status, status_log) are transactional.
+//
+// TODO(coverage): Import() currently has no unit tests because the
+// concrete repositories are not behind interfaces and the project does not
+// depend on sqlmock. The Opus PROJ-4 review flagged this as Medium. Adding
+// coverage requires either extracting repo interfaces or pulling in a
+// sqlmock dependency — tracked as a follow-up.
 type ImportService struct {
 	db            *sql.DB
 	appRepo       *application.ApplicationRepository
@@ -130,7 +136,22 @@ func (s *ImportService) Import(ctx context.Context, id uuid.UUID, bearerToken, a
 		ImportedAt:          &importFinishedAt,
 		TargetParticipantID: &participantID,
 	}, actorID); err != nil {
-		return nil, fmt.Errorf("import succeeded in core but bookkeeping failed: %w", err)
+		// The participant exists in the core but our DB couldn't record it.
+		// Log the orphan participant ID so an operator can clean it up by
+		// hand, and surface it to the caller in the result so the handler can
+		// include it in the response (without leaking the raw DB error).
+		slog.Error("import: bookkeeping failed after successful core insert; orphan participant created",
+			"application_id", id,
+			"target_participant_id", participantID,
+			"db_error", err,
+		)
+		return &ImportResult{
+				ApplicationID:       id,
+				Status:              shared.StatusApproved, // unchanged on disk
+				TargetParticipantID: participantID,
+				ErrorMessage:        "import succeeded in core but the onboarding record could not be updated; participant created in core, manual cleanup required",
+			},
+			fmt.Errorf("import succeeded in core but bookkeeping failed: %w", err)
 	}
 
 	return &ImportResult{
@@ -185,26 +206,47 @@ func containsString(haystack []string, needle string) bool {
 	return false
 }
 
+// importErrorMessageMaxLen caps the length of strings stored in
+// import_error_message. The coreclient already truncates the HTTP body,
+// but other error sources (parse failures, network errors) can be longer
+// than what we want to surface to admins or store in the DB column.
+const importErrorMessageMaxLen = 1000
+
 // normalizeError converts a coreclient error into a human-readable string for
-// storage in import_error_message. Bounded length is enforced at the column
-// level (TEXT) and at the coreclient level (1000 chars on body).
+// storage in import_error_message. The result is always bounded to
+// importErrorMessageMaxLen characters, regardless of error source.
 func normalizeError(err error) string {
 	if err == nil {
 		return ""
 	}
-	if errors.Is(err, coreclient.ErrCoreTimeout) {
-		return "core service timeout"
+	var msg string
+	switch {
+	case errors.Is(err, coreclient.ErrCoreTimeout):
+		msg = "core service timeout"
+	case errors.Is(err, coreclient.ErrCoreNotConfigured):
+		msg = "core service not configured (CORE_BASE_URL is empty)"
+	default:
+		var httpErr *coreclient.CoreHTTPError
+		var parseErr *coreclient.CoreParseError
+		switch {
+		case errors.As(err, &httpErr):
+			msg = httpErr.Error()
+		case errors.As(err, &parseErr):
+			msg = parseErr.Error()
+		default:
+			msg = err.Error()
+		}
 	}
-	if errors.Is(err, coreclient.ErrCoreNotConfigured) {
-		return "core service not configured (CORE_BASE_URL is empty)"
+	return truncateRunes(msg, importErrorMessageMaxLen)
+}
+
+// truncateRunes shortens s to at most maxRunes runes, appending an ellipsis
+// when truncated. Slicing by runes (not bytes) avoids cutting a multi-byte
+// UTF-8 sequence in half.
+func truncateRunes(s string, maxRunes int) string {
+	runes := []rune(s)
+	if len(runes) <= maxRunes {
+		return s
 	}
-	var httpErr *coreclient.CoreHTTPError
-	if errors.As(err, &httpErr) {
-		return httpErr.Error()
-	}
-	var parseErr *coreclient.CoreParseError
-	if errors.As(err, &parseErr) {
-		return parseErr.Error()
-	}
-	return err.Error()
+	return string(runes[:maxRunes]) + "…"
 }

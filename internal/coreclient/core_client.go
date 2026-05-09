@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -22,11 +23,22 @@ type CoreClient interface {
 	CreateParticipant(ctx context.Context, payload any, bearerToken, tenant string) (participantID string, err error)
 }
 
-// ErrCoreNotConfigured is returned when no CORE_BASE_URL has been configured.
-var ErrCoreNotConfigured = errors.New("core service not configured")
+// Sentinel errors returned by the client. Callers can use errors.Is to detect
+// each condition without depending on the message text.
+var (
+	// ErrCoreNotConfigured is returned when no CORE_BASE_URL has been configured.
+	ErrCoreNotConfigured = errors.New("core service not configured")
 
-// ErrCoreTimeout is returned when the HTTP call to the core times out.
-var ErrCoreTimeout = errors.New("core service timeout")
+	// ErrCoreTimeout is returned when the HTTP call to the core times out.
+	ErrCoreTimeout = errors.New("core service timeout")
+
+	// ErrBearerTokenRequired is returned when the caller did not pass a bearer
+	// token to forward.
+	ErrBearerTokenRequired = errors.New("bearer token required for core call")
+
+	// ErrTenantRequired is returned when the caller did not pass a tenant.
+	ErrTenantRequired = errors.New("tenant required for core call")
+)
 
 // CoreHTTPError captures a non-2xx response from the core. The body is
 // truncated to keep error messages bounded.
@@ -78,10 +90,10 @@ func (c *HTTPCoreClient) CreateParticipant(ctx context.Context, payload any, bea
 		return "", ErrCoreNotConfigured
 	}
 	if bearerToken == "" {
-		return "", errors.New("bearer token required for core call")
+		return "", ErrBearerTokenRequired
 	}
 	if tenant == "" {
-		return "", errors.New("tenant required for core call")
+		return "", ErrTenantRequired
 	}
 
 	body, err := json.Marshal(payload)
@@ -100,13 +112,20 @@ func (c *HTTPCoreClient) CreateParticipant(ctx context.Context, payload any, bea
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
+		if isTimeoutErr(err) {
 			return "", ErrCoreTimeout
+		}
+		if errors.Is(err, context.Canceled) {
+			// Caller cancelled the request (e.g., HTTP client disconnected).
+			// Return as-is so the caller can recognise it via errors.Is.
+			return "", err
 		}
 		return "", fmt.Errorf("core request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
+	// Cap the body read to bound memory usage. Cores normally return small
+	// JSON payloads; an unbounded read would let a misbehaving server OOM us.
 	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 64*1024))
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
@@ -152,9 +171,29 @@ func isHTMLResponse(contentType string, body []byte) bool {
 	return false
 }
 
-func truncate(s string, max int) string {
-	if len(s) <= max {
+// isTimeoutErr returns true for the various ways the standard library
+// surfaces a request-level timeout: a wrapped context.DeadlineExceeded
+// (modern http.Client), or a net.Error whose Timeout() reports true
+// (older runtimes and some transport-level cases).
+func isTimeoutErr(err error) bool {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+	var ne net.Error
+	if errors.As(err, &ne) && ne.Timeout() {
+		return true
+	}
+	return false
+}
+
+// truncate shortens s to at most maxRunes runes, appending an ellipsis when
+// truncated. Slicing by runes (not bytes) avoids cutting a multi-byte UTF-8
+// sequence — which can happen when the core embeds Unicode in its error
+// bodies.
+func truncate(s string, maxRunes int) string {
+	runes := []rune(s)
+	if len(runes) <= maxRunes {
 		return s
 	}
-	return s[:max] + "…"
+	return string(runes[:maxRunes]) + "…"
 }

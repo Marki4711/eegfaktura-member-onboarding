@@ -13,23 +13,23 @@ import (
 // `POST /participant` endpoint. The shape follows
 // github.com/eegfaktura/eegfaktura-backend/model/participant.go.
 type CoreParticipantPayload struct {
-	ParticipantNumber string                 `json:"participantNumber,omitempty"`
-	BusinessRole      string                 `json:"businessRole"` // EEG_PRIVATE | EEG_BUSINESS
-	Role              string                 `json:"role"`         // EEG_USER | EEG_ADMIN
-	FirstName         string                 `json:"firstname"`
-	LastName          string                 `json:"lastname"`
-	TitleBefore       string                 `json:"titleBefore"`
-	TitleAfter        string                 `json:"titleAfter"`
-	ParticipantSince  time.Time              `json:"participantSince"`
-	VatNumber         string                 `json:"vatNumber"`
-	TaxNumber         string                 `json:"taxNumber"`
-	CompanyRegister   string                 `json:"companyRegisterNumber"`
-	Status            string                 `json:"status"`
-	Contact           CoreContact            `json:"contact"`
-	BillingAddress    CoreAddress            `json:"billingAddress"`
-	ResidentAddress   CoreAddress            `json:"residentAddress"`
-	BankAccount       CoreBankInfo           `json:"accountInfo"`
-	MeteringPoint     []CoreMeteringPoint    `json:"meters"`
+	ParticipantNumber string              `json:"participantNumber,omitempty"`
+	BusinessRole      string              `json:"businessRole"` // EEG_PRIVATE | EEG_BUSINESS
+	Role              string              `json:"role"`         // EEG_USER | EEG_ADMIN
+	FirstName         string              `json:"firstname"`
+	LastName          string              `json:"lastname"`
+	TitleBefore       string              `json:"titleBefore"`
+	TitleAfter        string              `json:"titleAfter"`
+	ParticipantSince  time.Time           `json:"participantSince"`
+	VatNumber         string              `json:"vatNumber"`
+	TaxNumber         string              `json:"taxNumber"`
+	CompanyRegister   string              `json:"companyRegisterNumber"`
+	Status            string              `json:"status"`
+	Contact           CoreContact         `json:"contact"`
+	BillingAddress    CoreAddress         `json:"billingAddress"`
+	ResidentAddress   CoreAddress         `json:"residentAddress"`
+	BankAccount       CoreBankInfo        `json:"accountInfo"`
+	Meters            []CoreMeteringPoint `json:"meters"`
 }
 
 // CoreContact maps to model.ContactInfo on the core.
@@ -111,13 +111,21 @@ func BuildPayload(app *shared.Application, meteringPoints []shared.MeteringPoint
 	firstName, lastName := mapPersonName(app)
 
 	payload := CoreParticipantPayload{
-		FirstName:        firstName,
-		LastName:         lastName,
+		FirstName: firstName,
+		LastName:  lastName,
+		// Onboarding stores a single optional title in app.Titel and maps it
+		// onto the core's TitleBefore (e.g. "Dr.", "Mag."). The core also has
+		// a TitleAfter slot, but onboarding does not collect a post-nominal.
 		TitleBefore:      derefString(app.Titel),
 		ParticipantSince: participantSince,
-		Status:           "NEW",
-		Role:             "EEG_USER",
-		BusinessRole:     mapBusinessRole(app.MemberType),
+		// Status is set to NEW for symmetry with the core's enum, but the
+		// core overwrites it to PENDING in RegisterParticipant regardless.
+		// processState used to live on the meter level per docs/import-mapping.md
+		// but the current eegFaktura MeteringPoint model has no such field —
+		// it is intentionally omitted from the payload.
+		Status:       "NEW",
+		Role:         "EEG_USER",
+		BusinessRole: mapBusinessRole(app.MemberType),
 		Contact: CoreContact{
 			Email: app.Email,
 			Phone: derefString(app.Phone),
@@ -128,7 +136,7 @@ func BuildPayload(app *shared.Application, meteringPoints []shared.MeteringPoint
 			Iban:  derefString(app.IBAN),
 			Owner: derefString(app.AccountHolder),
 		},
-		MeteringPoint: meters,
+		Meters: meters,
 	}
 
 	if app.MemberNumber != nil {

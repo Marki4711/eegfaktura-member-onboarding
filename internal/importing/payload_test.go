@@ -59,10 +59,10 @@ func TestBuildPayload_MetersUseResidentAddress(t *testing.T) {
 
 	got := BuildPayload(app, mps, now)
 
-	if len(got.MeteringPoint) != 2 {
-		t.Fatalf("got %d meters, want 2", len(got.MeteringPoint))
+	if len(got.Meters) != 2 {
+		t.Fatalf("got %d meters, want 2", len(got.Meters))
 	}
-	for i, m := range got.MeteringPoint {
+	for i, m := range got.Meters {
 		if m.City != app.ResidentCity || m.Zip != app.ResidentZip || m.Street != app.ResidentStreet || m.StreetNumber != app.ResidentStreetNumber {
 			t.Errorf("meter %d: address must equal resident, got street=%q, city=%q", i, m.Street, m.City)
 		}
@@ -73,11 +73,11 @@ func TestBuildPayload_MetersUseResidentAddress(t *testing.T) {
 			t.Errorf("meter %d registeredSince = %v, want %v", i, m.RegisteredSince, now)
 		}
 	}
-	if got.MeteringPoint[0].Direction != "CONSUMPTION" {
-		t.Errorf("consumption meter direction = %q, want CONSUMPTION", got.MeteringPoint[0].Direction)
+	if got.Meters[0].Direction != "CONSUMPTION" {
+		t.Errorf("consumption meter direction = %q, want CONSUMPTION", got.Meters[0].Direction)
 	}
-	if got.MeteringPoint[1].Direction != "GENERATION" {
-		t.Errorf("production meter direction = %q, want GENERATION (core enum, not PRODUCTION)", got.MeteringPoint[1].Direction)
+	if got.Meters[1].Direction != "GENERATION" {
+		t.Errorf("production meter direction = %q, want GENERATION (core enum, not PRODUCTION)", got.Meters[1].Direction)
 	}
 }
 
