@@ -531,6 +531,28 @@ Returns the admin list.
 
 ### POST `/api/admin/applications/{id}/import`
 
+### Request body (optional, PROJ-27)
+
+```json
+{
+  "tariffId": "uuid-of-EEG-tariff-or-empty",
+  "meterTariffs": {
+    "AT0030000000000000000000012345678": "uuid-of-VZP-or-EZP-tariff"
+  }
+}
+```
+
+The body is fully optional — an empty body or omitted JSON keeps the legacy
+"no tariffs" behaviour (the participant is created in the core with no
+tariff assignment, the admin pflegt es manuell im Core nach).
+
+- `tariffId`: UUID of an `EEG`-type tariff (Mitgliedsbeitrag). Set on the
+  participant via a follow-up `PUT /participant/v2/{participantId}` call after
+  the participant is created, because the core's `EegParticipantBase.TariffId`
+  is `goqu:"skipinsert"` and is ignored on participant insert.
+- `meterTariffs`: map of `meteringPoint` → tariff UUID. Goes into the
+  `meters[].tariff_id` field of the `POST /participant` body directly.
+
 ### Rules
 - only status `approved`
 - only authorized admins
@@ -542,9 +564,15 @@ Returns the admin list.
   "success": true,
   "applicationId": "3f8c8c2d-....",
   "status": "imported",
-  "targetParticipantId": "4711"
+  "targetParticipantId": "4711",
+  "memberTariffWarning": "core returned HTTP 404"
 }
 ```
+
+`memberTariffWarning` (PROJ-27) is only present when the participant was
+created successfully but the follow-up call to set the member-level tariff
+failed. The application is still moved to `imported` — meter tariffs are
+persisted; the admin needs to set the member tariff manually in the core.
 
 ### Failure response 409 / 422 / 500
 ```json
@@ -570,6 +598,46 @@ Returns the admin list.
 - set `import_error_message`
 - `status = import_failed`
 - write `status_log`
+
+---
+
+## 6.5.05 Tariff lookup (PROJ-27)
+
+### GET `/api/admin/tariffs?rcNumber={rcNumber}`
+
+Proxies the eegFaktura core's `GET /eeg/tariff` for the import-time tariff
+selection dialog. Tenant-Admin scope: the `rcNumber` must be in the admin's
+JWT `Tenants` claim (or the admin is a superuser).
+
+### Response 200
+```json
+{
+  "tariffs": [
+    {
+      "id": "dfd00405-9a42-11ee-ad15-22b3d9edaadd",
+      "type": "EZP",
+      "name": "Einspeisetarif Landwirt",
+      "centPerKWh": 11,
+      "discount": 0,
+      "useVat": true,
+      "vatInPercent": 13,
+      "inactiveSince": null
+    }
+  ]
+}
+```
+
+The frontend filters tariffs by `type` (`EEG` for the member dropdown,
+`VZP`/`EZP` for the meter dropdowns) and hides entries with `inactiveSince`
+set. The full upstream payload contains more pricing fields (`participantFee`,
+`baseFee`, `freeKWh`, `meteringPointFee`, ...); only the subset above is
+exposed to the frontend.
+
+### Failure responses
+- `400` rcNumber missing
+- `403` tenant mismatch
+- `503` core unavailable — the frontend then offers an "Import ohne Tarife"
+  fallback (the import still runs, no tariff assignments).
 
 ---
 
@@ -1141,7 +1209,10 @@ Same as public API: `private` | `sole_proprietor` | `farmer` | `municipality` | 
 `sepaMandateAccepted: true`, `meteringPoints` (min 1).
 
 For `natural_person` types (`private`, `farmer`): `firstname` + `lastname` required.
-For legal entity types: `companyName` required.
+For legal entity types (`municipality`, `company`, `association`, `sole_proprietor`): `companyName` required.
+- `sole_proprietor` (PROJ-28, Kleinunternehmer): only `companyName` required; `firstname`, `lastname`, `birth_date`, `uid_number`, `register_number` are ignored if present.
+- `company`: additionally `uidNumber` + `registerNumber` required.
+- `association`: additionally `registerNumber` required.
 
 Configurable fields follow the EEG's active `field_config` — identical rules to the public form.
 

@@ -231,3 +231,46 @@ Onboarding constants do not match the core's enum 1:1:
 | `PRODUCTION` | **`GENERATION`** ← translated by `mapMeterDirection` |
 
 Sending `PRODUCTION` directly leaves Einspeisungs-Zählpunkte with an unrecognised direction in the core (silently accepted but breaks billing).
+
+---
+
+## 10. Tariff handling (PROJ-27)
+
+Tariffs are not persisted in the onboarding DB. The admin picks them at
+import time in a popup; the selection is sent in the body of
+`POST /api/admin/applications/{id}/import`:
+
+```json
+{
+  "tariffId": "<uuid>",
+  "meterTariffs": {
+    "AT0030000000000000000000012345678": "<uuid>"
+  }
+}
+```
+
+Mapping into the core:
+
+| Field | Where it lands in the core | Mechanism |
+|---|---|---|
+| `meterTariffs[<mp>]` | `meters[].tariff_id` in `POST /participant` body | direct, snake_case JSON tag |
+| `tariffId` (member) | `base.participant."tariffId"` column | follow-up `PUT /participant/v2/{id}` with `{"path": "tariffId", "value": "<uuid>"}` |
+
+The follow-up call is necessary because the core's
+`EegParticipantBase.TariffId` is `goqu:"skipinsert"` — sending `tariffId` in
+the `POST /participant` body is silently ignored.
+
+A failure of the follow-up call sets `ImportResult.MemberTariffWarning` but
+does NOT roll back the import (meter tariffs are already persisted; the
+admin can re-assign the member tariff in eegFaktura).
+
+Tariff types (from the core's `base.tariff.type` column):
+
+| Type | Verwendung im Onboarding |
+|---|---|
+| `EEG` | Mitglieds-Tarif (Application-Level) |
+| `VZP` | Verbraucher-Zählpunkt (`direction = CONSUMPTION`) |
+| `EZP` | Einspeise-Zählpunkt (`direction = GENERATION`) |
+| `AKONTO` | Wird im Onboarding nicht angeboten — Prepaid-Konto-Tarif |
+
+Inactive tariffs (`inactiveSince != null`) are filtered out by the frontend.
