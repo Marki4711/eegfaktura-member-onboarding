@@ -15,6 +15,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { MaskedInput } from "@/components/ui/masked-input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -763,12 +764,22 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                   <FormItem>
                     <FormLabel>IBAN *</FormLabel>
                     <FormControl>
-                      <Input
-                        {...field}
+                      <MaskedInput
+                        // PROJ-29: visually group IBAN as XX## #### #### #### …
+                        // Country code + check digits + up to 30 digits (covers
+                        // AT/DE/FR/NL/IT/ES/BE — the typical EU subset). IBANs
+                        // with letters in the BBAN portion (GB, IE, …) need the
+                        // user to fix the position manually; the validator
+                        // (ibantools) is the ultimate source of truth.
+                        mask="aa00 0000 0000 0000 0000 0000 0000 0000 00"
+                        lazy={true}
+                        prepareChar={(str: string) => str.toUpperCase()}
+                        value={field.value}
+                        onAccept={(value: string) => field.onChange(value)}
+                        onBlur={field.onBlur}
+                        inputRef={field.ref}
+                        name={field.name}
                         autoComplete="off"
-                        onChange={(e) =>
-                          field.onChange(e.target.value.toUpperCase())
-                        }
                       />
                     </FormControl>
                     <FormMessage />

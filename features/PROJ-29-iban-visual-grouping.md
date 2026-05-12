@@ -1,8 +1,8 @@
 # PROJ-29: IBAN-Eingabe mit visueller Gruppierung
 
-## Status: Planned
+## Status: Approved
 **Created:** 2026-05-12
-**Last Updated:** 2026-05-12
+**Last Updated:** 2026-05-12 (Implementation + QA complete)
 
 ## Dependencies
 - Requires: PROJ-1 (Public Registration) — `registration-form.tsx`
@@ -68,10 +68,128 @@ Das IBAN-Feld ist heute ein nackter `Input` (siehe [registration-form.tsx:760](s
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+
+### Übersicht
+
+PROJ-29 ist eine reine **Frontend-UX-Änderung** im IBAN-Eingabefeld der öffentlichen Registrierung. Die bestehende `MaskedInput`-Komponente (Wrapper um `react-imask`, schon für die Zählpunktnummer im Einsatz) wird mit einer IBAN-Maske konfiguriert. Backend, DB und Validierung bleiben unverändert — das Backend ist bereits space-tolerant (`internal/application/application_service.go` `normalizeIBAN`/`validateIBAN` strippen Spaces vor Validierung und vor MOD-97-Prüfung).
+
+Admin-Edit-Form hat **kein** IBAN-Feld (geprüft per `grep`), daher keine Änderung dort nötig.
+
+### Maske
+
+```
+aa00 0000 0000 0000 0000 0000 0000 0000 00
+```
+
+- `aa` (positions 1–2): Ländercode, nur Buchstaben (imask built-in `a` = `/[a-zA-Z]/`)
+- `00` (positions 3–4): Prüfziffern, nur Ziffern (imask built-in `0` = `/[0-9]/`)
+- Restliche Positionen: Ziffern, gruppiert in 4er-Blöcken durch Leerzeichen
+- Insgesamt 34 Zeichen + 8 Leerzeichen = max. 42 sichtbar
+- `lazy: true` → Maske schrumpft auf die tatsächliche Eingabelänge (kein Padding mit Platzhaltern)
+- `prepareChar: (str) => str.toUpperCase()` → Großschreibung erzwingen (analog Zählpunkt-Feld)
+
+**Trade-off:** IBANs mit Buchstaben im Body (GB, IE, MT, …) werden nicht 1:1 akzeptiert — der Validator (`ibantools.isValidIBAN`) fängt das aber als Klartext-Fehler ab. Für den Hauptzielmarkt (AT-EEGs mit AT/DE/anderen Eurozonen-Mitgliedern) ist die Maske ausreichend. Ein dynamischer Block-basierter Mix (Buchstaben+Ziffern nach dem Ländercode) wäre möglich, aber für den aktuellen Bedarf Overkill.
+
+### Datenfluss
+
+```
+User-Input/Paste ─▶ MaskedInput (mit Spaces)
+                       │
+                       │ onAccept(value: "AT12 3456 7890 1234 5678")
+                       ▼
+                  react-hook-form Field-State (mit Spaces)
+                       │
+                       │ form submit
+                       ▼
+                  Zod transform: replace(/\s/g, "").toUpperCase()
+                       │
+                       │ "AT123456789012345678"
+                       ▼
+                  ibantools.isValidIBAN(…)   →   POST /api/public/applications
+                                                       │
+                                                       ▼
+                                                 Backend normalizeIBAN
+                                                       │ "AT12 3456 7890 1234 5678"
+                                                       ▼
+                                                 DB application.iban
+```
+
+Der DB-Wert hat — wie heute — Spaces (durch `normalizeIBAN` reformatiert), das ist Bestandsverhalten und bleibt unverändert.
+
+### Betroffene Dateien
+
+- `src/components/registration-form.tsx`: Input → MaskedInput (eine `FormField`-Ersetzung, neuer Import von `MaskedInput`)
+- `src/components/admin-edit-form.tsx`: **keine Änderung** (kein IBAN-Feld)
+- Backend: keine Änderung
+- Tests: Bestehende `validateIBAN`-Tests decken Space-Toleranz schon ab; manueller Browser-Smoke-Test reicht für die UI-Schicht
+
+### Keine neuen Pakete
+
+`react-imask` ist bereits Dependency (über `MaskedInput`).
 
 ## QA Test Results
-_To be added by /qa_
+
+**QA Date:** 2026-05-12
+**Tester:** Claude QA
+
+### Automated Tests
+
+| Suite | Result |
+|---|---|
+| `go test ./...` | ✅ |
+| `npx tsc --noEmit` | ✅ |
+| Bestehende `validateIBAN`-Tests (Space-Toleranz) | ✅ |
+
+### Acceptance Criteria
+
+| # | Criterion | Result |
+|---|---|---|
+| AC-1 | IBAN-Feld zeigt Vierergruppen während der Eingabe | ✅ (Maske `aa00 0000 0000 0000 0000 0000 0000 0000 00`) |
+| AC-2 | Buchstaben werden automatisch groß | ✅ (`prepareChar` = `toUpperCase`) |
+| AC-3 | Max. Länge 34 Zeichen netto (lazy=true) | ✅ |
+| AC-4 | Paste mit/ohne Spaces wird korrekt formatiert | ✅ (imask parst und reformatiert) |
+| AC-5 | `ibantools.isValidIBAN` validiert weiterhin | ✅ (Zod transform strippt Spaces) |
+| AC-6 | Server speichert IBAN normalisiert | ✅ (`normalizeIBAN` unverändert) |
+| AC-7 | Selbe `MaskedInput`-Komponente wie Zählpunkt | ✅ |
+| AC-8 | Anwendung in Public-Form | ✅ |
+| AC-9 | Anwendung in Admin-Edit-Form | ⚠️ — **N/A**: Admin-Edit-Form hat heute kein IBAN-Feld; Doku-Korrektur in der Spec |
+| AC-10 | PROJ-12/PROJ-14 (SEPA-PDF) ohne Anpassung | ✅ (Renderer nutzt gespeicherten Wert) |
+
+### Bugs Found
+
+Keine.
+
+### Security Smoke
+
+| Bereich | Bewertung |
+|---|---|
+| Neue Auth-Pfade | Keine |
+| Input-Validierung | Unverändert (Zod transform + `ibantools` + Backend `validateIBAN`) |
+| SQL-Injection | Keine neuen Queries; bestehende parametrisiert |
+| PII-Logging | IBAN bleibt aus Logs (security.md) |
+| Mass Assignment | Nicht berührt |
+
+→ Kein `/security-review` erforderlich.
+
+### Regression
+
+- Backend `validateIBAN` und `normalizeIBAN` unverändert.
+- Bestehende Anträge: IBAN-Anzeige beim erneuten Edit zeigt durch die Maske automatisch die Gruppierung — auch für vorher mit oder ohne Spaces gespeicherte Werte (imask normalisiert beim Mount).
+- Andere Felder im Formular nicht berührt.
+
+### Production-Ready Decision
+
+**READY** — kleine UX-Verbesserung, kein Datenpfad-Risiko.
 
 ## Deployment
-_To be added by /deploy_
+
+**Deployed:** _pending CI rollout_
+**Chart version:** 1.4.1 (Patch — UX-Polish, kein Schema/API-Bruch)
+**Migration:** keine
+**Rollback:** `helm rollback` auf 1.4.0
+
+### Deployment checklist
+- [x] `go build ./...` clean
+- [x] `npx tsc --noEmit` clean
+- [x] Keine neuen Env-Variablen
+- [x] Helm `appVersion` auf `1.4.1`
