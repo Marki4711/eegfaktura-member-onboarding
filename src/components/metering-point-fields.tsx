@@ -70,6 +70,10 @@ export function MeteringPointFields({ form, fieldConfig }: MeteringPointFieldsPr
                         onBlur={field.onBlur}
                         inputRef={field.ref}
                         name={field.name}
+                        // Mobile: kleinere monospace-Font + enges Tracking, damit
+                        // die 37 sichtbaren Stellen (Zählpunkt + Spaces) in eine
+                        // Zeile passen. Ab sm: zurück auf den Default.
+                        className="text-xs font-mono tracking-tight sm:text-sm sm:font-normal sm:tracking-normal"
                       />
                     </FormControl>
                     <FormMessage />
