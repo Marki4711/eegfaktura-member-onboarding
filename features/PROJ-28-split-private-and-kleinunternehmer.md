@@ -1,8 +1,8 @@
 # PROJ-28: Trennung von „Privat" und „Kleinunternehmer"
 
-## Status: In Progress
+## Status: Approved
 **Created:** 2026-05-12
-**Last Updated:** 2026-05-12 (Implementation started)
+**Last Updated:** 2026-05-12 (Implementation + QA complete, BUG-1 fixed)
 
 ## Dependencies
 - Requires: PROJ-7 (Mitgliedstypen) — erweitert dessen Mitgliedstypen-Modell
@@ -259,7 +259,126 @@ Backend-Schritte 1–2 und Frontend-Schritte 3–4 sind parallelisierbar, sobald
 | Externe API (PROJ-13) sendet `firstname` für `sole_proprietor` und erwartet, dass es übernommen wird | Niedrig | Q5 explizit dokumentiert: `firstname` wird für `sole_proprietor` ignoriert; OpenAPI-Doc (PROJ-24) entsprechend ergänzen |
 
 ## QA Test Results
-_To be added by /qa_
+
+**QA Date:** 2026-05-12
+**Tester:** Claude QA
+
+### Automated Tests
+
+| Suite | Result |
+|---|---|
+| `go test ./...` | ✅ alle Pakete grün |
+| `go build ./...` | ✅ |
+| `npx tsc --noEmit` | ✅ |
+| `application_service_test.go` (4 neue sole_proprietor-Cases) | ✅ |
+| `payload_test.go` (3 neue sole_proprietor-Cases inkl. Q5-Regression) | ✅ |
+| GitHub Actions CI (Backend + Frontend) auf `b1da1fc` | ✅ success |
+
+### Acceptance Criteria
+
+#### Neuer Mitgliedstyp `sole_proprietor`
+| # | Criterion | Result |
+|---|---|---|
+| AC-1 | Konstante `MemberTypeSoleProprietor` mit Wert `"sole_proprietor"` | ✅ |
+| AC-2 | `oneof`-Validator akzeptiert neuen Wert (4 Stellen) | ✅ |
+| AC-3 | `MemberTypePrivate` bedeutet nur noch Privatperson | ✅ |
+
+#### Formular: Typ-Auswahl
+| # | Criterion | Result |
+|---|---|---|
+| AC-4 | Public-Form zeigt neue Option „Kleinunternehmer" | ✅ |
+| AC-5 | Altes Label „Privat / Kleinunternehmer" → „Privatperson" | ✅ |
+| AC-6 | Default „Privatperson" beibehalten | ✅ |
+
+#### Formular: Felder je Typ
+| # | Criterion | Result |
+|---|---|---|
+| AC-7 | `sole_proprietor` zeigt nur Firmenname (kein Vorname/Nachname/Geburtsdatum/UID/Reg.Nr.) | ✅ |
+| AC-8 | Typ-Wechsel löscht typspezifische Felder (`onMemberTypeChange`) | ✅ |
+| AC-9 | Übrige Typen unverändert | ✅ |
+
+#### Backend: Validierung & Bereinigung
+| # | Criterion | Result |
+|---|---|---|
+| AC-10 | `validateMemberTypeFields(sole_proprietor)` verlangt `company_name` | ✅ |
+| AC-11 | `clearMemberTypeFields(sole_proprietor)` leert Personenfelder + UID + Reg.Nr., behält CompanyName | ✅ |
+| AC-12 | Validierung in Create, Update, Submit und AdminUpdate aktiv | ✅ (bestehende Aufrufstellen) |
+
+#### Backend: Import-Mapping
+| # | Criterion | Result |
+|---|---|---|
+| AC-13 | `mapBusinessRole(sole_proprietor) == "EEG_BUSINESS"` | ✅ |
+| AC-14 | `mapPersonName(sole_proprietor)` setzt CompanyName in firstName, lastName leer | ✅ |
+| AC-15 | Q5: incoming `firstname` für sole_proprietor wird ignoriert (nicht überschrieben) | ✅ (Test `TestBuildPayload_SoleProprietor_IncomingFirstnameIsIgnored`) |
+| AC-16 | Regression: `company` mit Kontaktperson behält weiterhin firstname | ✅ (Test `TestBuildPayload_NonPrivateWithContactPerson`) |
+
+#### Admin-UI
+| # | Criterion | Result |
+|---|---|---|
+| AC-17 | `MEMBER_TYPE_LABELS["sole_proprietor"] == "Kleinunternehmer"` | ✅ |
+| AC-18 | Admin-Detail zeigt für sole_proprietor nur Firmenname, kein UID/Reg.Nr.-Block | ✅ |
+| AC-19 | Admin-Edit-Form spiegelt Public-Form-Felder (UID nur für `company`/`municipality`/`association`) | ✅ |
+| AC-20 | Antragsliste: sole_proprietor erscheint mit Firmenname in der Namensspalte | ✅ (existierender Fallback-Branch) |
+
+#### Output-Renderer
+| # | Criterion | Result |
+|---|---|---|
+| AC-21 | PDF-Renderer (`approval_pdf.go`) zeigt Mitgliedstyp „Kleinunternehmer", Firmenname-Zeile, kein Name-Block | ✅ (Template-Conditionals greifen) |
+| AC-22 | Excel-Export: `mapBusinessRole(sole_proprietor) == "business"` (Spalte X) | ✅ (Default-Branch) |
+| AC-23 | E-Mail-Anrede neutral für sole_proprietor (kein „Sehr geehrte/r ,") | ❌ → **BUG-1** (gefixt während QA) |
+
+#### Migration & Rückwärtskompatibilität
+| # | Criterion | Result |
+|---|---|---|
+| AC-24 | Keine DB-Migration, nur Anwendungs-Level | ✅ |
+| AC-25 | Bestehende `private`-Anträge bleiben funktional | ✅ |
+| AC-26 | Excel-/PDF-/Mail-Renderer für Bestandsanträge unverändert | ✅ |
+
+### Bugs Found
+
+#### BUG-1 — Medium: Mail-Anrede „Sehr geehrte/r ," für alle nicht-natürlichen Personen
+
+**Severity:** Medium (UX, kein Datenverlust)
+**Component:** `internal/mail/templates/application_submitted_member.html`
+**Description:** Das Member-Submission-Template rendert hart `Sehr geehrte/r {{.Firstname}} {{.Lastname}},`. Für Mitgliedstypen ohne Personennamen (sole_proprietor — neu durch PROJ-28; auch bestehend für company/association/municipality) sind diese Felder leer, sodass die Anrede zu „Sehr geehrte/r ," wird.
+**Steps to reproduce:**
+1. Antrag mit `memberType = sole_proprietor` und gefülltem `companyName` einreichen
+2. Eingehende Member-Mail prüfen → Anrede ist beschädigt
+**Fix:** Template-Conditional eingeführt:
+```html
+{{if .Firstname}}
+  <p>Sehr geehrte/r {{.Firstname}} {{.Lastname}},</p>
+{{else}}
+  <p>Sehr geehrte Damen und Herren,</p>
+{{end}}
+```
+Dadurch fällt sole_proprietor (und implizit alle Org-Typen) auf die neutrale Anrede zurück — entspricht Q4 der Spec.
+**Status:** ✅ Behoben.
+
+### Security Smoke
+
+| Bereich | Risiko | Bewertung |
+|---|---|---|
+| Neue Auth-Pfade | Keine | ✓ |
+| Status-Transitions | Unverändert | ✓ |
+| Tenant-Isolation | Nicht berührt | ✓ |
+| Input-Validierung | `oneof` strikt; CompanyName über bestehende `min/max`-Tags begrenzt | ✓ |
+| SQL-Injection | Keine neuen Queries | ✓ |
+| PII-Logging | Keine neuen Logs | ✓ |
+| Mass Assignment | `clearMemberTypeFields` verhindert leftover-Daten bei Typ-Wechsel | ✓ |
+
+→ Kein `/security-review` erforderlich (entspricht Spec-Notiz).
+
+### Regression
+
+- Bestehende 5 Mitgliedstypen: keine Verhaltensänderung in Validatoren oder Mapper.
+- `company` mit Kontaktperson: explizit per Test abgesichert (Regression-Test ist Bestandsschutz).
+- Excel-/PDF-Renderer: Default-Branches greifen unverändert für Bestandstypen.
+- Mail-Template-Fix verbessert auch UX für `company`/`association`/`municipality` (vorher latentes Anrede-Problem).
+
+### Production-Ready Decision
+
+**READY** — BUG-1 behoben, alle ACs erfüllt, CI auf `b1da1fc` grün. Status kann nach Deploy auf `Approved` bzw. `Deployed` wechseln.
 
 ## Deployment
 _To be added by /deploy_

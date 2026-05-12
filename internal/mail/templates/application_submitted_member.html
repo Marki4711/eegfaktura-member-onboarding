@@ -5,7 +5,7 @@
   <title>Ihre Beitrittserklärung wurde eingereicht</title>
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-  <p>Sehr geehrte/r {{.Firstname}} {{.Lastname}},</p>
+  {{if .Firstname}}<p>Sehr geehrte/r {{.Firstname}} {{.Lastname}},</p>{{else}}<p>Sehr geehrte Damen und Herren,</p>{{end}}
 
   <p>wir bestätigen den Eingang Ihrer Beitrittserklärung{{if .EEGName}} bei <strong>{{.EEGName}}</strong>{{end}}.</p>
 
