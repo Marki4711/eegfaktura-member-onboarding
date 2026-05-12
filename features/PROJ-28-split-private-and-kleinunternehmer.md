@@ -381,4 +381,19 @@ Dadurch fällt sole_proprietor (und implizit alle Org-Typen) auf die neutrale An
 **READY** — BUG-1 behoben, alle ACs erfüllt, CI auf `b1da1fc` grün. Status kann nach Deploy auf `Approved` bzw. `Deployed` wechseln.
 
 ## Deployment
-_To be added by /deploy_
+
+**Deployed:** _pending CI rollout_
+**Chart version:** 1.4.0 / appVersion 1.4.0
+**Migration:** none — additive feature, no DB schema change
+**Rollback:** `helm rollback` to chart `1.3.0`; no migration needs to be reverted
+
+### Deployment checklist
+- [x] `go build ./...` clean
+- [x] `go test ./...` clean
+- [x] `npx tsc --noEmit` clean
+- [x] CI Build & Test green on `b1da1fc` + `25a1c87`
+- [x] QA approved, BUG-1 fixed
+- [x] No new environment variables required
+- [x] No new Kubernetes Secrets required
+- [x] Helm chart `appVersion` bumped to `1.4.0`
+- [x] Image tag auto-bumps via existing Helm-tag CI step (no manual action)
