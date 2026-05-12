@@ -47,11 +47,12 @@ const (
 type MemberType string
 
 const (
-	MemberTypePrivate      MemberType = "private"
-	MemberTypeFarmer       MemberType = "farmer"
-	MemberTypeMunicipality MemberType = "municipality"
-	MemberTypeCompany      MemberType = "company"
-	MemberTypeAssociation  MemberType = "association"
+	MemberTypePrivate        MemberType = "private"
+	MemberTypeSoleProprietor MemberType = "sole_proprietor"
+	MemberTypeFarmer         MemberType = "farmer"
+	MemberTypeMunicipality   MemberType = "municipality"
+	MemberTypeCompany        MemberType = "company"
+	MemberTypeAssociation    MemberType = "association"
 )
 
 // MeterDirection represents the direction of a metering point

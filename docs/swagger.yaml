@@ -640,6 +640,7 @@ definitions:
   shared.MemberType:
     enum:
     - private
+    - sole_proprietor
     - farmer
     - municipality
     - company
@@ -647,6 +648,7 @@ definitions:
     type: string
     x-enum-varnames:
     - MemberTypePrivate
+    - MemberTypeSoleProprietor
     - MemberTypeFarmer
     - MemberTypeMunicipality
     - MemberTypeCompany

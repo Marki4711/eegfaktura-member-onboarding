@@ -1874,6 +1874,7 @@
             "type": "string",
             "enum": [
                 "private",
+                "sole_proprietor",
                 "farmer",
                 "municipality",
                 "company",
@@ -1881,6 +1882,7 @@
             ],
             "x-enum-varnames": [
                 "MemberTypePrivate",
+                "MemberTypeSoleProprietor",
                 "MemberTypeFarmer",
                 "MemberTypeMunicipality",
                 "MemberTypeCompany",

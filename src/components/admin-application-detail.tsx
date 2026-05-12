@@ -34,11 +34,12 @@ const EINZUGSART_LABELS: Record<string, string> = {
 };
 
 const MEMBER_TYPE_LABELS: Record<MemberType, string> = {
-  private:      "Privatperson / Kleinunternehmer",
-  farmer:       "Pauschalierter Landwirt",
-  municipality: "Gemeinde / öffentl. Körperschaft",
-  company:      "Unternehmen",
-  association:  "Verein",
+  private:         "Privatperson",
+  sole_proprietor: "Kleinunternehmer",
+  farmer:          "Pauschalierter Landwirt",
+  municipality:    "Gemeinde / öffentl. Körperschaft",
+  company:         "Unternehmen",
+  association:     "Verein",
 };
 
 interface Props {
@@ -349,10 +350,24 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
               </dl>
             ) : (
               <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                <Field label={application.memberType === "municipality" ? "Organisationsname" : "Firmenname"} value={application.companyName} />
-                <Field label="UID-Nummer" value={application.uidNumber} />
-                {application.memberType === "company" && (
-                  <Field label="Firmenbuch-/Vereinsnummer" value={application.registerNumber} />
+                <Field
+                  label={
+                    application.memberType === "municipality"
+                      ? "Organisationsname"
+                      : application.memberType === "association"
+                      ? "Vereinsname"
+                      : "Firmenname"
+                  }
+                  value={application.companyName}
+                />
+                {application.memberType !== "sole_proprietor" && (
+                  <Field label="UID-Nummer" value={application.uidNumber} />
+                )}
+                {(application.memberType === "company" || application.memberType === "association") && (
+                  <Field
+                    label={application.memberType === "association" ? "Vereinsnummer" : "Firmenbuch-/Vereinsnummer"}
+                    value={application.registerNumber}
+                  />
                 )}
                 <Field label="E-Mail" value={application.email} />
                 <Field label="Telefon" value={application.phone} />

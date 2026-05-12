@@ -1084,7 +1084,7 @@ The API key determines the EEG — no `rcNumber` in the body.
 
 ### memberType values
 
-Same as public API: `private` | `farmer` | `municipality` | `company` | `association`
+Same as public API: `private` | `sole_proprietor` | `farmer` | `municipality` | `company` | `association`
 
 ### Required fields
 

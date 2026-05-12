@@ -11,7 +11,7 @@ import (
 // CreateApplicationRequest represents the request to create a new application
 type CreateApplicationRequest struct {
 	RCNumber             string                      `json:"rcNumber" validate:"required"`
-	MemberType           string                      `json:"memberType" validate:"required,oneof=private farmer municipality company association"`
+	MemberType           string                      `json:"memberType" validate:"required,oneof=private sole_proprietor farmer municipality company association"`
 	Titel                *string                     `json:"titel,omitempty" validate:"omitempty,max=50"`
 	Firstname            *string                     `json:"firstname,omitempty" validate:"omitempty,min=1,max=100"`
 	Lastname             *string                     `json:"lastname,omitempty" validate:"omitempty,min=1,max=100"`
@@ -59,7 +59,7 @@ type CreateMeteringPointRequest struct {
 
 // UpdateApplicationRequest represents the request to update an application
 type UpdateApplicationRequest struct {
-	MemberType           *string                     `json:"memberType,omitempty" validate:"omitempty,oneof=private farmer municipality company association"`
+	MemberType           *string                     `json:"memberType,omitempty" validate:"omitempty,oneof=private sole_proprietor farmer municipality company association"`
 	Titel                *string                     `json:"titel,omitempty" validate:"omitempty,max=50"`
 	Firstname            *string                     `json:"firstname,omitempty" validate:"omitempty,min=1,max=100"`
 	Lastname             *string                     `json:"lastname,omitempty" validate:"omitempty,min=1,max=100"`
@@ -141,7 +141,7 @@ type SubmitResponse struct {
 // Unlike the public update it exposes AdminNote and omits consent fields
 // (privacyAccepted, accuracyConfirmed, etc.) which only the public user sets.
 type AdminUpdateApplicationRequest struct {
-	MemberType           *string                      `json:"memberType,omitempty" validate:"omitempty,oneof=private farmer municipality company association"`
+	MemberType           *string                      `json:"memberType,omitempty" validate:"omitempty,oneof=private sole_proprietor farmer municipality company association"`
 	Titel                *string                      `json:"titel,omitempty" validate:"omitempty,max=50"`
 	Firstname            *string                      `json:"firstname,omitempty" validate:"omitempty,min=1,max=100"`
 	Lastname             *string                      `json:"lastname,omitempty" validate:"omitempty,min=1,max=100"`

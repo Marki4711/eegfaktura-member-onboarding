@@ -201,6 +201,61 @@ func TestBuildPayload_NonPrivateWithContactPerson(t *testing.T) {
 	}
 }
 
+// PROJ-28: SoleProprietor (Kleinunternehmer) — company name always wins over
+// any incoming firstname (Q5). Public form does not collect firstname for
+// this type, but the external API could send one; it MUST be ignored.
+func TestBuildPayload_SoleProprietor_CompanyNameAlwaysInFirstName(t *testing.T) {
+	app := &shared.Application{
+		Email:                "x@example.com",
+		ResidentStreet:       "S",
+		ResidentStreetNumber: "1",
+		ResidentZip:          "1",
+		ResidentCity:         "C",
+		MemberType:           shared.MemberTypeSoleProprietor,
+		Firstname:            nil,
+		Lastname:             nil,
+		CompanyName:          strPtr("Maier IT"),
+	}
+
+	got := BuildPayload(app, nil, time.Now())
+
+	if got.FirstName != "Maier IT" {
+		t.Errorf("FirstName = %q, want %q (companyName for sole_proprietor)", got.FirstName, "Maier IT")
+	}
+	if got.LastName != "" {
+		t.Errorf("LastName = %q, want empty for sole_proprietor", got.LastName)
+	}
+	if got.BusinessRole != "EEG_BUSINESS" {
+		t.Errorf("BusinessRole = %q, want EEG_BUSINESS for sole_proprietor", got.BusinessRole)
+	}
+}
+
+func TestBuildPayload_SoleProprietor_IncomingFirstnameIsIgnored(t *testing.T) {
+	// Q5: incoming firstname (e.g. via the external API) must never override
+	// the company name for sole_proprietor — unlike for `company` where a
+	// contact person's firstname is preserved.
+	app := &shared.Application{
+		Email:                "x@example.com",
+		ResidentStreet:       "S",
+		ResidentStreetNumber: "1",
+		ResidentZip:          "1",
+		ResidentCity:         "C",
+		MemberType:           shared.MemberTypeSoleProprietor,
+		Firstname:            strPtr("Eva"),
+		Lastname:             strPtr("Maier"),
+		CompanyName:          strPtr("Maier IT"),
+	}
+
+	got := BuildPayload(app, nil, time.Now())
+
+	if got.FirstName != "Maier IT" {
+		t.Errorf("FirstName = %q, want %q (sole_proprietor must always use companyName)", got.FirstName, "Maier IT")
+	}
+	if got.LastName != "" {
+		t.Errorf("LastName = %q, want empty (sole_proprietor must drop lastname)", got.LastName)
+	}
+}
+
 func TestBuildPayload_BusinessRoleAndRole(t *testing.T) {
 	cases := []struct {
 		memberType        shared.MemberType
@@ -208,6 +263,7 @@ func TestBuildPayload_BusinessRoleAndRole(t *testing.T) {
 	}{
 		{shared.MemberTypePrivate, "EEG_PRIVATE"},
 		{shared.MemberTypeFarmer, "EEG_PRIVATE"},
+		{shared.MemberTypeSoleProprietor, "EEG_BUSINESS"},
 		{shared.MemberTypeCompany, "EEG_BUSINESS"},
 		{shared.MemberTypeAssociation, "EEG_BUSINESS"},
 		{shared.MemberTypeMunicipality, "EEG_BUSINESS"},

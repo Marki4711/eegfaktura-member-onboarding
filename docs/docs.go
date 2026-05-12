@@ -1877,6 +1877,7 @@ const docTemplate = `{
             "type": "string",
             "enum": [
                 "private",
+                "sole_proprietor",
                 "farmer",
                 "municipality",
                 "company",
@@ -1884,6 +1885,7 @@ const docTemplate = `{
             ],
             "x-enum-varnames": [
                 "MemberTypePrivate",
+                "MemberTypeSoleProprietor",
                 "MemberTypeFarmer",
                 "MemberTypeMunicipality",
                 "MemberTypeCompany",

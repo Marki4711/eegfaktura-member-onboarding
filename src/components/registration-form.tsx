@@ -54,11 +54,12 @@ const PRIVACY_VERSION = "2026-01";
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
 const MEMBER_TYPE_OPTIONS: { value: MemberType; label: string; hint: string }[] = [
-  { value: "private",      label: "Privatperson / Kleinunternehmer", hint: "0 % USt." },
-  { value: "farmer",       label: "Pauschalierter Landwirt",   hint: "13 % USt." },
-  { value: "municipality", label: "Gemeinde / öffentl. Körperschaft", hint: "variabel" },
-  { value: "company",      label: "Unternehmen",               hint: "20 % USt." },
-  { value: "association",  label: "Verein",                    hint: "variabel" },
+  { value: "private",         label: "Privatperson",                    hint: "0 % USt." },
+  { value: "sole_proprietor", label: "Kleinunternehmer",                hint: "0 % USt." },
+  { value: "farmer",          label: "Pauschalierter Landwirt",         hint: "13 % USt." },
+  { value: "municipality",    label: "Gemeinde / öffentl. Körperschaft", hint: "variabel" },
+  { value: "company",         label: "Unternehmen",                     hint: "20 % USt." },
+  { value: "association",     label: "Verein",                          hint: "variabel" },
 ];
 
 // ---------- Zod schema ----------
@@ -77,7 +78,7 @@ const meteringPointSchema = z.object({
 });
 
 const baseSchema = z.object({
-  memberType: z.enum(["private", "farmer", "municipality", "company", "association"] as const),
+  memberType: z.enum(["private", "sole_proprietor", "farmer", "municipality", "company", "association"] as const),
   titel: z.string().trim().max(50).optional(),
   firstname: z.string().trim().max(255).optional(),
   lastname: z.string().trim().max(255).optional(),

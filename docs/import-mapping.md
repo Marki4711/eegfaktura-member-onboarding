@@ -209,6 +209,7 @@ Onboarding `application.member_type` controls how the participant is sent to the
 | onboarding `member_type` | core `businessRole` | `firstName` | `lastName` |
 |---|---|---|---|
 | `private` | `EEG_PRIVATE` | `application.firstname` | `application.lastname` |
+| `sole_proprietor` | `EEG_BUSINESS` | `application.company_name` | empty (always — see below) |
 | `farmer` | `EEG_PRIVATE` | `application.firstname` | `application.lastname` |
 | `company` | `EEG_BUSINESS` | `application.company_name` | empty (eegFaktura convention) |
 | `association` | `EEG_BUSINESS` | `application.company_name` | empty |
@@ -216,7 +217,7 @@ Onboarding `application.member_type` controls how the participant is sent to the
 
 `role` is always `EEG_USER`.
 
-For non-natural-person types the company name is placed in `firstName` only because the core's `EegParticipant` schema has no separate company-name column and `firstname` is `NOT NULL`. If onboarding has collected a contact-person `firstname`/`lastname` even for company types, those take precedence and the company name is NOT injected.
+For non-natural-person types the company name is placed in `firstName` only because the core's `EegParticipant` schema has no separate company-name column and `firstname` is `NOT NULL`. For `company`/`association`/`municipality`, if onboarding has collected a contact-person `firstname`/`lastname`, those take precedence and the company name is NOT injected. **`sole_proprietor` (Kleinunternehmer, PROJ-28) is the exception**: the company name is always authoritative, and any incoming `firstname`/`lastname` (e.g. from the external API) is ignored. The public form does not collect a firstname for this type at all.
 
 ---
 

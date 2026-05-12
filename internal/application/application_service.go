@@ -763,6 +763,13 @@ func clearMemberTypeFields(app *shared.Application) {
 		app.CompanyName = nil
 		app.UIDNumber = nil
 		app.RegisterNumber = nil
+	case shared.MemberTypeSoleProprietor:
+		// PROJ-28: only company_name is collected; everything else is wiped.
+		app.Firstname = nil
+		app.Lastname = nil
+		app.BirthDate = nil
+		app.UIDNumber = nil
+		app.RegisterNumber = nil
 	case shared.MemberTypeMunicipality, shared.MemberTypeCompany, shared.MemberTypeAssociation:
 		app.Firstname = nil
 		app.Lastname = nil
@@ -783,6 +790,12 @@ func validateMemberTypeFields(app *shared.Application) error {
 		if app.Lastname == nil || strings.TrimSpace(*app.Lastname) == "" {
 			return shared.NewValidationError("Validation failed", map[string]string{
 				"lastname": "Nachname ist erforderlich",
+			})
+		}
+	case shared.MemberTypeSoleProprietor:
+		if app.CompanyName == nil || strings.TrimSpace(*app.CompanyName) == "" {
+			return shared.NewValidationError("Validation failed", map[string]string{
+				"companyName": "Firmenname ist erforderlich",
 			})
 		}
 	case shared.MemberTypeMunicipality:

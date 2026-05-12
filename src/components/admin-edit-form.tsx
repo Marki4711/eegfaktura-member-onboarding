@@ -102,6 +102,14 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
       setCompanyName("");
       setUidNumber("");
       setRegisterNumber("");
+    } else if (value === "sole_proprietor") {
+      // PROJ-28: Kleinunternehmer captures only the company name.
+      setTitel("");
+      setFirstname("");
+      setLastname("");
+      setBirthDate("");
+      setUidNumber("");
+      setRegisterNumber("");
     } else {
       setTitel("");
       setFirstname("");
@@ -257,7 +265,8 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="private">Privatperson / Kleinunternehmer</SelectItem>
+                <SelectItem value="private">Privatperson</SelectItem>
+                <SelectItem value="sole_proprietor">Kleinunternehmer</SelectItem>
                 <SelectItem value="farmer">Pauschalierter Landwirt</SelectItem>
                 <SelectItem value="municipality">Gemeinde / öffentl. Körperschaft</SelectItem>
                 <SelectItem value="company">Unternehmen</SelectItem>
@@ -337,16 +346,18 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
                     />
                   </div>
                 )}
-                <div className="space-y-1">
-                  <Label htmlFor="edit-uid">
-                    UID-Nummer{memberType === "company" ? " *" : ""}
-                  </Label>
-                  <Input
-                    id="edit-uid"
-                    value={uidNumber}
-                    onChange={(e) => setUidNumber(e.target.value)}
-                  />
-                </div>
+                {(memberType === "company" || memberType === "municipality" || memberType === "association") && (
+                  <div className="space-y-1">
+                    <Label htmlFor="edit-uid">
+                      UID-Nummer{memberType === "company" ? " *" : ""}
+                    </Label>
+                    <Input
+                      id="edit-uid"
+                      value={uidNumber}
+                      onChange={(e) => setUidNumber(e.target.value)}
+                    />
+                  </div>
+                )}
               </div>
             )}
 

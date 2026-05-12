@@ -621,6 +621,8 @@ func approvalMemberTypeLabel(mt shared.MemberType) string {
 	switch mt {
 	case shared.MemberTypePrivate:
 		return "Privatperson"
+	case shared.MemberTypeSoleProprietor:
+		return "Kleinunternehmer"
 	case shared.MemberTypeFarmer:
 		return "Landwirt"
 	case shared.MemberTypeCompany:

@@ -90,7 +90,13 @@ export interface RegistrationConfig {
   legalDocuments?: LegalDocumentItem[];
 }
 
-export type MemberType = "private" | "farmer" | "municipality" | "company" | "association";
+export type MemberType =
+  | "private"
+  | "sole_proprietor"
+  | "farmer"
+  | "municipality"
+  | "company"
+  | "association";
 
 export interface MeteringPointRequest {
   meteringPoint: string;

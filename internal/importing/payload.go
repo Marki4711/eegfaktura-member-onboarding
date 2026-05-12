@@ -159,6 +159,13 @@ func BuildPayload(app *shared.Application, meteringPoints []shared.MeteringPoint
 // association, municipality), eegFaktura's convention is to place the
 // organisation name in firstName only and leave lastName empty.
 func mapPersonName(app *shared.Application) (firstName, lastName string) {
+	// PROJ-28 Q5: For Kleinunternehmer (sole proprietor) the company name is
+	// always authoritative — any incoming firstname (e.g. via the external API)
+	// is ignored. The public form does not collect a firstname for this type.
+	if app.MemberType == shared.MemberTypeSoleProprietor {
+		return derefString(app.CompanyName), ""
+	}
+
 	firstName = derefString(app.Firstname)
 	lastName = derefString(app.Lastname)
 

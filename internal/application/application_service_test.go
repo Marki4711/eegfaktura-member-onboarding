@@ -204,6 +204,72 @@ func TestClearMemberTypeFields_OrgType_ClearsPersonFields(t *testing.T) {
 	}
 }
 
+// --- PROJ-28: Sole proprietor (Kleinunternehmer) ---
+
+func TestValidateMemberTypeFields_SoleProprietor_Valid(t *testing.T) {
+	app := baseApp(shared.MemberTypeSoleProprietor)
+	app.CompanyName = strPtr("Maier IT")
+	// Person fields might be present from a previous type — they must NOT be required.
+	app.Firstname = nil
+	app.Lastname = nil
+	app.BirthDate = nil
+	if err := validateMemberTypeFields(app); err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+}
+
+func TestValidateMemberTypeFields_SoleProprietor_MissingCompanyName(t *testing.T) {
+	app := baseApp(shared.MemberTypeSoleProprietor)
+	app.CompanyName = nil
+	if err := validateMemberTypeFields(app); err == nil {
+		t.Fatal("expected validation error for missing companyName")
+	}
+}
+
+func TestValidateMemberTypeFields_SoleProprietor_NoOtherFieldsRequired(t *testing.T) {
+	// UID, register_number, birth_date, firstname, lastname must all be optional.
+	app := baseApp(shared.MemberTypeSoleProprietor)
+	app.CompanyName = strPtr("Maier IT")
+	app.UIDNumber = nil
+	app.RegisterNumber = nil
+	app.BirthDate = nil
+	app.Firstname = nil
+	app.Lastname = nil
+	if err := validateMemberTypeFields(app); err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+}
+
+func TestClearMemberTypeFields_SoleProprietor_KeepsOnlyCompanyName(t *testing.T) {
+	app := baseApp(shared.MemberTypeSoleProprietor)
+	app.CompanyName = strPtr("Maier IT")
+	app.Firstname = strPtr("leftover")
+	app.Lastname = strPtr("leftover")
+	app.UIDNumber = strPtr("ATU99999999")
+	app.RegisterNumber = strPtr("FN 999 a")
+
+	clearMemberTypeFields(app)
+
+	if app.Firstname != nil {
+		t.Error("Firstname should be nil for sole_proprietor")
+	}
+	if app.Lastname != nil {
+		t.Error("Lastname should be nil for sole_proprietor")
+	}
+	if app.BirthDate != nil {
+		t.Error("BirthDate should be nil for sole_proprietor")
+	}
+	if app.UIDNumber != nil {
+		t.Error("UIDNumber should be nil for sole_proprietor")
+	}
+	if app.RegisterNumber != nil {
+		t.Error("RegisterNumber should be nil for sole_proprietor")
+	}
+	if app.CompanyName == nil || *app.CompanyName != "Maier IT" {
+		t.Error("CompanyName must be preserved for sole_proprietor")
+	}
+}
+
 func TestClearMemberTypeFields_Municipality_ClearsPersonFields(t *testing.T) {
 	app := baseApp(shared.MemberTypeMunicipality)
 	app.Firstname = strPtr("leftover")
