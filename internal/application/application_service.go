@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math/big"
+	"regexp"
 	"strings"
 	"time"
 
@@ -83,8 +84,14 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 	// Build metering point list and check for duplicates within the request
 	var meteringPoints []shared.MeteringPoint
 	for _, mpReq := range req.MeteringPoints {
+		normalized := strings.ToUpper(strings.ReplaceAll(mpReq.MeteringPoint, " ", ""))
+		if !validateMeteringPointFormat(normalized) {
+			return nil, shared.NewValidationError("Validation failed", map[string]string{
+				"meteringPoints": fmt.Sprintf("Zählpunkt %q muss mit AT beginnen und 31 Ziffern enthalten (33 Zeichen gesamt)", mpReq.MeteringPoint),
+			})
+		}
 		meteringPoints = append(meteringPoints, shared.MeteringPoint{
-			MeteringPoint:       mpReq.MeteringPoint,
+			MeteringPoint:       normalized,
 			Direction:           shared.MeterDirection(mpReq.Direction),
 			ParticipationFactor: mpReq.ParticipationFactor,
 			Transformer:         trimStringPtr(mpReq.Transformer),
@@ -317,9 +324,15 @@ func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateAp
 	var meteringPoints []shared.MeteringPoint
 	if req.MeteringPoints != nil {
 		for _, mpReq := range req.MeteringPoints {
+			normalized := strings.ToUpper(strings.ReplaceAll(mpReq.MeteringPoint, " ", ""))
+			if !validateMeteringPointFormat(normalized) {
+				return nil, shared.NewValidationError("Validation failed", map[string]string{
+					"meteringPoints": fmt.Sprintf("Zählpunkt %q muss mit AT beginnen und 31 Ziffern enthalten (33 Zeichen gesamt)", mpReq.MeteringPoint),
+				})
+			}
 			meteringPoints = append(meteringPoints, shared.MeteringPoint{
 				ApplicationID:       id,
-				MeteringPoint:       mpReq.MeteringPoint,
+				MeteringPoint:       normalized,
 				Direction:           shared.MeterDirection(mpReq.Direction),
 				ParticipationFactor: mpReq.ParticipationFactor,
 				CreatedAt:           time.Now(),
@@ -600,6 +613,19 @@ func validateIBAN(iban string) bool {
 		remainder = (remainder*10 + int(ch-'0')) % 97
 	}
 	return remainder == 1
+}
+
+// meteringPointRegex enforces the Austrian Zählpunkt-Nummer format:
+// "AT" followed by exactly 31 digits (33 chars total). Pre-compiled at
+// package init so service calls don't re-compile the pattern.
+var meteringPointRegex = regexp.MustCompile(`^AT[0-9]{31}$`)
+
+// validateMeteringPointFormat returns true when mp matches the Austrian
+// Zählpunkt format. Whitespace and case are NOT normalised here — callers
+// must pass the canonical (uppercase, no spaces) form, which is what both
+// the frontend Zod transform and the public-form mask deliver.
+func validateMeteringPointFormat(mp string) bool {
+	return meteringPointRegex.MatchString(mp)
 }
 
 // applyAdminValues sets application fields from admin-configured default values for admin_only fields.

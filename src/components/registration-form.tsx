@@ -68,9 +68,11 @@ const MEMBER_TYPE_OPTIONS: { value: MemberType; label: string; hint: string }[] 
 const meteringPointSchema = z.object({
   meteringPoint: z
     .string()
-    .transform((v) => v.replace(/\s/g, ""))
+    .transform((v) => v.replace(/\s/g, "").toUpperCase())
     .refine((v) => v.length >= 1, { message: "Zählpunkt ist erforderlich" })
-    .refine((v) => v.length <= 33, { message: "Maximal 33 Zeichen" }),
+    .refine((v) => /^AT\d{31}$/.test(v), {
+      message: "Zählpunkt muss mit AT beginnen und 31 Ziffern enthalten (33 Zeichen gesamt)",
+    }),
   direction: z.enum(["CONSUMPTION", "PRODUCTION"]),
   participationFactor: z.number().int().min(1, "Mindestens 1%").max(100, "Maximal 100%"),
   transformer: z.string().trim().max(100).optional(),

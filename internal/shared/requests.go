@@ -48,7 +48,7 @@ type CreateApplicationRequest struct {
 
 // CreateMeteringPointRequest represents a metering point in create request
 type CreateMeteringPointRequest struct {
-	MeteringPoint       string  `json:"meteringPoint" validate:"required,max=33"`
+	MeteringPoint       string  `json:"meteringPoint" validate:"required,len=33,startswith=AT"`
 	Direction           string  `json:"direction" validate:"required,oneof=CONSUMPTION PRODUCTION"`
 	ParticipationFactor int     `json:"participationFactor" validate:"required,min=1,max=100"`
 	// Configurable metering-point-level fields (PROJ-8)

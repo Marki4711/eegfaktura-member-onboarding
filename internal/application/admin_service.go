@@ -280,8 +280,14 @@ func (s *AdminApplicationService) AdminUpdateApplication(id uuid.UUID, req share
 		now := time.Now().UTC()
 		points := make([]shared.MeteringPoint, len(req.MeteringPoints))
 		for i, mp := range req.MeteringPoints {
+			normalized := strings.ToUpper(strings.ReplaceAll(mp.MeteringPoint, " ", ""))
+			if !validateMeteringPointFormat(normalized) {
+				return nil, shared.NewValidationError("Validation failed", map[string]string{
+					"meteringPoints": fmt.Sprintf("Zählpunkt %q muss mit AT beginnen und 31 Ziffern enthalten (33 Zeichen gesamt)", mp.MeteringPoint),
+				})
+			}
 			points[i] = shared.MeteringPoint{
-				MeteringPoint:       mp.MeteringPoint,
+				MeteringPoint:       normalized,
 				Direction:           shared.MeterDirection(mp.Direction),
 				ParticipationFactor: mp.ParticipationFactor,
 				CreatedAt:           now,
