@@ -771,8 +771,10 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                         // with letters in the BBAN portion (GB, IE, …) need the
                         // user to fix the position manually; the validator
                         // (ibantools) is the ultimate source of truth.
+                        // lazy=false → placeholder slots are visible from the
+                        // start, identical to the Zählpunkt field.
                         mask="aa00 0000 0000 0000 0000 0000 0000 0000 00"
-                        lazy={true}
+                        lazy={false}
                         prepareChar={(str: string) => str.toUpperCase()}
                         value={field.value}
                         onAccept={(value: string) => field.onChange(value)}
