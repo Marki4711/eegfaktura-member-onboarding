@@ -1,8 +1,8 @@
 # PROJ-28: Trennung von „Privat" und „Kleinunternehmer"
 
-## Status: Planned
+## Status: Architected
 **Created:** 2026-05-12
-**Last Updated:** 2026-05-12 (Q1–Q5 resolved nach Empfehlungen)
+**Last Updated:** 2026-05-12 (Q1–Q5 resolved + Tech Design)
 
 ## Dependencies
 - Requires: PROJ-7 (Mitgliedstypen) — erweitert dessen Mitgliedstypen-Modell
@@ -129,7 +129,134 @@ Das öffentliche Formular zeigt das Vorname-Feld für `kleinunternehmer` nicht a
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+
+### Übersicht
+
+PROJ-28 ist eine **fokussierte, additive Erweiterung** des Mitgliedstyp-Modells aus PROJ-7. Es wird **kein** neues Datenbank-Schema benötigt — `member_type` ist eine TEXT-Spalte mit Default `private` und ohne CHECK-Constraint; die Werte-Einschränkung passiert auf Anwendungsebene (`oneof`-Tag im Go-Validator, diskriminierte Zod-Union im Frontend). Die Änderung besteht aus drei Strängen: Validatoren erweitern, Import-Mapping erweitern, Formulare und Output-Renderer erweitern.
+
+### Datenbankänderungen
+
+Keine. Bestehende `private`-Anträge bleiben unverändert (Q2). Falls in Zukunft ein CHECK-Constraint nachgezogen werden sollte (separates Hardening-Ticket), gehört das nicht zu PROJ-28.
+
+### Backend-Struktur
+
+#### Datenmodell (`internal/shared/models.go`)
+- Neue Konstante: `MemberTypeKleinunternehmer MemberType = "kleinunternehmer"`
+- Keine Struct-Änderung — `CompanyName` ist bereits `*string`
+
+#### Request-Validatoren (`internal/shared/requests.go`)
+- `oneof`-Tag auf `member_type` in `CreateApplicationRequest`, `UpdateApplicationRequest`, `AdminUpdateApplicationRequest` (und ggf. der externen API aus PROJ-13) um `kleinunternehmer` erweitern
+
+#### Validierungs- und Bereinigungslogik (`internal/application/application_service.go`)
+
+Zwei bestehende Helfer aus PROJ-7 bekommen je einen neuen `case`:
+
+- `validateMemberTypeFields(app)` → für `kleinunternehmer`:
+  - `company_name` Pflicht
+  - `firstname`, `lastname`, `birth_date`, `uid_number`, `register_number` werden NICHT geprüft
+- `clearMemberTypeFields(app)` → für `kleinunternehmer`:
+  - leert `firstname`, `lastname`, `birth_date`, `uid_number`, `register_number`
+  - behält `company_name`
+
+Aufrufstellen (`CreateApplication`, `UpdateApplication`, `SubmitApplication`, `AdminUpdateApplication`) sind bereits PROJ-7-konform verdrahtet — keine neuen Aufrufstellen.
+
+#### Import-Mapping (`internal/importing/payload.go`)
+
+Drei Funktionen brauchen den neuen Typ:
+
+- `isNaturalPerson(kleinunternehmer)` → `false` — damit das Company-Mapping in `mapPersonName` greift
+- `mapBusinessRole(kleinunternehmer)` → `EEG_BUSINESS` — fällt automatisch über die `isNaturalPerson`-Negation an, keine neue Branch nötig
+- `mapPersonName(kleinunternehmer)` → **expliziter Special-Case vor der bestehenden Logik**, weil Q5 Override durch ein bereits gefülltes `firstname` ausschließt:
+  ```go
+  if app.MemberType == shared.MemberTypeKleinunternehmer {
+      return derefString(app.CompanyName), ""
+  }
+  // bestehende company/association/municipality-Logik unverändert
+  ```
+
+Damit bleibt die bestehende Kontaktpersonen-Convention für `company`/`association`/`municipality` (Vorname behalten, falls gesetzt) intakt — nur für `kleinunternehmer` wird sie ignoriert.
+
+#### E-Mail-Service (`internal/mail/service.go`)
+- Anrede-Funktion behandelt `kleinunternehmer` analog zu `company`/`association`/`municipality`: neutrale Anrede + Firmenname (Q4)
+- Templates `application_submitted_member.html`, `application_submitted_eeg.html`, Approval-Mail prüfen den Typ über dieselbe Helper-Funktion
+
+#### Excel-Export (`internal/excel/generator.go`)
+- Label-Map: `kleinunternehmer` → `"Kleinunternehmer"` für die Spalte „Mitgliedstyp"
+- Firmenname-Spalte erhält den Wert wie bei `company`
+
+#### Approval-PDF (`internal/pdf/approval_pdf.go`)
+- Renderer-Logik prüft `isNaturalPerson`; `kleinunternehmer` rendert den Firmennamen-Block analog zu `company`
+
+### Frontend-Struktur
+
+#### TypeScript-Typen (`src/lib/api.ts`)
+- `MemberType` Union erweitern: `"private" | "kleinunternehmer" | "farmer" | "municipality" | "company" | "association"`
+- Reihenfolge in der Union spiegelt die UI-Reihenfolge der Optionen wider
+
+#### Registrierungsformular (`src/components/registration-form.tsx`)
+- **Zod-Schema:** diskriminierte Union um den `kleinunternehmer`-Zweig erweitern
+  - Erforderlich: `companyName` (gleiche Regel wie bei `company`)
+  - Nicht geprüft: `firstname`, `lastname`, `birthDate`, `uidNumber`, `registerNumber`
+- **MemberTypeSelector:** fünfte RadioCard zwischen „Privatperson" und „Pauschalierter Landwirt"
+- **Label-Refactor:** alte Option „Privat / Kleinunternehmer" → „Privatperson". Neue Option: „Kleinunternehmer (0 % USt.)"
+- **Reset-Logik beim Typ-Wechsel:** existierende Helper-Funktion erkennt `kleinunternehmer` als Ziel und leert Personenfelder; beim Wechsel weg von `kleinunternehmer` wird `companyName` geleert (gleiches Pattern wie bei `company`)
+- **Conditional Rendering:** für `kleinunternehmer` wird nur das Firmenname-Eingabefeld angezeigt — keine UID-, keine Reg.Nr.-, keine Person-Felder
+
+#### Admin-Detail-Ansicht (`src/components/admin-application-detail.tsx`)
+- Daten-Block bei `kleinunternehmer`:
+  - Typ-Label: „Kleinunternehmer"
+  - nur Firmenname
+  - kein Vorname/Nachname/Geburtsdatum, keine UID, keine Reg.Nr.
+- Filter/Tab-Logik (falls vorhanden) erkennt `kleinunternehmer` als eigenen Filterwert
+
+#### Admin-Edit-Form (`src/components/admin-edit-form.tsx`)
+- Spiegel des Public-Forms: gleiche fünf Optionen, dieselbe Conditional-Field-Logik
+- Existierende `private`-Anträge erscheinen weiterhin als „Privatperson" (Q2: keine Auto-Migration)
+
+### Keine neuen Pakete erforderlich
+
+Alle UI-Bausteine (RadioGroup, Input, Card) und Backend-Bibliotheken sind vorhanden. Keine zusätzliche npm- oder Go-Abhängigkeit.
+
+### Test-Strategie
+
+Bestehende Test-Module werden um den neuen Typ erweitert — kein neues Test-File:
+
+- `internal/application/application_service_test.go`
+  - `Create/Update/Submit` mit `memberType=kleinunternehmer` + `companyName` → erfolgreich
+  - `Create` mit `memberType=kleinunternehmer` ohne `companyName` → 400
+  - `Update` von `kleinunternehmer` → `private` ohne `firstname` → 400 (Pflichtfeld-Wechsel)
+  - `clearMemberTypeFields` leert Personenfelder bei Typ `kleinunternehmer`
+- `internal/importing/payload_test.go`
+  - `mapBusinessRole(kleinunternehmer)` → `EEG_BUSINESS`
+  - `mapPersonName(kleinunternehmer)` mit `companyName="A"`, `firstname=null` → `("A", "")`
+  - **Spezial-Case Q5:** `mapPersonName(kleinunternehmer)` mit `companyName="A"`, `firstname="B"` → `("A", "")` (firstname wird ignoriert)
+  - Regressionscheck: `mapPersonName(company)` mit Kontaktperson bleibt unverändert
+- `internal/excel/generator_test.go`
+  - Label-Output enthält `"Kleinunternehmer"` für `kleinunternehmer`-Antrag
+- `tests/PROJ-7-member-types.spec.ts` (Playwright)
+  - Neuer E2E-Smoketest: Public-Registration mit Typ Kleinunternehmer und Firmenname
+
+### Reihenfolge der Implementierung
+
+1. **Backend-Validierung & Models** — Konstante, `oneof`-Tags, `validate-/clearMemberTypeFields`-Cases. Foundation; alles Weitere baut darauf
+2. **Import-Mapping** — `isNaturalPerson` + `mapPersonName`-Special-Case in `internal/importing/payload.go`
+3. **Frontend-Types & Zod-Schema** — Union erweitern, diskriminierter Zweig
+4. **UI** — `MemberTypeSelector` (5. Karte), Conditional-Felder, Admin-Detail, Admin-Edit
+5. **Output-Renderer** — E-Mail-Anrede, Excel-Label, PDF-Renderer
+6. **Tests** — Unit + E2E
+7. **Docs** — `docs/import-mapping.md` §8 (Member type → core role mapping), `docs/api-spec.md`, `docs/domain-model.md`
+
+Backend-Schritte 1–2 und Frontend-Schritte 3–4 sind parallelisierbar, sobald die API-Form (TypeScript-Union) klar ist.
+
+### Risiken und Mitigation
+
+| Risiko | Wahrscheinlichkeit | Mitigation |
+|---|---|---|
+| Ein Output-Renderer (E-Mail/Excel/PDF) übersieht den neuen Typ und rendert leer/falsch | Mittel | Default-/Fallback-Branch in jedem Renderer (gibt zumindest `company_name` aus, kein leerer String); je Renderer ein Test-Case |
+| `mapPersonName`-Special-Case bricht bestehende `company`-Convention | Niedrig | Regressionstest für `company`-Kontaktperson bleibt erhalten; neuer Test für `kleinunternehmer` exklusiv |
+| Zod-Discriminated-Union vergisst einen Pfad → Frontend akzeptiert Inkonsistenzen | Niedrig | Backend-Validierung fängt es ab; Code-Review prüft alle fünf Zweige |
+| Altdaten-`private` wird als „Privatperson" angezeigt, obwohl es ein Kleinunternehmer ist | Niedrig | Spec-resolved (Q2): manuelle Umklassifizierung durch Admin |
+| Externe API (PROJ-13) sendet `firstname` für `kleinunternehmer` und erwartet, dass es übernommen wird | Niedrig | Q5 explizit dokumentiert: `firstname` wird für `kleinunternehmer` ignoriert; OpenAPI-Doc (PROJ-24) entsprechend ergänzen |
 
 ## QA Test Results
 _To be added by /qa_
