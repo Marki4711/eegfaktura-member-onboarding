@@ -212,6 +212,7 @@ Allowed transitions:
 - `approved -> imported`
 - `approved -> import_failed`
 - `import_failed -> approved`
+- `imported -> approved` *(PROJ-30, only via dedicated `POST /reset-import` endpoint, never via generic `/status`)*
 
 ## Explicit Non-Goals
 

@@ -573,6 +573,54 @@ Returns the admin list.
 
 ---
 
+## 6.5.1 Reset import (PROJ-30)
+
+### POST `/api/admin/applications/{id}/reset-import`
+
+Transitions an application from `imported` back to `approved` so it can be
+re-imported after the eegFaktura admin deleted the participant in the core.
+No call to the core — the admin verifies the deletion manually.
+
+### Request
+```json
+{
+  "reason": "Mitglied versehentlich importiert, Daten in der Faktura gelöscht."
+}
+```
+
+| Field | Required | Constraints |
+|---|---|---|
+| `reason` | yes | 5–500 chars (after trimming) |
+
+### Rules
+- Application must be in status `imported` (otherwise 409).
+- The transition `imported → approved` is **only** reachable via this
+  endpoint; the generic `POST /status` does not accept it.
+- Tenant-Admin scope: must match the EEG of the application.
+
+### Response 200
+Returns the full `AdminApplicationDetail` after the reset (status now
+`approved`, `targetParticipantId` cleared).
+
+### Side effects
+- `status = approved`
+- `import_started_at = NULL`
+- `import_finished_at = NULL`
+- `imported_at = NULL`
+- `target_participant_id = NULL`
+- `import_error_message = NULL`
+- write `status_log` entry with `from='imported'`, `to='approved'`,
+  `reason = <user reason>\n[system] previous target_participant_id=<uuid>`
+  (the old participant UUID is archived in the log so the audit trail
+  preserves it after the column is cleared)
+
+### Failure responses
+- `400` reason missing / too short / too long
+- `403` tenant mismatch
+- `409` application not in `imported` status
+
+---
+
 ## 6.6 Get field config
 
 ### GET `/api/admin/settings/fields?rc_number={rc_number}`

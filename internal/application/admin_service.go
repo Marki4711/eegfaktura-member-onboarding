@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -441,6 +442,85 @@ func (s *AdminApplicationService) ChangeStatus(id uuid.UUID, toStatus shared.App
 		ID:     id,
 		Status: string(toStatus),
 	}, nil
+}
+
+// ResetImport returns an imported application to status `approved` so the
+// admin can re-import after the participant was deleted in the eegFaktura
+// core. The transition imported→approved is deliberately NOT in
+// adminTransitions — it is only reachable through this dedicated method to
+// keep the generic /status endpoint conservative. See PROJ-30.
+//
+// The reason is mandatory (Q3 of PROJ-30) and is written to the status_log.
+// The previous target_participant_id is appended to the reason as
+// `[system] previous target_participant_id=<uuid>` so the audit trail
+// preserves the lost UUID (Q1).
+func (s *AdminApplicationService) ResetImport(id uuid.UUID, reason, actorID string) (*shared.Application, error) {
+	app, err := s.appRepo.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	if app.Status != shared.StatusImported {
+		return nil, shared.NewConflictError(
+			fmt.Sprintf("only imported applications can be reset (current: %s)", app.Status),
+		)
+	}
+
+	reason = strings.TrimSpace(reason)
+	if reason == "" {
+		return nil, shared.NewValidationError("Validation failed", map[string]string{
+			"reason": "Begründung ist erforderlich",
+		})
+	}
+
+	previousParticipantID := ""
+	fullReason := reason
+	if app.TargetParticipantID != nil && *app.TargetParticipantID != "" {
+		previousParticipantID = *app.TargetParticipantID
+		fullReason = fmt.Sprintf("%s\n[system] previous target_participant_id=%s", reason, previousParticipantID)
+	}
+
+	now := time.Now().UTC()
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin reset transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	if err := s.appRepo.ResetImportTx(tx, id); err != nil {
+		return nil, err
+	}
+
+	fromStatus := string(shared.StatusImported)
+	toStatus := string(shared.StatusApproved)
+	var actorPtr *string
+	if actorID != "" {
+		actorPtr = &actorID
+	}
+	logEntry := &shared.StatusLogEntry{
+		ApplicationID:   id,
+		FromStatus:      &fromStatus,
+		ToStatus:        toStatus,
+		ChangedByUserID: actorPtr,
+		Reason:          &fullReason,
+		CreatedAt:       now,
+	}
+	if err := s.statusLogRepo.CreateTx(tx, logEntry); err != nil {
+		return nil, fmt.Errorf("failed to write status log: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to commit reset: %w", err)
+	}
+
+	slog.Info("import: reset to approved",
+		"application_id", id,
+		"actor", actorID,
+		"previous_target_participant_id", previousParticipantID,
+	)
+
+	return s.appRepo.GetByID(id)
 }
 
 // BulkChangeStatus applies a status transition to multiple applications.

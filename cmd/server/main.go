@@ -193,6 +193,7 @@ func main() {
 				r.Get("/export/excel", adminHandler.ExportApplicationExcel)
 				r.Get("/approval-pdf", adminHandler.DownloadApprovalPDF)
 				r.Post("/import", adminHandler.ImportApplication)
+				r.Post("/reset-import", adminHandler.ResetImport)
 			})
 		})
 		r.Route("/settings", func(r chi.Router) {

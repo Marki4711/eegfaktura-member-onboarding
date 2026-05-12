@@ -476,6 +476,24 @@ export function importApplication(id: string, token?: string): Promise<ImportRes
   );
 }
 
+// PROJ-30: reset an imported application back to approved so it can be
+// re-imported after the participant was deleted in the eegFaktura core.
+export function resetImportApplication(
+  id: string,
+  reason: string,
+  token?: string,
+): Promise<AdminApplicationDetail> {
+  return adminRequest<AdminApplicationDetail>(
+    `/api/admin/applications/${id}/reset-import`,
+    token,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason }),
+    }
+  );
+}
+
 export function syncEntrypoints(token?: string): Promise<void> {
   return adminRequest<void>("/api/admin/sync", token, { method: "POST" });
 }

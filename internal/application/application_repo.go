@@ -705,6 +705,30 @@ func (r *ApplicationRepository) UpdateImportResultTx(tx *sql.Tx, id uuid.UUID, u
 	return nil
 }
 
+// ResetImportTx returns an imported application to status `approved` and
+// clears every import-bookkeeping column. Used by PROJ-30 to allow the
+// admin to re-import after the participant was deleted in the eegFaktura
+// core. A dedicated query is necessary because UpdateImportResultTx uses
+// COALESCE on target_participant_id and imported_at — passing nil there
+// would not clear them.
+func (r *ApplicationRepository) ResetImportTx(tx *sql.Tx, id uuid.UUID) error {
+	query := `
+		UPDATE member_onboarding.application SET
+			status                = $1,
+			import_started_at     = NULL,
+			import_finished_at    = NULL,
+			imported_at           = NULL,
+			target_participant_id = NULL,
+			import_error_message  = NULL,
+			updated_at            = NOW()
+		WHERE id = $2`
+	_, err := tx.Exec(query, shared.StatusApproved, id)
+	if err != nil {
+		return fmt.Errorf("failed to reset import: %w", err)
+	}
+	return nil
+}
+
 func (r *ApplicationRepository) UpdateStatusAdminTx(
 	tx *sql.Tx,
 	id uuid.UUID,

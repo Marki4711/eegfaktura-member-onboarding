@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { changeApplicationStatus, importApplication, ApiResponseError } from "@/lib/api";
+import { changeApplicationStatus, importApplication, resetImportApplication, ApiResponseError } from "@/lib/api";
 import type { ApplicationStatus } from "@/lib/api";
 
 interface Props {
@@ -24,16 +24,24 @@ interface Props {
   onRefresh: () => void;
 }
 
-type DialogTarget = "rejected" | "needs_info";
+type DialogTarget = "rejected" | "needs_info" | "reset_import";
 
 const STATIC_NOTES: Partial<Record<ApplicationStatus, string>> = {
   draft:    "Antrag noch nicht eingereicht. Keine Admin-Aktionen verfügbar.",
   rejected: "Antrag abgelehnt. Keine weiteren Aktionen verfügbar.",
 };
 
-const DIALOG_LABELS: Record<DialogTarget, { title: string; placeholder: string; confirm: string }> = {
+const DIALOG_LABELS: Record<DialogTarget, { title: string; placeholder: string; confirm: string; warning?: string }> = {
   rejected:   { title: "Antrag ablehnen", placeholder: "Begründung der Ablehnung...", confirm: "Ablehnen" },
   needs_info: { title: "Informationen anfordern", placeholder: "Welche Informationen werden benötigt?", confirm: "Anforderung senden" },
+  reset_import: {
+    title: "Import zurücksetzen",
+    placeholder: "Warum wird der Import zurückgesetzt? (mind. 5 Zeichen)",
+    confirm: "Zurücksetzen",
+    warning:
+      "Diese Aktion setzt den Antrag zurück auf „Genehmigt\" und löscht die Verknüpfung zum Core-Teilnehmer. " +
+      "Verwende dies nur, wenn du den Teilnehmer vorher im eegFaktura-Core gelöscht hast — sonst werden beim Re-Import Dubletten erzeugt.",
+  },
 };
 
 export function AdminStatusActions({ applicationId, status, targetParticipantId, importErrorMessage, onRefresh }: Props) {
@@ -115,11 +123,16 @@ export function AdminStatusActions({ applicationId, status, targetParticipantId,
     setError(null);
     setIsConflict(false);
     try {
-      await changeApplicationStatus(applicationId, {
-        toStatus: dialogTarget,
-        reason: reason.trim(),
-      }, session?.accessToken);
-      toast.success("Status erfolgreich geändert");
+      if (dialogTarget === "reset_import") {
+        await resetImportApplication(applicationId, reason.trim(), session?.accessToken);
+        toast.success("Import zurückgesetzt — Antrag ist wieder auf „Genehmigt\".");
+      } else {
+        await changeApplicationStatus(applicationId, {
+          toStatus: dialogTarget,
+          reason: reason.trim(),
+        }, session?.accessToken);
+        toast.success("Status erfolgreich geändert");
+      }
       closeDialog();
       onRefresh();
     } catch (err: unknown) {
@@ -201,14 +214,24 @@ export function AdminStatusActions({ applicationId, status, targetParticipantId,
       </div>
 
       {status === "imported" && (
-        <div className="text-sm space-y-1">
-          <p className="text-muted-foreground italic">Antrag wurde erfolgreich importiert.</p>
-          {targetParticipantId && (
-            <p>
-              <span className="text-muted-foreground">Participant-ID im Core: </span>
-              <code className="font-mono">{targetParticipantId}</code>
-            </p>
-          )}
+        <div className="space-y-3">
+          <div className="text-sm space-y-1">
+            <p className="text-muted-foreground italic">Antrag wurde erfolgreich importiert.</p>
+            {targetParticipantId && (
+              <p>
+                <span className="text-muted-foreground">Participant-ID im Core: </span>
+                <code className="font-mono">{targetParticipantId}</code>
+              </p>
+            )}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => openDialog("reset_import")}
+            disabled={loading}
+          >
+            Import zurücksetzen
+          </Button>
         </div>
       )}
 
@@ -241,6 +264,11 @@ export function AdminStatusActions({ applicationId, status, targetParticipantId,
               {dialogTarget ? DIALOG_LABELS[dialogTarget].title : ""}
             </DialogTitle>
           </DialogHeader>
+          {dialogTarget && DIALOG_LABELS[dialogTarget].warning && (
+            <div className="rounded-md border border-amber-500/50 bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+              {DIALOG_LABELS[dialogTarget].warning}
+            </div>
+          )}
           <div className="space-y-2 py-2">
             <Label htmlFor="reason-input">Begründung</Label>
             <Textarea
@@ -272,7 +300,7 @@ export function AdminStatusActions({ applicationId, status, targetParticipantId,
             </Button>
             <Button
               onClick={confirmDialog}
-              disabled={loading || !reason.trim()}
+              disabled={loading || reason.trim().length < (dialogTarget === "reset_import" ? 5 : 1)}
               variant={dialogTarget === "rejected" ? "destructive" : "default"}
             >
               {loading

@@ -766,6 +766,66 @@ func (h *AdminHandler) ImportApplication(w http.ResponseWriter, r *http.Request)
 	})
 }
 
+// ResetImport handles POST /api/admin/applications/{id}/reset-import
+//
+// @Summary      Reset an imported application back to approved (PROJ-30)
+// @Description  Transitions an application from `imported` back to `approved` so it can be re-imported after the eegFaktura admin deleted the participant in the core. Clears `target_participant_id` and all `import_*` bookkeeping fields. A reason is mandatory and recorded in the status_log; the previous `target_participant_id` is archived in the same log entry. The eegFaktura core is NOT contacted — admin verifies the deletion manually.
+// @Tags         Admin
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id    path  string                       true  "Application UUID"
+// @Param        body  body  shared.ResetImportRequest    true  "Reason for the reset"
+// @Success      200   {object}  shared.AdminApplicationDetail
+// @Failure      400   {object}  shared.ErrorResponse  "Validation failed"
+// @Failure      401   {object}  shared.ErrorResponse
+// @Failure      403   {object}  shared.ErrorResponse  "Tenant mismatch"
+// @Failure      404   {object}  shared.ErrorResponse
+// @Failure      409   {object}  shared.ErrorResponse  "Application not in imported status"
+// @Failure      500   {object}  shared.ErrorResponse
+// @Router       /api/admin/applications/{id}/reset-import [post]
+func (h *AdminHandler) ResetImport(w http.ResponseWriter, r *http.Request) {
+	id, err := h.parseID(w, r)
+	if err != nil {
+		return
+	}
+
+	if !h.checkTenantAccess(w, r, id) {
+		return
+	}
+
+	var req shared.ResetImportRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Invalid JSON", nil)))
+		return
+	}
+	if err := h.validate.Struct(req); err != nil {
+		h.writeValidationError(w, err)
+		return
+	}
+
+	actorID := ""
+	if claims := ClaimsFromContext(r.Context()); claims != nil {
+		actorID = claims.Subject
+	}
+
+	app, err := h.adminService.ResetImport(id, req.Reason, actorID)
+	if err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+
+	detail, err := h.adminService.GetApplicationDetail(id)
+	if err != nil {
+		// Fallback: return the bare application; UI can still re-render header.
+		slog.Warn("admin: reset-import succeeded but detail fetch failed",
+			"application_id", id, "error", err)
+		h.writeJSON(w, http.StatusOK, app)
+		return
+	}
+	h.writeJSON(w, http.StatusOK, detail)
+}
+
 // GetIntroText handles GET /api/admin/settings/intro-text?rc_number=...
 func (h *AdminHandler) GetIntroText(w http.ResponseWriter, r *http.Request) {
 	rcNumber := r.URL.Query().Get("rc_number")

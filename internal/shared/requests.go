@@ -172,6 +172,13 @@ type ChangeStatusRequest struct {
 	Reason   string `json:"reason"`
 }
 
+// ResetImportRequest is the admin reset-imported-to-approved payload (PROJ-30).
+// Reason is mandatory and bounded so the resulting status_log entry stays
+// auditable without becoming an unbounded text field.
+type ResetImportRequest struct {
+	Reason string `json:"reason" validate:"required,min=5,max=500"`
+}
+
 // ApplicationListItem is one summary row in the admin list response.
 type ApplicationListItem struct {
 	ID              uuid.UUID  `json:"id"`
