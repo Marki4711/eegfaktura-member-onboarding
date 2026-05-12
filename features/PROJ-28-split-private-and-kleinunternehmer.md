@@ -2,7 +2,7 @@
 
 ## Status: Planned
 **Created:** 2026-05-12
-**Last Updated:** 2026-05-12
+**Last Updated:** 2026-05-12 (Q1–Q5 resolved nach Empfehlungen)
 
 ## Dependencies
 - Requires: PROJ-7 (Mitgliedstypen) — erweitert dessen Mitgliedstypen-Modell
@@ -87,60 +87,42 @@ Das ist für Kleinunternehmer falsch: ein Kleinunternehmer tritt **mit Firmennam
 - **Rückwärtskompatibilität:** bestehende `private`-Anträge funktionieren ohne Datenverlust weiter; Excel/PDF/E-Mail rendern Altdaten unverändert
 - **Beobachtbarkeit:** keine neuen Log-Felder erforderlich; das `member_type`-Feld ist bereits Bestandteil bestehender Logs
 
-## Open Questions
+## Resolved Decisions
 
-### Q1: `businessRole` für Kleinunternehmer — `EEG_PRIVATE` oder `EEG_BUSINESS`?
+Alle Open Questions wurden am 2026-05-12 nach den jeweiligen Empfehlungen entschieden. Die ACs oben spiegeln diesen Stand bereits wider.
 
-Der Kleinunternehmer ist steuerlich ein Einzelunternehmer mit 0% USt (Kleinunternehmerregelung gem. § 6 Abs. 1 Z 27 UStG). Im eegFaktura-Core steuert `businessRole` nur die UI-Anzeige (Tab „Privat" vs. „Firma") — nicht die Steuerlogik (die kommt aus dem Tarif).
+### Q1: `businessRole` für Kleinunternehmer — **RESOLVED**
 
-- (a) `EEG_PRIVATE` — der Kleinunternehmer ist steuerlich Privatperson, daher konsistent
-- (b) `EEG_BUSINESS` — der Auftritt erfolgt mit Firmenname, daher landet er in eegFaktura unter dem Firma-Tab, was visuell und für den Admin intuitiver ist
-- (c) konfigurierbar pro EEG (Overkill)
+**Entscheidung:** `EEG_BUSINESS`.
 
-**Empfehlung:** (b). Begründung: das Name-Mapping (`company_name` → `firstname`) ist identisch zu `company`/`municipality`/`association`. Wenn wir `EEG_PRIVATE` setzen, würde eegFaktura den Eintrag unter „Privat" anzeigen, dort aber den Firmennamen im Vornamen-Feld zeigen — verwirrend. (b) ist konsistent.
+`businessRole` steuert in eegFaktura nur die UI-Anzeige (Tab „Privat" vs. „Firma"), nicht die Steuerlogik (kommt aus dem Tarif). Da das Name-Mapping (`company_name` → `firstname`) identisch zu `company`/`municipality`/`association` ist, ist `EEG_BUSINESS` die konsistente Wahl — der Eintrag erscheint unter „Firma" mit dem Firmennamen im Vornamen-Feld.
 
-### Q2: Migration bestehender `private`-Anträge
+### Q2: Migration bestehender `private`-Anträge — **RESOLVED**
 
-Im aktuellen Datenbestand wissen wir nicht, welche der `private`-Anträge eigentlich Kleinunternehmer sind. Die Information war im UI nicht differenzierbar.
+**Entscheidung:** Keine automatische Migration.
 
-- (a) Keine automatische Migration — Altdaten bleiben `private`, Admins klassifizieren manuell um, falls erforderlich
-- (b) Backfill-Script, das nach Heuristiken (z.B. „company_name befüllt UND uid leer") umklassifiziert — riskant, weil `company_name` für `private` heute nicht existiert
-- (c) Kein Backfill, aber One-time-Reminder per E-Mail an Admins der EEGs mit `private`-Anträgen
+Im aktuellen Schema gibt es kein verlässliches Diskriminierungsmerkmal zwischen Privatpersonen und Kleinunternehmern unter den Altdaten. Heuristiken produzieren False-Positives. Bestandsanträge bleiben `private`; Admins klassifizieren bei Bedarf manuell um.
 
-**Empfehlung:** (a). Es gibt im aktuellen Schema kein verlässliches Diskriminierungsmerkmal — jede Heuristik produziert False-Positives. Manuelle Korrektur durch Admins ist sauber.
+### Q3: Geburtsdatum für Kleinunternehmer — **RESOLVED**
 
-### Q3: Geburtsdatum für Kleinunternehmer?
+**Entscheidung:** Geburtsdatum entfällt für `kleinunternehmer`.
 
-Beim heutigen `private`-Typ ist `birth_date` Pflicht. Ein Kleinunternehmer ist eigentlich auch eine natürliche Person.
+Die Userforderung ist eindeutig („nur Firmenname"). Falls eine EEG das Geburtsdatum doch benötigt, kann es über PROJ-8 (Konfigurierbare Felder pro EEG) optional aktiviert werden.
 
-- (a) Geburtsdatum entfällt — die Aussage des Users „nur Firmenname" ist wörtlich gemeint
-- (b) Geburtsdatum bleibt Pflicht (steuerliche/Identifikations-Information)
-- (c) Geburtsdatum wird optional
+### Q4: E-Mail-Anrede für Kleinunternehmer — **RESOLVED**
 
-**Empfehlung:** (a). Die Userforderung ist eindeutig („nur Firmenname"). Falls eine EEG das Geburtsdatum doch benötigt, kann das über PROJ-8 (Konfigurierbare Felder pro EEG) zusätzlich aktiviert werden.
+**Entscheidung:** Neutrale Anrede „Sehr geehrte Damen und Herren" + Firmenname im Body, analog zu `company`/`association`/`municipality`.
 
-### Q4: E-Mail-Anrede für Kleinunternehmer
+### Q5: Sonderlogik in `mapPersonName` für Kleinunternehmer — **RESOLVED**
 
-Heute werden Bestätigungs- und Approval-Mails an `private`-Mitglieder mit Vorname/Nachname personalisiert.
+**Entscheidung:** Für `kleinunternehmer` immer `company_name` → `firstname`, niemals Override durch ein eventuell gefülltes `firstname`-Feld.
 
-- (a) Neutrale Anrede „Sehr geehrte Damen und Herren" + Firmenname im Body (wie bei `company`)
-- (b) Anrede „Sehr geehrter Kleinunternehmer {Firmenname}"
-- (c) Anrede „Sehr geehrte/r {Firmenname}" — direkt mit Firmenname (kann grammatikalisch holpern bei „Sehr geehrter Maier IT")
-
-**Empfehlung:** (a). Konsistent mit `company`/`association`/`municipality`.
-
-### Q5: Sonderlogik in `mapPersonName` für Kleinunternehmer mit explizit gefülltem Vornamen?
-
-Heute überschreibt `mapPersonName` für Nicht-natürliche-Personen den Vornamen mit `company_name`, **außer** wenn `firstname` bereits gefüllt ist (Convention für Kontaktpersonen einer Firma). Für Kleinunternehmer sollte es **keine** Kontaktperson geben — der Firmenname ist die Person.
-
-- (a) Für `kleinunternehmer`: immer `company_name` → `firstname`, niemals Override durch `firstname`
-- (b) Wie bei `company`: falls `firstname` aus alten Daten existiert, behalten (Kontaktperson)
-
-**Empfehlung:** (a). Das Formular zeigt das Vorname-Feld für `kleinunternehmer` gar nicht an, also kann es nicht legitim gefüllt sein. Falls doch (per externer API), sollte es ignoriert/geleert werden, um Inkonsistenzen zu vermeiden.
+Das öffentliche Formular zeigt das Vorname-Feld für `kleinunternehmer` nicht an, daher kann es nicht legitim gefüllt sein. Eingehende `firstname`-Werte (z.B. über die externe API PROJ-13) werden ignoriert und in `mapPersonName` ausschließlich der `company_name` verwendet.
 
 ## Notes
 
-- Spec ist klein im Umfang, aber berührt mehrere Schichten (DB-Constraint, Backend-Validation, Frontend-Form, Excel, PDF, E-Mail). Eine `/grill-me`-Runde für Q1+Q3 lohnt sich, bevor Implementation startet.
+- Spec ist klein im Umfang, aber berührt mehrere Schichten (DB-Constraint, Backend-Validation, Frontend-Form, Excel, PDF, E-Mail).
+- Alle Open Questions sind entschieden — die Spec ist bereit für `/architecture`.
 - Security-Review ist **nicht** erforderlich: keine neuen Endpoints, keine neuen Auth-Pfade, keine Schema-Änderung außer einem zusätzlich erlaubten Enum-Wert.
 
 ---
