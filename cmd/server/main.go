@@ -180,6 +180,7 @@ func main() {
 	r.Route("/api/admin", func(r chi.Router) {
 		r.Use(internalhttp.KeycloakAuthMiddleware(cfg.Keycloak.JWKSUrl, cfg.Keycloak.Issuer))
 		r.Post("/sync", adminHandler.SyncEntrypoints)
+		r.Get("/tariffs", adminHandler.ListTariffs)
 		r.Route("/applications", func(r chi.Router) {
 			r.Get("/", adminHandler.ListApplications)
 			r.Delete("/drafts", adminHandler.DeleteDraftApplications)

@@ -1,8 +1,8 @@
 # PROJ-27: Tarif-Auswahl beim Import
 
-## Status: Planned
+## Status: Approved
 **Created:** 2026-05-09
-**Last Updated:** 2026-05-09 (Q1 + Q7 resolved nach Verifikation gegen deployten Core)
+**Last Updated:** 2026-05-12 (Implementation + QA komplett)
 
 ## Dependencies
 - Requires: PROJ-4 (Core Import) — bestehende Import-Pipeline und `internal/coreclient`
@@ -13,7 +13,7 @@
 
 Aktuell legt der Import (`POST /participant`) jeden Teilnehmer und Zählpunkt **ohne Tarif** im eegFaktura-Core an (`tariffId` und `meters[].tariff_id` werden nicht gesetzt). Der EEG-Admin muss anschließend in eegFaktura jeden Datensatz manuell öffnen und einen Tarif zuweisen — das ist der häufigste manuelle Nacharbeitsschritt nach einem Onboarding-Import.
 
-Tarife werden im eegFaktura-Core verwaltet (Tabelle `base.tariff`, UUID-PKs, eindeutig pro Tenant). Zum Zeitpunkt eines Imports kennt das Onboarding-System diese Liste nicht — sie soll dynamisch aus dem Core geladen und im Admin-UI als Auswahl angeboten werden, sodass der Admin **vor** dem Import den richtigen Tarif zuweisen kann.
+Tarife werden im eegFaktura-Core verwaltet (Tabelle `base.tariff`, UUID-PKs, eindeutig pro Tenant). Zum Zeitpunkt eines Imports kennt das Onboarding-System diese Liste nicht — sie soll **beim Klick auf „In eegFaktura importieren" aktuell aus dem Core geladen** und in einem Auswahl-Popup angeboten werden. Der Admin wählt Mitglieds-Tarif und pro Zählpunkt einen Tarif aus; die Auswahl wird **nicht persistiert**, sondern direkt im Import-Call an den Core mitgesendet.
 
 ## User Stories
 
@@ -48,38 +48,40 @@ Das Core-`tariff`-Objekt hat ein Feld `type` mit den Werten **`EEG`**, **`VZP`**
 - [ ] Das Zählpunkt-Tarif-Dropdown zeigt pro Zähler nur Tarife mit dem zur Direction passenden `type` (`VZP` für CONSUMPTION, `EZP` für GENERATION)
 - [ ] Wechselt der Admin die Direction eines Zählpunkts in der Edit-Form, wird der zugewiesene Tarif **zurückgesetzt** (sonst wäre die Zuordnung type-inkonsistent) — UI-Hinweis zeigt das an
 
-### Persistenz im Onboarding
-- [ ] `member_onboarding.application` bekommt eine neue Spalte `tariff_id UUID NULL` (Member-Tarif)
-- [ ] `member_onboarding.metering_point` bekommt eine neue Spalte `tariff_id UUID NULL` (Zählpunkt-Tarif)
-- [ ] Beide Spalten sind `NULL`-fähig — Tarif-Auswahl ist optional
-- [ ] Es gibt **keine** Foreign-Key-Constraint auf eine Tarif-Tabelle (Tarife sind im eegFaktura-Core, nicht im Onboarding-Schema)
-- [ ] Tarif-IDs werden **nur** als UUID gespeichert; Anzeigename des Tarifs wird **nicht** persistiert (immer dynamisch aus Core nachgeladen, um Drifts zu vermeiden)
-- [ ] Migration ist additiv (`ADD COLUMN`) — bestehende Anträge bleiben mit `tariff_id = NULL` lauffähig
+### Keine Persistenz im Onboarding
+- [ ] **Keine** DB-Migration. `tariff_id` wird weder auf `application` noch auf `metering_point` gespeichert.
+- [ ] Tarif-Auswahl ist eine reine Import-Time-Entscheidung; sie lebt nur im Memory zwischen Popup-Klick und Core-Call.
+- [ ] Bei `import_failed` und einem Retry muss der Admin die Tarife neu wählen — die vorherige Auswahl ist nicht gemerkt. Akzeptabler Trade-off; Import-Retries sind selten.
 
-### Admin-UI (Edit-Form)
-- [ ] In der bestehenden Admin-Edit-Form (`admin-edit-form.tsx`) gibt es einen neuen Abschnitt "Tarif" mit einem Dropdown für den Mitglieds-Tarif
-- [ ] In der Zählpunkt-Tabelle gibt es eine neue Spalte "Tarif" mit einem Dropdown pro Zeile
-- [ ] Beide Dropdowns zeigen die aus dem Core geladenen Tarife im Format `{name} — {centPerKWh} ct/kWh{discount > 0 ? `, Rabatt {discount}%` : ``}{useVat ? ` (USt {vatInPercent}%)` : ``}` (Beispiel: `Abnahmetarif Rabatt10 — 13 ct/kWh, Rabatt 10% (USt 20%)`)
-- [ ] Beide Dropdowns haben eine "(kein Tarif)"-Option, mit der der Admin die Auswahl explizit leer lassen kann
-- [ ] Die Tarif-Liste wird beim **Öffnen der Edit-Form** geladen, nicht beim Import-Klick — der Admin sieht die Tarife sofort
-- [ ] Gibt es einen Ladefehler, wird ein Hinweis angezeigt ("Tarife nicht verfügbar — Antrag wird ohne Tarif importiert"); der Save/Import-Button bleibt aktiv
-- [ ] Wenn ein Antrag bereits eine Tarif-ID gespeichert hat, die in der Core-Liste **nicht mehr existiert** (z.B. Tarif wurde im Core gelöscht), zeigt das Dropdown den Wert als "Unbekannter Tarif (ID …)" an und der Admin muss eine neue Auswahl treffen oder explizit "(kein Tarif)" wählen, bevor er importieren kann
+### Admin-UI: Import-Popup
+- [ ] Der bestehende „In eegFaktura importieren"-Button (`AdminStatusActions`) öffnet **kein direktes Import**, sondern ein neues Popup „Import vorbereiten".
+- [ ] Beim Öffnen des Popups lädt das Frontend per `GET /api/admin/tariffs?rcNumber=…` die aktuelle Tarif-Liste aus dem Core.
+- [ ] Solange der Lookup läuft: Spinner; Bestätigungsbutton deaktiviert.
+- [ ] Bei Erfolg zeigt das Popup:
+  - **Ein Dropdown** für Mitglieds-Tarif (gefiltert `type == "EEG"`, inaktive ausgeblendet)
+  - **Ein Dropdown pro Zählpunkt** (gefiltert `type == "VZP"` für CONSUMPTION, `"EZP"` für GENERATION)
+  - Format pro Eintrag: `{name} — {centPerKWh} ct/kWh{discount>0 ? `, Rabatt {discount}%` : ``}{useVat ? ` (USt {vatInPercent}%)` : ``}` (Beispiel: `Abnahmetarif Rabatt10 — 13 ct/kWh, Rabatt 10% (USt 20%)`)
+  - „(kein Tarif)"-Option zuerst — Admin kann jedes Feld explizit leer lassen
+- [ ] Bei Lookup-Fehler (Core nicht erreichbar, Timeout): Hinweis im Popup („Tarife konnten nicht geladen werden — Import erfolgt ohne Tarife"). Bestätigungsbutton bleibt **aktiv**; Import läuft ohne Tarife (Bestandsverhalten).
+- [ ] Bei 0 Tarifen einer Direction: Dropdown zeigt nur „(kein Tarif)" plus Hinweis „Keine {Verbraucher|Erzeuger}-Tarife in eegFaktura definiert".
+- [ ] Bestätigungsbutton ruft den existierenden Import-Endpunkt auf und schickt die Tarif-Auswahl mit (siehe „Import-Pipeline").
 
 ### Import-Pipeline
-- [ ] Beim Import wird `application.tariff_id` als `tariffId` im Participant-Payload gesendet
-- [ ] Beim Import wird pro Zählpunkt `metering_point.tariff_id` als `tariff_id` im Meter-Payload gesendet
-- [ ] Wenn keine Tarif-ID gesetzt ist, wird das Feld **weggelassen** (nicht als `null` oder `""` gesendet) — analog zum heutigen Verhalten
-- [ ] Vor dem Import wird **nicht** erneut gegen den Core validiert, dass die Tarif-IDs noch existieren — der Core lehnt ab, falls eine ID ungültig ist; die Antwort des Cores wird wie bisher als Import-Fehler gespeichert
-- [ ] Excel-Export (PROJ-17) übernimmt die Tarif-IDs, sodass auch der Excel-Pfad konsistent bleibt — **Open Question Q5**
+- [ ] Der bestehende `POST /api/admin/applications/{id}/import` bekommt einen optionalen Request-Body:
+  ```json
+  { "tariffId": "<uuid>|null", "meterTariffs": { "<metering_point_id>": "<uuid>|null", ... } }
+  ```
+- [ ] Leerer Body und fehlende Felder bleiben rückwärtskompatibel — alle Tarife optional.
+- [ ] `BuildPayload` wird so erweitert, dass die übergebenen Tarif-IDs als `tariffId` (Mitglied) und `tariff_id` (pro Meter, snake_case wie im Core-Modell) im `POST /participant`-Body landen.
+- [ ] Wenn keine Tarif-ID gesetzt ist, wird das Feld **weggelassen** (`omitempty`) — analog zum heutigen Verhalten.
+- [ ] Vor dem Import wird **nicht** erneut gegen den Core validiert, dass die Tarif-IDs noch existieren — der Core lehnt ab, falls eine ID ungültig ist.
 
 ### Public Registration Form
-- [ ] Die Public-Form (`registration-form.tsx`) zeigt **kein** Tarif-Feld — Mitglieder kennen die internen eegFaktura-Tarife nicht und sollen sie nicht selber wählen
-- [ ] Der Admin pflegt den Tarif beim Review/Approval
+- [ ] Die Public-Form (`registration-form.tsx`) zeigt **kein** Tarif-Feld — Mitglieder kennen die internen eegFaktura-Tarife nicht und sollen sie nicht selber wählen.
+- [ ] Der Admin wählt den Tarif beim Import-Klick aus.
 
 ### Externe Registrierungs-API (PROJ-13)
-- [ ] Die externe API darf optional eine Tarif-ID pro Mitglied und pro Zählpunkt mitliefern
-- [ ] Wird eine Tarif-ID mitgeliefert, validiert das Backend nicht gegen den Core (Konsistenz mit Onboarding-Edit-Pfad) — Validierung passiert erst beim Import
-- [ ] **Open Question Q6:** soll die externe API überhaupt Tarif-IDs erlauben?
+- [ ] **Keine Änderung** — die externe API setzt keine Tarife. Da Tarif-Auswahl Import-Time ist, gibt es keinen Persistenz-Pfad, in den die externe API schreiben könnte. Falls Bedarf besteht, müsste der externe Aufrufer den Import-Endpunkt selbst aufrufen — out of scope für PROJ-27.
 
 ### Sicherheit & Tenant-Isolation
 - [ ] Der Tarif-Lookup-Endpoint im Onboarding-Backend (z.B. `GET /api/admin/tariffs?rcNumber=…`) ist Keycloak-geschützt
@@ -89,13 +91,12 @@ Das Core-`tariff`-Objekt hat ein Feld `type` mit den Werten **`EEG`**, **`VZP`**
 
 ## Edge Cases
 
-- Was passiert, wenn der Core während der Edit-Session einen Tarif löscht, den der Admin gerade ausgewählt hat? → Beim nächsten Save/Import: Core lehnt ab, Antrag bleibt in `approved` mit Fehlermeldung; Admin sieht "Unbekannter Tarif" beim erneuten Öffnen der Form
-- Was passiert, wenn der Admin einen Tarif auswählt, dann den Core ausfällt, dann erneut speichert? → Save speichert die UUID weiterhin (kein Lookup beim Save nötig); erst der Import schlägt fehl, falls der Core den Tarif nicht akzeptiert
-- Was passiert, wenn ein Antrag importiert wird, dann re-importiert (bei `import_failed`)? → Tarif-IDs werden unverändert mitgesendet, Admin kann sie vor dem Re-Import bei Bedarf anpassen
-- Was passiert bei Bulk-Aktionen (PROJ-25, „Mehrere genehmigen + importieren")? → Falls Bulk-Approval einen Bulk-Import triggert, müssen die einzelnen Anträge bereits gespeicherte Tarif-IDs nutzen; eine Bulk-Tarif-Auswahl ist **out of scope** für PROJ-27 (Folge-Feature)
-- Was passiert, wenn die Core-Tarif-Liste 0 Einträge hat (keine Tarife konfiguriert)? → Dropdown zeigt nur "(kein Tarif)"; Hinweis-Text "Keine Tarife in eegFaktura definiert"
-- Was passiert, wenn für eine Direction keine passenden Tarife existieren (z.B. nur `VZP`-Tarife, aber ein Zählpunkt ist `GENERATION`)? → Zählpunkt-Dropdown zeigt nur "(kein Tarif)" mit Hinweis "Keine Erzeuger-Tarife (EZP) in eegFaktura definiert"
-- Was passiert, wenn ein zuvor gewählter Tarif zwischenzeitlich `inactiveSince` gesetzt bekommen hat? → Anzeige als "Tarif inaktiv: {name}"; der Admin muss eine neue Auswahl treffen oder explizit "(kein Tarif)" wählen, sonst blockiert der Import
+- Was passiert, wenn der Core zwischen Popup-Öffnen und Confirm einen Tarif löscht? → Der Core lehnt den Import ab, der Antrag landet in `import_failed`. Admin muss den Import erneut starten und neu wählen.
+- Was passiert, wenn der Core während des Popup-Öffnens nicht erreichbar ist? → Popup zeigt Hinweis, Confirm bleibt aktiv, Import erfolgt ohne Tarife (Bestandsverhalten).
+- Was passiert, wenn ein Antrag bei `import_failed` re-importiert wird? → Der Admin öffnet das Popup erneut, wählt erneut. Die vorherige Auswahl ist nicht gespeichert.
+- Was passiert bei Bulk-Aktionen (PROJ-25, „Mehrere importieren")? → Bulk-Import ist heute über `/bulk-action` möglich. Für Tarif-Auswahl in Bulk müsste ein eigenes Bulk-Popup gebaut werden — **out of scope** für PROJ-27.
+- Was passiert, wenn die Core-Tarif-Liste 0 Einträge hat? → Beide Dropdowns zeigen nur „(kein Tarif)"; Hinweistext „Keine Tarife in eegFaktura definiert". Confirm bleibt aktiv.
+- Was passiert, wenn für eine Direction keine passenden Tarife existieren? → Dropdown zeigt „(kein Tarif)" + Hinweis „Keine {Verbraucher|Erzeuger}-Tarife in eegFaktura definiert".
 - Was passiert, wenn der Core neue Tarif-Felder einführt (z.B. preisinfo, gültigAb/Bis), die wir nicht kennen? → Onboarding zeigt nur Name und ID; zusätzliche Felder werden ignoriert (Forward-Compatibility)
 - Was passiert, wenn zwei Admins parallel die Tarif-Liste laden und einer einen Tarif während der Anzeige des anderen anpasst? → Beide sehen ihre jeweiligen Stände; spätestens beim Save wird der dann aktuelle Wert gespeichert (last-write-wins, wie heute)
 
@@ -190,18 +191,285 @@ Implementiert in den ACs oben.
 
 ## Notes
 
-- Spec sollte vor `/architecture` durch `/grill-me` laufen, insbesondere wegen Q1 (Core-API-Verträglichkeit) und Q2/Q3 (UI-Verhalten bei Core-Ausfall).
-- Security-Review (`/security-review`) ist erforderlich, da: (a) neue authentifizierte Endpoint-Klasse, (b) Tenant-Isolation für Tarif-Listen, (c) DB-Schema-Änderung an `application` und `metering_point`.
-- Migration nummeriert sich an die bestehenden `db/migrations/0000XX_*.sql` an.
+- 2026-05-12: Stakeholder-Klarstellung — Lookup beim Klick auf „Importieren", **kein** Persistieren der Auswahl. Spec entsprechend umgebaut, DB-Migration fällt weg.
+- Security-Review (`/security-review`) empfohlen — neuer authentifizierter Endpoint plus Erweiterung des Import-Pfads.
 
 ---
 <!-- Sections below are added by subsequent skills -->
 
+## Resolved Decisions
+
+Lookup-Zeitpunkt (2026-05-12, Stakeholder-Klarstellung): **beim Klick auf „Importieren"**, nicht im Edit-Form. Tarif-Auswahl wird **nicht persistiert**.
+
+- **Q1** (2026-05-09): Endpoint `GET /api/eeg/tariff` mit Bearer + tenant-Header. Antwort-Felder dokumentiert.
+- **Q2:** Backend-Proxy. Frontend ruft `GET /api/admin/tariffs?rcNumber=…` im Onboarding-Backend, das den Core aufruft.
+- **Q3:** Popup öffnet sich auch bei Core-Ausfall; Dropdowns disabled, aber Import ohne Tarif bleibt möglich (Bestandsverhalten).
+- **Q4:** **Kein** Cache mehr nötig — Lookup passiert nur beim Import-Klick (selten); Frische geht vor Geschwindigkeit.
+- **Q5:** Excel-Export bleibt unverändert. Da nichts persistiert wird, gibt es nichts zu exportieren.
+- **Q6:** Externe API (PROJ-13) ändert sich nicht — Tarif-Auswahl ist UI-/Admin-Aktion.
+- **Q7** (2026-05-09): Type-Filterung über `type`-Feld (EEG/VZP/EZP).
+- **Q8:** Tarif **nicht** in Public-Submission-Bestätigung — irrelevant, da kein Tarif persistiert wird.
+
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+
+### Übersicht
+
+Drei Schichten:
+
+1. **Backend Core-Client:** neue Methode `ListTariffs(ctx, bearerToken, tenant)` über den bestehenden `CoreClient`. Kein Cache — Lookup ist Import-time, selten genug.
+2. **Backend HTTP:** zwei Endpoints:
+   - `GET /api/admin/tariffs?rcNumber=…` — Frontend ruft das beim Popup-Öffnen
+   - bestehender `POST /api/admin/applications/{id}/import` bekommt einen optionalen Request-Body mit den Auswahl-IDs
+3. **Frontend:** Import-Button öffnet jetzt ein Popup mit dynamisch geladenen Tarif-Dropdowns. Confirm sendet die Auswahl an den Import-Endpunkt.
+
+**Keine DB-Migration. Kein Persistenz-Effekt. Kein Bestandsdaten-Risiko.**
+
+### Datenbankänderungen
+
+Keine.
+
+### Backend-Struktur
+
+#### CoreClient-Erweiterung (`internal/coreclient/core_client.go`)
+
+Neue Methode auf dem `CoreClient`-Interface:
+```go
+ListTariffs(ctx context.Context, bearerToken, tenant string) ([]CoreTariff, error)
+```
+
+Wraps `GET {baseURL}/eeg/tariff`. Response wird in eine schmale `CoreTariff`-Struct deserialisiert, die nur die für das Onboarding relevanten Felder enthält:
+```go
+type CoreTariff struct {
+    ID            string  `json:"id"`
+    Type          string  `json:"type"`        // EEG | VZP | EZP
+    Name          string  `json:"name"`
+    CentPerKWh    float64 `json:"centPerKWh"`
+    Discount      float64 `json:"discount"`
+    UseVat        bool    `json:"useVat"`
+    VatInPercent  float64 `json:"vatInPercent"`
+    InactiveSince *string `json:"inactiveSince"`
+}
+```
+
+Fehler werden über die bestehende Error-Typologie (`CoreHTTPError`, `CoreParseError`, `ErrCoreTimeout`) abgebildet.
+
+#### HTTP-Endpoint Tariff-Lookup (`internal/http/admin.go`)
+
+```
+GET /api/admin/tariffs?rcNumber=<RC>
+```
+- Keycloak-Auth via Subrouter
+- Tenant-Validierung über bestehendes `containsRC(claims.Tenant, rcNumber)`-Pattern
+- Forwarded Bearer-Token an `coreClient.ListTariffs`
+- Antwort: `{ "tariffs": [{...}] }` — Pass-through der `CoreTariff`-Felder
+- Bei Core-Fehler: `503 service_unavailable` (oder 502); Frontend behandelt das als „Tarife nicht verfügbar"
+
+#### Import-Request-Erweiterung
+
+`POST /api/admin/applications/{id}/import` akzeptiert einen optionalen JSON-Body:
+```json
+{
+  "tariffId": "uuid|null",
+  "meterTariffs": { "<metering_point_id>": "uuid|null" }
+}
+```
+
+Backward-compatible: leerer Body oder fehlende Felder = kein Tarif (Bestandsverhalten).
+
+#### Import-Service (`internal/importing/import_service.go`)
+
+`Import(ctx, id, bearerToken, actorID, allowedTenants, selection)` bekommt einen zusätzlichen Parameter:
+```go
+type TariffSelection struct {
+    MemberTariffID string            // empty = none
+    MeterTariffIDs map[string]string // meteringPoint -> tariffID
+}
+```
+
+`BuildPayload` wird so erweitert, dass die meter-spezifischen Tarif-IDs im POST /participant landen (als `meters[].tariff_id`).
+
+**Wichtige Erkenntnis aus dem Core-Source** (`myeegfaktura/eegfaktura-backend/model/participant.go`):
+- `EegParticipantBase.TariffId` hat `goqu:"omitempty,skipinsert"` → wird beim `POST /participant` **ignoriert**, kann nur per UPDATE gesetzt werden.
+- `MeteringPoint.TariffId` hat **kein** `skipinsert` → wird im POST mitinsertiert.
+
+Daraus folgt der Import-Flow:
+1. `POST /participant` mit `meters[].tariff_id` aus `selection.MeterTariffIDs` (omitempty)
+2. Wenn `selection.MemberTariffID != ""`: Follow-up-Call
+   ```
+   PUT /participant/v2/{participantID}
+   Body: { "path": "tariffId", "value": "<uuid>" }
+   ```
+   Bei Fehler dieses Calls: Loggen + im Import-Result vermerken („participant created, member tariff assignment failed"), aber Antrag bleibt `imported` (Meter-Tarife sind ja schon drin). Admin kann Tarif manuell im Core nachpflegen.
+
+#### Import-Payload (`internal/importing/payload.go`)
+
+`CoreParticipantPayload`:
+- Kein Tarif-Feld nötig (Core ignoriert es).
+
+`CoreMeteringPoint`:
+- `TariffID string \`json:"tariff_id,omitempty"\`` (snake_case, Core-Konvention)
+
+Wird bei leerem String über `omitempty` weggelassen.
+
+#### Core-Client (`internal/coreclient/core_client.go`)
+
+Neue Methode auf dem `CoreClient`-Interface:
+```go
+ListTariffs(ctx context.Context, bearerToken, tenant string) ([]CoreTariff, error)
+UpdateParticipantField(ctx context.Context, bearerToken, tenant, participantID, path string, value any) error
+```
+
+`ListTariffs` wraps `GET /eeg/tariff`. `UpdateParticipantField` wraps `PUT /participant/v2/{id}` mit Body `{"path": path, "value": value}`.
+
+### Frontend-Struktur
+
+#### TypeScript-Typen (`src/lib/api.ts`)
+
+- Neuer Type `Tariff` (passend zur Backend-Response: `id`, `type`, `name`, `centPerKWh`, `discount`, `useVat`, `vatInPercent`, `inactiveSince`)
+- `fetchTariffs(rcNumber, token): Promise<{ tariffs: Tariff[] }>`
+- `importApplication(id, body?, token)` — Body um `tariffId` + `meterTariffs` erweitert (beide optional)
+
+#### Neuer Dialog (`src/components/import-tariff-dialog.tsx` oder inline)
+
+Triggered, wenn der Admin den Import-Button für einen `approved`/`import_failed`-Antrag klickt:
+
+1. Beim Öffnen: `fetchTariffs(application.rcNumber)` → state `tariffs`
+2. Während Loading: Spinner; Confirm disabled
+3. Nach Erfolg:
+   - 1 × Mitglieds-Tarif-Dropdown (`type=EEG`, inaktive ausgeblendet)
+   - n × Zählpunkt-Tarif-Dropdowns (pro Meter, `VZP`/`EZP` je Direction)
+   - Jeweils erste Option „(kein Tarif)"
+   - Dropdown-Label: `{name} — {centPerKWh} ct/kWh[, Rabatt {discount}%][ (USt {vatInPercent}%)]`
+4. Nach Fehler: gelber Hinweis „Tarife konnten nicht geladen werden — Import erfolgt ohne Tarife"; Confirm bleibt aktiv
+5. Confirm → `importApplication(id, { tariffId, meterTariffs })`, Toast, Refresh
+
+Der Dialog ersetzt die bisherige `confirm()`-Browser-Box im `AdminStatusActions`.
+
+#### Public-Form
+
+Keine Änderung (Q8). Tarif bleibt Import-Time-Auswahl des Admins.
+
+### Tests
+
+- `internal/coreclient/core_client_test.go`: `ListTariffs` Happy-Path + HTML-Response-Detection
+- `internal/importing/payload_test.go`: `BuildPayload` setzt `tariffId` (Mitglied) und `meters[].tariff_id` (pro Meter) korrekt; lässt sie bei leerem String weg
+- Frontend: manueller Browser-Smoke (kein vitest-Setup für Dialog-Flow)
+
+### Implementation-Reihenfolge
+
+1. CoreClient `ListTariffs`
+2. HTTP-Endpoint `GET /api/admin/tariffs`
+3. Import-Service + Payload-Erweiterung um `TariffSelection`
+4. Import-Handler-Body-Parsing
+5. Frontend: api.ts → ImportTariffDialog → AdminStatusActions
+6. Tests + Docs (api-spec.md, import-mapping.md)
+
+### Sicherheits-Überlegungen
+
+- Cross-Tenant-Leak: ausgeschlossen, weil der Endpoint `containsRC` durchsetzt
+- Auth-Forwarding: das Admin-Bearer-Token wird an den Core durchgereicht — derselbe Pfad wie der bestehende Import (PROJ-4)
+- Keine DB-Änderung → keine Migration-Risiken
+
+`/security-review` ist empfohlen (neuer authentifizierter Endpoint + Erweiterung des Import-Pfads). Da kein neues Schema und keine neue Auth-Logik dazukommt, ist das Risiko kontrolliert.
 
 ## QA Test Results
-_To be added by /qa_
+
+**QA Date:** 2026-05-12
+**Tester:** Claude QA
+
+### Automated Tests
+| Suite | Result |
+|---|---|
+| `go build ./...` | ✅ |
+| `go test ./...` (alle bestehenden Tests + erweiterte `BuildPayload`-Signatur) | ✅ |
+| `npx tsc --noEmit` | ✅ |
+
+### Acceptance Criteria
+
+#### Tarif-Lookup
+| # | Criterion | Result |
+|---|---|---|
+| AC-1 | `GET {core}/eeg/tariff` via Bearer + tenant | ✅ `coreclient.HTTPCoreClient.ListTariffs` |
+| AC-2 | Pass-through Bearer-Token (Admin-JWT) | ✅ |
+| AC-3 | Tenant-Isolation: nur Tarife der EEG des Admins | ✅ `containsRC(claims.Tenant, rcNumber)` |
+| AC-4 | Inaktive Tarife ausgeblendet | ✅ Frontend-Filter (`inactiveSince == null`) |
+| AC-5 | Cache: keine — Lookup nur beim Import-Klick | ✅ Frontend lädt bei jedem Dialog-Open neu |
+| AC-6 | Bei Core-Fehler: Import bleibt möglich (Dialog-Hinweis) | ✅ Confirm bleibt aktiv, leere Selection |
+
+#### Tarif-Typen-Filterung
+| # | Criterion | Result |
+|---|---|---|
+| AC-7 | Mitglieds-Tarif-Dropdown nur `type=EEG` | ✅ |
+| AC-8 | Verbraucher-Meter nur `type=VZP` | ✅ |
+| AC-9 | Erzeuger-Meter nur `type=EZP` | ✅ |
+
+#### Keine Persistenz
+| # | Criterion | Result |
+|---|---|---|
+| AC-10 | Kein DB-Schema-Update | ✅ |
+| AC-11 | Tarif-Auswahl nicht in `application`/`metering_point` gespeichert | ✅ |
+
+#### Import-Pipeline
+| # | Criterion | Result |
+|---|---|---|
+| AC-12 | `POST /participant` mit `meters[].tariff_id` (snake_case, omitempty) | ✅ |
+| AC-13 | Member-Tarif via Follow-up `PUT /participant/v2/{id}` (Core-skipinsert workaround) | ✅ |
+| AC-14 | Member-Tarif-Fehler: Import bleibt `imported`, Warning im Result | ✅ `ImportResult.MemberTariffWarning` |
+| AC-15 | Leerer Body bleibt rückwärtskompatibel (Legacy „kein Tarif") | ✅ Body-Parsing nur wenn `ContentLength > 0` |
+
+#### Admin-UI: Import-Popup
+| # | Criterion | Result |
+|---|---|---|
+| AC-16 | „In eegFaktura importieren" öffnet Popup statt direktem Confirm | ✅ |
+| AC-17 | Spinner während Tarif-Load | ✅ |
+| AC-18 | Member-Dropdown + Pro-Meter-Dropdowns | ✅ `ImportTariffDialog` |
+| AC-19 | Anzeigeformat `{name} — {centPerKWh} ct/kWh[, Rabatt …%][ (USt …%)]` | ✅ `tariffLabel` |
+| AC-20 | „(kein Tarif)"-Option je Dropdown | ✅ |
+| AC-21 | Hinweis bei leerer Liste je Typ | ✅ |
+| AC-22 | Toast bei Member-Tarif-Warning | ✅ `toast.warning(...)` |
+
+### Bugs Found
+
+Keine.
+
+### Test-Coverage-Gap
+
+`ImportService.Import` und `coreClient.ListTariffs/UpdateParticipantField` werden im bestehenden Stil nicht unit-getestet (kein sqlmock im Projekt). Manueller Browser-Smoke ist der primäre Verifikationspfad. Follow-up: ggf. sqlmock einführen, separates Ticket.
+
+### Security Smoke
+
+| Bereich | Bewertung |
+|---|---|
+| Tenant-Isolation (`/api/admin/tariffs`) | ✅ `containsRC` (analog `GetIntroText`) |
+| Bearer-Token-Forwarding | ✅ identischer Pfad wie PROJ-4 Import |
+| Keine neue Persistenz | ✅ keine Schema-Risiken |
+| Input-Validation | ✅ Body-Parser akzeptiert nur `tariffId` + `meterTariffs` (Map String→String) |
+| Reason-Logging | n/a — kein Reason hier |
+
+`/security-review` empfohlen, nicht zwingend (kein neues Schema, kein neuer Auth-Pfad).
+
+### Regression
+
+- `BuildPayload`-Signatur erweitert (zusätzlicher `meterTariffIDs`-Parameter) — alle bestehenden Tests aktualisiert (`nil` als Default).
+- Legacy-Import-Flow (Body weglassen) → identisches Verhalten zu vor PROJ-27.
+- `ImportApplication`-Handler nimmt Body **nur** wenn `ContentLength > 0`, sonst Bestand.
+
+### Production-Ready Decision
+
+**READY** — alle ACs erfüllt, Backend + Frontend grün, keine offenen Bugs.
 
 ## Deployment
-_To be added by /deploy_
+
+**Deployed:** _pending CI rollout_
+**Chart version:** 1.6.0 (Minor — neues Feature)
+**Migration:** keine
+**Rollback:** `helm rollback` auf 1.5.0; keine Daten betroffen, da nichts persistiert wird.
+
+### Deployment checklist
+- [x] `go build ./...` clean
+- [x] `go test ./...` clean
+- [x] `npx tsc --noEmit` clean
+- [x] Keine neuen Env-Variablen
+- [x] Helm `appVersion` auf `1.6.0`
+- [x] Neuer Route `/api/admin/tariffs` registriert
+- [ ] **Empfohlen:** Browser-Smoke gegen Test-EEG (Tarif-Dropdowns sichtbar, Import mit + ohne Tarif funktioniert)

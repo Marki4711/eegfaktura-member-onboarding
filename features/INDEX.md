@@ -41,7 +41,7 @@ Central tracking for all features.
 | PROJ-24 | OpenAPI/Swagger Dokumentation | Deployed | `features/PROJ-24-openapi-documentation.md` | 2026-04-29 |
 | PROJ-25 | Bulk-Aktionen im Admin | Deployed | `features/PROJ-25-bulk-actions.md` | 2026-04-29 |
 | PROJ-26 | Eigener Mailserver pro EEG | Planned | `features/PROJ-26-per-eeg-smtp-override.md` | 2026-05-08 |
-| PROJ-27 | Tarif-Auswahl beim Import | Planned | `features/PROJ-27-tariff-selection-on-import.md` | 2026-05-09 |
+| PROJ-27 | Tarif-Auswahl beim Import | Approved | `features/PROJ-27-tariff-selection-on-import.md` | 2026-05-09 |
 | PROJ-28 | Trennung Privat / Kleinunternehmer | Approved | `features/PROJ-28-split-private-and-kleinunternehmer.md` | 2026-05-12 |
 | PROJ-29 | IBAN-Eingabe mit visueller Gruppierung | Approved | `features/PROJ-29-iban-visual-grouping.md` | 2026-05-12 |
 | PROJ-30 | Reset eines importierten Antrags auf approved | Approved | `features/PROJ-30-reset-imported-to-approved.md` | 2026-05-12 |

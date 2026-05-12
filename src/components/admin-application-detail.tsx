@@ -321,9 +321,11 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
           <CardContent>
             <AdminStatusActions
               applicationId={application.id}
+              rcNumber={application.rcNumber}
               status={application.status}
               targetParticipantId={application.targetParticipantId}
               importErrorMessage={application.importErrorMessage}
+              meteringPoints={application.meteringPoints}
               onRefresh={fetchApplication}
             />
           </CardContent>

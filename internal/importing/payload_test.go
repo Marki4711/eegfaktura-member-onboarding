@@ -27,7 +27,7 @@ func TestBuildPayload_BillingEqualsResident(t *testing.T) {
 		ResidentCity:         "Wien",
 	}
 
-	got := BuildPayload(app, nil, now)
+	got := BuildPayload(app, nil, now, nil)
 
 	if got.ResidentAddress.Type != "RESIDENCE" {
 		t.Errorf("resident type = %q, want RESIDENCE", got.ResidentAddress.Type)
@@ -57,7 +57,7 @@ func TestBuildPayload_MetersUseResidentAddress(t *testing.T) {
 		{ID: uuid.New(), MeteringPoint: "AT0010000000000000001000000000002", Direction: shared.DirectionProduction, ParticipationFactor: 75},
 	}
 
-	got := BuildPayload(app, mps, now)
+	got := BuildPayload(app, mps, now, nil)
 
 	if len(got.Meters) != 2 {
 		t.Fatalf("got %d meters, want 2", len(got.Meters))
@@ -108,7 +108,7 @@ func TestBuildPayload_OptionalFields(t *testing.T) {
 		RegisterNumber:       strPtr("FN 12345 a"),
 	}
 
-	got := BuildPayload(app, nil, time.Now())
+	got := BuildPayload(app, nil, time.Now(), nil)
 
 	if got.FirstName != "First" || got.LastName != "Last" {
 		t.Errorf("name not mapped: got first=%q last=%q", got.FirstName, got.LastName)
@@ -146,7 +146,7 @@ func TestBuildPayload_NonPrivateMemberUsesCompanyNameInFirstNameOnly(t *testing.
 		CompanyName:          strPtr("Gemeinde St. Nikolaus"),
 	}
 
-	got := BuildPayload(app, nil, time.Now())
+	got := BuildPayload(app, nil, time.Now(), nil)
 
 	if got.FirstName != "Gemeinde St. Nikolaus" {
 		t.Errorf("FirstName = %q, want %q (mapped from companyName)", got.FirstName, "Gemeinde St. Nikolaus")
@@ -172,7 +172,7 @@ func TestBuildPayload_NaturalPersonsKeepRealName(t *testing.T) {
 				Lastname:             strPtr("Beispiel"),
 				CompanyName:          strPtr("ignored for natural persons"),
 			}
-			got := BuildPayload(app, nil, time.Now())
+			got := BuildPayload(app, nil, time.Now(), nil)
 			if got.FirstName != "Anna" || got.LastName != "Beispiel" {
 				t.Errorf("%s: name not preserved: got %q %q", mt, got.FirstName, got.LastName)
 			}
@@ -194,7 +194,7 @@ func TestBuildPayload_NonPrivateWithContactPerson(t *testing.T) {
 		CompanyName:          strPtr("Acme GmbH"),
 	}
 
-	got := BuildPayload(app, nil, time.Now())
+	got := BuildPayload(app, nil, time.Now(), nil)
 
 	if got.FirstName != "Harald" || got.LastName != "Geissler" {
 		t.Errorf("contact person should be preserved: got %q %q", got.FirstName, got.LastName)
@@ -217,7 +217,7 @@ func TestBuildPayload_SoleProprietor_CompanyNameAlwaysInFirstName(t *testing.T) 
 		CompanyName:          strPtr("Maier IT"),
 	}
 
-	got := BuildPayload(app, nil, time.Now())
+	got := BuildPayload(app, nil, time.Now(), nil)
 
 	if got.FirstName != "Maier IT" {
 		t.Errorf("FirstName = %q, want %q (companyName for sole_proprietor)", got.FirstName, "Maier IT")
@@ -246,7 +246,7 @@ func TestBuildPayload_SoleProprietor_IncomingFirstnameIsIgnored(t *testing.T) {
 		CompanyName:          strPtr("Maier IT"),
 	}
 
-	got := BuildPayload(app, nil, time.Now())
+	got := BuildPayload(app, nil, time.Now(), nil)
 
 	if got.FirstName != "Maier IT" {
 		t.Errorf("FirstName = %q, want %q (sole_proprietor must always use companyName)", got.FirstName, "Maier IT")
@@ -281,7 +281,7 @@ func TestBuildPayload_BusinessRoleAndRole(t *testing.T) {
 				Lastname:             strPtr("b"),
 				CompanyName:          strPtr("c"),
 			}
-			got := BuildPayload(app, nil, time.Now())
+			got := BuildPayload(app, nil, time.Now(), nil)
 			if got.BusinessRole != tc.wantBusinessRole {
 				t.Errorf("%s: BusinessRole = %q, want %q", tc.memberType, got.BusinessRole, tc.wantBusinessRole)
 			}
@@ -301,7 +301,7 @@ func TestBuildPayload_NilOptionalsAreEmpty(t *testing.T) {
 		ResidentCity:         "C",
 	}
 
-	got := BuildPayload(app, nil, time.Now())
+	got := BuildPayload(app, nil, time.Now(), nil)
 
 	if got.ParticipantNumber != "" || got.VatNumber != "" || got.CompanyRegister != "" {
 		t.Errorf("optional fields must be empty when nil, got %+v", got)

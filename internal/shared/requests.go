@@ -179,6 +179,16 @@ type ResetImportRequest struct {
 	Reason string `json:"reason" validate:"required,min=5,max=500"`
 }
 
+// ImportApplicationRequest is the PROJ-27 import-time payload. All fields are
+// optional: empty body = legacy import (no tariffs). The TariffID applies to
+// the participant (mapped via a follow-up PUT /participant/v2/{id} call); the
+// MeterTariffs map (metering_point → tariff UUID) is merged into the POST
+// /participant body's meters[].tariff_id.
+type ImportApplicationRequest struct {
+	TariffID     string            `json:"tariffId,omitempty"`
+	MeterTariffs map[string]string `json:"meterTariffs,omitempty"`
+}
+
 // ApplicationListItem is one summary row in the admin list response.
 type ApplicationListItem struct {
 	ID              uuid.UUID  `json:"id"`

@@ -21,6 +21,29 @@ import (
 // Implementations must be safe for concurrent use.
 type CoreClient interface {
 	CreateParticipant(ctx context.Context, payload any, bearerToken, tenant string) (participantID string, err error)
+	// ListTariffs fetches the active tariff catalogue for the given tenant.
+	// Used by PROJ-27 to populate the tariff selection dropdowns at import time.
+	ListTariffs(ctx context.Context, bearerToken, tenant string) ([]CoreTariff, error)
+	// UpdateParticipantField applies a partial update on a participant
+	// (PUT /participant/v2/{id} with {"path": path, "value": value}). Used by
+	// PROJ-27 to set the member-level tariffId after participant creation,
+	// because the core's POST /participant ignores the tariffId field on
+	// insert (goqu:"skipinsert" on EegParticipantBase.TariffId).
+	UpdateParticipantField(ctx context.Context, bearerToken, tenant, participantID, path string, value any) error
+}
+
+// CoreTariff is the subset of fields PROJ-27 needs from the eegFaktura core's
+// GET /eeg/tariff response. The full core model has additional pricing fields
+// (participantFee, baseFee, freeKWh, ...) that we don't need for selection.
+type CoreTariff struct {
+	ID            string  `json:"id"`
+	Type          string  `json:"type"` // EEG | VZP | EZP | AKONTO
+	Name          string  `json:"name"`
+	CentPerKWh    float64 `json:"centPerKWh"`
+	Discount      float64 `json:"discount"`
+	UseVat        bool    `json:"useVat"`
+	VatInPercent  float64 `json:"vatInPercent"`
+	InactiveSince *string `json:"inactiveSince,omitempty"`
 }
 
 // Sentinel errors returned by the client. Callers can use errors.Is to detect
@@ -149,6 +172,100 @@ func (c *HTTPCoreClient) CreateParticipant(ctx context.Context, payload any, bea
 		return "", &CoreParseError{Detail: "response missing id field"}
 	}
 	return parsed.ID, nil
+}
+
+// ListTariffs implements CoreClient. See interface doc for semantics.
+func (c *HTTPCoreClient) ListTariffs(ctx context.Context, bearerToken, tenant string) ([]CoreTariff, error) {
+	if c.baseURL == "" {
+		return nil, ErrCoreNotConfigured
+	}
+	if bearerToken == "" {
+		return nil, ErrBearerTokenRequired
+	}
+	if tenant == "" {
+		return nil, ErrTenantRequired
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/eeg/tariff", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build request: %w", err)
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Authorization", "Bearer "+bearerToken)
+	req.Header.Set("tenant", tenant)
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		if isTimeoutErr(err) {
+			return nil, ErrCoreTimeout
+		}
+		if errors.Is(err, context.Canceled) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("core request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 256*1024))
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, &CoreHTTPError{StatusCode: resp.StatusCode, Body: truncate(string(respBody), 1000)}
+	}
+	if isHTMLResponse(resp.Header.Get("Content-Type"), respBody) {
+		return nil, &CoreParseError{Detail: "core returned HTML instead of JSON for /eeg/tariff"}
+	}
+
+	var tariffs []CoreTariff
+	if err := json.Unmarshal(respBody, &tariffs); err != nil {
+		return nil, &CoreParseError{Detail: err.Error()}
+	}
+	return tariffs, nil
+}
+
+// UpdateParticipantField implements CoreClient. See interface doc for semantics.
+func (c *HTTPCoreClient) UpdateParticipantField(ctx context.Context, bearerToken, tenant, participantID, path string, value any) error {
+	if c.baseURL == "" {
+		return ErrCoreNotConfigured
+	}
+	if bearerToken == "" {
+		return ErrBearerTokenRequired
+	}
+	if tenant == "" {
+		return ErrTenantRequired
+	}
+	if participantID == "" {
+		return errors.New("participantID required")
+	}
+
+	body, err := json.Marshal(map[string]any{"path": path, "value": value})
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, c.baseURL+"/participant/v2/"+participantID, bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("failed to build request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Authorization", "Bearer "+bearerToken)
+	req.Header.Set("tenant", tenant)
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		if isTimeoutErr(err) {
+			return ErrCoreTimeout
+		}
+		if errors.Is(err, context.Canceled) {
+			return err
+		}
+		return fmt.Errorf("core request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 64*1024))
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return &CoreHTTPError{StatusCode: resp.StatusCode, Body: truncate(string(respBody), 1000)}
+	}
+	return nil
 }
 
 // isHTMLResponse returns true when the response body is HTML rather than JSON.

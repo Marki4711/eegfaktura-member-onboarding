@@ -14,13 +14,16 @@ import {
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { changeApplicationStatus, importApplication, resetImportApplication, ApiResponseError } from "@/lib/api";
-import type { ApplicationStatus } from "@/lib/api";
+import type { ApplicationStatus, MeteringPointDetail } from "@/lib/api";
+import { ImportTariffDialog } from "@/components/import-tariff-dialog";
 
 interface Props {
   applicationId: string;
+  rcNumber: string;
   status: ApplicationStatus;
   targetParticipantId?: string | null;
   importErrorMessage?: string | null;
+  meteringPoints: MeteringPointDetail[];
   onRefresh: () => void;
 }
 
@@ -44,13 +47,14 @@ const DIALOG_LABELS: Record<DialogTarget, { title: string; placeholder: string; 
   },
 };
 
-export function AdminStatusActions({ applicationId, status, targetParticipantId, importErrorMessage, onRefresh }: Props) {
+export function AdminStatusActions({ applicationId, rcNumber, status, targetParticipantId, importErrorMessage, meteringPoints, onRefresh }: Props) {
   const { data: session } = useSession();
   const [dialogTarget, setDialogTarget] = useState<DialogTarget | null>(null);
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isConflict, setIsConflict] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const staticNote = STATIC_NOTES[status];
   if (staticNote) {
@@ -84,14 +88,31 @@ export function AdminStatusActions({ applicationId, status, targetParticipantId,
     }
   }
 
-  async function triggerImport() {
-    if (!confirm("Diesen Antrag jetzt in eegFaktura importieren?")) return;
+  function openImportDialog() {
+    setError(null);
+    setIsConflict(false);
+    setImportDialogOpen(true);
+  }
+
+  async function runImport(selection: { tariffId: string; meterTariffs: Record<string, string> }) {
     setLoading(true);
     setError(null);
     setIsConflict(false);
     try {
-      const res = await importApplication(applicationId, session?.accessToken);
-      toast.success(`Import erfolgreich (Participant-ID: ${res.targetParticipantId ?? "—"})`);
+      const body =
+        selection.tariffId || Object.keys(selection.meterTariffs).length > 0
+          ? selection
+          : undefined;
+      const res = await importApplication(applicationId, body, session?.accessToken);
+      if (res.memberTariffWarning) {
+        toast.warning(
+          `Import erfolgreich (Participant-ID: ${res.targetParticipantId ?? "—"}). ` +
+            `Mitglieds-Tarif konnte nicht gesetzt werden: ${res.memberTariffWarning}`,
+        );
+      } else {
+        toast.success(`Import erfolgreich (Participant-ID: ${res.targetParticipantId ?? "—"})`);
+      }
+      setImportDialogOpen(false);
       onRefresh();
     } catch (err: unknown) {
       if (err instanceof ApiResponseError) {
@@ -192,14 +213,14 @@ export function AdminStatusActions({ applicationId, status, targetParticipantId,
         )}
 
         {status === "approved" && (
-          <Button onClick={triggerImport} disabled={loading}>
+          <Button onClick={openImportDialog} disabled={loading}>
             {loading ? "Import läuft..." : "In eegFaktura importieren"}
           </Button>
         )}
 
         {status === "import_failed" && (
           <>
-            <Button onClick={triggerImport} disabled={loading}>
+            <Button onClick={openImportDialog} disabled={loading}>
               {loading ? "Import läuft..." : "Import erneut versuchen"}
             </Button>
             <Button
@@ -312,6 +333,16 @@ export function AdminStatusActions({ applicationId, status, targetParticipantId,
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ImportTariffDialog
+        open={importDialogOpen}
+        rcNumber={rcNumber}
+        meteringPoints={meteringPoints}
+        accessToken={session?.accessToken}
+        loading={loading}
+        onCancel={() => setImportDialogOpen(false)}
+        onConfirm={runImport}
+      />
     </>
   );
 }

@@ -705,7 +705,23 @@ func (h *AdminHandler) ImportApplication(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	result, err := h.importService.Import(r.Context(), id, bearerToken, actorID, allowedTenants)
+	// PROJ-27: optional tariff selection sent by the import dialog. Body is
+	// fully optional for backward compatibility — an empty body means "no
+	// tariffs", same as the legacy import behaviour.
+	selection := importing.TariffSelection{MeterTariffIDs: map[string]string{}}
+	if r.ContentLength > 0 {
+		var body shared.ImportApplicationRequest
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Invalid JSON", nil)))
+			return
+		}
+		selection.MemberTariffID = body.TariffID
+		if body.MeterTariffs != nil {
+			selection.MeterTariffIDs = body.MeterTariffs
+		}
+	}
+
+	result, err := h.importService.Import(r.Context(), id, bearerToken, actorID, allowedTenants, selection)
 	if err != nil {
 		// Pre-import typed errors — application untouched on disk.
 		var validationErr shared.ValidationError
@@ -758,12 +774,76 @@ func (h *AdminHandler) ImportApplication(w http.ResponseWriter, r *http.Request)
 	}
 
 	slog.Info("admin: application imported", "application_id", id, "target_participant_id", result.TargetParticipantID, "user_id", actorID)
-	h.writeJSON(w, http.StatusOK, map[string]interface{}{
+	resp := map[string]interface{}{
 		"success":             true,
 		"applicationId":       result.ApplicationID,
 		"status":              string(result.Status),
 		"targetParticipantId": result.TargetParticipantID,
-	})
+	}
+	if result.MemberTariffWarning != "" {
+		resp["memberTariffWarning"] = result.MemberTariffWarning
+	}
+	h.writeJSON(w, http.StatusOK, resp)
+}
+
+// ListTariffs handles GET /api/admin/tariffs?rcNumber=<RC>
+//
+// @Summary      List tariffs available for an EEG (PROJ-27)
+// @Description  Proxies the eegFaktura core's GET /eeg/tariff for the import-time tariff selection dialog. The admin's bearer token is forwarded; tenant isolation is enforced via the rcNumber query parameter (must be in the JWT's Tenants claim, or caller must be superuser).
+// @Tags         Admin
+// @Produce      json
+// @Security     BearerAuth
+// @Param        rcNumber  query  string  true  "EEG RC number"
+// @Success      200       {object}  map[string]interface{}  "{ tariffs: [...] }"
+// @Failure      400       {object}  shared.ErrorResponse  "rcNumber missing"
+// @Failure      401       {object}  shared.ErrorResponse
+// @Failure      403       {object}  shared.ErrorResponse  "Tenant mismatch"
+// @Failure      503       {object}  shared.ErrorResponse  "Core service unavailable"
+// @Router       /api/admin/tariffs [get]
+func (h *AdminHandler) ListTariffs(w http.ResponseWriter, r *http.Request) {
+	if h.importService == nil {
+		h.writeJSON(w, http.StatusServiceUnavailable, shared.ErrorResponse{
+			Code:    "service_unavailable",
+			Message: "Core service not configured (CORE_BASE_URL is empty).",
+		})
+		return
+	}
+
+	rcNumber := r.URL.Query().Get("rcNumber")
+	if rcNumber == "" {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string]string{
+			"rcNumber": "rcNumber query parameter is required",
+		})))
+		return
+	}
+
+	claims := ClaimsFromContext(r.Context())
+	if claims != nil && !claims.IsSuperuser() && !containsRC(claims.Tenant, rcNumber) {
+		h.writeError(w, shared.NewErrorResponse(shared.ErrForbidden))
+		return
+	}
+
+	bearerToken := extractBearerToken(r)
+	if bearerToken == "" {
+		h.writeJSON(w, http.StatusServiceUnavailable, shared.ErrorResponse{
+			Code:    "service_unavailable",
+			Message: "Tariff lookup requires an authenticated admin session (Keycloak).",
+		})
+		return
+	}
+
+	tariffs, err := h.importService.ListTariffs(r.Context(), bearerToken, rcNumber)
+	if err != nil {
+		slog.Warn("admin: tariff lookup failed", "rc_number", rcNumber, "error", err)
+		// Surface as 503 so the frontend can fall back to "import without tariffs".
+		h.writeJSON(w, http.StatusServiceUnavailable, shared.ErrorResponse{
+			Code:    "service_unavailable",
+			Message: "Tarife konnten nicht aus dem Core geladen werden.",
+		})
+		return
+	}
+
+	h.writeJSON(w, http.StatusOK, map[string]interface{}{"tariffs": tariffs})
 }
 
 // ResetImport handles POST /api/admin/applications/{id}/reset-import

@@ -73,12 +73,17 @@ type CoreMeteringPoint struct {
 	City            string    `json:"city"`
 	Zip             string    `json:"zip"`
 	RegisteredSince time.Time `json:"registeredSince"`
+	// PROJ-27: optional core tariff UUID (admin-selected at import time).
+	// snake_case matches the core's MeteringPoint JSON contract.
+	TariffID string `json:"tariff_id,omitempty"`
 }
 
 // BuildPayload converts an onboarding application + its metering points into
 // the core participant payload. participantSince is the timestamp at which
-// the import is performed.
-func BuildPayload(app *shared.Application, meteringPoints []shared.MeteringPoint, participantSince time.Time) CoreParticipantPayload {
+// the import is performed. meterTariffIDs (PROJ-27) is a per-meter map of
+// metering_point → tariff UUID; nil or missing entries result in no tariff
+// for that meter.
+func BuildPayload(app *shared.Application, meteringPoints []shared.MeteringPoint, participantSince time.Time, meterTariffIDs map[string]string) CoreParticipantPayload {
 	residentAddress := CoreAddress{
 		Type:         "RESIDENCE",
 		Street:       app.ResidentStreet,
@@ -108,6 +113,9 @@ func BuildPayload(app *shared.Application, meteringPoints []shared.MeteringPoint
 		}
 		if mp.InstallationName != nil {
 			meter.EquipmentName = *mp.InstallationName
+		}
+		if id, ok := meterTariffIDs[mp.MeteringPoint]; ok {
+			meter.TariffID = id
 		}
 		meters = append(meters, meter)
 	}

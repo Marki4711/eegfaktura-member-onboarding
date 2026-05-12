@@ -466,13 +466,55 @@ export interface ImportResponse {
   status: ApplicationStatus;
   targetParticipantId?: string;
   message?: string;
+  // PROJ-27: set when participant creation succeeded but the follow-up
+  // tariffId assignment on the participant failed. Import is still treated
+  // as successful (meter tariffs are persisted); admin needs to fix the
+  // member tariff manually in the eegFaktura core.
+  memberTariffWarning?: string;
 }
 
-export function importApplication(id: string, token?: string): Promise<ImportResponse> {
+// PROJ-27: Tariff selection sent with the import call. All fields optional;
+// an empty body falls back to the legacy "no tariffs" behaviour.
+export interface ImportRequestBody {
+  tariffId?: string;
+  meterTariffs?: Record<string, string>; // metering_point UUID -> tariff UUID
+}
+
+export function importApplication(
+  id: string,
+  body?: ImportRequestBody,
+  token?: string,
+): Promise<ImportResponse> {
   return adminRequest<ImportResponse>(
     `/api/admin/applications/${id}/import`,
     token,
-    { method: "POST" }
+    {
+      method: "POST",
+      headers: body ? { "Content-Type": "application/json" } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    }
+  );
+}
+
+// PROJ-27: Tariff catalogue entry as returned by GET /api/admin/tariffs.
+// Subset of the core's GET /eeg/tariff response — only fields we need for
+// the selection dialog.
+export interface Tariff {
+  id: string;
+  type: "EEG" | "VZP" | "EZP" | "AKONTO";
+  name: string;
+  centPerKWh: number;
+  discount: number;
+  useVat: boolean;
+  vatInPercent: number;
+  inactiveSince?: string | null;
+}
+
+export function fetchTariffs(rcNumber: string, token?: string): Promise<{ tariffs: Tariff[] }> {
+  return adminRequest<{ tariffs: Tariff[] }>(
+    `/api/admin/tariffs?rcNumber=${encodeURIComponent(rcNumber)}`,
+    token,
+    { method: "GET" }
   );
 }
 

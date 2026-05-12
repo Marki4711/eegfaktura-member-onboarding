@@ -32,6 +32,14 @@ type ImportService struct {
 	coreClient    coreclient.CoreClient
 }
 
+// ListTariffs proxies the core's GET /eeg/tariff for the admin tariff-selection
+// dialog at import time (PROJ-27). The caller's bearer token is forwarded; the
+// tenant comes from the admin's allowed RC numbers (validated by the HTTP
+// handler before calling here).
+func (s *ImportService) ListTariffs(ctx context.Context, bearerToken, tenant string) ([]coreclient.CoreTariff, error) {
+	return s.coreClient.ListTariffs(ctx, bearerToken, tenant)
+}
+
 // NewImportService wires the dependencies. coreClient may be a stub in tests.
 func NewImportService(
 	db *sql.DB,
@@ -55,6 +63,18 @@ type ImportResult struct {
 	Status              shared.ApplicationStatus
 	TargetParticipantID string
 	ErrorMessage        string
+	// MemberTariffWarning is set when participant creation succeeded but the
+	// follow-up call to assign the member-level tariff (PROJ-27, PUT
+	// /participant/v2/{id}) failed. The application remains `imported`; the
+	// admin can re-assign the member tariff manually in the core.
+	MemberTariffWarning string
+}
+
+// TariffSelection captures the admin's choices made in the import dialog (PROJ-27).
+// Empty strings mean "no tariff" — the field is then omitted from the core call.
+type TariffSelection struct {
+	MemberTariffID string            // applied via PUT /participant/v2/{id} after creation
+	MeterTariffIDs map[string]string // metering_point -> tariff UUID; goes into POST body
 }
 
 // Import runs one import attempt for the application identified by id.
@@ -68,7 +88,7 @@ type ImportResult struct {
 // as typed shared errors and the application is left untouched. Core failures
 // transition the application into import_failed and return a wrapped error so
 // the handler can render a 500 with the stored error message.
-func (s *ImportService) Import(ctx context.Context, id uuid.UUID, bearerToken, actorID string, allowedTenants []string) (*ImportResult, error) {
+func (s *ImportService) Import(ctx context.Context, id uuid.UUID, bearerToken, actorID string, allowedTenants []string, selection TariffSelection) (*ImportResult, error) {
 	app, err := s.appRepo.GetByID(id)
 	if err != nil {
 		return nil, err
@@ -106,7 +126,7 @@ func (s *ImportService) Import(ctx context.Context, id uuid.UUID, bearerToken, a
 		return nil, shared.NewConflictError("another import is already in progress for this application")
 	}
 
-	payload := BuildPayload(app, meteringPoints, importStartedAt)
+	payload := BuildPayload(app, meteringPoints, importStartedAt, selection.MeterTariffIDs)
 
 	participantID, coreErr := s.coreClient.CreateParticipant(ctx, payload, bearerToken, app.RCNumber)
 	importFinishedAt := time.Now()
@@ -154,11 +174,30 @@ func (s *ImportService) Import(ctx context.Context, id uuid.UUID, bearerToken, a
 			fmt.Errorf("import succeeded in core but bookkeeping failed: %w", err)
 	}
 
-	return &ImportResult{
+	result := &ImportResult{
 		ApplicationID:       id,
 		Status:              shared.StatusImported,
 		TargetParticipantID: participantID,
-	}, nil
+	}
+
+	// PROJ-27: member-level tariff cannot be set via POST /participant
+	// (goqu:"skipinsert" on EegParticipantBase.TariffId). Apply it as a
+	// follow-up partial update. A failure here does not roll back the
+	// import — the admin can re-assign the member tariff in the core UI.
+	if selection.MemberTariffID != "" {
+		if err := s.coreClient.UpdateParticipantField(ctx, bearerToken, app.RCNumber, participantID, "tariffId", selection.MemberTariffID); err != nil {
+			warn := normalizeError(err)
+			slog.Warn("import: member tariff assignment failed after participant creation",
+				"application_id", id,
+				"target_participant_id", participantID,
+				"tariff_id", selection.MemberTariffID,
+				"error", warn,
+			)
+			result.MemberTariffWarning = warn
+		}
+	}
+
+	return result, nil
 }
 
 // persistResult writes the application UPDATE and the status_log INSERT in a
