@@ -42,9 +42,11 @@ type ApprovalPDFData struct {
 	ConfigurableFields []ConfigurableFieldPDF
 
 	// Statutory consents stored as booleans on the application record.
-	PrivacyAccepted      bool
-	PrivacyVersion       string
-	AccuracyConfirmed    bool
+	PrivacyAccepted       bool
+	PrivacyVersion        string
+	PrivacyAcceptedAt     *time.Time
+	AccuracyConfirmed     bool
+	AccuracyConfirmedAt   *time.Time // = submitted_at; accuracy has no dedicated column
 	SepaMandateAccepted   bool
 	SepaMandateAcceptedAt *time.Time
 	SEPAMandateEnabled    bool // true = Checkbox im Formular, false = per E-Mail
@@ -226,10 +228,17 @@ func (g *FPDFApprovalGenerator) GenerateApproval(data ApprovalPDFData) ([]byte, 
 		if data.PrivacyVersion != "" {
 			line += fmt.Sprintf(" (Version %s)", data.PrivacyVersion)
 		}
+		if data.PrivacyAcceptedAt != nil {
+			line += " am " + data.PrivacyAcceptedAt.Format("02.01.2006 15:04")
+		}
 		f.MultiCell(cw, 5, w1252(line), "0", "L", false)
 	}
 	if data.AccuracyConfirmed {
-		f.MultiCell(cw, 5, w1252("- Richtigkeit der Angaben bestätigt"), "0", "L", false)
+		line := "- Richtigkeit der Angaben bestätigt"
+		if data.AccuracyConfirmedAt != nil {
+			line += " am " + data.AccuracyConfirmedAt.Format("02.01.2006 15:04")
+		}
+		f.MultiCell(cw, 5, w1252(line), "0", "L", false)
 	}
 	if data.SEPAMandateEnabled && data.SepaMandateAccepted {
 		line := "- SEPA-Lastschriftmandat erteilt"
@@ -245,7 +254,7 @@ func (g *FPDFApprovalGenerator) GenerateApproval(data ApprovalPDFData) ([]byte, 
 		f.MultiCell(cw, 5, w1252(line), "0", "L", false)
 	}
 	for _, c := range data.Consents {
-		line := fmt.Sprintf("- %s — Zugestimmt am %s", c.Title, c.ConsentedAt.Format("02.01.2006"))
+		line := fmt.Sprintf("- %s — Zugestimmt am %s", c.Title, c.ConsentedAt.Format("02.01.2006 15:04"))
 		f.MultiCell(cw, 5, w1252(line), "0", "L", false)
 		if c.URL != "" {
 			setFont("", 8)
