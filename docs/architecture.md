@@ -153,10 +153,37 @@ Standalone build and standalone migrations in repository `eegfaktura-member-onbo
 - PostgreSQL stores every timestamp as UTC (`timestamp with time zone`).
 - API responses serialise timestamps in ISO 8601 / RFC 3339, always UTC.
 - Every user-visible rendering (PDF, email, admin web) converts to **Europe/Vienna** with automatic CET/CEST handling.
-- Backend helper: `internal/shared/timezone.go` (`DisplayLocation`, `FmtDateTime`, `FmtDate`).
+- Backend helper: `internal/shared/timezone.go` (`DisplayLocation`, `FmtDateTime`, `FmtDate`); the package blank-imports `time/tzdata` so the IANA database is embedded into the binary (the Alpine base image does not ship `tzdata` by default).
 - Frontend helper: `src/lib/datetime.ts` (`formatDateTime`, `formatDate`, `formatPlainDate`).
 - Mail templates expose the same helpers via `template.Funcs` (`{{fmtDateTime …}}`).
 - DATE columns (`birth_date`, `membership_start_date`) are timezone-unaware by design — they have no time component.
+
+### Edge / Network Boundary
+
+- **Body size limits** are enforced per route group via the `MaxBodySize` middleware: 256 KiB for `/api/public` and `/api/external`, 1 MiB for `/api/admin`. Decode errors surface as 400.
+- **Trusted-proxy CIDRs** (`TRUSTED_PROXY_CIDRS` env var, default in Helm covers the typical K8s pod/service ranges): `X-Real-IP` / `X-Forwarded-For` headers are only honoured when the immediate peer (`r.RemoteAddr`) is inside a trusted CIDR. Otherwise `realIP()` falls back to `RemoteAddr` so a direct pod-callee cannot spoof the per-IP rate limit.
+- **NetworkPolicies** (`networkPolicies.enabled` in Helm, default `true`): backend ← frontend + ingress controller, frontend ← ingress controller, postgres ← backend + migrate + seed only. The frontend cannot reach Postgres directly.
+
+### Health Probes
+
+- `GET /livez` (backend) and `GET /api/health` (frontend) return 200 unconditionally — used for kubelet livenessProbe so a transient DB outage cannot trigger a restart loop.
+- `GET /readyz` (backend) pings the DB — used for readinessProbe so the pod is dropped from the Service endpoints while the DB is unavailable.
+- `GET /health` remains for backwards compatibility (combined liveness+readiness with DB ping).
+
+### Authentication Flow
+
+- Admin frontend obtains a Keycloak JWT via NextAuth; backend validates via JWKS.
+- `adminRequest` merges caller-supplied headers on top of the default headers so Authorization is never accidentally dropped.
+- A 401 from the backend dispatches a global `auth:expired` window event; `SessionRefreshGuard` calls `signIn("keycloak")` so users hit a real login page instead of stale error banners.
+
+### Mail Deliverability
+
+- Transactional mails set `Reply-To` to a useful counterparty (EEG contact for member mails, applicant for EEG mails) so replies don't disappear into `noreply@`.
+- `Auto-Submitted: auto-generated` header on every outgoing mail (RFC 3834) marks it as automated.
+- `User-Agent` and `X-Mailer` are branded `eegFaktura Member Onboarding` (overrides the gomail library default).
+- `Message-ID` uses the From-address domain (e.g. `<…@eegfaktura.at>`) instead of `os.Hostname()` (which in K8s is the random pod hash).
+- Body structure: `multipart/mixed { multipart/alternative { text/plain, text/html }, application/pdf }` — the plain-text alternative is rendered from the HTML with table-aware formatting (label/value pairs).
+- DNS authentication (DKIM `postal-TA3f2w._domainkey.eegfaktura.at`, SPF via `psrp.eegfaktura.at`, DMARC `p=reject` on `eegfaktura.at`) is already in place at the Postal/DNS layer.
 
 ## 7. Summary
 
