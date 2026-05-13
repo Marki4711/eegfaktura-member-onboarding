@@ -9,6 +9,21 @@ import (
 	"github.com/go-pdf/fpdf"
 )
 
+// displayLoc is the timezone used for all human-readable timestamps in the
+// approval PDF. PostgreSQL stores timestamps in UTC; without this conversion
+// every "am HH:MM" line would render in UTC, which is off-by-1h (winter) or
+// off-by-2h (summer) for Austrian users.
+var displayLoc = func() *time.Location {
+	loc, err := time.LoadLocation("Europe/Vienna")
+	if err != nil {
+		return time.UTC
+	}
+	return loc
+}()
+
+func fmtDateTime(t time.Time) string { return t.In(displayLoc).Format("02.01.2006 15:04") }
+func fmtDate(t time.Time) string     { return t.In(displayLoc).Format("02.01.2006") }
+
 // ApprovalPDFData holds all data required for the Beitrittsbestätigung PDF.
 type ApprovalPDFData struct {
 	EEGName         string
@@ -158,7 +173,7 @@ func (g *FPDFApprovalGenerator) GenerateApproval(data ApprovalPDFData) ([]byte, 
 	}
 	setFont("", 9)
 	f.CellFormat(cw/3*2, 5, w1252("EEG: "+eegName), "0", 0, "L", false, 0, "")
-	f.CellFormat(cw/3, 5, w1252("Datum: "+data.ApprovedAt.Format("02.01.2006")), "0", 1, "R", false, 0, "")
+	f.CellFormat(cw/3, 5, w1252("Datum: "+fmtDate(data.ApprovedAt)), "0", 1, "R", false, 0, "")
 	f.CellFormat(cw/3*2, 5, w1252("RC-Nummer: "+data.RCNumber), "0", 0, "L", false, 0, "")
 	f.CellFormat(cw/3, 5, w1252("Antrag: "+data.ReferenceNumber), "0", 1, "R", false, 0, "")
 	f.Ln(2)
@@ -229,32 +244,32 @@ func (g *FPDFApprovalGenerator) GenerateApproval(data ApprovalPDFData) ([]byte, 
 			line += fmt.Sprintf(" (Version %s)", data.PrivacyVersion)
 		}
 		if data.PrivacyAcceptedAt != nil {
-			line += " am " + data.PrivacyAcceptedAt.Format("02.01.2006 15:04")
+			line += " am " + fmtDateTime(*data.PrivacyAcceptedAt)
 		}
 		f.MultiCell(cw, 5, w1252(line), "0", "L", false)
 	}
 	if data.AccuracyConfirmed {
 		line := "- Richtigkeit der Angaben bestätigt"
 		if data.AccuracyConfirmedAt != nil {
-			line += " am " + data.AccuracyConfirmedAt.Format("02.01.2006 15:04")
+			line += " am " + fmtDateTime(*data.AccuracyConfirmedAt)
 		}
 		f.MultiCell(cw, 5, w1252(line), "0", "L", false)
 	}
 	if data.SEPAMandateEnabled && data.SepaMandateAccepted {
 		line := "- SEPA-Lastschriftmandat per E-Mail übermittelt"
 		if data.SepaMandateAcceptedAt != nil {
-			line += " am " + data.SepaMandateAcceptedAt.Format("02.01.2006 15:04")
+			line += " am " + fmtDateTime(*data.SepaMandateAcceptedAt)
 		}
 		f.MultiCell(cw, 5, w1252(line), "0", "L", false)
 	} else if !data.SEPAMandateEnabled {
 		line := "- SEPA-Lastschriftmandat erteilt"
 		if data.SepaMandateAcceptedAt != nil {
-			line += " am " + data.SepaMandateAcceptedAt.Format("02.01.2006 15:04")
+			line += " am " + fmtDateTime(*data.SepaMandateAcceptedAt)
 		}
 		f.MultiCell(cw, 5, w1252(line), "0", "L", false)
 	}
 	for _, c := range data.Consents {
-		line := fmt.Sprintf("- %s — Zugestimmt am %s", c.Title, c.ConsentedAt.Format("02.01.2006 15:04"))
+		line := fmt.Sprintf("- %s — Zugestimmt am %s", c.Title, fmtDateTime(c.ConsentedAt))
 		f.MultiCell(cw, 5, w1252(line), "0", "L", false)
 		if c.URL != "" {
 			setFont("", 8)
@@ -284,7 +299,7 @@ func (g *FPDFApprovalGenerator) GenerateApproval(data ApprovalPDFData) ([]byte, 
 		if from == "" {
 			from = "—"
 		}
-		ts := sl.Timestamp.Format("02.01.2006 15:04")
+		ts := fmtDateTime(sl.Timestamp)
 		f.CellFormat(sc1, 5, w1252(from), "0", 0, "L", false, 0, "")
 		f.CellFormat(sc2, 5, w1252(statusDE(sl.ToStatus)), "0", 0, "L", false, 0, "")
 		f.CellFormat(sc3, 5, w1252(ts), "0", 0, "L", false, 0, "")
