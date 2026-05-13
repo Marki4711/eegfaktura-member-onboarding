@@ -80,11 +80,14 @@ export function MeteringPointFields({ form, fieldConfig }: MeteringPointFieldsPr
                         onBlur={field.onBlur}
                         inputRef={field.ref}
                         name={field.name}
-                        // 37 sichtbare Stellen (AT + 31 Ziffern + 4 Spaces) –
-                        // mit text-xs + font-mono + tracking-tight passen sie
-                        // sowohl am Handy als auch am Desktop in eine Zeile,
-                        // ohne dass Richtung/Faktor in eine zweite Zeile rutschen.
-                        className="text-xs font-mono tracking-tight"
+                        // 37 sichtbare Stellen (AT + 31 Ziffern + 4 Spaces) müssen
+                        // in eine Zeile passen, ohne Richtung/Faktor zu verdrängen.
+                        // Default-Sans ist ~25% schmaler als font-mono; mit
+                        // tabular-nums bleiben die Ziffern sauber ausgerichtet,
+                        // tracking-tighter (-0.05em) holt zusätzliche Breite raus.
+                        // px-2 reduziert das Input-Padding gegenüber dem Default
+                        // (px-3), damit auch auf engen Desktop-Spalten alles passt.
+                        className="text-xs tabular-nums tracking-tighter px-2"
                       />
                     </FormControl>
                     <FormMessage />
