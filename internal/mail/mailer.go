@@ -2,7 +2,10 @@ package mail
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
+	"strings"
 	"time"
 
 	gomail "github.com/wneessen/go-mail"
@@ -112,9 +115,18 @@ func (m *Mailer) buildMessage(opts Options, to, subject, htmlBody, plainBody str
 	}
 	msg.Subject(subject)
 
-	// X-Mailer identifies our service (custom mailer strings score better than
-	// the library default).
-	msg.SetGenHeader("X-Mailer", "eegFaktura Member Onboarding")
+	// SetUserAgent overwrites BOTH User-Agent and X-Mailer with our brand,
+	// instead of leaking the go-mail library identifier
+	// ("go-mail v0.7.2 // https://github.com/wneessen/go-mail") that some
+	// spam filters specifically flag.
+	msg.SetUserAgent("eegFaktura Member Onboarding")
+
+	// Override the Message-ID so it uses the From-address domain instead of
+	// gomail's default `os.Hostname()` — in our Kubernetes deployment that
+	// hostname is a random pod-hash like `backend-9df68fbc9-wlsq4`, which
+	// looks suspicious to spam filters that expect a real FQDN.
+	msg.SetMessageIDWithValue(generateMessageID(m.fromAddr))
+
 	for k, v := range opts.Headers {
 		msg.SetGenHeader(gomail.Header(k), v)
 	}
@@ -123,6 +135,22 @@ func (m *Mailer) buildMessage(opts Options, to, subject, htmlBody, plainBody str
 	msg.SetBodyString(gomail.TypeTextPlain, plainBody)
 	msg.AddAlternativeString(gomail.TypeTextHTML, htmlBody)
 	return msg, nil
+}
+
+// generateMessageID builds a "<random>@<domain>" Message-ID using the From
+// address domain. Falls back to `localhost.invalid` if the From address has
+// no @ (which would be a misconfiguration the rest of the pipeline catches).
+func generateMessageID(fromAddr string) string {
+	domain := "localhost.invalid"
+	if i := strings.LastIndex(fromAddr, "@"); i >= 0 && i < len(fromAddr)-1 {
+		domain = fromAddr[i+1:]
+	}
+	buf := make([]byte, 16)
+	if _, err := rand.Read(buf); err != nil {
+		// Fall back to time-based; collision risk is acceptable for a logger.
+		return fmt.Sprintf("%d@%s", time.Now().UnixNano(), domain)
+	}
+	return fmt.Sprintf("%s@%s", hex.EncodeToString(buf), domain)
 }
 
 func (m *Mailer) clientOpts() []gomail.Option {
