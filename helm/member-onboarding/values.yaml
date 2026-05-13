@@ -61,6 +61,10 @@ backend:
     port: "587"
     user: "" # leer = kein SMTP-Auth (open relay)
     from: "" # Pflicht wenn smtp.host gesetzt
+    # Display-Name im From-Header (z.B. "eegFaktura Mitglieder-Onboarding").
+    # Erhöht die Inbox-Quote: Mail-Clients zeigen den Namen statt der nackten
+    # Adresse, was ein Legitimitäts-Signal für Spam-Filter ist.
+    fromName: "eegFaktura Mitglieder-Onboarding"
   dbSslMode: "disable" # disable (interner Cluster-Postgres) | require (externer Postgres mit TLS)
   # Keycloak JWT-Validierung — leer = Dev-Modus (kein Auth)
   keycloakJwksUrl: "" # z.B. https://keycloak.example.at/realms/EEGFaktura/protocol/openid-connect/certs

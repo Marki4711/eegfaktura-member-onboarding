@@ -30,7 +30,7 @@ func TestNoOpMailService_Noop(t *testing.T) {
 // TestNewSMTPMailService_ParsesTemplates verifies that embedded HTML templates
 // parse without error at startup time.
 func TestNewSMTPMailService_ParsesTemplates(t *testing.T) {
-	mailer := NewMailer("localhost", 587, "", "", "noreply@example.com")
+	mailer := NewMailer("localhost", 587, "", "", "noreply@example.com", "Test Sender")
 	svc, err := NewSMTPMailService(mailer, "")
 	if err != nil {
 		t.Fatalf("NewSMTPMailService failed: %v", err)
@@ -201,12 +201,12 @@ type spyCall struct {
 	body    string
 }
 
-func (s *spySender) Send(to, subject, htmlBody, _ string) error {
+func (s *spySender) Send(_ Options, to, subject, htmlBody, _ string) error {
 	s.calls = append(s.calls, spyCall{to: to, subject: subject, body: htmlBody})
 	return nil
 }
 
-func (s *spySender) SendWithAttachment(to, subject, htmlBody, _, _ string, _ []byte) error {
+func (s *spySender) SendWithAttachment(_ Options, to, subject, htmlBody, _, _ string, _ []byte) error {
 	s.calls = append(s.calls, spyCall{to: to, subject: subject, body: htmlBody})
 	return nil
 }

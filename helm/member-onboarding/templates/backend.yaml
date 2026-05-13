@@ -60,6 +60,8 @@ spec:
               value: {{ .Values.backend.smtp.user | quote }}
             - name: SMTP_FROM
               value: {{ .Values.backend.smtp.from | quote }}
+            - name: SMTP_FROM_NAME
+              value: {{ .Values.backend.smtp.fromName | default "eegFaktura Mitglieder-Onboarding" | quote }}
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:

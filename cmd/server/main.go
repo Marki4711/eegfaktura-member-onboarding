@@ -109,7 +109,7 @@ func main() {
 		if cfg.SMTP.From == "" {
 			log.Fatalf("SMTP_FROM must be set when SMTP_HOST is configured")
 		}
-		mailer := mail.NewMailer(cfg.SMTP.Host, cfg.SMTP.Port, cfg.SMTP.User, cfg.SMTP.Password, cfg.SMTP.From)
+		mailer := mail.NewMailer(cfg.SMTP.Host, cfg.SMTP.Port, cfg.SMTP.User, cfg.SMTP.Password, cfg.SMTP.From, cfg.SMTP.FromName)
 		svc, err := mail.NewSMTPMailService(mailer, cfg.AdminBaseURL)
 		if err != nil {
 			log.Fatalf("Failed to initialize mail service: %v", err)

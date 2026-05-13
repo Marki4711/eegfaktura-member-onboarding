@@ -341,11 +341,14 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 		subject := fmt.Sprintf("Ihre Beitrittserklärung wurde eingereicht (%s)", app.ReferenceNumber)
 		memberHTML := memberBuf.String()
 		memberPlain := htmlToText(memberHTML)
+		// Reply-To = EEG contact so the member's "Reply" lands at their EEG,
+		// not at the unmonitored noreply address.
+		memberOpts := transactionalOpts(derefString(entrypoint.ContactEmail))
 		var sendErr error
 		if len(attachment) > 0 {
-			sendErr = s.sender.SendWithAttachment(app.Email, subject, memberHTML, memberPlain, "sepa-lastschriftmandat.pdf", attachment)
+			sendErr = s.sender.SendWithAttachment(memberOpts, app.Email, subject, memberHTML, memberPlain, "sepa-lastschriftmandat.pdf", attachment)
 		} else {
-			sendErr = s.sender.Send(app.Email, subject, memberHTML, memberPlain)
+			sendErr = s.sender.Send(memberOpts, app.Email, subject, memberHTML, memberPlain)
 		}
 		if sendErr != nil {
 			slog.Error("mail: failed to send member confirmation", "application_id", app.ID, "to", app.Email, "error", sendErr)
@@ -440,7 +443,10 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 	displayName := memberDisplayName(app)
 	subject := fmt.Sprintf("Neuer Beitrittsantrag: %s (%s)", displayName, app.ReferenceNumber)
 	eegHTML := eegBuf.String()
-	if err := s.sender.Send(*entrypoint.ContactEmail, subject, eegHTML, htmlToText(eegHTML)); err != nil {
+	// Reply-To = applicant email so the EEG admin can answer the applicant
+	// directly from their inbox instead of having to copy-paste the address.
+	eegOpts := transactionalOpts(app.Email)
+	if err := s.sender.Send(eegOpts, *entrypoint.ContactEmail, subject, eegHTML, htmlToText(eegHTML)); err != nil {
 		slog.Error("mail: failed to send EEG notification", "application_id", app.ID, "to", *entrypoint.ContactEmail, "error", err)
 	} else {
 		slog.Info("mail: EEG notification sent", "application_id", app.ID, "to", *entrypoint.ContactEmail)
@@ -465,7 +471,8 @@ func (s *SMTPMailService) SendMemberConfirmation(app *shared.Application, entryp
 	}
 	subject := fmt.Sprintf("Ihre Beitrittserklärung wurde eingereicht (%s)", app.ReferenceNumber)
 	htmlBody := buf.String()
-	return s.sender.Send(app.Email, subject, htmlBody, htmlToText(htmlBody))
+	opts := transactionalOpts(derefString(entrypoint.ContactEmail))
+	return s.sender.Send(opts, app.Email, subject, htmlBody, htmlToText(htmlBody))
 }
 
 // SendApprovalEmail sends the approval notification with optional PDF attachment to the EEG contact.
@@ -497,10 +504,13 @@ func (s *SMTPMailService) SendApprovalEmail(app *shared.Application, entrypoint 
 	approvalHTML := buf.String()
 	approvalPlain := htmlToText(approvalHTML)
 
+	// Reply-To = applicant so the EEG admin can use the approval mail itself
+	// to write to the new member (welcome note, follow-up info).
+	opts := transactionalOpts(app.Email)
 	if len(pdfBytes) > 0 {
-		return s.sender.SendWithAttachment(*entrypoint.ContactEmail, subject, approvalHTML, approvalPlain, filename, pdfBytes)
+		return s.sender.SendWithAttachment(opts, *entrypoint.ContactEmail, subject, approvalHTML, approvalPlain, filename, pdfBytes)
 	}
-	return s.sender.Send(*entrypoint.ContactEmail, subject, approvalHTML, approvalPlain)
+	return s.sender.Send(opts, *entrypoint.ContactEmail, subject, approvalHTML, approvalPlain)
 }
 
 func derefString(s *string) string {
@@ -510,23 +520,69 @@ func derefString(s *string) string {
 	return *s
 }
 
+// transactionalOpts returns the per-message options every outgoing mail uses:
+// - Auto-Submitted: auto-generated  (RFC 3834 — marks the mail as automated
+//   so inbox providers like Gmail correctly classify it as transactional and
+//   so auto-responders don't loop)
+// - Reply-To routes "Reply" away from noreply@ and to a useful recipient:
+//   the user's EEG for member confirmations, the applicant for EEG notices.
+func transactionalOpts(replyTo string) Options {
+	return Options{
+		ReplyTo: replyTo,
+		Headers: map[string]string{
+			"Auto-Submitted": "auto-generated",
+		},
+	}
+}
+
 var (
-	reBlock    = regexp.MustCompile(`(?i)<(br\s*/?>|/?(p|h[1-6]|tr|li|div|blockquote|hr)[^>]*)>`)
-	reListItem = regexp.MustCompile(`(?i)<li[^>]*>`)
-	reTag      = regexp.MustCompile(`<[^>]+>`)
-	reSpaces   = regexp.MustCompile(`[ \t]+`)
-	reNewlines = regexp.MustCompile(`\n{3,}`)
+	// Two-cell tables are our standard "Label: Value" layout. Rendering them
+	// as "Label: Value" in the plain-text version dramatically reduces the
+	// HTML-vs-Plain divergence that spam filters flag.
+	reTwoCellRow = regexp.MustCompile(`(?is)<tr[^>]*>\s*<td[^>]*>(.*?)</td>\s*<td[^>]*>(.*?)</td>\s*</tr>`)
+	// A "spanning" row is a single TD with colspan — used by our templates
+	// as section headers. Render as a standalone line.
+	reSpanningRow = regexp.MustCompile(`(?is)<tr[^>]*>\s*<td[^>]*colspan=[^>]*>(.*?)</td>\s*</tr>`)
+	reHead        = regexp.MustCompile(`(?is)<head[^>]*>.*?</head>`)
+	reStyle       = regexp.MustCompile(`(?is)<style[^>]*>.*?</style>`)
+	reScript      = regexp.MustCompile(`(?is)<script[^>]*>.*?</script>`)
+	reAnchor      = regexp.MustCompile(`(?is)<a[^>]*href="([^"]+)"[^>]*>(.*?)</a>`)
+	reBlock       = regexp.MustCompile(`(?i)<(br\s*/?>|/?(p|h[1-6]|tr|li|div|blockquote|hr|table)[^>]*)>`)
+	reListItem    = regexp.MustCompile(`(?i)<li[^>]*>`)
+	reTag         = regexp.MustCompile(`<[^>]+>`)
+	reSpaces      = regexp.MustCompile(`[ \t]+`)
+	reNewlines    = regexp.MustCompile(`\n{3,}`)
 )
 
 // htmlToText converts an HTML email body to a plain-text alternative.
-// It replaces block elements with newlines, strips remaining tags,
-// and decodes HTML entities.
+// Tuned for the templates in this package: two-cell tables become
+// "Label: Value" lines, colspan rows become section headers, and links
+// render as "text (url)" so the URL survives in the plain part (which
+// helps Gmail's text/html similarity check). Drops <head>, <style>, and
+// <script> so they don't leak into the visible plain text.
 func htmlToText(h string) string {
-	s := reListItem.ReplaceAllString(h, "\n- ")
+	// 1. Strip head/style/script before tag-stripping touches their content.
+	s := reHead.ReplaceAllString(h, "")
+	s = reStyle.ReplaceAllString(s, "")
+	s = reScript.ReplaceAllString(s, "")
+
+	// 2. Tables: emit "label: value" for two-cell rows and a bare line for
+	//    spanning section-header rows.
+	s = reSpanningRow.ReplaceAllString(s, "\n\n$1\n")
+	s = reTwoCellRow.ReplaceAllString(s, "\n$1: $2")
+
+	// 3. Links → "text (url)" so the URL is visible in plain text too.
+	s = reAnchor.ReplaceAllString(s, "$2 ($1)")
+
+	// 4. Block-level elements turn into newlines; list items get a dash.
+	s = reListItem.ReplaceAllString(s, "\n- ")
 	s = reBlock.ReplaceAllString(s, "\n")
+
+	// 5. Remove any remaining tags and decode entities.
 	s = reTag.ReplaceAllString(s, "")
 	s = html.UnescapeString(s)
-	// Normalise whitespace per line, then collapse excessive blank lines.
+
+	// 6. Normalise whitespace per line, then collapse excessive blank lines.
 	lines := strings.Split(s, "\n")
 	for i, l := range lines {
 		lines[i] = reSpaces.ReplaceAllString(strings.TrimSpace(l), " ")

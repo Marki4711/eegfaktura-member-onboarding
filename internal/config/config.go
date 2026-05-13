@@ -62,6 +62,10 @@ type SMTPConfig struct {
 	User     string
 	Password string
 	From     string
+	// FromName is the display name shown before the address in mail clients
+	// (`"eegFaktura …" <noreply@…>`). Empty falls back to the bare address.
+	// Inbox providers count a present display name as a legitimacy signal.
+	FromName string
 }
 
 // CORSConfig holds allowed origins for CORS.
@@ -111,6 +115,7 @@ func Load() (*Config, error) {
 			User:     getEnv("SMTP_USER", ""),
 			Password: getEnv("SMTP_PASSWORD", ""),
 			From:     getEnv("SMTP_FROM", ""),
+			FromName: getEnv("SMTP_FROM_NAME", "eegFaktura Mitglieder-Onboarding"),
 		},
 		Keycloak: KeycloakConfig{
 			JWKSUrl: getEnv("KEYCLOAK_JWKS_URL", ""),

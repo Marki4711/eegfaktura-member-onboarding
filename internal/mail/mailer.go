@@ -8,11 +8,25 @@ import (
 	gomail "github.com/wneessen/go-mail"
 )
 
+// Options bundles per-message overrides so the service layer can attach a
+// Reply-To address or custom headers (Auto-Submitted, In-Reply-To, …)
+// without the mailer needing to know per-mail-type semantics.
+type Options struct {
+	// ReplyTo, when set, populates the Reply-To header. Improves deliverability:
+	// mail clients use it for "Reply", and inbox providers count a working
+	// reply path as a positive engagement signal.
+	ReplyTo string
+	// Headers carry extra raw headers (e.g. "Auto-Submitted":"auto-generated").
+	// Standard headers like Message-ID, Date, MIME-Version, From, To, Subject
+	// are already managed by go-mail.
+	Headers map[string]string
+}
+
 // Sender is the low-level mail delivery contract used by SMTPMailService.
 // Extracting it as an interface allows test doubles to be injected.
 type Sender interface {
-	Send(to, subject, htmlBody, plainBody string) error
-	SendWithAttachment(to, subject, htmlBody, plainBody, attachmentName string, attachmentData []byte) error
+	Send(opts Options, to, subject, htmlBody, plainBody string) error
+	SendWithAttachment(opts Options, to, subject, htmlBody, plainBody, attachmentName string, attachmentData []byte) error
 }
 
 // Mailer wraps SMTP credentials and implements Sender.
@@ -21,17 +35,28 @@ type Mailer struct {
 	port     int
 	user     string
 	password string
-	from     string
+	fromAddr string
+	fromName string
 }
 
-// NewMailer creates a Mailer from the given parameters.
-func NewMailer(host string, port int, user, password, from string) *Mailer {
-	return &Mailer{host: host, port: port, user: user, password: password, from: from}
+// NewMailer creates a Mailer from the given parameters. `fromName` is the
+// display name that will appear before the address in mail clients (improves
+// recognition + slightly improves spam scoring). Empty fromName falls back to
+// just the address.
+func NewMailer(host string, port int, user, password, fromAddr, fromName string) *Mailer {
+	return &Mailer{
+		host:     host,
+		port:     port,
+		user:     user,
+		password: password,
+		fromAddr: fromAddr,
+		fromName: fromName,
+	}
 }
 
 // Send delivers a multipart/alternative email with both HTML and plain-text bodies.
-func (m *Mailer) Send(to, subject, htmlBody, plainBody string) error {
-	msg, err := m.buildMessage(to, subject, htmlBody, plainBody)
+func (m *Mailer) Send(opts Options, to, subject, htmlBody, plainBody string) error {
+	msg, err := m.buildMessage(opts, to, subject, htmlBody, plainBody)
 	if err != nil {
 		return err
 	}
@@ -46,8 +71,8 @@ func (m *Mailer) Send(to, subject, htmlBody, plainBody string) error {
 }
 
 // SendWithAttachment delivers a multipart/alternative email with a binary attachment.
-func (m *Mailer) SendWithAttachment(to, subject, htmlBody, plainBody, attachmentName string, attachmentData []byte) error {
-	msg, err := m.buildMessage(to, subject, htmlBody, plainBody)
+func (m *Mailer) SendWithAttachment(opts Options, to, subject, htmlBody, plainBody, attachmentName string, attachmentData []byte) error {
+	msg, err := m.buildMessage(opts, to, subject, htmlBody, plainBody)
 	if err != nil {
 		return err
 	}
@@ -64,15 +89,36 @@ func (m *Mailer) SendWithAttachment(to, subject, htmlBody, plainBody, attachment
 	return nil
 }
 
-func (m *Mailer) buildMessage(to, subject, htmlBody, plainBody string) (*gomail.Msg, error) {
+func (m *Mailer) buildMessage(opts Options, to, subject, htmlBody, plainBody string) (*gomail.Msg, error) {
 	msg := gomail.NewMsg()
-	if err := msg.From(m.from); err != nil {
-		return nil, fmt.Errorf("invalid from address: %w", err)
+	// Use FromFormat when a display name is configured so the header reads
+	// `"eegFaktura …" <noreply@…>` instead of the bare address.
+	if m.fromName != "" {
+		if err := msg.FromFormat(m.fromName, m.fromAddr); err != nil {
+			return nil, fmt.Errorf("invalid from address: %w", err)
+		}
+	} else {
+		if err := msg.From(m.fromAddr); err != nil {
+			return nil, fmt.Errorf("invalid from address: %w", err)
+		}
 	}
 	if err := msg.To(to); err != nil {
 		return nil, fmt.Errorf("invalid to address: %w", err)
 	}
+	if opts.ReplyTo != "" {
+		if err := msg.ReplyTo(opts.ReplyTo); err != nil {
+			return nil, fmt.Errorf("invalid reply-to address: %w", err)
+		}
+	}
 	msg.Subject(subject)
+
+	// X-Mailer identifies our service (custom mailer strings score better than
+	// the library default).
+	msg.SetGenHeader("X-Mailer", "eegFaktura Member Onboarding")
+	for k, v := range opts.Headers {
+		msg.SetGenHeader(gomail.Header(k), v)
+	}
+
 	// Plain text first, HTML as alternative — mail clients prefer the last listed part.
 	msg.SetBodyString(gomail.TypeTextPlain, plainBody)
 	msg.AddAlternativeString(gomail.TypeTextHTML, htmlBody)
