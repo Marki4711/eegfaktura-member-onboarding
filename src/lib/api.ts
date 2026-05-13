@@ -207,11 +207,15 @@ async function adminRequest<T>(
   token: string | undefined,
   options?: RequestInit
 ): Promise<T> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const defaultHeaders: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) defaultHeaders["Authorization"] = `Bearer ${token}`;
+  // Spread options FIRST, then override headers with a merged map; otherwise
+  // a caller passing `headers: { "Content-Type": ... }` would silently drop
+  // the Authorization header set above and trip a 401 at the auth middleware.
+  const callerHeaders = (options?.headers as Record<string, string> | undefined) ?? {};
   const res = await fetch(`${API_URL}${path}`, {
-    headers,
     ...options,
+    headers: { ...defaultHeaders, ...callerHeaders },
   });
 
   if (!res.ok) {
