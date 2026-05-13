@@ -1,6 +1,15 @@
 package shared
 
-import "time"
+import (
+	"time"
+	// Embed the IANA timezone database directly into the binary so that
+	// time.LoadLocation works even in minimal base images (Alpine without
+	// the tzdata package, distroless, FROM scratch). Without this import
+	// the LoadLocation call below silently fails and DisplayLocation falls
+	// back to UTC — every "am HH:MM" line in PDFs and emails then renders
+	// 1-2 hours off for Austrian users.
+	_ "time/tzdata"
+)
 
 // DisplayLocation is the timezone used for every user-visible timestamp
 // rendered by this service (PDFs, emails, anywhere that produces a human
