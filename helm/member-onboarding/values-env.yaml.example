@@ -101,6 +101,13 @@ backend:
   coreBaseUrl: "https://eegfaktura.example.at/api"
   coreTimeoutSeconds: 30
 
+  # Trusted-Proxy-CIDRs: aus diesen IP-Bereichen werden X-Real-IP /
+  # X-Forwarded-For-Header akzeptiert; alles andere wird ignoriert. Schützt
+  # das per-IP Rate-Limit gegen Spoofing durch direkte Pod-Calls. Leer = nur
+  # r.RemoteAddr verwenden (z.B. wenn die App ohne Reverse-Proxy direkt
+  # erreichbar ist). Default in values.yaml deckt typische K8s-Pod/Service-CIDRs ab.
+  trustedProxyCIDRs: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fc00::/7"
+
 # ── Seed data ──────────────────────────────────────────────────────────────────
 # Wird einmalig als post-install Hook ausgeführt.
 # Legt einen initialen Registrierungseinstiegspunkt an.

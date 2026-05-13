@@ -83,6 +83,8 @@ spec:
               value: {{ .Values.backend.coreBaseUrl | quote }}
             - name: CORE_TIMEOUT_SECONDS
               value: {{ .Values.backend.coreTimeoutSeconds | default 30 | quote }}
+            - name: TRUSTED_PROXY_CIDRS
+              value: {{ .Values.backend.trustedProxyCIDRs | default "" | quote }}
           resources:
             {{- toYaml .Values.backend.resources | nindent 12 }}
           readinessProbe:

@@ -73,6 +73,12 @@ backend:
   # Pfad-Präfix (typischerweise /api) gehört in die URL.
   coreBaseUrl: "" # z.B. https://eegfaktura.example.at/api
   coreTimeoutSeconds: 30
+  # Trusted-Proxy-CIDRs: aus diesen IP-Bereichen werden X-Real-IP /
+  # X-Forwarded-For-Header akzeptiert. Alles andere wird ignoriert und
+  # r.RemoteAddr verwendet → kein Bypass des per-IP Rate-Limits durch
+  # Header-Spoofing. Default deckt typische K8s-Pod/Service-CIDRs ab.
+  # Komma-getrennte Liste, IPv4 und IPv6 erlaubt.
+  trustedProxyCIDRs: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fc00::/7"
 # ── Seed data ──────────────────────────────────────────────────────────────────
 seed:
   rcNumber: ""

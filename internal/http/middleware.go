@@ -53,20 +53,26 @@ func getIPBucket(ip string) *ipBucket {
 	return b
 }
 
-// realIP extracts the client IP, honouring X-Real-IP and X-Forwarded-For set by nginx.
+// realIP extracts the client IP. X-Real-IP and X-Forwarded-For are only
+// honoured when the immediate peer (r.RemoteAddr) is itself a configured
+// trusted proxy — otherwise an attacker reaching the pod directly could
+// spoof their source IP by sending the header themselves and bypass the
+// per-IP rate limit.
+//
+// Fall back to r.RemoteAddr (port stripped) when no trusted proxy chain
+// applies.
 func realIP(r *http.Request) string {
-	if ip := r.Header.Get("X-Real-IP"); ip != "" {
-		return ip
+	peer := remoteAddrIP(r)
+	if isTrustedProxy(peer) {
+		if ip := strings.TrimSpace(r.Header.Get("X-Real-IP")); ip != "" {
+			return ip
+		}
+		if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
+			// First entry = original client; trim and return.
+			return strings.TrimSpace(strings.SplitN(fwd, ",", 2)[0])
+		}
 	}
-	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
-		return strings.SplitN(fwd, ",", 2)[0]
-	}
-	// Strip port from RemoteAddr
-	addr := r.RemoteAddr
-	if idx := strings.LastIndex(addr, ":"); idx != -1 {
-		return addr[:idx]
-	}
-	return addr
+	return peer
 }
 
 // PublicSubmitRateLimitMiddleware limits POST requests to the public applications
@@ -88,6 +94,25 @@ func PublicSubmitRateLimitMiddleware(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// MaxBodySize returns a middleware that wraps r.Body with http.MaxBytesReader.
+// Decoding a body larger than `max` bytes returns an error from the standard
+// json package; handlers already translate decode errors to 400, so the limit
+// surfaces as a clean validation error to the client.
+//
+// Applied per route group (public/external get a tight limit; admin gets a
+// larger budget for intro text + admin notes). GET/HEAD requests are passed
+// through unchanged — they have no body to limit.
+func MaxBodySize(max int64) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Body != nil && r.Method != http.MethodGet && r.Method != http.MethodHead {
+				r.Body = http.MaxBytesReader(w, r.Body, max)
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 // SecurityHeadersMiddleware sets defensive HTTP headers on every response.
@@ -143,7 +168,7 @@ func SlogRequestLogger(next http.Handler) http.Handler {
 			"status", ww.Status(),
 			"duration_ms", time.Since(start).Milliseconds(),
 			"request_id", middleware.GetReqID(r.Context()),
-			"remote_addr", r.RemoteAddr,
+			"remote_addr", realIP(r),
 		)
 	})
 }

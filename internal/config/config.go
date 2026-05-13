@@ -19,6 +19,11 @@ type Config struct {
 	CentralPolicy CentralPolicyConfig
 	Core          CoreConfig
 	AdminBaseURL  string
+	// TrustedProxyCIDRs is a comma-separated list of CIDR ranges (IPv4 or IPv6)
+	// from which X-Real-IP / X-Forwarded-For headers are honoured. Anything
+	// outside these ranges has its proxy headers ignored. Empty (dev default)
+	// = trust nothing → realIP() falls back to RemoteAddr.
+	TrustedProxyCIDRs string
 }
 
 // CoreConfig holds connection settings for the eegFaktura core service used by
@@ -122,7 +127,8 @@ func Load() (*Config, error) {
 			BaseURL:        getEnv("CORE_BASE_URL", ""),
 			TimeoutSeconds: getIntEnv("CORE_TIMEOUT_SECONDS", 30),
 		},
-		AdminBaseURL: getEnv("ADMIN_BASE_URL", ""),
+		AdminBaseURL:      getEnv("ADMIN_BASE_URL", ""),
+		TrustedProxyCIDRs: getEnv("TRUSTED_PROXY_CIDRS", ""),
 	}
 
 	return config, nil

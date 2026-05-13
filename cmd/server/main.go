@@ -141,6 +141,10 @@ func main() {
 	externalHandler := internalhttp.NewExternalHandler(applicationService)
 	healthHandler := internalhttp.NewHealthHandler(db)
 
+	// Configure trusted-proxy CIDRs before realIP() is used by any middleware.
+	// Empty value = trust nothing → r.RemoteAddr wins.
+	internalhttp.SetTrustedProxyCIDRs(cfg.TrustedProxyCIDRs)
+
 	// Setup routes
 	r := chi.NewRouter()
 
@@ -150,6 +154,17 @@ func main() {
 	r.Use(middleware.RequestID)
 	r.Use(internalhttp.SlogRequestLogger)
 	r.Use(middleware.Recoverer)
+
+	// Request body size limits per route group. Public/external endpoints get
+	// a tight cap because their payloads are bounded (form data + a few
+	// metering points); admin endpoints get a larger budget for intro_text
+	// and admin_note. Limits are applied before handler decode so an oversize
+	// body surfaces as a clean 400 from the json decoder.
+	const (
+		publicBodyMax   int64 = 256 * 1024  // 256 KiB
+		externalBodyMax int64 = 256 * 1024  // 256 KiB
+		adminBodyMax    int64 = 1024 * 1024 // 1 MiB
+	)
 
 	// Swagger UI — publicly accessible, no auth required
 	r.Get("/api/docs/*", httpswagger.Handler(
@@ -161,6 +176,7 @@ func main() {
 
 	// API routes
 	r.Route("/api/public", func(r chi.Router) {
+		r.Use(internalhttp.MaxBodySize(publicBodyMax))
 		r.Route("/registration/{rc_number}", func(r chi.Router) {
 			r.Get("/", registrationHandler.GetRegistrationConfig)
 		})
@@ -178,6 +194,7 @@ func main() {
 
 	// Admin routes — protected by Keycloak JWT middleware
 	r.Route("/api/admin", func(r chi.Router) {
+		r.Use(internalhttp.MaxBodySize(adminBodyMax))
 		r.Use(internalhttp.KeycloakAuthMiddleware(cfg.Keycloak.JWKSUrl, cfg.Keycloak.Issuer))
 		r.Post("/sync", adminHandler.SyncEntrypoints)
 		r.Get("/tariffs", adminHandler.ListTariffs)
@@ -220,6 +237,7 @@ func main() {
 
 	// External API routes — authenticated via API key middleware (no Keycloak)
 	r.Route("/api/external", func(r chi.Router) {
+		r.Use(internalhttp.MaxBodySize(externalBodyMax))
 		r.Use(internalhttp.APIKeyMiddleware(apiKeyRepo))
 		r.Post("/v1/applications", externalHandler.SubmitExternalApplication)
 	})
