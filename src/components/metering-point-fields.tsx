@@ -59,7 +59,17 @@ export function MeteringPointFields({ form, fieldConfig }: MeteringPointFieldsPr
                 name={`meteringPoints.${index}.meteringPoint`}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Zählpunkt {index + 1}</FormLabel>
+                    <div className="flex items-center gap-1">
+                      <FormLabel>Zählpunkt {index + 1}</FormLabel>
+                      <Popover>
+                        <PopoverTrigger type="button" className="cursor-help">
+                          <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                        </PopoverTrigger>
+                        <PopoverContent className="max-w-72 text-sm">
+                          Die 33-stellige Zählpunktnummer (beginnt mit „AT") identifiziert Ihren Stromanschluss eindeutig. Sie finden sie auf jeder Stromrechnung sowie im Kundenportal Ihres Netzbetreibers.
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                     <FormControl>
                       <MaskedInput
                         mask="AT 000000 00000 000000000000 00000000"
@@ -70,10 +80,11 @@ export function MeteringPointFields({ form, fieldConfig }: MeteringPointFieldsPr
                         onBlur={field.onBlur}
                         inputRef={field.ref}
                         name={field.name}
-                        // Mobile: kleinere monospace-Font + enges Tracking, damit
-                        // die 37 sichtbaren Stellen (Zählpunkt + Spaces) in eine
-                        // Zeile passen. Ab sm: zurück auf den Default.
-                        className="text-xs font-mono tracking-tight sm:text-sm sm:font-normal sm:tracking-normal"
+                        // 37 sichtbare Stellen (AT + 31 Ziffern + 4 Spaces) –
+                        // mit text-xs + font-mono + tracking-tight passen sie
+                        // sowohl am Handy als auch am Desktop in eine Zeile,
+                        // ohne dass Richtung/Faktor in eine zweite Zeile rutschen.
+                        className="text-xs font-mono tracking-tight"
                       />
                     </FormControl>
                     <FormMessage />
