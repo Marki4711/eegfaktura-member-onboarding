@@ -697,8 +697,9 @@ func buildApprovalPDFData(
 		PrivacyAccepted:      app.PrivacyAccepted,
 		PrivacyVersion:       derefStr(app.PrivacyVersion),
 		AccuracyConfirmed:    app.AccuracyConfirmed,
-		SepaMandateAccepted:  app.SepaMandateAccepted,
-		SEPAMandateEnabled:   entrypoint.SEPAMandateEnabled,
+		SepaMandateAccepted:   app.SepaMandateAccepted,
+		SepaMandateAcceptedAt: app.SepaMandateAcceptedAt,
+		SEPAMandateEnabled:    entrypoint.SEPAMandateEnabled,
 		MemberNumber:         app.MemberNumber,
 	}
 }
