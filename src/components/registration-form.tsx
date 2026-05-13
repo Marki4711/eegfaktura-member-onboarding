@@ -229,6 +229,13 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
   const turnstileRef = useRef<TurnstileInstance>(null);
   const [docConsents, setDocConsents] = useState<Record<string, boolean>>({});
   const [docConsentErrors, setDocConsentErrors] = useState<Record<string, string>>({});
+  // Cache the application id between createApplication-success and a later
+  // retry of submitApplication so a transient failure on submit does not
+  // create a second draft when the user clicks "Einreichen" again.
+  // Invalidated when the user changes any form value (snapshot mismatch) or
+  // when the backend reports the draft is gone (404).
+  const pendingApplicationIdRef = useRef<string | null>(null);
+  const lastSubmittedSnapshotRef = useRef<string | null>(null);
 
   const fieldConfig = config.fieldConfig;
   const sepaMandateEnabled = config.sepaMandateEnabled ?? false;
@@ -348,56 +355,83 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
       }
     }
 
-    try {
-      const app = await createApplication({
-        rcNumber: config.rcNumber,
-        memberType: values.memberType,
-        titel: isPersonType ? values.titel || undefined : undefined,
-        firstname: isPersonType ? values.firstname || undefined : undefined,
-        lastname: isPersonType ? values.lastname || undefined : undefined,
-        birthDate: isPersonType ? values.birthDate || undefined : undefined,
-        companyName: !isPersonType ? values.companyName || undefined : undefined,
-        uidNumber: values.uidNumber || undefined,
-        registerNumber: !isPersonType ? values.registerNumber || undefined : undefined,
-        email: values.email,
-        phone: values.phone || undefined,
-        residentStreet: values.residentStreet,
-        residentStreetNumber: values.residentStreetNumber,
-        residentZip: values.residentZip,
-        residentCity: values.residentCity,
-        privacyAccepted: values.privacyAccepted,
-        privacyVersion: PRIVACY_VERSION,
-        accuracyConfirmed: values.accuracyConfirmed,
-        iban: values.iban,
-        accountHolder: values.accountHolder,
-        sepaMandateAccepted: values.sepaMandateAccepted,
-        membershipStartDate: values.membershipStartDate || undefined,
-        personsInHousehold: values.personsInHousehold,
-        consumptionPreviousYear: values.consumptionPreviousYear,
-        consumptionForecast: values.consumptionForecast,
-        feedInForecast: values.feedInForecast,
-        pvPowerKwp: values.pvPowerKwp,
-        heatPump: values.heatPump ?? null,
-        electricVehicle: values.electricVehicle ?? null,
-        electricHotWater: values.electricHotWater ?? null,
-        meteringPoints: values.meteringPoints.map((mp) => ({
-          meteringPoint: mp.meteringPoint,
-          direction: mp.direction,
-          participationFactor: mp.participationFactor,
-          transformer: mp.transformer || undefined,
-          installationNumber: mp.installationNumber || undefined,
-          installationName: mp.installationName || undefined,
-        })),
-        turnstileToken: turnstileToken || undefined,
-      });
+    // Snapshot the form values so we can detect whether a retry comes after
+    // the user edited something (then we must re-create the draft) or is a
+    // pure re-submit (then we reuse the existing application id).
+    const valuesSnapshot = JSON.stringify(values);
+    const canReuseDraft =
+      pendingApplicationIdRef.current !== null &&
+      lastSubmittedSnapshotRef.current === valuesSnapshot;
 
-      const submitted = await submitApplication(app.id, consents.length > 0 ? consents : undefined);
+    try {
+      let applicationId: string;
+      if (canReuseDraft) {
+        applicationId = pendingApplicationIdRef.current!;
+      } else {
+        const app = await createApplication({
+          rcNumber: config.rcNumber,
+          memberType: values.memberType,
+          titel: isPersonType ? values.titel || undefined : undefined,
+          firstname: isPersonType ? values.firstname || undefined : undefined,
+          lastname: isPersonType ? values.lastname || undefined : undefined,
+          birthDate: isPersonType ? values.birthDate || undefined : undefined,
+          companyName: !isPersonType ? values.companyName || undefined : undefined,
+          uidNumber: values.uidNumber || undefined,
+          registerNumber: !isPersonType ? values.registerNumber || undefined : undefined,
+          email: values.email,
+          phone: values.phone || undefined,
+          residentStreet: values.residentStreet,
+          residentStreetNumber: values.residentStreetNumber,
+          residentZip: values.residentZip,
+          residentCity: values.residentCity,
+          privacyAccepted: values.privacyAccepted,
+          privacyVersion: PRIVACY_VERSION,
+          accuracyConfirmed: values.accuracyConfirmed,
+          iban: values.iban,
+          accountHolder: values.accountHolder,
+          sepaMandateAccepted: values.sepaMandateAccepted,
+          membershipStartDate: values.membershipStartDate || undefined,
+          personsInHousehold: values.personsInHousehold,
+          consumptionPreviousYear: values.consumptionPreviousYear,
+          consumptionForecast: values.consumptionForecast,
+          feedInForecast: values.feedInForecast,
+          pvPowerKwp: values.pvPowerKwp,
+          heatPump: values.heatPump ?? null,
+          electricVehicle: values.electricVehicle ?? null,
+          electricHotWater: values.electricHotWater ?? null,
+          meteringPoints: values.meteringPoints.map((mp) => ({
+            meteringPoint: mp.meteringPoint,
+            direction: mp.direction,
+            participationFactor: mp.participationFactor,
+            transformer: mp.transformer || undefined,
+            installationNumber: mp.installationNumber || undefined,
+            installationName: mp.installationName || undefined,
+          })),
+          turnstileToken: turnstileToken || undefined,
+        });
+        applicationId = app.id;
+        pendingApplicationIdRef.current = app.id;
+        lastSubmittedSnapshotRef.current = valuesSnapshot;
+      }
+
+      const submitted = await submitApplication(applicationId, consents.length > 0 ? consents : undefined);
+
+      // Terminal success — release the cached id; the success view will
+      // unmount the form anyway, but be explicit.
+      pendingApplicationIdRef.current = null;
+      lastSubmittedSnapshotRef.current = null;
 
       setSuccess({
         referenceNumber: submitted.referenceNumber,
         submittedAt: submitted.submittedAt,
       });
     } catch (err) {
+      // If the cached draft is gone (cron sweep, manual delete), reset so the
+      // next click re-creates it instead of looping on a stale id.
+      if (err instanceof ApiResponseError && err.apiError.code === "not_found") {
+        pendingApplicationIdRef.current = null;
+        lastSubmittedSnapshotRef.current = null;
+      }
       if (err instanceof ApiResponseError) {
         const { code, message, fields } = err.apiError;
 

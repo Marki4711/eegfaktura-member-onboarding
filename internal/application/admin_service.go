@@ -622,6 +622,20 @@ func (s *AdminApplicationService) DeleteAllDrafts() (int64, error) {
 	return s.appRepo.DeleteAllDrafts()
 }
 
+// UpdateAdminNote replaces only the admin_note column for the given
+// application. Used by the dedicated PATCH endpoint to avoid touching any
+// other field (PROJ-7/15 attributes, metering points with their
+// participation factors, etc.) when the admin just wants to edit a note.
+func (s *AdminApplicationService) UpdateAdminNote(id uuid.UUID, note string) error {
+	const maxNoteLen = 2000
+	if len(note) > maxNoteLen {
+		return shared.NewValidationError("Validation failed", map[string]string{
+			"note": fmt.Sprintf("Notiz darf maximal %d Zeichen lang sein", maxNoteLen),
+		})
+	}
+	return s.appRepo.UpdateAdminNote(id, strings.TrimSpace(note))
+}
+
 func buildApprovalPDFData(
 	app *shared.Application,
 	meteringPoints []shared.MeteringPoint,

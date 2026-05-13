@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { updateApplication } from "@/lib/api";
+import { setAdminNote } from "@/lib/api";
 import type { AdminApplicationDetail } from "@/lib/api";
 
 interface Props {
@@ -35,22 +35,10 @@ export function AdminNoteEditor({ application, onRefresh }: Props) {
     setSaving(true);
     setError(null);
     try {
-      await updateApplication(application.id, {
-        firstname: application.firstname ?? undefined,
-        lastname: application.lastname ?? undefined,
-        birthDate: application.birthDate?.slice(0, 10) ?? undefined,
-        email: application.email,
-        phone: application.phone ?? undefined,
-        residentStreet: application.residentStreet,
-        residentStreetNumber: application.residentStreetNumber,
-        residentZip: application.residentZip,
-        residentCity: application.residentCity,
-        adminNote: note,
-        meteringPoints: application.meteringPoints.map((mp) => ({
-          meteringPoint: mp.meteringPoint,
-          direction: mp.direction,
-        })),
-      }, session?.accessToken);
+      // Dedizierter Endpoint nur für admin_note — schreibt keine anderen
+      // Felder. Verhindert, dass das Speichern einer Notiz versehentlich
+      // meteringPoints, participationFactor oder andere Attribute resettet.
+      await setAdminNote(application.id, note, session?.accessToken);
       toast.success("Notiz gespeichert");
       setEditing(false);
       onRefresh();

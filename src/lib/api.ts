@@ -456,6 +456,21 @@ export function updateApplication(
   });
 }
 
+// Dedicated endpoint to replace only the admin_note column without touching
+// any other application field. Use this from the admin note editor instead of
+// updateApplication so the save cannot accidentally reset metering-point
+// participation factors or other attributes the editor doesn't render.
+export function setAdminNote(
+  id: string,
+  note: string,
+  token?: string,
+): Promise<void> {
+  return adminRequest<void>(`/api/admin/applications/${id}/admin-note`, token, {
+    method: "PATCH",
+    body: JSON.stringify({ note }),
+  });
+}
+
 export function changeApplicationStatus(
   id: string,
   req: ChangeStatusRequest,

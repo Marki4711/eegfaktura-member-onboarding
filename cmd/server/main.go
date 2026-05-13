@@ -195,6 +195,7 @@ func main() {
 				r.Get("/approval-pdf", adminHandler.DownloadApprovalPDF)
 				r.Post("/import", adminHandler.ImportApplication)
 				r.Post("/reset-import", adminHandler.ResetImport)
+				r.Patch("/admin-note", adminHandler.UpdateAdminNote)
 			})
 		})
 		r.Route("/settings", func(r chi.Router) {

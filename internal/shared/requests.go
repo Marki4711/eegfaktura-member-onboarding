@@ -179,6 +179,14 @@ type ResetImportRequest struct {
 	Reason string `json:"reason" validate:"required,min=5,max=500"`
 }
 
+// UpdateAdminNoteRequest is the body for PATCH /api/admin/applications/{id}/admin-note.
+// Replaces only the admin_note column — never touches any other field so the
+// editor cannot accidentally reset participation factors or membertype on save.
+// An empty string clears the note (column becomes NULL).
+type UpdateAdminNoteRequest struct {
+	Note string `json:"note" validate:"max=2000"`
+}
+
 // ImportApplicationRequest is the PROJ-27 import-time payload. All fields are
 // optional: empty body = legacy import (no tariffs). The TariffID applies to
 // the participant (mapped via a follow-up PUT /participant/v2/{id} call); the

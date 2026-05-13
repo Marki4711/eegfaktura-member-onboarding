@@ -778,6 +778,31 @@ func (r *ApplicationRepository) ResetImportTx(tx *sql.Tx, id uuid.UUID) error {
 	return nil
 }
 
+// UpdateAdminNote replaces just the admin_note column. Used by the dedicated
+// PATCH endpoint so saving a note never touches member_type, metering points,
+// participation factors, or other application fields — independent of what
+// the editor happens to render. An empty string clears the note (NULL).
+func (r *ApplicationRepository) UpdateAdminNote(id uuid.UUID, note string) error {
+	var notePtr *string
+	if note != "" {
+		notePtr = &note
+	}
+	result, err := r.db.Exec(
+		`UPDATE member_onboarding.application
+		 SET admin_note = $1, updated_at = NOW()
+		 WHERE id = $2`,
+		notePtr, id,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update admin note: %w", err)
+	}
+	n, _ := result.RowsAffected()
+	if n == 0 {
+		return shared.ErrNotFound
+	}
+	return nil
+}
+
 func (r *ApplicationRepository) UpdateStatusAdminTx(
 	tx *sql.Tx,
 	id uuid.UUID,

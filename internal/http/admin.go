@@ -870,6 +870,49 @@ func (h *AdminHandler) ListTariffs(w http.ResponseWriter, r *http.Request) {
 // @Failure      409   {object}  shared.ErrorResponse  "Application not in imported status"
 // @Failure      500   {object}  shared.ErrorResponse
 // @Router       /api/admin/applications/{id}/reset-import [post]
+// UpdateAdminNote handles PATCH /api/admin/applications/{id}/admin-note
+//
+// @Summary      Update admin note
+// @Description  Replaces only the admin_note column. Does not touch member type, metering points, participation factors, or any other field — by design, so saving a note from the admin UI cannot accidentally reset application data.
+// @Tags         Admin
+// @Accept       json
+// @Produce      json
+// @Param        id    path      string                          true  "Application ID"
+// @Param        body  body      shared.UpdateAdminNoteRequest  true  "New note (empty string clears it)"
+// @Success      204  {string}  string  "no content"
+// @Failure      400  {object}  shared.ErrorResponse
+// @Failure      403  {object}  shared.ErrorResponse
+// @Failure      404  {object}  shared.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/admin/applications/{id}/admin-note [patch]
+func (h *AdminHandler) UpdateAdminNote(w http.ResponseWriter, r *http.Request) {
+	id, err := h.parseID(w, r)
+	if err != nil {
+		return
+	}
+
+	if !h.checkTenantAccess(w, r, id) {
+		return
+	}
+
+	var req shared.UpdateAdminNoteRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Invalid JSON", nil)))
+		return
+	}
+	if err := h.validate.Struct(req); err != nil {
+		h.writeValidationError(w, err)
+		return
+	}
+
+	if err := h.adminService.UpdateAdminNote(id, req.Note); err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *AdminHandler) ResetImport(w http.ResponseWriter, r *http.Request) {
 	id, err := h.parseID(w, r)
 	if err != nil {
