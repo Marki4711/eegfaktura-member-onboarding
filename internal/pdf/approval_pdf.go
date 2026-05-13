@@ -49,7 +49,7 @@ type ApprovalPDFData struct {
 	AccuracyConfirmedAt   *time.Time // = submitted_at; accuracy has no dedicated column
 	SepaMandateAccepted   bool
 	SepaMandateAcceptedAt *time.Time
-	SEPAMandateEnabled    bool // true = Checkbox im Formular, false = per E-Mail
+	SEPAMandateEnabled    bool // true = Mandat-PDF an Willkommensmail anhängen, false = Mandat wird separat per Mail übermittelt
 
 	MemberNumber *int
 }
@@ -241,13 +241,13 @@ func (g *FPDFApprovalGenerator) GenerateApproval(data ApprovalPDFData) ([]byte, 
 		f.MultiCell(cw, 5, w1252(line), "0", "L", false)
 	}
 	if data.SEPAMandateEnabled && data.SepaMandateAccepted {
-		line := "- SEPA-Lastschriftmandat erteilt"
+		line := "- SEPA-Lastschriftmandat per E-Mail übermittelt"
 		if data.SepaMandateAcceptedAt != nil {
 			line += " am " + data.SepaMandateAcceptedAt.Format("02.01.2006 15:04")
 		}
 		f.MultiCell(cw, 5, w1252(line), "0", "L", false)
 	} else if !data.SEPAMandateEnabled {
-		line := "- SEPA-Lastschriftmandat per E-Mail übermittelt"
+		line := "- SEPA-Lastschriftmandat erteilt"
 		if data.SepaMandateAcceptedAt != nil {
 			line += " am " + data.SepaMandateAcceptedAt.Format("02.01.2006 15:04")
 		}
