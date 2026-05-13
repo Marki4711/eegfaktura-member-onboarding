@@ -149,14 +149,15 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
     }
   };
 
-  const fetchApplication = useCallback(async () => {
+  const fetchApplication = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
     setNotFound(false);
     try {
-      const data = await getApplicationDetail(id, session?.accessToken);
+      const data = await getApplicationDetail(id, session?.accessToken, signal);
       setApplication(data);
     } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       if (err instanceof ApiResponseError && err.apiError.code === "not_found") {
         setNotFound(true);
       } else {
@@ -169,7 +170,11 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
   }, [id, session?.accessToken]);
 
   useEffect(() => {
-    fetchApplication();
+    // Cancel an in-flight detail fetch if the admin navigates to a different
+    // application before the previous one returned.
+    const ac = new AbortController();
+    fetchApplication(ac.signal);
+    return () => ac.abort();
   }, [fetchApplication]);
 
   if (loading) {
@@ -202,7 +207,7 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
       <Card>
         <CardContent className="py-12 text-center space-y-4">
           <p className="text-sm text-destructive">{error}</p>
-          <Button variant="outline" onClick={fetchApplication}>
+          <Button variant="outline" onClick={() => fetchApplication()}>
             Erneut versuchen
           </Button>
         </CardContent>

@@ -171,8 +171,15 @@ func main() {
 		httpswagger.URL("/api/docs/doc.json"),
 	))
 
-	// Health check
+	// Health checks
+	// /health stays for compatibility; new K8s probes use the split endpoints:
+	// - /livez:  process alive — does NOT touch DB, so a Postgres blip doesn't
+	//   kill the pod via livenessProbe and amplify the outage.
+	// - /readyz: DB reachable — readinessProbe drops the pod from Service
+	//   endpoints during a DB outage instead of restarting it.
 	r.Get("/health", healthHandler.Health)
+	r.Get("/livez", healthHandler.Livez)
+	r.Get("/readyz", healthHandler.Readyz)
 
 	// API routes
 	r.Route("/api/public", func(r chi.Router) {

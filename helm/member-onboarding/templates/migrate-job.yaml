@@ -12,6 +12,11 @@ metadata:
 spec:
   backoffLimit: 3
   template:
+    metadata:
+      labels:
+        # Used by the postgres NetworkPolicy to allow the migrate pod to
+        # reach the DB even though it isn't the backend deployment.
+        app: {{ include "member-onboarding.fullname" . }}-migrate
     spec:
       restartPolicy: OnFailure
       securityContext:

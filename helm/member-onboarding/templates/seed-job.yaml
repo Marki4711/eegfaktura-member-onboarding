@@ -12,6 +12,10 @@ metadata:
 spec:
   backoffLimit: 3
   template:
+    metadata:
+      labels:
+        # Used by the postgres NetworkPolicy so the seed pod can reach the DB.
+        app: {{ include "member-onboarding.fullname" . }}-seed
     spec:
       restartPolicy: OnFailure
       securityContext:

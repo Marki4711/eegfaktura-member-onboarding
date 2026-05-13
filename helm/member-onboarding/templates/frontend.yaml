@@ -60,14 +60,17 @@ spec:
           resources:
             {{- toYaml .Values.frontend.resources | nindent 12 }}
           readinessProbe:
+            # /api/health returns 200 unconditionally — does NOT render the
+            # public landing page and does NOT call the backend. A backend
+            # outage will no longer cascade into frontend pod NotReady.
             httpGet:
-              path: /
+              path: /api/health
               port: 3000
             initialDelaySeconds: 10
             periodSeconds: 10
           livenessProbe:
             httpGet:
-              path: /
+              path: /api/health
               port: 3000
             initialDelaySeconds: 30
             periodSeconds: 30

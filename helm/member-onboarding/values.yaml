@@ -98,6 +98,20 @@ frontend:
   nextauthUrl: "" # Öffentliche URL der App, z.B. https://member-onboarding.example.at
   keycloakIssuer: "" # z.B. https://keycloak.example.at/realms/EEGFaktura
   keycloakClientId: ""
+# ── Network policies ──────────────────────────────────────────────────────────
+# Defense-in-depth ingress restrictions:
+#   backend  ← frontend + ingress controller only
+#   frontend ← ingress controller only
+#   postgres ← backend + migrate + seed only (NOT frontend)
+# Requires a NetworkPolicy-enforcing CNI (Calico, Cilium, Antrea, …).
+# Set enabled: false if your cluster CNI doesn't support them (the policies
+# are no-ops there, but unset for clarity).
+networkPolicies:
+  enabled: true
+  # Namespace label of the ingress controller (matched via
+  # kubernetes.io/metadata.name). Default fits ingress-nginx; override if your
+  # ingress controller lives in a different namespace.
+  ingressNamespace: ingress-nginx
 # ── Scheduled restart ─────────────────────────────────────────────────────────
 # Enables a monthly CronJob that restarts backend + frontend pods so they pick
 # up refreshed images (e.g. after monthly security rebuilds pushing "latest").

@@ -778,6 +778,25 @@ func (r *ApplicationRepository) ResetImportTx(tx *sql.Tx, id uuid.UUID) error {
 	return nil
 }
 
+// GetRCNumberByID returns just the rc_number column for a given application
+// id — used by the admin tenant-access check so that confirming "is this row
+// inside the calling admin's scope?" doesn't pull the full application detail
+// (app + metering points + status log + consents) on every admin click.
+func (r *ApplicationRepository) GetRCNumberByID(id uuid.UUID) (string, error) {
+	var rcNumber string
+	err := r.db.QueryRow(
+		`SELECT rc_number FROM member_onboarding.application WHERE id = $1`,
+		id,
+	).Scan(&rcNumber)
+	if err == sql.ErrNoRows {
+		return "", shared.ErrNotFound
+	}
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch rc_number: %w", err)
+	}
+	return rcNumber, nil
+}
+
 // UpdateAdminNote replaces just the admin_note column. Used by the dedicated
 // PATCH endpoint so saving a note never touches member_type, metering points,
 // participation factors, or other application fields — independent of what

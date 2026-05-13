@@ -88,14 +88,18 @@ spec:
           resources:
             {{- toYaml .Values.backend.resources | nindent 12 }}
           readinessProbe:
+            # /readyz pings the DB — a transient outage drops the pod from
+            # the Service endpoints (no restart, no cascading downtime).
             httpGet:
-              path: /health
+              path: /readyz
               port: 8080
             initialDelaySeconds: 5
             periodSeconds: 10
           livenessProbe:
+            # /livez never touches the DB. A Postgres blip must NOT trigger
+            # a livenessProbe restart loop.
             httpGet:
-              path: /health
+              path: /livez
               port: 8080
             initialDelaySeconds: 20
             periodSeconds: 20

@@ -622,6 +622,13 @@ func (s *AdminApplicationService) DeleteAllDrafts() (int64, error) {
 	return s.appRepo.DeleteAllDrafts()
 }
 
+// GetRCNumberByID is a thin pass-through for tenant-access checks so the
+// HTTP layer doesn't have to load the full application detail just to compare
+// rc_number against the calling admin's allowed RC list.
+func (s *AdminApplicationService) GetRCNumberByID(id uuid.UUID) (string, error) {
+	return s.appRepo.GetRCNumberByID(id)
+}
+
 // UpdateAdminNote replaces only the admin_note column for the given
 // application. Used by the dedicated PATCH endpoint to avoid touching any
 // other field (PROJ-7/15 attributes, metering points with their

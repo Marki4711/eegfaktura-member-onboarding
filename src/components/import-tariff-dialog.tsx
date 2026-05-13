@@ -65,10 +65,18 @@ export function ImportTariffDialog({
     setMemberTariffId(NONE);
     setMeterTariffs({});
     setFetching(true);
-    fetchTariffs(rcNumber, accessToken)
+    // Abort the tariff fetch if the dialog closes (or rcNumber changes)
+    // before the response lands, otherwise an old EEG's tariff list could
+    // overwrite a freshly-opened one.
+    const ac = new AbortController();
+    fetchTariffs(rcNumber, accessToken, ac.signal)
       .then((res) => setTariffs(res.tariffs))
-      .catch((err) => setFetchError(err instanceof Error ? err.message : "Fehler beim Laden der Tarife"))
+      .catch((err) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setFetchError(err instanceof Error ? err.message : "Fehler beim Laden der Tarife");
+      })
       .finally(() => setFetching(false));
+    return () => ac.abort();
   }, [open, rcNumber, accessToken]);
 
   const eegTariffs = (tariffs ?? []).filter(

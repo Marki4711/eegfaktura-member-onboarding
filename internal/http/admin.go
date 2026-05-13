@@ -64,12 +64,15 @@ func (h *AdminHandler) checkTenantAccess(w http.ResponseWriter, r *http.Request,
 	if claims == nil || claims.IsSuperuser() {
 		return true
 	}
-	detail, err := h.adminService.GetApplicationDetail(id)
+	// Slim lookup: previously this loaded the full application detail
+	// (app + metering points + status log + consents) just to read rc_number.
+	// Every admin click went through that — now it's a single column read.
+	rcNumber, err := h.adminService.GetRCNumberByID(id)
 	if err != nil {
 		h.handleServiceError(w, err)
 		return false
 	}
-	if !containsRC(claims.Tenant, detail.RCNumber) {
+	if !containsRC(claims.Tenant, rcNumber) {
 		writeJSON(w, http.StatusForbidden, map[string]string{
 			"code":    "forbidden",
 			"message": "Kein Zugriff auf diesen Antrag.",

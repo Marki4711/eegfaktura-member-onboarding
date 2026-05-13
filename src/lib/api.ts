@@ -202,6 +202,16 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 // ---------- admin request helper (adds Bearer token when present) ----------
 
+// Guard so a burst of parallel admin calls failing with 401 only triggers
+// one global "auth:expired" event (and one signIn redirect). Reset when the
+// browser navigates so a fresh login can fail again normally.
+let authExpiredEmitted = false;
+if (typeof window !== "undefined") {
+  window.addEventListener("pageshow", () => {
+    authExpiredEmitted = false;
+  });
+}
+
 async function adminRequest<T>(
   path: string,
   token: string | undefined,
@@ -217,6 +227,21 @@ async function adminRequest<T>(
     ...options,
     headers: { ...defaultHeaders, ...callerHeaders },
   });
+
+  if (res.status === 401 && typeof window !== "undefined") {
+    // Backend rejected the JWT (revoked session, clock skew, Keycloak
+    // restart). SessionRefreshGuard's refresh-token-error hook only covers
+    // *client*-side refresh failures, not *server*-side rejections. Emit
+    // a single global event; the guard will trigger signIn("keycloak").
+    if (!authExpiredEmitted) {
+      authExpiredEmitted = true;
+      window.dispatchEvent(new Event("auth:expired"));
+    }
+    throw new ApiResponseError({
+      code: "unauthorized",
+      message: "Sitzung abgelaufen — Sie werden zur Anmeldung weitergeleitet.",
+    });
+  }
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({
@@ -419,7 +444,8 @@ export interface ListApplicationsParams {
 
 export function listApplications(
   params: ListApplicationsParams,
-  token?: string
+  token?: string,
+  signal?: AbortSignal,
 ): Promise<ApplicationListResponse> {
   const qs = new URLSearchParams();
   if (params.status) qs.set("status", params.status);
@@ -437,12 +463,17 @@ export function listApplications(
   const query = qs.toString();
   return adminRequest<ApplicationListResponse>(
     `/api/admin/applications${query ? `?${query}` : ""}`,
-    token
+    token,
+    { signal },
   );
 }
 
-export function getApplicationDetail(id: string, token?: string): Promise<AdminApplicationDetail> {
-  return adminRequest<AdminApplicationDetail>(`/api/admin/applications/${id}`, token);
+export function getApplicationDetail(
+  id: string,
+  token?: string,
+  signal?: AbortSignal,
+): Promise<AdminApplicationDetail> {
+  return adminRequest<AdminApplicationDetail>(`/api/admin/applications/${id}`, token, { signal });
 }
 
 export function updateApplication(
@@ -522,6 +553,9 @@ export function importApplication(
   );
 }
 
+// fetchTariffs: signal optional so the import dialog can cancel a stale
+// fetch when the user closes/reopens it on a different application.
+
 // PROJ-27: Tariff catalogue entry as returned by GET /api/admin/tariffs.
 // Subset of the core's GET /eeg/tariff response — only fields we need for
 // the selection dialog.
@@ -536,11 +570,15 @@ export interface Tariff {
   inactiveSince?: string | null;
 }
 
-export function fetchTariffs(rcNumber: string, token?: string): Promise<{ tariffs: Tariff[] }> {
+export function fetchTariffs(
+  rcNumber: string,
+  token?: string,
+  signal?: AbortSignal,
+): Promise<{ tariffs: Tariff[] }> {
   return adminRequest<{ tariffs: Tariff[] }>(
     `/api/admin/tariffs?rcNumber=${encodeURIComponent(rcNumber)}`,
     token,
-    { method: "GET" }
+    { method: "GET", signal },
   );
 }
 

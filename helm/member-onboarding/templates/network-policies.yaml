@@ -1,0 +1,96 @@
+{{- if .Values.networkPolicies.enabled -}}
+# NetworkPolicies — defense-in-depth at the pod-network level.
+# Toggle via networkPolicies.enabled in values.yaml. Requires a CNI that
+# enforces NetworkPolicy (Calico, Cilium, Antrea, etc.). On clusters where
+# the CNI ignores them, these are no-ops — so leaving them on is safe.
+#
+# Scope (ingress only — egress not restricted to keep ops simple):
+#   backend  ← frontend pod, ingress-controller namespace
+#   frontend ← ingress-controller namespace
+#   postgres ← backend, migrate, seed pods (no one else; not even the frontend)
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "member-onboarding.fullname" . }}-backend
+  namespace: {{ include "member-onboarding.namespace" . }}
+  labels:
+    {{- include "member-onboarding.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ include "member-onboarding.fullname" . }}-backend
+  policyTypes:
+    - Ingress
+  ingress:
+    # From ingress controller (cluster-wide nginx) by namespace label.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.networkPolicies.ingressNamespace }}
+      ports:
+        - port: 8080
+          protocol: TCP
+    # From the frontend pod (SSR backend calls).
+    - from:
+        - podSelector:
+            matchLabels:
+              app: {{ include "member-onboarding.fullname" . }}-frontend
+      ports:
+        - port: 8080
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "member-onboarding.fullname" . }}-frontend
+  namespace: {{ include "member-onboarding.namespace" . }}
+  labels:
+    {{- include "member-onboarding.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ include "member-onboarding.fullname" . }}-frontend
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.networkPolicies.ingressNamespace }}
+      ports:
+        - port: 3000
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "member-onboarding.fullname" . }}-postgres
+  namespace: {{ include "member-onboarding.namespace" . }}
+  labels:
+    {{- include "member-onboarding.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ include "member-onboarding.fullname" . }}-postgres
+  policyTypes:
+    - Ingress
+  ingress:
+    # Backend (steady-state), migrate (helm pre-upgrade hook) and seed
+    # (helm post-install hook) are the only legitimate Postgres clients.
+    # Notably: frontend cannot reach Postgres even though both pods live
+    # in the same namespace.
+    - from:
+        - podSelector:
+            matchLabels:
+              app: {{ include "member-onboarding.fullname" . }}-backend
+        - podSelector:
+            matchLabels:
+              app: {{ include "member-onboarding.fullname" . }}-migrate
+        - podSelector:
+            matchLabels:
+              app: {{ include "member-onboarding.fullname" . }}-seed
+      ports:
+        - port: 5432
+          protocol: TCP
+{{- end }}

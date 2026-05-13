@@ -64,7 +64,7 @@ export function ApplicationsPageContent() {
   const rawOrder = searchParams.get("order") ?? "desc";
   const order: SortOrder = rawOrder === "asc" ? "asc" : "desc";
 
-  const fetchApplications = useCallback(async () => {
+  const fetchApplications = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
     try {
@@ -79,10 +79,12 @@ export function ApplicationsPageContent() {
         page_size: pageSize,
         sort,
         order,
-      }, session?.accessToken);
+      }, session?.accessToken, signal);
       setItems(result.items);
       setTotal(result.total);
     } catch (err: unknown) {
+      // Aborted requests during rapid navigation are expected — swallow.
+      if (err instanceof DOMException && err.name === "AbortError") return;
       const msg = err instanceof Error ? err.message : "Fehler beim Laden der Anträge";
       setError(msg);
     } finally {
@@ -102,8 +104,12 @@ export function ApplicationsPageContent() {
 
   useEffect(() => {
     if (status === "loading") return;
-    fetchApplications();
+    // AbortController so rapid filter/sort/page changes don't leave older
+    // responses landing after newer ones and repainting stale data.
+    const ac = new AbortController();
+    fetchApplications(ac.signal);
     fetchDraftCount();
+    return () => ac.abort();
   }, [fetchApplications, fetchDraftCount, status]);
 
   const handleDeleteDrafts = async () => {
