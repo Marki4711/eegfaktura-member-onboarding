@@ -36,6 +36,7 @@ import {
 import { MeteringPointFields } from "./metering-point-fields";
 import { IntroTextDisplay } from "./intro-text-display";
 import { isValidIBAN } from "ibantools";
+import { IBAN_DYNAMIC_MASK, IBAN_DEFINITIONS } from "@/lib/iban-mask";
 import {
   createApplication,
   submitApplication,
@@ -770,15 +771,13 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                     <FormLabel>IBAN *</FormLabel>
                     <FormControl>
                       <MaskedInput
-                        // PROJ-29: visually group IBAN as XX## #### #### #### …
-                        // Country code + check digits + up to 30 digits (covers
-                        // AT/DE/FR/NL/IT/ES/BE — the typical EU subset). IBANs
-                        // with letters in the BBAN portion (GB, IE, …) need the
-                        // user to fix the position manually; the validator
-                        // (ibantools) is the ultimate source of truth.
-                        // lazy=false → placeholder slots are visible from the
-                        // start, identical to the Zählpunkt field.
-                        mask="aa00 0000 0000 0000 0000 0000 0000 0000 00"
+                        // PROJ-29: dynamic country-aware IBAN mask. The first
+                        // two typed letters select the country-specific mask
+                        // (correct length + correct digit/letter positions).
+                        // Until then a generic 34-char alphanumeric fallback
+                        // applies. `isValidIBAN` remains the final authority.
+                        {...IBAN_DYNAMIC_MASK}
+                        definitions={IBAN_DEFINITIONS}
                         lazy={false}
                         prepareChar={(str: string) => str.toUpperCase()}
                         value={field.value}
