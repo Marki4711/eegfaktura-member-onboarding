@@ -394,6 +394,9 @@ export interface ChangeStatusResponse {
   status: string;
 }
 
+export type SortColumn = "referenceNumber" | "name" | "email" | "rcNumber" | "status" | "submittedAt";
+export type SortOrder = "asc" | "desc";
+
 export interface ListApplicationsParams {
   status?: string;
   reference_number?: string;
@@ -404,6 +407,8 @@ export interface ListApplicationsParams {
   submitted_to?: string;
   page?: number;
   page_size?: number;
+  sort?: SortColumn;
+  order?: SortOrder;
 }
 
 // ---------- admin API ----------
@@ -423,6 +428,8 @@ export function listApplications(
   if (params.submitted_to) qs.set("submitted_to", `${params.submitted_to}T23:59:59Z`);
   if (params.page) qs.set("page", String(params.page));
   if (params.page_size) qs.set("page_size", String(params.page_size));
+  if (params.sort) qs.set("sort", params.sort);
+  if (params.order) qs.set("order", params.order);
   const query = qs.toString();
   return adminRequest<ApplicationListResponse>(
     `/api/admin/applications${query ? `?${query}` : ""}`,

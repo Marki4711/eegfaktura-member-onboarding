@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -20,7 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AdminStatusBadge } from "@/components/admin-status-badge";
-import type { ApplicationListItem } from "@/lib/api";
+import type { ApplicationListItem, SortColumn, SortOrder } from "@/lib/api";
 import { formatDate } from "@/lib/datetime";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
@@ -30,6 +31,8 @@ interface Props {
   total: number;
   page: number;
   pageSize: number;
+  sort: SortColumn;
+  order: SortOrder;
   loading: boolean;
   error: string | null;
   onRetry: () => void;
@@ -42,6 +45,8 @@ export function AdminApplicationTable({
   total,
   page,
   pageSize,
+  sort,
+  order,
   loading,
   error,
   onRetry,
@@ -70,6 +75,36 @@ export function AdminApplicationTable({
     params.set("page_size", String(size));
     params.set("page", "1");
     router.push(`/admin/applications?${params.toString()}`);
+  }
+
+  // Click toggles asc<->desc on the active column; click on a new column
+  // sets it as the active sort, defaulting to desc (matches the "newest first"
+  // intuition for date columns and "Z..A" for text — users override with a
+  // second click).
+  function changeSort(column: SortColumn) {
+    const params = new URLSearchParams(searchParams.toString());
+    const nextOrder: SortOrder = sort === column && order === "desc" ? "asc" : "desc";
+    params.set("sort", column);
+    params.set("order", nextOrder);
+    params.set("page", "1");
+    router.push(`/admin/applications?${params.toString()}`);
+  }
+
+  function SortHeader({ column, label, className }: { column: SortColumn; label: string; className?: string }) {
+    const active = sort === column;
+    const Icon = !active ? ArrowUpDown : order === "asc" ? ArrowUp : ArrowDown;
+    return (
+      <TableHead className={className}>
+        <button
+          type="button"
+          onClick={() => changeSort(column)}
+          className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+        >
+          {label}
+          <Icon className={`h-3.5 w-3.5 ${active ? "text-foreground" : "text-muted-foreground/60"}`} />
+        </button>
+      </TableHead>
+    );
   }
 
   const allVisibleIds = items.map((i) => i.id);
@@ -122,12 +157,12 @@ export function AdminApplicationTable({
                 disabled={loading || items.length === 0}
               />
             </TableHead>
-            <TableHead>Referenz</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>E-Mail</TableHead>
-            <TableHead>EEG</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Eingereicht am</TableHead>
+            <SortHeader column="referenceNumber" label="Referenz" />
+            <SortHeader column="name" label="Name" />
+            <SortHeader column="email" label="E-Mail" />
+            <SortHeader column="rcNumber" label="EEG" />
+            <SortHeader column="status" label="Status" />
+            <SortHeader column="submittedAt" label="Eingereicht am" />
           </TableRow>
         </TableHeader>
         <TableBody>

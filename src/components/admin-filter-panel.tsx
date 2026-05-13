@@ -61,6 +61,11 @@ export function AdminFilterPanel({ rcNumbers = [] }: Props) {
     if (rcNumber && rcNumber !== "all") params.set("rc_number", rcNumber);
     if (submittedFrom) params.set("submitted_from", submittedFrom);
     if (submittedTo) params.set("submitted_to", submittedTo);
+    // Preserve current sort selection across filter changes.
+    const currentSort = searchParams.get("sort");
+    const currentOrder = searchParams.get("order");
+    if (currentSort) params.set("sort", currentSort);
+    if (currentOrder) params.set("order", currentOrder);
     params.set("page", "1");
     router.push(`/admin/applications?${params.toString()}`);
   }

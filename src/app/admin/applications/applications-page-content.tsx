@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 import { AdminFilterPanel } from "@/components/admin-filter-panel";
 import { AdminApplicationTable } from "@/components/admin-application-table";
 import { listApplications, deleteDraftApplications, bulkAction } from "@/lib/api";
-import type { ApplicationListItem, BulkAction as BulkActionType } from "@/lib/api";
+import type { ApplicationListItem, BulkAction as BulkActionType, SortColumn, SortOrder } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,6 +58,11 @@ export function ApplicationsPageContent() {
 
   const page = parseInt(searchParams.get("page") ?? "1", 10) || 1;
   const pageSize = parseInt(searchParams.get("page_size") ?? "20", 10) || 20;
+  const ALLOWED_SORT: ReadonlyArray<SortColumn> = ["referenceNumber", "name", "email", "rcNumber", "status", "submittedAt"];
+  const rawSort = searchParams.get("sort") ?? "submittedAt";
+  const sort: SortColumn = (ALLOWED_SORT as ReadonlyArray<string>).includes(rawSort) ? (rawSort as SortColumn) : "submittedAt";
+  const rawOrder = searchParams.get("order") ?? "desc";
+  const order: SortOrder = rawOrder === "asc" ? "asc" : "desc";
 
   const fetchApplications = useCallback(async () => {
     setLoading(true);
@@ -72,6 +77,8 @@ export function ApplicationsPageContent() {
         submitted_to: searchParams.get("submitted_to") ?? undefined,
         page,
         page_size: pageSize,
+        sort,
+        order,
       }, session?.accessToken);
       setItems(result.items);
       setTotal(result.total);
@@ -81,7 +88,7 @@ export function ApplicationsPageContent() {
     } finally {
       setLoading(false);
     }
-  }, [searchParams, page, pageSize, session?.accessToken]);
+  }, [searchParams, page, pageSize, sort, order, session?.accessToken]);
 
   const fetchDraftCount = useCallback(async () => {
     if (!session?.accessToken) return;
@@ -228,6 +235,8 @@ export function ApplicationsPageContent() {
         total={total}
         page={page}
         pageSize={pageSize}
+        sort={sort}
+        order={order}
         loading={loading}
         error={error}
         onRetry={fetchApplications}

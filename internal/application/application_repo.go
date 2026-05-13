@@ -513,13 +513,14 @@ func (r *ApplicationRepository) List(filters ApplicationListFilters, page, pageS
 
 	offset := (page - 1) * pageSize
 	listArgs := append(args, pageSize, offset)
+	orderBy := resolveOrderBy(filters.Sort, filters.Order)
 	listQuery := fmt.Sprintf(`
 		SELECT a.id, a.reference_number, a.rc_number, a.status,
 		       a.member_type, a.firstname, a.lastname, a.company_name, a.email, a.submitted_at
 		FROM member_onboarding.application a
 		%s
-		ORDER BY a.created_at DESC
-		LIMIT $%d OFFSET $%d`, where, n, n+1)
+		%s
+		LIMIT $%d OFFSET $%d`, where, orderBy, n, n+1)
 
 	rows, err := r.db.Query(listQuery, listArgs...)
 	if err != nil {
@@ -594,6 +595,42 @@ func (r *ApplicationRepository) UpdateAdminTx(tx *sql.Tx, app *shared.Applicatio
 
 // UpdateStatusAdminTx updates the status and related timestamp columns atomically.
 // Columns not applicable to the transition are preserved via COALESCE.
+// allowedSortColumns maps the API-facing sort key (camelCase, exposed to the
+// frontend) to the SQL column expression. ONLY keys present here are accepted
+// for ORDER BY — never concatenate a sort param into SQL directly.
+//
+// "name" uses COALESCE so that company entries (no firstname/lastname) sort by
+// company_name in the same alphabetical sequence as the table-cell display.
+var allowedSortColumns = map[string]string{
+	"referenceNumber": "a.reference_number",
+	"name":            "COALESCE(NULLIF(TRIM(CONCAT_WS(' ', a.firstname, a.lastname)), ''), a.company_name)",
+	"email":           "a.email",
+	"rcNumber":        "a.rc_number",
+	"status":          "a.status",
+	"submittedAt":     "a.submitted_at",
+}
+
+// resolveOrderBy returns a safe ORDER BY clause based on whitelist lookup.
+// Falls back to "submitted_at DESC NULLS LAST, created_at DESC" so drafts
+// (without submitted_at) sort to the end but still keep a stable order.
+func resolveOrderBy(sort, order string) string {
+	col, ok := allowedSortColumns[sort]
+	if !ok {
+		return "ORDER BY a.submitted_at DESC NULLS LAST, a.created_at DESC"
+	}
+	dir := "DESC"
+	if order == "asc" {
+		dir = "ASC"
+	}
+	nullsPos := "NULLS LAST"
+	if dir == "ASC" {
+		nullsPos = "NULLS FIRST"
+	}
+	// Tie-breaker by created_at so paginated results are deterministic even
+	// when the sort column has duplicates.
+	return fmt.Sprintf("ORDER BY %s %s %s, a.created_at DESC", col, dir, nullsPos)
+}
+
 // DeleteAllDrafts deletes every application in status 'draft' across all EEGs.
 // Used by the superuser bulk-delete; tenant-scoped admins must use
 // DeleteDraftsByRCNumbers instead.

@@ -30,6 +30,11 @@ type ApplicationListFilters struct {
 	// RCNumberFilter is an optional single-EEG filter chosen by the admin in the UI.
 	// Must always be a subset of RCNumbers when set.
 	RCNumberFilter *string
+	// Sort is the column to sort by. Allowed values are whitelisted in the
+	// repository layer (see allowedSortColumns). Empty defaults to "submittedAt".
+	Sort string
+	// Order is "asc" or "desc". Empty defaults to "desc".
+	Order string
 }
 
 // adminTransitions defines which status changes the admin endpoint may perform.

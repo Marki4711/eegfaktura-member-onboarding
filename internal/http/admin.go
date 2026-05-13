@@ -234,6 +234,9 @@ func (h *AdminHandler) ListApplications(w http.ResponseWriter, r *http.Request) 
 		filters.RCNumbers = &rcNumbers
 	}
 
+	filters.Sort = q.Get("sort")
+	filters.Order = q.Get("order")
+
 	page := intQueryParam(q.Get("page"), 1)
 	pageSize := intQueryParam(q.Get("page_size"), 20)
 
