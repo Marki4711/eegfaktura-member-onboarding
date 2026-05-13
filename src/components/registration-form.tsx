@@ -98,7 +98,10 @@ const baseSchema = z.object({
   iban: z
     .string()
     .min(1, "IBAN ist erforderlich")
-    .transform((v) => v.replace(/\s/g, "").toUpperCase())
+    // Strip alles außer [A-Z0-9]: entfernt sowohl Mask-Spaces als auch
+    // die iMask-Platzhalter (`_`), die mit lazy=false in unbefüllten
+    // Slots im value mitgeliefert werden.
+    .transform((v) => v.replace(/[^A-Za-z0-9]/g, "").toUpperCase())
     .refine((v) => isValidIBAN(v), { message: "Ungültige IBAN" }),
   accountHolder: z.string().trim().min(1, "Kontoinhaber:in ist erforderlich").max(255),
   privacyAccepted: z.boolean().refine((v) => v === true, {
