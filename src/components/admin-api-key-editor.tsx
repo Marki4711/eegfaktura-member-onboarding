@@ -23,20 +23,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { getApiKeyStatus, generateApiKey, revokeApiKey, type ApiKeyStatus } from "@/lib/api";
+import { formatDateTime as formatDate } from "@/lib/datetime";
 
 interface Props {
   rcNumber: string;
-}
-
-function formatDate(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleString("de-AT", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 export function AdminApiKeyEditor({ rcNumber }: Props) {

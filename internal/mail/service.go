@@ -45,17 +45,24 @@ type SMTPMailService struct {
 	adminBaseURL string
 }
 
+// templateFuncs exposes display-timezone-aware formatters to every mail
+// template so {{fmtDateTime .X}} / {{fmtDate .X}} render Europe/Vienna times.
+var templateFuncs = template.FuncMap{
+	"fmtDateTime": shared.FmtDateTime,
+	"fmtDate":     shared.FmtDate,
+}
+
 // NewSMTPMailService parses the embedded templates and returns a ready service.
 func NewSMTPMailService(sender Sender, adminBaseURL string) (*SMTPMailService, error) {
-	memberTpl, err := template.ParseFS(templateFS, "templates/application_submitted_member.html")
+	memberTpl, err := template.New("application_submitted_member.html").Funcs(templateFuncs).ParseFS(templateFS, "templates/application_submitted_member.html")
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse member template: %w", err)
 	}
-	eegTpl, err := template.ParseFS(templateFS, "templates/application_submitted_eeg.html")
+	eegTpl, err := template.New("application_submitted_eeg.html").Funcs(templateFuncs).ParseFS(templateFS, "templates/application_submitted_eeg.html")
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse eeg template: %w", err)
 	}
-	approvalTpl, err := template.ParseFS(templateFS, "templates/application_approved_eeg.html")
+	approvalTpl, err := template.New("application_approved_eeg.html").Funcs(templateFuncs).ParseFS(templateFS, "templates/application_approved_eeg.html")
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse approval template: %w", err)
 	}
@@ -394,9 +401,9 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 		accountHolder = *app.AccountHolder
 	}
 
-	submittedAt := time.Now().Format("02.01.2006 15:04")
+	submittedAt := shared.FmtDateTime(time.Now())
 	if app.SubmittedAt != nil {
-		submittedAt = app.SubmittedAt.Format("02.01.2006 15:04")
+		submittedAt = shared.FmtDateTime(*app.SubmittedAt)
 	}
 
 	tplData := eegTemplateData{

@@ -7,22 +7,13 @@ import (
 	"time"
 
 	"github.com/go-pdf/fpdf"
+	"github.com/your-org/eegfaktura-member-onboarding/internal/shared"
 )
 
-// displayLoc is the timezone used for all human-readable timestamps in the
-// approval PDF. PostgreSQL stores timestamps in UTC; without this conversion
-// every "am HH:MM" line would render in UTC, which is off-by-1h (winter) or
-// off-by-2h (summer) for Austrian users.
-var displayLoc = func() *time.Location {
-	loc, err := time.LoadLocation("Europe/Vienna")
-	if err != nil {
-		return time.UTC
-	}
-	return loc
-}()
-
-func fmtDateTime(t time.Time) string { return t.In(displayLoc).Format("02.01.2006 15:04") }
-func fmtDate(t time.Time) string     { return t.In(displayLoc).Format("02.01.2006") }
+// Use the shared display-timezone helpers so PDF, mail and any future
+// renderer stay consistent (Europe/Vienna).
+func fmtDateTime(t time.Time) string { return shared.FmtDateTime(t) }
+func fmtDate(t time.Time) string     { return shared.FmtDate(t) }
 
 // ApprovalPDFData holds all data required for the Beitrittsbestätigung PDF.
 type ApprovalPDFData struct {

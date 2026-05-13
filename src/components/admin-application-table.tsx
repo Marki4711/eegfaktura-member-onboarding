@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AdminStatusBadge } from "@/components/admin-status-badge";
 import type { ApplicationListItem } from "@/lib/api";
+import { formatDate } from "@/lib/datetime";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
@@ -34,15 +35,6 @@ interface Props {
   onRetry: () => void;
   selectedIds: Set<string>;
   onSelectionChange: (ids: Set<string>) => void;
-}
-
-function formatDate(iso: string | null) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("de-AT", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
 }
 
 export function AdminApplicationTable({

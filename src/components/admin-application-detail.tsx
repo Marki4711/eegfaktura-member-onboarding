@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { getApplicationDetail, resendMemberConfirmation, deleteApplication, downloadApplicationExcel, downloadApprovalPDF, ApiResponseError } from "@/lib/api";
 import type { AdminApplicationDetail, MemberType, DocumentConsentView } from "@/lib/api";
+import { formatPlainDate as formatDate, formatDateTime } from "@/lib/datetime";
 
 const EINZUGSART_LABELS: Record<string, string> = {
   core:      "Core (Standard)",
@@ -45,29 +46,6 @@ const MEMBER_TYPE_LABELS: Record<MemberType, string> = {
 interface Props {
   id: string;
   returnTo: string;
-}
-
-function formatDate(iso: string | null) {
-  if (!iso) return "—";
-  // Parse only the YYYY-MM-DD portion to avoid UTC→local timezone shifts
-  // (e.g. "1962-06-06T00:00:00Z" would show as "05.06.1962" in UTC-1).
-  const [year, month, day] = iso.slice(0, 10).split("-").map(Number);
-  return new Date(year, month - 1, day).toLocaleDateString("de-AT", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-}
-
-function formatDateTime(iso: string | null) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleString("de-AT", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 function Field({ label, value }: { label: string; value: string | null | undefined }) {

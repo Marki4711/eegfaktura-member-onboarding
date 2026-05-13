@@ -146,7 +146,7 @@
     {{range .DocumentConsents}}
     <tr>
       <td style="padding: 4px 10px; color: #666;">{{.Title}}</td>
-      <td style="padding: 4px 10px;">Zugestimmt am {{.ConsentedAt.Format "02.01.2006"}}</td>
+      <td style="padding: 4px 10px;">Zugestimmt am {{fmtDateTime .ConsentedAt}}</td>
     </tr>
     {{end}}
   </table>

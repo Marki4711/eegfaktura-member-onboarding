@@ -49,7 +49,7 @@ func TestNewSMTPMailService_ParsesTemplates(t *testing.T) {
 // TestMemberTemplate_ContainsExpectedFields verifies the member confirmation
 // email renders all required fields: firstname, lastname, reference number.
 func TestMemberTemplate_ContainsExpectedFields(t *testing.T) {
-	tpl, err := template.ParseFS(templateFS, "templates/application_submitted_member.html")
+	tpl, err := template.New("application_submitted_member.html").Funcs(templateFuncs).ParseFS(templateFS, "templates/application_submitted_member.html")
 	if err != nil {
 		t.Fatalf("failed to parse member template: %v", err)
 	}
@@ -78,7 +78,7 @@ func TestMemberTemplate_ContainsExpectedFields(t *testing.T) {
 
 // TestMemberTemplate_IsGerman verifies the email body is in German.
 func TestMemberTemplate_IsGerman(t *testing.T) {
-	tpl, err := template.ParseFS(templateFS, "templates/application_submitted_member.html")
+	tpl, err := template.New("application_submitted_member.html").Funcs(templateFuncs).ParseFS(templateFS, "templates/application_submitted_member.html")
 	if err != nil {
 		t.Fatalf("failed to parse member template: %v", err)
 	}
@@ -171,7 +171,7 @@ func TestEEGTemplate_XSSEscaped(t *testing.T) {
 
 // TestMemberTemplate_XSSEscaped verifies HTML escaping in the member template.
 func TestMemberTemplate_XSSEscaped(t *testing.T) {
-	tpl, err := template.ParseFS(templateFS, "templates/application_submitted_member.html")
+	tpl, err := template.New("application_submitted_member.html").Funcs(templateFuncs).ParseFS(templateFS, "templates/application_submitted_member.html")
 	if err != nil {
 		t.Fatalf("failed to parse member template: %v", err)
 	}
