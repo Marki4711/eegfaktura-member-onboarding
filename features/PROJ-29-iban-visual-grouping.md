@@ -2,7 +2,14 @@
 
 ## Status: Approved
 **Created:** 2026-05-12
-**Last Updated:** 2026-05-12 (Implementation + QA complete)
+**Last Updated:** 2026-05-13 (country-aware dynamic mask + zod-transform bugfix)
+
+## Folge-Anpassungen 2026-05-13
+
+Ursprüngliche Umsetzung hatte zwei Probleme, die heute nachgezogen wurden:
+
+1. **AT-IBANs als ungültig markiert** — Mit `lazy=false` liefert iMask die Platzhalter `_` für ungefüllte Slots mit zurück. AT-IBAN (20 Zeichen) auf einer 34-Slot-Mask hatte 14 trailing `_`. Der `zod`-Transform strippte nur Whitespace, sodass `isValidIBAN` die kaputte IBAN ablehnte. **Fix**: Transform strippt jetzt `[^A-Za-z0-9]` vor der Validierung.
+2. **FR/NL/IT/GB/IE/… nicht eingebbar** — Statische Mask `aa00 0000 …` erlaubt nur Ziffern im BBAN. Länder mit Buchstaben im BBAN konnten gar nicht erst eingegeben werden. **Fix**: dynamische, landesabhängige Mask in [`src/lib/iban-mask.ts`](src/lib/iban-mask.ts). Pro Land wird aus `ibantools.countrySpecs.bban_regexp` die exakte Mask-Struktur (Ziffern vs. Buchstaben vs. alphanumerisch) generiert. iMask `dispatch` wählt anhand der ersten beiden Zeichen die richtige Mask; ein generischer Fallback (`aa00 XXXX …`) greift solange noch kein Ländercode erkennbar ist. ~80 IBAN-Länder werden ohne manuelles Mapping unterstützt.
 
 ## Dependencies
 - Requires: PROJ-1 (Public Registration) — `registration-form.tsx`

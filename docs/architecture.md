@@ -148,6 +148,16 @@ REST with JSON.
 ### Deployment
 Standalone build and standalone migrations in repository `eegfaktura-member-onboarding`.
 
+### Time and Timezone
+
+- PostgreSQL stores every timestamp as UTC (`timestamp with time zone`).
+- API responses serialise timestamps in ISO 8601 / RFC 3339, always UTC.
+- Every user-visible rendering (PDF, email, admin web) converts to **Europe/Vienna** with automatic CET/CEST handling.
+- Backend helper: `internal/shared/timezone.go` (`DisplayLocation`, `FmtDateTime`, `FmtDate`).
+- Frontend helper: `src/lib/datetime.ts` (`formatDateTime`, `formatDate`, `formatPlainDate`).
+- Mail templates expose the same helpers via `template.Funcs` (`{{fmtDateTime …}}`).
+- DATE columns (`birth_date`, `membership_start_date`) are timezone-unaware by design — they have no time component.
+
 ## 7. Summary
 
 `eegfaktura Member Onboarding` is implemented as a standalone component closely aligned with eegFaktura.
