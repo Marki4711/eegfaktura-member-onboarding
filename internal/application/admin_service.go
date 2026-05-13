@@ -611,6 +611,12 @@ func (s *AdminApplicationService) DeleteDrafts(rcNumbers []string) (int64, error
 	return s.appRepo.DeleteDraftsByRCNumbers(rcNumbers)
 }
 
+// DeleteAllDrafts deletes every draft application across every EEG. Reserved
+// for superusers — tenant-scoped admins must use DeleteDrafts instead.
+func (s *AdminApplicationService) DeleteAllDrafts() (int64, error) {
+	return s.appRepo.DeleteAllDrafts()
+}
+
 func buildApprovalPDFData(
 	app *shared.Application,
 	meteringPoints []shared.MeteringPoint,

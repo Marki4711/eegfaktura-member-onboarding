@@ -562,18 +562,21 @@ func (h *AdminHandler) DeleteDraftApplications(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	var rcNumbers []string
-	if !claims.IsSuperuser() {
-		rcNumbers = []string(claims.Tenant)
+	var (
+		n   int64
+		err error
+	)
+	if claims.IsSuperuser() {
+		n, err = h.adminService.DeleteAllDrafts()
+	} else {
+		n, err = h.adminService.DeleteDrafts([]string(claims.Tenant))
 	}
-
-	n, err := h.adminService.DeleteDrafts(rcNumbers)
 	if err != nil {
 		h.handleServiceError(w, err)
 		return
 	}
 
-	slog.Info("admin: draft applications deleted", "count", n, "user_id", claims.Subject)
+	slog.Info("admin: draft applications deleted", "count", n, "user_id", claims.Subject, "superuser", claims.IsSuperuser())
 	h.writeJSON(w, http.StatusOK, map[string]int64{"deleted": n})
 }
 

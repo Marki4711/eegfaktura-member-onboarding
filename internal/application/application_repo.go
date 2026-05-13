@@ -594,6 +594,18 @@ func (r *ApplicationRepository) UpdateAdminTx(tx *sql.Tx, app *shared.Applicatio
 
 // UpdateStatusAdminTx updates the status and related timestamp columns atomically.
 // Columns not applicable to the transition are preserved via COALESCE.
+// DeleteAllDrafts deletes every application in status 'draft' across all EEGs.
+// Used by the superuser bulk-delete; tenant-scoped admins must use
+// DeleteDraftsByRCNumbers instead.
+func (r *ApplicationRepository) DeleteAllDrafts() (int64, error) {
+	result, err := r.db.Exec(`DELETE FROM member_onboarding.application WHERE status = 'draft'`)
+	if err != nil {
+		return 0, fmt.Errorf("failed to delete drafts: %w", err)
+	}
+	n, _ := result.RowsAffected()
+	return n, nil
+}
+
 // DeleteDraftsByRCNumbers deletes all draft applications belonging to the given RC numbers.
 // Returns the number of deleted rows.
 func (r *ApplicationRepository) DeleteDraftsByRCNumbers(rcNumbers []string) (int64, error) {
