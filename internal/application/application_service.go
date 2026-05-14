@@ -145,7 +145,7 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 
 	phone := trimStringPtr(req.Phone)
 	app := &shared.Application{
-		ReferenceNumber:         s.generateReferenceNumber(),
+		ReferenceNumber:         s.generateReferenceNumber(req.RCNumber),
 		RCNumber:                strings.ToUpper(strings.TrimSpace(req.RCNumber)),
 		Status:                  shared.StatusDraft,
 		StartedAt:               &now,
@@ -722,17 +722,25 @@ func parseDateString(s *string) (*time.Time, error) {
 	return &t, nil
 }
 
-// generateReferenceNumber returns a collision-free reference number backed by a
-// DB sequence. Format: MO-YYYY-NNNNNN (sequence is global, never resets per year).
-// Falls back to a crypto/rand value only if the DB query fails unexpectedly.
-func (s *ApplicationService) generateReferenceNumber() string {
-	var seq int64
-	if err := s.db.QueryRow("SELECT nextval('member_onboarding.application_reference_number_seq')").Scan(&seq); err != nil {
-		slog.Error("generateReferenceNumber: sequence query failed, using fallback", "error", err)
-		n, _ := rand.Int(rand.Reader, big.NewInt(900_000))
-		return fmt.Sprintf("MO-%d-%06d", time.Now().Year(), n.Int64()+100_000)
+// generateReferenceNumber returns the per-EEG, per-year reference number
+// (PROJ-35) of the form `<rc>-<year>-<NNNN>`, e.g. `RC105720-2026-0001`.
+// Counter resets each year and runs independently per EEG. Falls back to a
+// random suffix on DB failure so the submit path never blocks on this.
+//
+// Old applications (created before PROJ-35) keep their `MO-YYYY-NNNNNN`
+// refs unchanged; the obsolete sequence from migration 25 stays in place
+// as a historical artefact.
+func (s *ApplicationService) generateReferenceNumber(rcNumber string) string {
+	rcNumber = strings.ToUpper(strings.TrimSpace(rcNumber))
+	year := time.Now().Year()
+	ref, err := s.appRepo.NextReferenceNumber(rcNumber, year)
+	if err != nil {
+		slog.Error("generateReferenceNumber: counter query failed, using fallback",
+			"rc_number", rcNumber, "year", year, "error", err)
+		n, _ := rand.Int(rand.Reader, big.NewInt(9000))
+		return fmt.Sprintf("%s-%d-FB%04d", rcNumber, year, n.Int64()+1000)
 	}
-	return fmt.Sprintf("MO-%d-%06d", time.Now().Year(), seq)
+	return ref
 }
 
 // trimStringPtr trims whitespace from a *string, returning nil if the pointer is nil.

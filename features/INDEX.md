@@ -48,5 +48,8 @@ Central tracking for all features.
 | PROJ-31 | E-Mail-Adresse-Bestätigung (Anti-Abuse) | Deployed | `features/PROJ-31-email-confirmation.md` | 2026-05-14 |
 | PROJ-32 | EEG-Stammdaten aus Core (Phase 1 – ohne Logo) | Deployed | `features/PROJ-32-eeg-master-data-from-core.md` | 2026-05-14 |
 | PROJ-33 | EEG-Logo aus Core (Phase 2 von PROJ-32) | In Review | `features/PROJ-33-eeg-logo-from-core.md` | 2026-05-14 |
+| PROJ-34 | Robuste Import-Recovery (Orphan-Fallback + Pre-Check + Unstuck-GUI) | In Review | `features/PROJ-34-import-recovery.md` | 2026-05-14 |
+| PROJ-35 | Per-EEG-Referenznummern (`<RC>-<Jahr>-<NNNN>`) | In Review | `features/PROJ-35-per-eeg-reference-numbers.md` | 2026-05-14 |
+| PROJ-36 | Optionale Rechtsdokumente als Info-Dokumente | Planned | `features/PROJ-36-optional-legal-documents-as-info.md` | 2026-05-14 |
 
-## Next Available ID: PROJ-34
+## Next Available ID: PROJ-37

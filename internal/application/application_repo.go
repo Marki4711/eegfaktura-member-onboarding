@@ -598,6 +598,64 @@ func (r *ApplicationRepository) Delete(id uuid.UUID) error {
 	return nil
 }
 
+// NextReferenceNumber atomically increments the per-(rc_number, year)
+// counter and returns the formatted reference number `<rc>-<year>-<NNNN>`
+// (PROJ-35). 4-digit zero-padded counter; counters reset per year.
+//
+// Uses INSERT ... ON CONFLICT DO UPDATE RETURNING for a single-roundtrip
+// atomic increment — no race possible between two concurrent submitters
+// in the same EEG, because Postgres serialises the ON CONFLICT path on the
+// PK.
+//
+// Counters above 9999 (theoretical) produce an error rather than silently
+// rolling over to 5 digits, so an operator notices before the format breaks.
+func (r *ApplicationRepository) NextReferenceNumber(rcNumber string, year int) (string, error) {
+	var lastValue int
+	err := r.db.QueryRow(`
+		INSERT INTO member_onboarding.reference_number_counter (rc_number, year, last_value)
+		VALUES ($1, $2, 1)
+		ON CONFLICT (rc_number, year) DO UPDATE
+		   SET last_value = member_onboarding.reference_number_counter.last_value + 1
+		 RETURNING last_value`,
+		rcNumber, year).Scan(&lastValue)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch next reference number for (%s, %d): %w", rcNumber, year, err)
+	}
+	if lastValue > 9999 {
+		return "", fmt.Errorf("reference number counter overflow for (%s, %d): %d > 9999", rcNumber, year, lastValue)
+	}
+	return fmt.Sprintf("%s-%d-%04d", rcNumber, year, lastValue), nil
+}
+
+// MemberNumberUsedLocally returns true when ANOTHER application in the same
+// EEG already has the given member_number assigned. Used by the import
+// service (PROJ-34) as a defense-in-depth check BEFORE calling the core:
+// the partial UNIQUE index uniq_application_rc_member_number would otherwise
+// blow the bookkeeping transaction AFTER the core has already created the
+// participant, leaving us with a half-written state to recover from.
+//
+// `excludingID` is the application we are about to import — its own row is
+// not counted as a conflict (it might already have a member_number set
+// from a previous attempt).
+func (r *ApplicationRepository) MemberNumberUsedLocally(rcNumber, memberNumber string, excludingID uuid.UUID) (used bool, conflictingRef string, err error) {
+	var ref string
+	queryErr := r.db.QueryRow(`
+		SELECT reference_number
+		FROM member_onboarding.application
+		WHERE rc_number = $1
+		  AND member_number = $2
+		  AND id <> $3
+		LIMIT 1`,
+		rcNumber, memberNumber, excludingID).Scan(&ref)
+	if queryErr == sql.ErrNoRows {
+		return false, "", nil
+	}
+	if queryErr != nil {
+		return false, "", fmt.Errorf("failed to check local member-number duplicate: %w", queryErr)
+	}
+	return true, ref, nil
+}
+
 // MarkImportInFlight reserves an application for an in-flight import attempt.
 // It is the concurrency gate for PROJ-4: only one import per application may
 // run at a time. The conditional UPDATE matches when status='approved' AND
@@ -716,6 +774,82 @@ func (r *ApplicationRepository) ResetImportTx(tx *sql.Tx, id uuid.UUID) error {
 	_, err := tx.Exec(query, shared.StatusApproved, id)
 	if err != nil {
 		return fmt.Errorf("failed to reset import: %w", err)
+	}
+	return nil
+}
+
+// MarkImportedManuallyTx finishes a stuck import by writing the operator-
+// provided participant-ID + member-number, transitioning the row from
+// `approved` (with import_started_at set) to `imported`. Caller must verify
+// the application is in the stuck state (see shared.IsImportStuck) before
+// invoking. Locks via SELECT FOR UPDATE to serialise against any concurrent
+// import attempt (PROJ-34).
+func (r *ApplicationRepository) MarkImportedManuallyTx(tx *sql.Tx, id uuid.UUID, targetParticipantID, memberNumber string, finishedAt time.Time) error {
+	var status string
+	var startedAt, finishedAtCol sql.NullTime
+	if err := tx.QueryRow(`
+		SELECT status, import_started_at, import_finished_at
+		FROM member_onboarding.application
+		WHERE id = $1
+		FOR UPDATE`, id).Scan(&status, &startedAt, &finishedAtCol); err != nil {
+		if err == sql.ErrNoRows {
+			return shared.ErrNotFound
+		}
+		return fmt.Errorf("failed to lock application for manual import: %w", err)
+	}
+	if status != string(shared.StatusApproved) || !startedAt.Valid || finishedAtCol.Valid {
+		return shared.NewConflictError("application is not in a stuck import state")
+	}
+
+	query := `
+		UPDATE member_onboarding.application SET
+			status                = $1,
+			import_finished_at    = $2,
+			imported_at           = $2,
+			target_participant_id = $3,
+			member_number         = $4,
+			import_error_message  = NULL,
+			updated_at            = NOW()
+		WHERE id = $5`
+	_, err := tx.Exec(query, shared.StatusImported, finishedAt, targetParticipantID, memberNumber, id)
+	if err != nil {
+		return fmt.Errorf("failed to mark imported manually: %w", err)
+	}
+	return nil
+}
+
+// ClearImportLockTx releases the in-flight slot on a stuck application
+// without touching its status. The row goes back to a vanilla `approved`
+// state (no import_started_at, no finished_at), ready for a retry —
+// with the explicit risk of creating a duplicate in the core if the
+// original attempt had already inserted there. Caller is responsible
+// for the stuck-state check; we still take a row-level lock to serialise
+// against any concurrent operation (PROJ-34).
+func (r *ApplicationRepository) ClearImportLockTx(tx *sql.Tx, id uuid.UUID) error {
+	var status string
+	var startedAt, finishedAt sql.NullTime
+	if err := tx.QueryRow(`
+		SELECT status, import_started_at, import_finished_at
+		FROM member_onboarding.application
+		WHERE id = $1
+		FOR UPDATE`, id).Scan(&status, &startedAt, &finishedAt); err != nil {
+		if err == sql.ErrNoRows {
+			return shared.ErrNotFound
+		}
+		return fmt.Errorf("failed to lock application for clear-lock: %w", err)
+	}
+	if status != string(shared.StatusApproved) || !startedAt.Valid || finishedAt.Valid {
+		return shared.NewConflictError("application is not in a stuck import state")
+	}
+
+	query := `
+		UPDATE member_onboarding.application SET
+			import_started_at  = NULL,
+			import_finished_at = NULL,
+			updated_at         = NOW()
+		WHERE id = $1`
+	if _, err := tx.Exec(query, id); err != nil {
+		return fmt.Errorf("failed to clear import lock: %w", err)
 	}
 	return nil
 }

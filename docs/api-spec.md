@@ -257,6 +257,60 @@ Same model as Create.
 
 ---
 
+## 5.3a Mark imported manually (PROJ-34)
+
+### POST `/api/admin/applications/{id}/mark-imported-manually`
+
+Recovery for the "stuck in-flight" scenario where the core created the participant but the onboarding bookkeeping failed. The admin reads the participant UUID + member-number from eegFaktura and submits them — the application then transitions from `approved` (with in-flight slot) to `imported`. Refused when the application is not in the stuck state (status≠approved, no in-flight slot, or in-flight younger than 2 minutes).
+
+### Request body
+```json
+{
+  "targetParticipantId": "0aeab3ff-4fcd-11f1-98e4-bed36ef4f0db",
+  "memberNumber": "A006",
+  "reason": "Manueller Recovery — DB-Unique-Verletzung"
+}
+```
+
+`targetParticipantId` and `memberNumber` are mandatory. `reason` is optional (an audit-trail tag is added automatically).
+
+### Response 200
+Full `AdminApplicationDetailResponse` with the updated status.
+
+### Errors
+- `400` validation failed (missing UUID, empty memberNumber)
+- `403` not authorized for this EEG
+- `404` application not found
+- `409` application is not in a stuck import state
+
+---
+
+## 5.3b Clear import lock (PROJ-34)
+
+### POST `/api/admin/applications/{id}/clear-import-lock`
+
+Releases the in-flight slot on a stuck application without changing its status. Allows the admin to retry the import, with the explicit risk of producing a duplicate participant in the core if the original attempt had already inserted there. The previous `target_participant_id` is preserved in the status_log entry.
+
+### Request body
+```json
+{
+  "reason": "Im Core kein Teilnehmer vorhanden — neu importieren"
+}
+```
+
+`reason` is mandatory (min 5 chars).
+
+### Response 200
+Full `AdminApplicationDetailResponse` with cleared import bookkeeping (status remains `approved`).
+
+### Errors
+- `400` validation failed (reason missing/too short)
+- `403` not authorized for this EEG
+- `404` application not found
+- `409` application is not in a stuck import state
+
+---
+
 ## 5.4 Submit application
 
 ### POST `/api/public/applications/{id}/submit`

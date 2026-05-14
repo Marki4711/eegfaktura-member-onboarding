@@ -11,6 +11,7 @@ import { AdminStatusBadge } from "@/components/admin-status-badge";
 import { AdminMeteringPointTable } from "@/components/admin-metering-point-table";
 import { AdminStatusLog } from "@/components/admin-status-log";
 import { AdminStatusActions } from "@/components/admin-status-actions";
+import { AdminImportUnstuckBanner } from "@/components/admin-import-unstuck-banner";
 import { AdminNoteEditor } from "@/components/admin-note-editor";
 import { AdminEditForm } from "@/components/admin-edit-form";
 import {
@@ -352,6 +353,15 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
         )}
 
         {/* Status Actions */}
+        {application.importStuck && (
+          <AdminImportUnstuckBanner
+            applicationId={application.id}
+            importStartedAt={application.importStartedAt}
+            targetParticipantId={application.targetParticipantId}
+            onRefresh={fetchApplication}
+          />
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Statusaktionen</CardTitle>

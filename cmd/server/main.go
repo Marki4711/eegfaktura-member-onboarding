@@ -229,6 +229,8 @@ func main() {
 				r.Get("/approval-pdf", adminHandler.DownloadApprovalPDF)
 				r.Post("/import", adminHandler.ImportApplication)
 				r.Post("/reset-import", adminHandler.ResetImport)
+				r.Post("/mark-imported-manually", adminHandler.MarkImportedManually)
+				r.Post("/clear-import-lock", adminHandler.ClearImportLock)
 				r.Patch("/admin-note", adminHandler.UpdateAdminNote)
 				r.Get("/next-member-number", adminHandler.SuggestNextMemberNumber)
 			})

@@ -417,6 +417,46 @@ export interface AdminApplicationDetail {
   meteringPoints: MeteringPointDetail[];
   statusLog: StatusLogEntry[];
   consents?: DocumentConsentView[];
+  // PROJ-34: true when status='approved' AND import_started_at set > 2 min ago
+  // AND import_finished_at is null. The admin UI renders the unstuck banner
+  // only when this is true. Computed server-side; do not derive on the client.
+  importStuck?: boolean;
+}
+
+// PROJ-34: payload for POST /api/admin/applications/{id}/mark-imported-manually
+export interface MarkImportedManuallyRequest {
+  targetParticipantId: string;
+  memberNumber: string;
+  reason?: string;
+}
+
+export function markImportedManually(
+  id: string,
+  body: MarkImportedManuallyRequest,
+  token?: string,
+): Promise<AdminApplicationDetail> {
+  return adminRequest<AdminApplicationDetail>(
+    `/api/admin/applications/${id}/mark-imported-manually`,
+    token,
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
+// PROJ-34: payload for POST /api/admin/applications/{id}/clear-import-lock
+export interface ClearImportLockRequest {
+  reason: string;
+}
+
+export function clearImportLock(
+  id: string,
+  body: ClearImportLockRequest,
+  token?: string,
+): Promise<AdminApplicationDetail> {
+  return adminRequest<AdminApplicationDetail>(
+    `/api/admin/applications/${id}/clear-import-lock`,
+    token,
+    { method: "POST", body: JSON.stringify(body) },
+  );
 }
 
 export interface AdminUpdateApplicationRequest {

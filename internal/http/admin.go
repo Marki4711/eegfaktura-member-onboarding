@@ -1426,6 +1426,110 @@ func (h *AdminHandler) ResetImport(w http.ResponseWriter, r *http.Request) {
 	h.writeJSON(w, http.StatusOK, detail)
 }
 
+// MarkImportedManually handles POST /api/admin/applications/{id}/mark-imported-manually
+//
+// @Summary      Manually close a stuck import (PROJ-34)
+// @Description  Recovery for the orphan scenario where the core created the participant but the onboarding bookkeeping failed and left the application stuck in `approved` with an in-flight slot. Admin reads the participant UUID + member-number from eegFaktura and submits them; status transitions to `imported`. Refused with 409 when the application is not in the stuck state.
+// @Tags         Admin
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id    path  string                            true  "Application UUID"
+// @Param        body  body  shared.MarkImportedManuallyRequest true  "Participant UUID + member-number from eegFaktura"
+// @Success      200   {object}  shared.AdminApplicationDetailResponse
+// @Failure      400   {object}  shared.ErrorResponse  "Validation failed"
+// @Failure      401   {object}  shared.ErrorResponse
+// @Failure      403   {object}  shared.ErrorResponse  "Tenant mismatch"
+// @Failure      404   {object}  shared.ErrorResponse
+// @Failure      409   {object}  shared.ErrorResponse  "Application not in stuck import state"
+// @Router       /api/admin/applications/{id}/mark-imported-manually [post]
+func (h *AdminHandler) MarkImportedManually(w http.ResponseWriter, r *http.Request) {
+	id, err := h.parseID(w, r)
+	if err != nil {
+		return
+	}
+	if !h.checkTenantAccess(w, r, id) {
+		return
+	}
+	var req shared.MarkImportedManuallyRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Invalid JSON", nil)))
+		return
+	}
+	if err := h.validate.Struct(req); err != nil {
+		h.writeValidationError(w, err)
+		return
+	}
+	actorID := ""
+	if claims := ClaimsFromContext(r.Context()); claims != nil {
+		actorID = claims.Subject
+	}
+	if _, err := h.adminService.MarkImportedManually(id, req.TargetParticipantID, req.MemberNumber, req.Reason, actorID); err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+	detail, err := h.adminService.GetApplicationDetail(id)
+	if err != nil {
+		slog.Warn("admin: mark-imported-manually succeeded but detail fetch failed",
+			"application_id", id, "error", err)
+		h.writeJSON(w, http.StatusOK, map[string]string{"status": "imported"})
+		return
+	}
+	h.writeJSON(w, http.StatusOK, detail)
+}
+
+// ClearImportLock handles POST /api/admin/applications/{id}/clear-import-lock
+//
+// @Summary      Release a stuck import lock for retry (PROJ-34)
+// @Description  Clears the in-flight slot on a stuck application without changing its status. Useful when the admin wants to retry the import — at the explicit risk of producing a duplicate in the core if the original attempt had already inserted there. A reason is mandatory and recorded in the status_log together with the previous target_participant_id (if any).
+// @Tags         Admin
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id    path  string                          true  "Application UUID"
+// @Param        body  body  shared.ClearImportLockRequest   true  "Reason for the lock release"
+// @Success      200   {object}  shared.AdminApplicationDetailResponse
+// @Failure      400   {object}  shared.ErrorResponse  "Validation failed"
+// @Failure      401   {object}  shared.ErrorResponse
+// @Failure      403   {object}  shared.ErrorResponse  "Tenant mismatch"
+// @Failure      404   {object}  shared.ErrorResponse
+// @Failure      409   {object}  shared.ErrorResponse  "Application not in stuck import state"
+// @Router       /api/admin/applications/{id}/clear-import-lock [post]
+func (h *AdminHandler) ClearImportLock(w http.ResponseWriter, r *http.Request) {
+	id, err := h.parseID(w, r)
+	if err != nil {
+		return
+	}
+	if !h.checkTenantAccess(w, r, id) {
+		return
+	}
+	var req shared.ClearImportLockRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Invalid JSON", nil)))
+		return
+	}
+	if err := h.validate.Struct(req); err != nil {
+		h.writeValidationError(w, err)
+		return
+	}
+	actorID := ""
+	if claims := ClaimsFromContext(r.Context()); claims != nil {
+		actorID = claims.Subject
+	}
+	if _, err := h.adminService.ClearImportLock(id, req.Reason, actorID); err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+	detail, err := h.adminService.GetApplicationDetail(id)
+	if err != nil {
+		slog.Warn("admin: clear-import-lock succeeded but detail fetch failed",
+			"application_id", id, "error", err)
+		h.writeJSON(w, http.StatusOK, map[string]string{"status": "approved"})
+		return
+	}
+	h.writeJSON(w, http.StatusOK, detail)
+}
+
 // GetIntroText handles GET /api/admin/settings/intro-text?rc_number=...
 func (h *AdminHandler) GetIntroText(w http.ResponseWriter, r *http.Request) {
 	rcNumber, ok := h.parseRCAndCheck(w, r)

@@ -107,7 +107,7 @@ Contains:
 
 Fields:
 - `id`
-- `reference_number`
+- `reference_number` — Format **`<RC>-<Jahr>-<NNNN>`** seit PROJ-35 (z.B. `RC105720-2026-0001`), 4-stelliger Counter pro EEG und Jahr. Anträge die vor PROJ-35 erstellt wurden behalten ihr altes Format `MO-YYYY-NNNNNN`. Eindeutigkeit über `application.reference_number`-UNIQUE-Constraint garantiert.
 - `rc_number`
 - `status`
 - `started_at`

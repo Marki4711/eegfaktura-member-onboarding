@@ -247,6 +247,22 @@ func (s *ImportService) Import(ctx context.Context, id uuid.UUID, bearerToken, a
 		)
 	}
 
+	// PROJ-34 Stage B: defense-in-depth local check. The partial UNIQUE
+	// index uniq_application_rc_member_number (migration 28) would
+	// otherwise blow the bookkeeping transaction AFTER the core insert
+	// has succeeded, producing a half-written state. By checking here
+	// we refuse the import BEFORE talking to the core, so no orphan
+	// participant is ever created from this failure mode.
+	usedLocally, conflictingRef, err := s.appRepo.MemberNumberUsedLocally(app.RCNumber, memberNumber, id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to verify member number against local db: %w", err)
+	}
+	if usedLocally {
+		return nil, shared.NewConflictError(
+			fmt.Sprintf("Mitgliedsnummer %q ist im Onboarding bereits dem Antrag %s zugeordnet — bitte eine andere Nummer wählen", memberNumber, conflictingRef),
+		)
+	}
+
 	importStartedAt := time.Now()
 
 	// Reserve the in-flight slot before calling the core. This both persists
@@ -309,22 +325,59 @@ func (s *ImportService) Import(ctx context.Context, id uuid.UUID, bearerToken, a
 		TargetParticipantID: &participantID,
 		MemberNumber:        &memberNumber,
 	}, actorID); err != nil {
-		// The participant exists in the core but our DB couldn't record it.
-		// Log the orphan participant ID so an operator can clean it up by
-		// hand, and surface it to the caller in the result so the handler can
-		// include it in the response (without leaking the raw DB error).
-		slog.Error("import: bookkeeping failed after successful core insert; orphan participant created",
+		// The participant exists in the core but our DB couldn't link it
+		// (typical cause: the local uniq_application_rc_member_number
+		// partial index from migration 28 catches a duplicate that the
+		// core didn't because Core has no uniqueness constraint on
+		// participantNumber).
+		//
+		// PROJ-34 Stage A: take the application out of in-flight into a
+		// clean `import_failed` end state in a SEPARATE transaction. That
+		// keeps `target_participant_id` for later operator linkage, lets
+		// the existing PROJ-30 reset-import flow recover the row, and
+		// — critically — prevents the in-flight slot from staying set
+		// forever, which used to brick the admin button.
+		dbErr := err
+		errMessage := "Core hat Teilnehmer " + participantID +
+			" angelegt, lokale Verknüpfung fehlgeschlagen: " + normalizeError(dbErr)
+		if fallbackErr := s.persistResult(id, app.Status, application.ImportResultUpdate{
+			Status:              shared.StatusImportFailed,
+			ImportStartedAt:     importStartedAt,
+			ImportFinishedAt:    importFinishedAt,
+			TargetParticipantID: &participantID,
+			ImportErrorMessage:  &errMessage,
+			// MemberNumber stays unchanged (nil) — we don't know if the
+			// number we tried to assign is now reserved in the core.
+		}, actorID); fallbackErr != nil {
+			// Second-layer failure: the orphan-fallback transaction itself
+			// died. The in-flight slot now stays set. Log loudly so the
+			// operator sees this in monitoring; manual SQL cleanup needed.
+			slog.Error("import: orphan fallback failed; application stuck in-flight",
+				"application_id", id,
+				"target_participant_id", participantID,
+				"original_db_error", dbErr,
+				"fallback_db_error", fallbackErr,
+			)
+			return &ImportResult{
+					ApplicationID:       id,
+					Status:              shared.StatusApproved,
+					TargetParticipantID: participantID,
+					ErrorMessage:        "import succeeded in core but onboarding bookkeeping AND the recovery write failed — manual cleanup required",
+				},
+				fmt.Errorf("import succeeded in core but bookkeeping failed: %w (fallback also failed: %v)", dbErr, fallbackErr)
+		}
+		slog.Error("import: bookkeeping failed after successful core insert; application marked import_failed",
 			"application_id", id,
 			"target_participant_id", participantID,
-			"db_error", err,
+			"db_error", dbErr,
 		)
 		return &ImportResult{
 				ApplicationID:       id,
-				Status:              shared.StatusApproved, // unchanged on disk
+				Status:              shared.StatusImportFailed,
 				TargetParticipantID: participantID,
-				ErrorMessage:        "import succeeded in core but the onboarding record could not be updated; participant created in core, manual cleanup required",
+				ErrorMessage:        errMessage,
 			},
-			fmt.Errorf("import succeeded in core but bookkeeping failed: %w", err)
+			fmt.Errorf("import succeeded in core but bookkeeping failed: %w", dbErr)
 	}
 
 	result := &ImportResult{

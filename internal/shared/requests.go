@@ -234,6 +234,23 @@ type ResetImportRequest struct {
 	Reason string `json:"reason" validate:"required,min=5,max=500"`
 }
 
+// MarkImportedManuallyRequest is the admin orphan-recovery payload (PROJ-34).
+// Used when the core created a participant but the onboarding bookkeeping
+// transaction failed — the admin reads the participant UUID + member-number
+// from eegFaktura and submits them here to close the loop.
+type MarkImportedManuallyRequest struct {
+	TargetParticipantID string `json:"targetParticipantId" validate:"required,uuid"`
+	MemberNumber        string `json:"memberNumber"        validate:"required,min=1,max=50"`
+	Reason              string `json:"reason"              validate:"max=500"`
+}
+
+// ClearImportLockRequest is the admin "give up — retry" payload (PROJ-34).
+// Reason is mandatory because clearing the lock can lead to a duplicate
+// participant in the core; we want the operator's intent in the audit log.
+type ClearImportLockRequest struct {
+	Reason string `json:"reason" validate:"required,min=5,max=500"`
+}
+
 // UpdateAdminNoteRequest is the body for PATCH /api/admin/applications/{id}/admin-note.
 // Replaces only the admin_note column — never touches any other field so the
 // editor cannot accidentally reset participation factors or membertype on save.
@@ -297,6 +314,31 @@ type AdminApplicationDetailResponse struct {
 	MeteringPoints []MeteringPoint       `json:"meteringPoints"`
 	StatusLog      []StatusLogEntry      `json:"statusLog"`
 	Consents       []DocumentConsentView `json:"consents"`
+	// ImportStuck (PROJ-34) is true when the application is in
+	// status='approved' with import_started_at set > ImportStuckThreshold
+	// ago and no import_finished_at. The admin UI renders the unstuck
+	// banner only when this flag is true. Computed by the handler from
+	// the underlying timestamps; not persisted.
+	ImportStuck bool `json:"importStuck"`
+}
+
+// ImportStuckThreshold is the age past which an in-flight import is treated
+// as abandoned (so the admin UI surfaces the unstuck banner). The Core call
+// itself has a 2-minute hard timeout; a slot older than that is guaranteed
+// not in flight anymore.
+const ImportStuckThreshold = 2 * time.Minute
+
+// IsImportStuck reports whether the given application is in the stuck state
+// described by ImportStuckThreshold. Lives on shared so both the detail
+// handler and the unstuck-endpoint validator can reuse it.
+func IsImportStuck(app *Application, now time.Time) bool {
+	if app == nil || app.Status != StatusApproved {
+		return false
+	}
+	if app.ImportStartedAt == nil || app.ImportFinishedAt != nil {
+		return false
+	}
+	return now.Sub(*app.ImportStartedAt) > ImportStuckThreshold
 }
 
 // ChangeStatusResponse is returned after a successful status transition.

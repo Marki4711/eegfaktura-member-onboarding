@@ -308,6 +308,7 @@ func (s *AdminApplicationService) GetApplicationDetail(id uuid.UUID) (*shared.Ad
 		MeteringPoints: meteringPoints,
 		StatusLog:      statusLog,
 		Consents:       consentViews,
+		ImportStuck:    shared.IsImportStuck(app, time.Now()),
 	}, nil
 }
 
@@ -598,6 +599,143 @@ func (s *AdminApplicationService) ChangeStatus(id uuid.UUID, toStatus shared.App
 		ID:     id,
 		Status: string(toStatus),
 	}, nil
+}
+
+// MarkImportedManually completes a stuck import by writing the operator-
+// provided participant-ID + member-number, transitioning approved (with
+// in-flight slot set) → imported. PROJ-34 recovery path for the orphan
+// scenario where the core created the participant but the bookkeeping
+// transaction failed and left the in-flight slot stuck.
+//
+// `targetParticipantID` and `memberNumber` are both mandatory — the admin
+// reads them from eegFaktura. `reason` is appended to the status_log entry
+// for the audit trail.
+func (s *AdminApplicationService) MarkImportedManually(id uuid.UUID, targetParticipantID, memberNumber, reason, actorID string) (*shared.Application, error) {
+	app, err := s.appRepo.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+	if !shared.IsImportStuck(app, time.Now()) {
+		return nil, shared.NewConflictError("application is not in a stuck import state")
+	}
+	targetParticipantID = strings.TrimSpace(targetParticipantID)
+	memberNumber = strings.TrimSpace(memberNumber)
+	if targetParticipantID == "" || memberNumber == "" {
+		return nil, shared.NewValidationError("Validation failed", map[string]string{
+			"targetParticipantId": "Teilnehmer-UUID aus eegFaktura ist erforderlich",
+			"memberNumber":        "Mitgliedsnummer ist erforderlich",
+		})
+	}
+
+	now := time.Now().UTC()
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin manual-import transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	if err := s.appRepo.MarkImportedManuallyTx(tx, id, targetParticipantID, memberNumber, now); err != nil {
+		return nil, err
+	}
+
+	fromStatus := string(shared.StatusApproved)
+	toStatus := string(shared.StatusImported)
+	var actorPtr *string
+	if actorID != "" {
+		actorPtr = &actorID
+	}
+	fullReason := strings.TrimSpace(reason)
+	if fullReason == "" {
+		fullReason = "Manuell als importiert markiert (Orphan-Recovery)"
+	}
+	fullReason += fmt.Sprintf("\n[system] target_participant_id=%s, member_number=%s", targetParticipantID, memberNumber)
+	logEntry := &shared.StatusLogEntry{
+		ApplicationID:   id,
+		FromStatus:      &fromStatus,
+		ToStatus:        toStatus,
+		ChangedByUserID: actorPtr,
+		Reason:          &fullReason,
+		CreatedAt:       now,
+	}
+	if err := s.statusLogRepo.CreateTx(tx, logEntry); err != nil {
+		return nil, fmt.Errorf("failed to write status log: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to commit manual-import: %w", err)
+	}
+
+	slog.Info("import: marked imported manually (orphan recovery)",
+		"application_id", id, "actor", actorID,
+		"target_participant_id", targetParticipantID, "member_number", memberNumber)
+
+	return s.appRepo.GetByID(id)
+}
+
+// ClearImportLock releases the in-flight slot on a stuck application
+// without touching its status. Risk: the original attempt may have already
+// created a participant in the core — a retry then produces a duplicate.
+// The admin confirms this risk in the UI. PROJ-34 fallback for the case
+// where the operator cannot or does not want to recover via
+// MarkImportedManually.
+func (s *AdminApplicationService) ClearImportLock(id uuid.UUID, reason, actorID string) (*shared.Application, error) {
+	app, err := s.appRepo.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+	if !shared.IsImportStuck(app, time.Now()) {
+		return nil, shared.NewConflictError("application is not in a stuck import state")
+	}
+	reason = strings.TrimSpace(reason)
+	if reason == "" {
+		return nil, shared.NewValidationError("Validation failed", map[string]string{
+			"reason": "Begründung ist erforderlich",
+		})
+	}
+
+	now := time.Now().UTC()
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin clear-lock transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	if err := s.appRepo.ClearImportLockTx(tx, id); err != nil {
+		return nil, err
+	}
+
+	// status_log: from=to=approved — the row state didn't change, but the
+	// audit trail records the operator intervention.
+	approvedStr := string(shared.StatusApproved)
+	var actorPtr *string
+	if actorID != "" {
+		actorPtr = &actorID
+	}
+	fullReason := "Import-Lock manuell zurückgesetzt: " + reason
+	if app.TargetParticipantID != nil && *app.TargetParticipantID != "" {
+		fullReason += fmt.Sprintf("\n[system] previous target_participant_id=%s — Duplikatsrisiko bei erneutem Import", *app.TargetParticipantID)
+	}
+	logEntry := &shared.StatusLogEntry{
+		ApplicationID:   id,
+		FromStatus:      &approvedStr,
+		ToStatus:        approvedStr,
+		ChangedByUserID: actorPtr,
+		Reason:          &fullReason,
+		CreatedAt:       now,
+	}
+	if err := s.statusLogRepo.CreateTx(tx, logEntry); err != nil {
+		return nil, fmt.Errorf("failed to write status log: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to commit clear-lock: %w", err)
+	}
+
+	slog.Warn("import: lock cleared manually — duplicate risk",
+		"application_id", id, "actor", actorID,
+		"previous_target_participant_id", derefStr(app.TargetParticipantID))
+
+	return s.appRepo.GetByID(id)
 }
 
 // ResetImport returns an imported application to status `approved` so the

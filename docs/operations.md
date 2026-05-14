@@ -187,6 +187,27 @@ helm rollback member-onboarding <REVISION> -n member-onboarding
 
 > **Wichtig**: `helm rollback` rollt **keine DB-Migrationen zurück**. Wenn die migrierte Schema-Version mit dem alten Image inkompatibel ist, muss die DB-Migration manuell zurückgerollt werden (`db/migrations/000NNN_*.down.sql`). Vor schema-relevanten Releases: aktuelles Backup verifizieren.
 
+### Hängengebliebener Import (PROJ-34)
+
+Wenn ein Import-Vorgang abbricht (Pod-Crash, DB-UNIQUE-Verletzung, …) und die Application im `approved`-Status mit gesetztem `import_started_at` ohne `import_finished_at` zurücklässt, bietet das Admin-UI seit PROJ-34 zwei Recovery-Aktionen direkt im Antrags-Detail:
+
+- **„Als importiert markieren"** — Admin gibt die Teilnehmer-UUID + Mitgliedsnummer aus eegFaktura ein, Antrag wechselt sauber auf `imported`.
+- **„Import-Lock räumen (Retry)"** — Lock weg, Status bleibt `approved`. Risiko: bei erneutem Import-Klick entsteht im Core ein Duplikat, falls der vorige Versuch dort schon eingefügt hat.
+
+Die Buttons erscheinen automatisch, wenn der Server-side-Check `import_started_at > NOW() - 2 min AND import_finished_at IS NULL` zutrifft.
+
+Für SQL-Diagnose (vor Eingriff via UI):
+```sql
+SELECT id, reference_number, status, import_started_at, import_finished_at,
+       imported_at, target_participant_id, import_error_message
+FROM member_onboarding.application
+WHERE import_started_at IS NOT NULL
+  AND import_finished_at IS NULL
+  AND status = 'approved';
+```
+
+---
+
 ### Recovery: `Dirty database version N` (Migration abgebrochen)
 
 Wenn der Migrate-Job mit `migrate up failed: Dirty database version N. Fix and force version.` abbricht, hat eine Migration mittendrin gescheitert (typisch: UNIQUE-Constraint, NOT-NULL-Backfill, Typ-Verengung) und golang-migrate hat `schema_migrations.dirty = true` gesetzt. `cmd/migrate` hat keinen `force`-Modus — das Flag wird per SQL zurückgesetzt.
