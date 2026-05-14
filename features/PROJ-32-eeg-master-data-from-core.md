@@ -119,12 +119,65 @@ Recherche-Ergebnis 2026-05-14:
 
 ## Open Questions
 
-### Q1: Wie repräsentiert die deployte Core-API das EEG-Logo?
-- (a) Als `logoUrl` zu einem internen Filestore-Service?
-- (b) Als base64-encoded Bytes im JSON-Response von `GET /eeg`?
-- (c) Über einen separaten Endpoint `GET /eeg/logo`?
+### Q1: Wie repräsentiert die deployte Core-API das EEG-Logo? — geklärt
 
-**Empfehlung:** Vor der Implementierung **einmalig** gegen die deployte API testen (z.B. `curl` mit gültigem Bearer-Token). Spec macht keinen blinden Vorgriff — die drei Varianten sind im Code abstrahiert hinter dem `CoreEEG`-DTO + `EmbedEEGLogo`-Funktion, sodass jede Variante mit ~10 LOC Anpassung passt.
+**Live-API-Inspektion 2026-05-14 (Bearer-authentifiziert gegen `eegfaktura.at`):**
+
+Die Core-API hat **zwei** relevante Pfade:
+
+**a) Stammdaten: GraphQL** (Endpoint heißt `query`, Pfad vermutlich `/cash/api/query`).
+
+Request:
+```graphql
+query { eeg { id name description ... address { ... } contact { ... } accountInfo { ... } } }
+```
+
+Response (Auszug aus dem Live-System):
+```json
+{ "data": { "eeg": {
+    "id": "TE100200",
+    "rcNumber": "TE100200",
+    "name": "EEG-TEST",
+    "address": { "street": "Sonnenplatz", "streetNumber": "4", "zip": "9720", "city": "Strahlhausen" },
+    "contact": { "phone": "00436641234567", "email": "test-eeg@gmx.at" },
+    "accountInfo": { "iban": "AT613456789012345678", "owner": "EEG-TEST", "bankName": "Testbank",
+                     "creditorId": null, "bic": null, "sepa": false }
+}}}
+```
+
+Wichtig:
+- `eeg.id === rcNumber` → kein zusätzlicher RC-Lookup nötig
+- Stammdaten kommen vom GraphQL-Endpoint, nicht aus einer REST-Route
+- `creditorId` ist hier `null` (Testdaten) — das passiert real und der Resolver muss damit umgehen
+
+**b) Logo: REST über `BillingConfig`** (`/cash/api/billingConfigs/...`).
+
+Vorgang ist zweistufig:
+
+1. `GET /cash/api/billingConfigs?tenantId={rc}` (oder Filterung über tenant-Header) → liefert die `BillingConfig` für diese EEG, enthält u.a.:
+   ```json
+   { "id": "269c2abf-bc33-40f6-827e-386987c42b16",
+     "tenantId": "TE100200",
+     "headerImageFileDataId": "f291f0de-abb4-4a0d-b3ac-4006a40c5c35",
+     ...weitere Felder, irrelevant für uns... }
+   ```
+
+2. `GET /cash/api/billingConfigs/{id}/logoImage` → liefert die PNG-Bytes direkt:
+   ```
+   200 OK
+   Content-Type: image/png
+   Content-Length: 132285
+   ```
+
+Implementations-Plan:
+- `coreclient.FetchEEGMasterData(ctx, bearer, tenant)` → GraphQL-POST
+- `coreclient.FetchEEGLogo(ctx, bearer, tenant)` → zweistufig:
+  - listet Billing-Configs, nimmt die mit passender `tenantId`, extrahiert `id`
+  - holt `/logoImage`-Bytes
+- Beide Methoden cachen lokal (Stammdaten als Struct, Logo als Bytes mit MIME-Typ)
+- Resolver-Pfad: Core-Wert pro Feld; bei null/leer → lokaler DB-Fallback; Logo → falls Fehlschlag, PDF rendert ohne Logo
+
+**Offener Restpunkt:** wie genau lautet die GraphQL-URL (`/cash/api/query` oder `/query` oder `/graphql`?). Beim ersten Implementations-Commit prüfen wir das per `curl` gegen das Live-System.
 
 ### Q2: Cache-TTL — 15 Minuten oder anders?
 
@@ -172,16 +225,22 @@ Recherche-Ergebnis 2026-05-14:
 
 ### Q8: ⚠️ Auth-Knoten — wer hat ein Bearer-Token beim PDF-Render?
 
-Das ist die größte offene Frage. Heute funktioniert es so:
-- `POST /participant` (Import) braucht Bearer aus dem Admin-JWT → ist verfügbar, weil ein Admin im Browser triggert.
-- PDF-Render beim **Submit** (Member ohne Auth) → kein Admin-JWT verfügbar.
+**Code-Recherche 2026-05-14:** `c:\opt\repos\myeegfaktura\eegfaktura-backend\api\middleware\tokenVerifier.go` (`ConditionProtect`, Zeilen 244-304) zeigt: der Core kennt **nur User-JWT-Auth** (Keycloak OIDC mit `claims.Tenants` + `claims.AccessGroups`). Es gibt **keinen** Service-Account-Mechanismus, **keinen** API-Key-Pfad, **keinen** internal-only Token. Auch eine optionale `superuser`-Rolle ist nur ein "User mit mehr Rechten", kein M2M-Account.
 
-Für `GET /eeg` braucht der Core einen Bearer + tenant. Möglichkeiten:
-- (a) Dedizierter **Service-Account** im Core (eigene Credentials für Onboarding-Backend). Onboarding hält die Credentials in einer K8s-Secret. ✓ Sauberster Weg.
-- (b) Onboarding bekommt einen Bypass via spezielles `X-Internal-Auth`-Header. Erfordert Core-Änderung.
-- (c) `GET /eeg` wird unauthentifiziert verfügbar gemacht. Weichgespült, weil EEG-Stammdaten nicht hochsensibel sind. Erfordert Core-Änderung.
+Das heißt: ohne Core-Änderung gibt es **keinen** Weg, `GET /eeg` aus einem Server-Kontext ohne Admin-JWT aufzurufen. Drei Wege:
 
-**Empfehlung:** (a). Pure Onboarding-Änderung möglich, sobald der vfeeg-Betreiber im Core einen Service-Account anlegt. Eintragen in `.env.local.example` als `CORE_SERVICE_ACCOUNT_TOKEN` (Long-lived Bearer).
+- (a) **Core-seitig** einen Service-Account-Mechanismus einbauen (Client-Credentials-Flow gegen denselben Keycloak). Sauberer Standard-OAuth2-Weg. Onboarding hält Client-ID + Secret in K8s-Secrets. Aufwand: 1–2 Tage Core-Arbeit (separates Repo `myeegfaktura/eegfaktura-backend`).
+- (b) Cache **nur** durch Admin-Aktionen befüllen, Submit-Pfad nutzt den Cache passiv. Beim ersten Submit kann der Cache leer sein → Fallback auf manuelle DB-Werte. Sobald ein Admin die EEG-Settings-Seite besucht (oder den "Aktualisieren"-Button drückt), wird der Cache gefüllt und die nächsten Submits sehen die Core-Daten.
+- (c) Onboarding speichert das Admin-JWT bei jeder Admin-Anmeldung als "Tenant-Service-Token" und nutzt es bis zum Ablauf. Bricht alle Auth-Prinzipien (Tokens sollen kurzlebig sein, nicht serverseitig persistiert werden). **Verboten.**
+
+**Empfehlung:** (b) für Phase 1, (a) als Folge-Spec wenn der vfeeg-Betreiber bereit ist, im Core nachzubessern.
+
+Folgen von (b):
+- Erst-Submit nach Deploy / Reboot ohne Admin-Aktivität bekommt die alten DB-Werte. Nicht schlimm, weil der Admin die Felder weiterhin manuell vorpflegen kann (Fallback).
+- Auto-Reject-Job (PROJ-31 Stage E) muss `GET /eeg` **nicht** aufrufen — der nutzt nur lokale DB-Felder.
+- Die Resolver-Order wird umgekehrt: **lokale DB zuerst** (immer verfügbar), Cache (falls befüllt) **überschreibt** Felder selektiv (nur die Core-gepflegten). Cache-Befüllung passiert ausschließlich beim Admin-Click auf "Aktualisieren" oder bei jeder Admin-Detail-Anzeige.
+
+Dies entspricht einem "Eventual Consistency Read-Through, getriggert durch Admin-Aktivität". Pragmatisch und ohne Core-Änderung lauffähig.
 
 ## Notes
 
