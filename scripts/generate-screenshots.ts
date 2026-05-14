@@ -246,22 +246,34 @@ async function main() {
     await page.waitForTimeout(200)
     await shoot(page, "admin-application-detail-2.png")
 
-    // Section-specific shots: force each section to the TOP of the viewport
-    // (not just "visible") so consecutive shots show different content.
-    // scrollIntoViewIfNeeded() is a no-op if the element is already in view,
-    // which is why earlier runs produced identical detail-2 / status-log shots.
-    const shootSection = async (text: string, name: string) => {
+    // Section-specific shots: capture a clipped region from the heading
+    // downward instead of trying to scroll the section to the top of the
+    // viewport — that doesn't work for sections that already sit near the
+    // bottom of the page (scrollIntoView clamps and the viewport stays put).
+    const shootSection = async (text: string, name: string, height = 320) => {
       const elem = page.getByText(text, { exact: false }).first()
       if ((await elem.count()) === 0) {
         log(`  ⚠ ${name} — could not locate "${text}" heading`)
         return
       }
-      await elem.evaluate((el) => el.scrollIntoView({ block: "start", behavior: "instant" }))
-      await page.waitForTimeout(200)
-      await shoot(page, name)
+      await elem.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }))
+      await page.waitForTimeout(150)
+      const box = await elem.boundingBox()
+      if (!box) {
+        log(`  ⚠ ${name} — no bounding box for "${text}"`)
+        return
+      }
+      const pageHeight = await page.evaluate(() => document.documentElement.clientHeight)
+      const clipY = Math.max(0, box.y - 16)
+      const clipHeight = Math.min(height, pageHeight - clipY)
+      await page.screenshot({
+        path: `${OUT_DIR}/${name}`,
+        clip: { x: 0, y: clipY, width: VIEWPORT.width, height: clipHeight },
+      })
+      log(`  ✓ ${name}`)
     }
-    await shootSection("Statusaktionen", "admin-status-actions.png")
-    await shootSection("Statusverlauf", "admin-status-log.png")
+    await shootSection("Statusaktionen", "admin-status-actions.png", 180)
+    await shootSection("Statusverlauf", "admin-status-log.png", 220)
 
     // Logout button lives in the header; scroll to top, then clip to the
     // header strip so we see "Abmelden" without the rest of the detail page.
