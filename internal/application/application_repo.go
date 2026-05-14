@@ -90,6 +90,8 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		       heat_pump, electric_vehicle, electric_hot_water,
 		       einzugsart, bank_name, mandate_reference, mandate_date,
 		       member_number,
+		       email_confirmed_at, email_confirmation_used_at,
+		       email_confirmation_token_hash, email_confirmation_token_expires_at,
 		       created_at, updated_at
 		FROM member_onboarding.application
 		WHERE id = $1`
@@ -104,6 +106,8 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	var pvPowerKwp sql.NullFloat64
 	var heatPump, electricVehicle, electricHotWater sql.NullBool
 	var memberNumber sql.NullString
+	var emailConfirmedAt, emailConfirmationUsedAt, emailConfirmationTokenExpiresAt sql.NullTime
+	var emailConfirmationTokenHash sql.NullString
 
 	err := r.db.QueryRow(query, id).Scan(
 		&app.ID, &app.ReferenceNumber, &app.RCNumber, &app.Status, &startedAt,
@@ -121,6 +125,8 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		&heatPump, &electricVehicle, &electricHotWater,
 		&app.Einzugsart, &bankName, &mandateReference, &mandateDate,
 		&memberNumber,
+		&emailConfirmedAt, &emailConfirmationUsedAt,
+		&emailConfirmationTokenHash, &emailConfirmationTokenExpiresAt,
 		&app.CreatedAt, &app.UpdatedAt,
 	)
 	if err != nil {
@@ -248,6 +254,19 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	if memberNumber.Valid {
 		v := memberNumber.String
 		app.MemberNumber = &v
+	}
+	if emailConfirmedAt.Valid {
+		app.EmailConfirmedAt = &emailConfirmedAt.Time
+	}
+	if emailConfirmationUsedAt.Valid {
+		app.EmailConfirmationUsedAt = &emailConfirmationUsedAt.Time
+	}
+	if emailConfirmationTokenHash.Valid {
+		v := emailConfirmationTokenHash.String
+		app.EmailConfirmationTokenHash = &v
+	}
+	if emailConfirmationTokenExpiresAt.Valid {
+		app.EmailConfirmationTokenExpiresAt = &emailConfirmationTokenExpiresAt.Time
 	}
 
 	return app, nil

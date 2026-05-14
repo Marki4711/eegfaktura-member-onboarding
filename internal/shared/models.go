@@ -25,6 +25,7 @@ type RegistrationEntrypoint struct {
 	UseCompanySEPAMandate      bool      `json:"useCompanySEPAMandate"      db:"use_company_sepa_mandate"`
 	ShowCentralPolicy          bool      `json:"showCentralPolicy"          db:"show_central_policy"`
 	MemberNumberStart          int       `json:"memberNumberStart"          db:"member_number_start"`
+	RequireEmailConfirmation   bool      `json:"requireEmailConfirmation"   db:"require_email_confirmation"`
 	CreatedAt                  time.Time `json:"createdAt"                  db:"created_at"`
 	UpdatedAt          time.Time `json:"updatedAt"          db:"updated_at"`
 }
@@ -33,14 +34,15 @@ type RegistrationEntrypoint struct {
 type ApplicationStatus string
 
 const (
-	StatusDraft       ApplicationStatus = "draft"
-	StatusSubmitted   ApplicationStatus = "submitted"
-	StatusUnderReview ApplicationStatus = "under_review"
-	StatusNeedsInfo   ApplicationStatus = "needs_info"
-	StatusApproved    ApplicationStatus = "approved"
-	StatusRejected    ApplicationStatus = "rejected"
-	StatusImported    ApplicationStatus = "imported"
-	StatusImportFailed ApplicationStatus = "import_failed"
+	StatusDraft          ApplicationStatus = "draft"
+	StatusSubmitted      ApplicationStatus = "submitted"
+	StatusEmailConfirmed ApplicationStatus = "email_confirmed"
+	StatusUnderReview    ApplicationStatus = "under_review"
+	StatusNeedsInfo      ApplicationStatus = "needs_info"
+	StatusApproved       ApplicationStatus = "approved"
+	StatusRejected       ApplicationStatus = "rejected"
+	StatusImported       ApplicationStatus = "imported"
+	StatusImportFailed   ApplicationStatus = "import_failed"
 )
 
 // MemberType represents the type of EEG member
@@ -120,6 +122,12 @@ type Application struct {
 	ElectricVehicle         *bool      `json:"electricVehicle,omitempty" db:"electric_vehicle"`
 	ElectricHotWater        *bool      `json:"electricHotWater,omitempty" db:"electric_hot_water"`
 	MemberNumber            *string    `json:"memberNumber,omitempty" db:"member_number"`
+	// E-Mail-Bestätigung (PROJ-31). Token-Hash + Expiry sind interne Felder
+	// und werden nicht in API-Responses serialisiert (JSON-Tag "-").
+	EmailConfirmedAt                 *time.Time `json:"emailConfirmedAt,omitempty"      db:"email_confirmed_at"`
+	EmailConfirmationUsedAt          *time.Time `json:"-"                               db:"email_confirmation_used_at"`
+	EmailConfirmationTokenHash       *string    `json:"-"                               db:"email_confirmation_token_hash"`
+	EmailConfirmationTokenExpiresAt  *time.Time `json:"-"                               db:"email_confirmation_token_expires_at"`
 }
 
 // MeteringPoint represents a metering point entity
