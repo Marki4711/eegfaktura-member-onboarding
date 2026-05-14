@@ -258,13 +258,23 @@ func (s *ImportService) Import(ctx context.Context, id uuid.UUID, bearerToken, a
 		return nil, shared.NewConflictError("another import is already in progress for this application")
 	}
 
+	// Detach the context for the core phase. Once we've reserved the in-flight
+	// slot, the operation MUST complete to a terminal state (imported or
+	// import_failed); otherwise the slot stays "in flight" and every future
+	// import returns 409 until manual cleanup. If the caller cancels mid-call
+	// (browser closed, network drop) we still want to finish what we started.
+	// 2 minutes is a generous safety net; the coreClient's HTTP timeout is
+	// the actual cap.
+	coreCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
 	payload := BuildPayload(app, meteringPoints, importStartedAt, selection.MeterTariffIDs)
 	// Member number is provided per import call now (no longer auto-assigned
 	// at submit time), so override whatever BuildPayload picked up from the
 	// stale `application.member_number` column.
 	payload.ParticipantNumber = memberNumber
 
-	participantID, coreErr := s.coreClient.CreateParticipant(ctx, payload, bearerToken, app.RCNumber)
+	participantID, coreErr := s.coreClient.CreateParticipant(coreCtx, payload, bearerToken, app.RCNumber)
 	importFinishedAt := time.Now()
 
 	if coreErr != nil {
@@ -322,7 +332,7 @@ func (s *ImportService) Import(ctx context.Context, id uuid.UUID, bearerToken, a
 	// follow-up partial update. A failure here does not roll back the
 	// import — the admin can re-assign the member tariff in the core UI.
 	if selection.MemberTariffID != "" {
-		if err := s.coreClient.UpdateParticipantField(ctx, bearerToken, app.RCNumber, participantID, "tariffId", selection.MemberTariffID); err != nil {
+		if err := s.coreClient.UpdateParticipantField(coreCtx, bearerToken, app.RCNumber, participantID, "tariffId", selection.MemberTariffID); err != nil {
 			warn := normalizeError(err)
 			slog.Warn("import: member tariff assignment failed after participant creation",
 				"application_id", id,

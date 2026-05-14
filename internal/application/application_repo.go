@@ -767,6 +767,27 @@ func (r *ApplicationRepository) UpdateImportResultTx(tx *sql.Tx, id uuid.UUID, u
 // COALESCE on target_participant_id and imported_at — passing nil there
 // would not clear them.
 func (r *ApplicationRepository) ResetImportTx(tx *sql.Tx, id uuid.UUID) error {
+	// Defense-in-depth: explicitly lock the application row before the UPDATE
+	// so a concurrent Import (which goes through MarkImportInFlight, another
+	// row-level UPDATE) serialises behind us. The UPDATE below already takes
+	// a row lock implicitly, but stating it via SELECT FOR UPDATE makes the
+	// intent obvious — and refuses the reset when an import is still
+	// in flight (status=approved, started_at set, finished_at null).
+	var inFlight bool
+	if err := tx.QueryRow(`
+		SELECT (import_started_at IS NOT NULL AND import_finished_at IS NULL)
+		FROM member_onboarding.application
+		WHERE id = $1
+		FOR UPDATE`, id).Scan(&inFlight); err != nil {
+		if err == sql.ErrNoRows {
+			return shared.ErrNotFound
+		}
+		return fmt.Errorf("failed to lock application for reset: %w", err)
+	}
+	if inFlight {
+		return shared.NewConflictError("cannot reset while an import is in flight")
+	}
+
 	query := `
 		UPDATE member_onboarding.application SET
 			status                = $1,
