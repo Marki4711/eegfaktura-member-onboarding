@@ -36,6 +36,14 @@ Name, Adresse und Creditor-ID Ihrer Energiegemeinschaft. Diese Felder werden fü
 
 > **Hinweis:** Wenn das SEPA-Mandat aktiviert ist, aber Stammdaten fehlen, erscheint eine Warnung. Solange Felder fehlen, wird kein PDF generiert.
 
+### E-Mail-Adresse bestätigen
+
+- **E-Mail-Adresse bestätigen**: Wenn aktiv, erhält das neue Mitglied in der Bestätigungs-Mail einen Button „E-Mail-Adresse bestätigen". Erst nach dem Klick wechselt der Antrag in den Status **„E-Mail bestätigt"** und ist für Ihre Prüfung freigegeben. Solange die Bestätigung aussteht, sehen Sie den Antrag mit dem Status „Eingereicht" und einer Warnung in der Detail-Ansicht.
+
+Empfehlung: aktivieren, wenn Sie regelmäßig Müll-Anträge oder Tippfehler bei der E-Mail-Adresse erleben. Vor dem ersten Lauf prüfen, dass die SMTP-Konfiguration stabil ist — sonst können Mitglieder nicht klicken.
+
+Falls eine Bestätigungs-Mail im Spam-Ordner landet: in der Antragsdetail-Seite über **„Bestätigungs-Link erneut senden"** kann der Link erneut versendet werden (mit neuem Token; alter Link wird ungültig). Anträge, die 30 Tage lang nicht bestätigt werden, werden automatisch abgelehnt.
+
 Klicken Sie auf **Speichern**, um alle Änderungen in diesem Abschnitt zu übernehmen.
 
 ---

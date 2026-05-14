@@ -194,6 +194,7 @@ Allowed status values:
 
 - `draft`
 - `submitted`
+- `email_confirmed` *(PROJ-31, only reached when EEG opts in)*
 - `under_review`
 - `needs_info`
 - `approved`
@@ -205,6 +206,12 @@ Allowed transitions:
 
 - `draft -> submitted`
 - `submitted -> under_review`
+- `submitted -> email_confirmed` *(PROJ-31, only via member click on the confirmation link — `POST /api/public/applications/confirm-email`. Not exposed on the admin `/status` endpoint.)*
+- `submitted -> rejected` *(PROJ-31, admin override for obvious junk before confirmation)*
+- `email_confirmed -> under_review`
+- `email_confirmed -> needs_info`
+- `email_confirmed -> approved`
+- `email_confirmed -> rejected`
 - `under_review -> needs_info`
 - `under_review -> approved`
 - `under_review -> rejected`
@@ -213,6 +220,11 @@ Allowed transitions:
 - `approved -> import_failed`
 - `import_failed -> approved`
 - `imported -> approved` *(PROJ-30, only via dedicated `POST /reset-import` endpoint, never via generic `/status`)*
+
+When `registration_entrypoint.require_email_confirmation = TRUE` (PROJ-31), the
+generic admin `/status` endpoint rejects `submitted -> under_review|needs_info|approved`
+with 409 until the member has clicked the confirmation link. `submitted -> rejected`
+remains available as the admin's anti-spam override.
 
 ## Explicit Non-Goals
 

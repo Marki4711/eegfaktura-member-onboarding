@@ -31,12 +31,27 @@ Klicken Sie auf die gewünschte Aktion. Je nach aktuellem Status stehen untersch
 
 | Aktueller Status | Mögliche Aktionen |
 |-----------------|-------------------|
-| `submitted` | In Prüfung nehmen, Rückfragen stellen, Ablehnen |
+| `submitted` | In Prüfung nehmen, Ablehnen *(bei aktiver E-Mail-Bestätigung nur „Ablehnen", bis das Mitglied bestätigt)* |
+| `email_confirmed` | In Prüfung nehmen, Rückfragen stellen, Ablehnen |
 | `under_review` | Genehmigen, Rückfragen stellen, Ablehnen |
 | `needs_info` | — (wartet auf Ergänzung durch das Mitglied) |
 | `approved` | Import starten |
 | `import_failed` | Import erneut starten |
 | `imported` | Import zurücksetzen |
+
+## E-Mail-Bestätigung (`email_confirmed`)
+
+Wenn in den EEG-Einstellungen **„E-Mail-Adresse bestätigen"** aktiviert ist, erscheinen neue Anträge zunächst im Status `submitted` mit dem Hinweis **„E-Mail-Adresse noch nicht bestätigt"**. Solange der Bewerber den Link in der Bestätigungs-Mail nicht angeklickt hat, ist der einzig verfügbare Status-Schritt **„Ablehnen"** (für offensichtlichen Spam).
+
+Sobald der Bewerber klickt:
+
+- Status wechselt automatisch auf `email_confirmed`
+- Sie erhalten die EEG-Benachrichtigungs-Mail mit den Antragsdaten
+- Alle normalen Status-Aktionen (In Prüfung nehmen, Rückfragen, Genehmigen, Ablehnen) sind ab jetzt verfügbar
+
+**Bestätigungs-Link erneut senden**: Sollte das Mitglied den Link nicht finden (z. B. Spam-Ordner), nutzen Sie in der Detail-Seite oben rechts **„Bestätigungs-Link erneut senden"**. Das generiert ein neues Token; der alte Link wird ungültig. Min. 5 Minuten Wartezeit zwischen zwei Sendungen.
+
+**Automatische Ablehnung**: Anträge, deren Bestätigung 30 Tage lang ausbleibt, werden vom System automatisch auf `rejected` gesetzt mit dem Grund „E-Mail-Bestätigung ausgeblieben (Auto-Reject nach 30 Tagen)".
 
 ## In Prüfung nehmen (`under_review`)
 

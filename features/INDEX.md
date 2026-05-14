@@ -45,6 +45,6 @@ Central tracking for all features.
 | PROJ-28 | Trennung Privat / Kleinunternehmer | Approved | `features/PROJ-28-split-private-and-kleinunternehmer.md` | 2026-05-12 |
 | PROJ-29 | IBAN-Eingabe mit visueller Gruppierung | Approved | `features/PROJ-29-iban-visual-grouping.md` | 2026-05-12 |
 | PROJ-30 | Reset eines importierten Antrags auf approved | Approved | `features/PROJ-30-reset-imported-to-approved.md` | 2026-05-12 |
-| PROJ-31 | E-Mail-Adresse-Bestätigung (Anti-Abuse) | Planned | `features/PROJ-31-email-confirmation.md` | 2026-05-14 |
+| PROJ-31 | E-Mail-Adresse-Bestätigung (Anti-Abuse) | In Review | `features/PROJ-31-email-confirmation.md` | 2026-05-14 |
 
 ## Next Available ID: PROJ-31
