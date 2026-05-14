@@ -30,10 +30,17 @@ spec:
             capabilities:
               drop: ["ALL"]
           ports:
-            - containerPort: 8080
+            - name: http
+              containerPort: 8080
+            {{- if .Values.metrics.enabled }}
+            - name: metrics
+              containerPort: 9090
+            {{- end }}
           env:
             - name: PORT
               value: "8080"
+            - name: METRICS_PORT
+              value: {{ if .Values.metrics.enabled }}"9090"{{ else }}""{{ end }}
             - name: LOG_LEVEL
               value: {{ .Values.backend.logLevel | quote }}
             - name: DB_HOST
@@ -118,5 +125,61 @@ spec:
   selector:
     app: {{ include "member-onboarding.fullname" . }}-backend
   ports:
-    - port: 8080
+    - name: http
+      port: 8080
       targetPort: 8080
+{{- if .Values.metrics.enabled }}
+---
+# Dedicated ClusterIP service exposing only /metrics on port 9090. NOT
+# routed through the public ingress — only the in-cluster Prometheus pod
+# should scrape this. Annotated for Prometheus' kubernetes_sd_configs in
+# case no ServiceMonitor CRD is in use.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "member-onboarding.fullname" . }}-backend-metrics
+  namespace: {{ include "member-onboarding.namespace" . }}
+  labels:
+    {{- include "member-onboarding.labels" . | nindent 4 }}
+    app: {{ include "member-onboarding.fullname" . }}-backend
+    eegfaktura.at/metrics: "true"
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  selector:
+    app: {{ include "member-onboarding.fullname" . }}-backend
+  ports:
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+{{- if .Values.metrics.serviceMonitor.enabled }}
+---
+# ServiceMonitor for prometheus-operator-based stacks (kube-prometheus-stack,
+# Rancher Monitoring). Skipped when the operator CRD is not installed
+# (set metrics.serviceMonitor.enabled=false).
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "member-onboarding.fullname" . }}-backend
+  namespace: {{ include "member-onboarding.namespace" . }}
+  labels:
+    {{- include "member-onboarding.labels" . | nindent 4 }}
+    {{- with .Values.metrics.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      eegfaktura.at/metrics: "true"
+  namespaceSelector:
+    matchNames:
+      - {{ include "member-onboarding.namespace" . }}
+  endpoints:
+    - port: metrics
+      interval: {{ .Values.metrics.serviceMonitor.interval | default "30s" }}
+      path: /metrics
+{{- end }}
+{{- end }}

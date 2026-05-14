@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5/middleware"
+
+	"github.com/your-org/eegfaktura-member-onboarding/internal/metrics"
 )
 
 // publicIPRateLimiter holds per-IP sliding-window buckets for the public API.
@@ -84,6 +86,7 @@ func PublicSubmitRateLimitMiddleware(next http.Handler) http.Handler {
 		if r.Method == http.MethodPost {
 			ip := realIP(r)
 			if !getIPBucket(ip).allow(limit, window) {
+				metrics.RateLimitHitsTotal.Inc()
 				w.Header().Set("Retry-After", "600")
 				writeJSON(w, http.StatusTooManyRequests, map[string]string{
 					"code":    "rate_limit_exceeded",
@@ -162,11 +165,17 @@ func SlogRequestLogger(next http.Handler) http.Handler {
 		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 		start := time.Now()
 		next.ServeHTTP(ww, r)
+		dur := time.Since(start)
+		// Prometheus histogram: keep cardinality low — only method and
+		// status-class are labelled, never the raw path or status code.
+		metrics.HTTPRequestDurationSeconds.
+			WithLabelValues(r.Method, metrics.StatusClass(ww.Status())).
+			Observe(dur.Seconds())
 		slog.Info("request",
 			"method", r.Method,
 			"path", r.URL.Path,
 			"status", ww.Status(),
-			"duration_ms", time.Since(start).Milliseconds(),
+			"duration_ms", dur.Milliseconds(),
 			"request_id", middleware.GetReqID(r.Context()),
 			"remote_addr", realIP(r),
 		)

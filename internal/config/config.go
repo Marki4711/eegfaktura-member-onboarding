@@ -19,6 +19,10 @@ type Config struct {
 	CentralPolicy CentralPolicyConfig
 	Core          CoreConfig
 	AdminBaseURL  string
+	// MetricsPort, when non-empty, starts a separate HTTP server on that port
+	// that serves /metrics (Prometheus exposition format). Default "9090".
+	// Set to "" to disable the metrics endpoint entirely.
+	MetricsPort string
 	// TrustedProxyCIDRs is a comma-separated list of CIDR ranges (IPv4 or IPv6)
 	// from which X-Real-IP / X-Forwarded-For headers are honoured. Anything
 	// outside these ranges has its proxy headers ignored. Empty (dev default)
@@ -134,6 +138,7 @@ func Load() (*Config, error) {
 		},
 		AdminBaseURL:      getEnv("ADMIN_BASE_URL", ""),
 		TrustedProxyCIDRs: getEnv("TRUSTED_PROXY_CIDRS", ""),
+		MetricsPort:       getEnv("METRICS_PORT", "9090"),
 	}
 
 	return config, nil

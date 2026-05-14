@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/your-org/eegfaktura-member-onboarding/internal/metrics"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/shared"
 )
 
@@ -351,8 +352,10 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 			sendErr = s.sender.Send(memberOpts, app.Email, subject, memberHTML, memberPlain)
 		}
 		if sendErr != nil {
+			metrics.MailSentTotal.WithLabelValues("member_confirmation", "failed").Inc()
 			slog.Error("mail: failed to send member confirmation", "application_id", app.ID, "to", app.Email, "error", sendErr)
 		} else {
+			metrics.MailSentTotal.WithLabelValues("member_confirmation", "success").Inc()
 			slog.Info("mail: member confirmation sent", "application_id", app.ID, "to", app.Email, "has_attachment", len(attachment) > 0)
 		}
 	}
@@ -447,8 +450,10 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 	// directly from their inbox instead of having to copy-paste the address.
 	eegOpts := transactionalOpts(app.Email)
 	if err := s.sender.Send(eegOpts, *entrypoint.ContactEmail, subject, eegHTML, htmlToText(eegHTML)); err != nil {
+		metrics.MailSentTotal.WithLabelValues("eeg_notification", "failed").Inc()
 		slog.Error("mail: failed to send EEG notification", "application_id", app.ID, "to", *entrypoint.ContactEmail, "error", err)
 	} else {
+		metrics.MailSentTotal.WithLabelValues("eeg_notification", "success").Inc()
 		slog.Info("mail: EEG notification sent", "application_id", app.ID, "to", *entrypoint.ContactEmail)
 	}
 }
@@ -472,7 +477,13 @@ func (s *SMTPMailService) SendMemberConfirmation(app *shared.Application, entryp
 	subject := fmt.Sprintf("Ihre Beitrittserklärung wurde eingereicht (%s)", app.ReferenceNumber)
 	htmlBody := buf.String()
 	opts := transactionalOpts(derefString(entrypoint.ContactEmail))
-	return s.sender.Send(opts, app.Email, subject, htmlBody, htmlToText(htmlBody))
+	err := s.sender.Send(opts, app.Email, subject, htmlBody, htmlToText(htmlBody))
+	if err != nil {
+		metrics.MailSentTotal.WithLabelValues("resend", "failed").Inc()
+	} else {
+		metrics.MailSentTotal.WithLabelValues("resend", "success").Inc()
+	}
+	return err
 }
 
 // SendApprovalEmail sends the approval notification with optional PDF attachment to the EEG contact.
@@ -507,10 +518,18 @@ func (s *SMTPMailService) SendApprovalEmail(app *shared.Application, entrypoint 
 	// Reply-To = applicant so the EEG admin can use the approval mail itself
 	// to write to the new member (welcome note, follow-up info).
 	opts := transactionalOpts(app.Email)
+	var err error
 	if len(pdfBytes) > 0 {
-		return s.sender.SendWithAttachment(opts, *entrypoint.ContactEmail, subject, approvalHTML, approvalPlain, filename, pdfBytes)
+		err = s.sender.SendWithAttachment(opts, *entrypoint.ContactEmail, subject, approvalHTML, approvalPlain, filename, pdfBytes)
+	} else {
+		err = s.sender.Send(opts, *entrypoint.ContactEmail, subject, approvalHTML, approvalPlain)
 	}
-	return s.sender.Send(opts, *entrypoint.ContactEmail, subject, approvalHTML, approvalPlain)
+	if err != nil {
+		metrics.MailSentTotal.WithLabelValues("eeg_approval", "failed").Inc()
+	} else {
+		metrics.MailSentTotal.WithLabelValues("eeg_approval", "success").Inc()
+	}
+	return err
 }
 
 func derefString(s *string) string {

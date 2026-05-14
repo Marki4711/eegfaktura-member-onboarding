@@ -37,6 +37,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	_ "github.com/lib/pq"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	httpswagger "github.com/swaggo/http-swagger/v2"
 
 	"github.com/your-org/eegfaktura-member-onboarding/internal/application"
@@ -254,7 +255,7 @@ func main() {
 	cleanupCtx, cleanupCancel := context.WithCancel(context.Background())
 	internalhttp.StartIPBucketCleanup(cleanupCtx)
 
-	// Start server
+	// Start main HTTP server
 	addr := ":" + cfg.Server.Port
 	slog.Info("starting server", "addr", addr)
 	srv := &http.Server{
@@ -269,6 +270,28 @@ func main() {
 		}
 	}()
 
+	// Metrics server — separate port so /metrics never gets exposed via the
+	// public ingress. The Helm Service for this port is ClusterIP-only and
+	// only the in-cluster Prometheus pod can reach it. Disabled when
+	// METRICS_PORT="" (no metrics endpoint at all).
+	var metricsSrv *http.Server
+	if cfg.MetricsPort != "" {
+		metricsMux := http.NewServeMux()
+		metricsMux.Handle("/metrics", promhttp.Handler())
+		metricsSrv = &http.Server{
+			Addr:         ":" + cfg.MetricsPort,
+			Handler:      metricsMux,
+			ReadTimeout:  5 * time.Second,
+			WriteTimeout: 10 * time.Second,
+		}
+		slog.Info("starting metrics server", "addr", metricsSrv.Addr)
+		go func() {
+			if err := metricsSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				slog.Error("metrics server failed", "error", err)
+			}
+		}()
+	}
+
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
 	<-quit
@@ -277,6 +300,9 @@ func main() {
 	cleanupCancel()
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer shutdownCancel()
+	if metricsSrv != nil {
+		_ = metricsSrv.Shutdown(shutdownCtx)
+	}
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Fatalf("forced shutdown: %v", err)
 	}

@@ -14,6 +14,7 @@ import (
 
 	"github.com/your-org/eegfaktura-member-onboarding/internal/application"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/coreclient"
+	"github.com/your-org/eegfaktura-member-onboarding/internal/metrics"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/shared"
 )
 
@@ -58,8 +59,10 @@ func (s *ImportService) ListTariffs(ctx context.Context, bearerToken, tenant str
 func (s *ImportService) SuggestNextMemberNumber(ctx context.Context, bearerToken, tenant string) (string, error) {
 	participants, err := s.coreClient.ListParticipants(ctx, bearerToken, tenant)
 	if err != nil {
+		metrics.MemberNumberLookupTotal.WithLabelValues("core_error").Inc()
 		return "", err
 	}
+	metrics.MemberNumberLookupTotal.WithLabelValues("success").Inc()
 
 	type group struct {
 		prefix  string
@@ -278,6 +281,7 @@ func (s *ImportService) Import(ctx context.Context, id uuid.UUID, bearerToken, a
 	importFinishedAt := time.Now()
 
 	if coreErr != nil {
+		metrics.ImportsTotal.WithLabelValues("failed").Inc()
 		errMessage := normalizeError(coreErr)
 		if persistErr := s.persistResult(id, app.Status, application.ImportResultUpdate{
 			Status:             shared.StatusImportFailed,
@@ -294,6 +298,8 @@ func (s *ImportService) Import(ctx context.Context, id uuid.UUID, bearerToken, a
 			ErrorMessage:  errMessage,
 		}, coreErr
 	}
+
+	metrics.ImportsTotal.WithLabelValues("success").Inc()
 
 	if err := s.persistResult(id, app.Status, application.ImportResultUpdate{
 		Status:              shared.StatusImported,

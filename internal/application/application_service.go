@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/your-org/eegfaktura-member-onboarding/internal/mail"
+	"github.com/your-org/eegfaktura-member-onboarding/internal/metrics"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/pdf"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/shared"
 )
@@ -492,6 +493,7 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID, consents []shared.C
 
 	// Send submission emails only on first submission (draft → submitted).
 	if oldStatus == string(shared.StatusDraft) {
+		metrics.ApplicationsSubmittedTotal.Inc()
 		entrypoint, epErr := s.entrypointRepo.GetByRCNumber(app.RCNumber)
 		if epErr != nil {
 			slog.Warn("mail: failed to load entrypoint", "rc", app.RCNumber, "error", epErr)

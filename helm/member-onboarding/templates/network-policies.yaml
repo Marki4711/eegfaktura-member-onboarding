@@ -39,6 +39,16 @@ spec:
       ports:
         - port: 8080
           protocol: TCP
+{{- if .Values.metrics.enabled }}
+    # From the Prometheus scraper namespace to :9090 (/metrics).
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.networkPolicies.prometheusNamespace }}
+      ports:
+        - port: 9090
+          protocol: TCP
+{{- end }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
