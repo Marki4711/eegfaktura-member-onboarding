@@ -67,7 +67,7 @@ INSERT INTO member_onboarding.application (
 ) VALUES (
     '22222222-0001-0000-0000-000000000001',
     'R-DEMO-0001', 'RC-DEMO', 'draft', NOW() - INTERVAL '6 hours',
-    NULL, 'Max', 'Mustermann', '1985-03-12',
+    NULL, 'Max', 'Musterperson', '1985-03-12',
     'demo1@example.invalid', '+43 1 2345671',
     'Musterstraße', '1', '1010', 'Musterstadt',
     FALSE, FALSE,
@@ -88,11 +88,11 @@ INSERT INTO member_onboarding.application (
     '22222222-0002-0000-0000-000000000002',
     'R-DEMO-0002', 'RC-DEMO', 'submitted',
     NOW() - INTERVAL '3 days', NOW() - INTERVAL '2 days',
-    NULL, 'Erika', 'Mustermann', '1990-07-25',
+    NULL, 'Erika', 'Musterperson', '1990-07-25',
     'demo2@example.invalid', '+43 1 2345672',
     'Musterstraße', '2', '1020', 'Musterstadt',
     TRUE, 'v1', NOW() - INTERVAL '2 days', TRUE,
-    'AT000000000000000000', 'Erika Mustermann', TRUE, NOW() - INTERVAL '2 days',
+    'AT000000000000000000', 'Erika Musterperson', TRUE, NOW() - INTERVAL '2 days',
     'private', 'core', '2026-06-01', 1
 );
 
@@ -110,11 +110,11 @@ INSERT INTO member_onboarding.application (
     '22222222-0003-0000-0000-000000000003',
     'R-DEMO-0003', 'RC-DEMO', 'under_review',
     NOW() - INTERVAL '5 days', NOW() - INTERVAL '4 days',
-    'Otto', 'Beispiel', '1978-11-03',
+    'Otto', 'Musterperson', '1978-11-03',
     'demo3@example.invalid', '+43 1 2345673',
     'Musterstraße', '3', '1030', 'Musterstadt',
     TRUE, 'v1', NOW() - INTERVAL '4 days', TRUE,
-    'AT000000000000000003', 'Otto Beispiel', TRUE, NOW() - INTERVAL '4 days',
+    'AT000000000000000003', 'Otto Musterperson', TRUE, NOW() - INTERVAL '4 days',
     'private', 'core', '2026-06-01', 4,
     'Wartet auf Rückmeldung bzgl. zweitem Zählpunkt.'
 );
@@ -133,11 +133,11 @@ INSERT INTO member_onboarding.application (
     '22222222-0004-0000-0000-000000000004',
     'R-DEMO-0004', 'RC-DEMO', 'needs_info',
     NOW() - INTERVAL '10 days', NOW() - INTERVAL '8 days',
-    'Anna', 'Musterfrau', '1965-04-20',
+    'Anna', 'Musterperson', '1965-04-20',
     'demo4@example.invalid', '+43 1 2345674',
     'Musterstraße', '4', '4020', 'Musterstadt',
     TRUE, 'v1', NOW() - INTERVAL '8 days', TRUE,
-    'AT000000000000000004', 'Anna Musterfrau', TRUE, NOW() - INTERVAL '8 days',
+    'AT000000000000000004', 'Anna Musterperson', TRUE, NOW() - INTERVAL '8 days',
     'private', 'core', '2026-07-01', 2,
     'Bitte Zählpunktnummer überprüfen — die angegebene Nummer ist nur 32-stellig.'
 );
@@ -157,11 +157,11 @@ INSERT INTO member_onboarding.application (
     '22222222-0005-0000-0000-000000000005',
     'R-DEMO-0005', 'RC-DEMO', 'approved',
     NOW() - INTERVAL '14 days', NOW() - INTERVAL '12 days', NOW() - INTERVAL '1 day',
-    'Hans', 'Probekunde', '1982-09-15',
+    'Hans', 'Musterperson', '1982-09-15',
     'demo5@example.invalid', '+43 1 2345675',
     'Musterstraße', '5', '8010', 'Musterstadt',
     TRUE, 'v1', NOW() - INTERVAL '12 days', TRUE,
-    'AT000000000000000005', 'Hans Probekunde', TRUE, NOW() - INTERVAL '12 days',
+    'AT000000000000000005', 'Hans Musterperson', TRUE, NOW() - INTERVAL '12 days',
     'private', 'core', '2026-06-15', 3,
     4200, 3800, 5.5
 );
@@ -180,11 +180,11 @@ INSERT INTO member_onboarding.application (
     '22222222-0006-0000-0000-000000000006',
     'R-DEMO-0006', 'RC-DEMO', 'rejected',
     NOW() - INTERVAL '20 days', NOW() - INTERVAL '18 days', NOW() - INTERVAL '15 days',
-    'Maria', 'Testkundin', '1972-01-08',
+    'Maria', 'Musterperson', '1972-01-08',
     'demo6@example.invalid', '+43 1 2345676',
     'Musterstraße', '6', '5020', 'Musterstadt',
     TRUE, 'v1', NOW() - INTERVAL '18 days', TRUE,
-    'AT000000000000000006', 'Maria Testkundin', TRUE, NOW() - INTERVAL '18 days',
+    'AT000000000000000006', 'Maria Musterperson', TRUE, NOW() - INTERVAL '18 days',
     'private', 'core',
     'Zählpunkte liegen außerhalb des EEG-Versorgungsgebiets.'
 );
@@ -206,11 +206,11 @@ INSERT INTO member_onboarding.application (
     'R-DEMO-0007', 'RC-DEMO', 'imported',
     NOW() - INTERVAL '40 days', NOW() - INTERVAL '38 days',
     NOW() - INTERVAL '35 days', NOW() - INTERVAL '34 days',
-    'Karl', 'Demo', '1995-12-19',
+    'Karl', 'Musterperson', '1995-12-19',
     'demo7@example.invalid', '+43 1 2345677',
     'Musterstraße', '7', '6020', 'Musterstadt',
     TRUE, 'v1', NOW() - INTERVAL '38 days', TRUE,
-    'AT000000000000000007', 'Karl Demo', TRUE, NOW() - INTERVAL '38 days',
+    'AT000000000000000007', 'Karl Musterperson', TRUE, NOW() - INTERVAL '38 days',
     'private', 'core', '2026-05-01', 2,
     'A005', 'core-part-A005-uuid',
     NOW() - INTERVAL '34 days', NOW() - INTERVAL '34 days'
@@ -231,11 +231,11 @@ INSERT INTO member_onboarding.application (
     '22222222-0008-0000-0000-000000000008',
     'R-DEMO-0008', 'RC-DEMO', 'import_failed',
     NOW() - INTERVAL '7 days', NOW() - INTERVAL '5 days', NOW() - INTERVAL '2 days',
-    'Stefanie', 'Beispiel', '1988-08-30',
+    'Stefanie', 'Musterperson', '1988-08-30',
     'demo8@example.invalid', '+43 1 2345678',
     'Musterstraße', '8', '9020', 'Musterstadt',
     TRUE, 'v1', NOW() - INTERVAL '5 days', TRUE,
-    'AT000000000000000008', 'Stefanie Beispiel', TRUE, NOW() - INTERVAL '5 days',
+    'AT000000000000000008', 'Stefanie Musterperson', TRUE, NOW() - INTERVAL '5 days',
     'private', 'core', '2026-06-01',
     NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day',
     'eegFaktura-Core: 503 service unavailable (timeout nach 30s)'
