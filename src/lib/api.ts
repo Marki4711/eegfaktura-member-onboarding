@@ -691,10 +691,10 @@ export function saveFieldConfig(rcNumber: string, config: AdminFieldConfig, toke
 export interface EEGSettings {
   rcNumber: string;
   registrationActive?: boolean;
-  eegId: string | null;
-  // The seven fields below are now Core-mastered (PROJ-32). Frontend
+  // The eight fields below are Core-mastered (PROJ-32). Frontend
   // displays them read-only and never sends them in PUT /settings/eeg
   // (the backend ignores them if a legacy client still does).
+  eegId: string | null;
   eegName: string | null;
   eegStreet: string | null;
   eegStreetNumber: string | null;
@@ -708,6 +708,18 @@ export interface EEGSettings {
   showCentralPolicy?: boolean;
   memberNumberStart?: number;
   requireEmailConfirmation?: boolean;
+}
+
+// Editable subset accepted by PUT /api/admin/settings/eeg. Everything
+// else is either Core-mastered (synced fields) or written via a
+// dedicated endpoint.
+export interface EEGSettingsSavePayload {
+  registrationActive?: boolean;
+  sepaMandateEnabled: boolean;
+  useCompanySEPAMandate: boolean;
+  requireEmailConfirmation?: boolean;
+  showCentralPolicy?: boolean;
+  memberNumberStart?: number;
 }
 
 export interface ConfirmEmailResponse {
@@ -747,7 +759,7 @@ export function getEEGSettings(rcNumber: string, token?: string): Promise<EEGSet
   return adminRequest<EEGSettings>(`/api/admin/settings/eeg?rc_number=${encodeURIComponent(rcNumber)}`, token);
 }
 
-export function saveEEGSettings(rcNumber: string, settings: Omit<EEGSettings, "rcNumber">, token?: string): Promise<void> {
+export function saveEEGSettings(rcNumber: string, settings: EEGSettingsSavePayload, token?: string): Promise<void> {
   return adminRequest<void>(
     `/api/admin/settings/eeg?rc_number=${encodeURIComponent(rcNumber)}`,
     token,

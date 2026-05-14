@@ -94,7 +94,18 @@ export function AdminLegalDocumentsEditor({ rcNumber }: Props) {
     setPolicyToggleSaving(true);
     setShowCentralPolicy(checked);
     try {
-      await saveEEGSettings(rcNumber, { ...eegSettings, showCentralPolicy: checked }, session?.accessToken);
+      await saveEEGSettings(
+        rcNumber,
+        {
+          registrationActive: eegSettings.registrationActive,
+          sepaMandateEnabled: eegSettings.sepaMandateEnabled,
+          useCompanySEPAMandate: eegSettings.useCompanySEPAMandate,
+          requireEmailConfirmation: eegSettings.requireEmailConfirmation,
+          memberNumberStart: eegSettings.memberNumberStart,
+          showCentralPolicy: checked,
+        },
+        session?.accessToken,
+      );
       setEegSettings({ ...eegSettings, showCentralPolicy: checked });
     } catch {
       setShowCentralPolicy(!checked);

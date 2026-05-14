@@ -631,6 +631,7 @@ func (h *AdminHandler) SyncEEGSettingsFromCore(w http.ResponseWriter, r *http.Re
 	}
 
 	update := application.CoreMasterDataUpdate{
+		EegID:      core.CommunityID,
 		EEGName:    core.Name,
 		CreditorID: nilIfAccount(core, func(a *coreclient.EEGMasterDataAccount) *string { return a.CreditorID }),
 	}
@@ -705,6 +706,7 @@ func buildEEGSettingsComparison(local *shared.RegistrationEntrypoint, core *core
 			})
 		}
 	}
+	add("eegId", "Gemeinschafts-ID", local.EegID, core.CommunityID)
 	add("eegName", "EEG-Name", local.EEGName, core.Name)
 	add("eegStreet", "Straße", local.EEGStreet, coreStreet)
 	add("eegStreetNumber", "Hausnummer", local.EEGStreetNumber, coreStreetNumber)
@@ -1392,34 +1394,24 @@ func (h *AdminHandler) SaveEEGSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body struct {
-		RegistrationActive       *bool   `json:"registrationActive"`
-		EegID                    *string `json:"eegId"`
-		SEPAMandateEnabled       bool    `json:"sepaMandateEnabled"`
-		UseCompanySEPAMandate    bool    `json:"useCompanySEPAMandate"`
-		ShowCentralPolicy        *bool   `json:"showCentralPolicy"`
-		MemberNumberStart        *int    `json:"memberNumberStart"`
-		RequireEmailConfirmation *bool   `json:"requireEmailConfirmation"`
-		// Fields that are now Core-mastered (PROJ-32) are deliberately NOT
-		// accepted here. The frontend may still include them in the request
-		// body for forward compatibility — they will be silently ignored
-		// rather than rejected, so a legacy admin client doesn't crash on a
-		// 400 when it tries to send them.
+		RegistrationActive       *bool `json:"registrationActive"`
+		SEPAMandateEnabled       bool  `json:"sepaMandateEnabled"`
+		UseCompanySEPAMandate    bool  `json:"useCompanySEPAMandate"`
+		ShowCentralPolicy        *bool `json:"showCentralPolicy"`
+		MemberNumberStart        *int  `json:"memberNumberStart"`
+		RequireEmailConfirmation *bool `json:"requireEmailConfirmation"`
+		// Fields that are now Core-mastered (PROJ-32: eegId, eegName,
+		// address, creditorId, contactEmail) are deliberately NOT accepted
+		// here. A legacy admin client that still sends them won't 400 —
+		// json.Decode just ignores unknown fields.
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Invalid JSON", nil)))
 		return
 	}
 
-	nilIfEmpty := func(s *string) *string {
-		if s == nil || *s == "" {
-			return nil
-		}
-		return s
-	}
-
 	if err := h.entrypointRepo.SaveEEGSettings(
 		rcNumber,
-		nilIfEmpty(body.EegID),
 		body.SEPAMandateEnabled,
 		body.UseCompanySEPAMandate,
 	); err != nil {

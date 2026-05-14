@@ -22,12 +22,13 @@ import (
 // decides whether a null is acceptable (e.g. CreditorID often is) or
 // should leave the local DB value alone.
 type EEGMasterData struct {
-	ID          string                  `json:"id"`
-	Name        *string                 `json:"name"`
-	RCNumber    *string                 `json:"rcNumber"`
-	Address     *EEGMasterDataAddress   `json:"address"`
-	Contact     *EEGMasterDataContact   `json:"contact"`
-	AccountInfo *EEGMasterDataAccount   `json:"accountInfo"`
+	ID          string                `json:"id"`
+	Name        *string               `json:"name"`
+	RCNumber    *string               `json:"rcNumber"`
+	CommunityID *string               `json:"communityId"`
+	Address     *EEGMasterDataAddress `json:"address"`
+	Contact     *EEGMasterDataContact `json:"contact"`
+	AccountInfo *EEGMasterDataAccount `json:"accountInfo"`
 }
 
 type EEGMasterDataAddress struct {

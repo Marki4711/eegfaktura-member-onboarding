@@ -65,25 +65,23 @@ func (r *RegistrationEntrypointRepository) GetByRCNumber(rcNumber string) (*shar
 }
 
 // SaveEEGSettings persists the Onboarding-owned settings for the given RC
-// number. Since PROJ-32 the EEG master data (name, address, creditor-id,
-// contact-email) is **not** written here anymore — those fields are now
-// mastered by the eegFaktura core and only modified via SyncFromCore. This
-// function still takes the eeg_id (Excel export ID, Onboarding-only) and
-// the two SEPA toggles (Onboarding-only).
+// number. Since PROJ-32 the EEG master data (eeg_id / community-id, name,
+// address, creditor-id, contact-email) is **not** written here anymore —
+// those fields are mastered by the eegFaktura core and only modified via
+// SyncFromCore. This function only writes the two SEPA toggles
+// (Onboarding-only).
 func (r *RegistrationEntrypointRepository) SaveEEGSettings(
 	rcNumber string,
-	eegID *string,
 	sepaMandateEnabled bool,
 	useCompanySEPAMandate bool,
 ) error {
 	result, err := r.db.Exec(`
 		UPDATE member_onboarding.registration_entrypoint
-		SET eeg_id = $1,
-		    sepa_mandate_enabled = $2,
-		    use_company_sepa_mandate = $3,
+		SET sepa_mandate_enabled = $1,
+		    use_company_sepa_mandate = $2,
 		    updated_at = NOW()
-		WHERE rc_number = $4`,
-		eegID, sepaMandateEnabled, useCompanySEPAMandate, rcNumber)
+		WHERE rc_number = $3`,
+		sepaMandateEnabled, useCompanySEPAMandate, rcNumber)
 	if err != nil {
 		return fmt.Errorf("failed to save EEG settings for %s: %w", rcNumber, err)
 	}
@@ -167,6 +165,7 @@ func (r *RegistrationEntrypointRepository) SaveIntroText(rcNumber string, introT
 // behaviour: if the Core has no value (e.g. creditor_id not configured),
 // we should reflect that, not retain a stale local value.
 type CoreMasterDataUpdate struct {
+	EegID           *string
 	EEGName         *string
 	EEGStreet       *string
 	EEGStreetNumber *string
@@ -179,17 +178,18 @@ type CoreMasterDataUpdate struct {
 func (r *RegistrationEntrypointRepository) SyncFromCore(rcNumber string, u CoreMasterDataUpdate) error {
 	result, err := r.db.Exec(`
 		UPDATE member_onboarding.registration_entrypoint
-		SET eeg_name = $1,
-		    eeg_street = $2,
-		    eeg_street_number = $3,
-		    eeg_zip = $4,
-		    eeg_city = $5,
-		    creditor_id = $6,
-		    contact_email = $7,
+		SET eeg_id = $1,
+		    eeg_name = $2,
+		    eeg_street = $3,
+		    eeg_street_number = $4,
+		    eeg_zip = $5,
+		    eeg_city = $6,
+		    creditor_id = $7,
+		    contact_email = $8,
 		    last_synced_from_core_at = NOW(),
 		    updated_at = NOW()
-		WHERE rc_number = $8`,
-		u.EEGName, u.EEGStreet, u.EEGStreetNumber, u.EEGZip, u.EEGCity,
+		WHERE rc_number = $9`,
+		u.EegID, u.EEGName, u.EEGStreet, u.EEGStreetNumber, u.EEGZip, u.EEGCity,
 		u.CreditorID, u.ContactEmail, rcNumber)
 	if err != nil {
 		return fmt.Errorf("failed to sync from core for %s: %w", rcNumber, err)

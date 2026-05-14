@@ -5,7 +5,6 @@ import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle2, AlertCircle, RefreshCw, Lock } from "lucide-react";
 import {
@@ -54,7 +53,6 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
   const [diffExpanded, setDiffExpanded] = useState(false);
 
   // Onboarding-only editable fields
-  const [eegId, setEegId] = useState("");
   const [sepaMandateEnabled, setSepaMandateEnabled] = useState(false);
   const [useCompanySEPAMandate, setUseCompanySEPAMandate] = useState(false);
   const [registrationActive, setRegistrationActive] = useState(false);
@@ -65,7 +63,6 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
     const s = await getEEGSettings(rcNumber, session.accessToken);
     setSettings(s);
     setRegistrationActive(s.registrationActive ?? false);
-    setEegId(s.eegId ?? "");
     setSepaMandateEnabled(s.sepaMandateEnabled);
     setUseCompanySEPAMandate(s.useCompanySEPAMandate ?? false);
     setRequireEmailConfirmation(s.requireEmailConfirmation ?? false);
@@ -102,14 +99,6 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
         rcNumber,
         {
           registrationActive,
-          eegId: eegId.trim() || null,
-          // Synced fields are NOT sent — backend ignores them anyway.
-          eegName: settings?.eegName ?? null,
-          eegStreet: settings?.eegStreet ?? null,
-          eegStreetNumber: settings?.eegStreetNumber ?? null,
-          eegZip: settings?.eegZip ?? null,
-          eegCity: settings?.eegCity ?? null,
-          creditorId: settings?.creditorId ?? null,
           sepaMandateEnabled,
           useCompanySEPAMandate,
           requireEmailConfirmation,
@@ -140,8 +129,6 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
     }
   };
 
-  const fieldClass = "h-9 text-sm";
-
   return (
     <div className="space-y-4">
       {!loaded && <p className="text-xs text-muted-foreground">Lädt…</p>}
@@ -166,20 +153,10 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
             />
           </div>
 
-          {/* Gemeinschafts-ID (Onboarding-only) */}
+          {/* Gemeinschafts-ID — Core-mastered (PROJ-32). Wird im
+              Excel-Export (Spalte B) für den eegFaktura-Import verwendet. */}
           <div className="space-y-1.5">
-            <Label htmlFor="eeg-id" className="text-sm">
-              Gemeinschafts-ID
-            </Label>
-            <Input
-              id="eeg-id"
-              value={eegId}
-              onChange={(e) => {
-                setEegId(e.target.value);
-                setSaveResult(null);
-              }}
-              className={fieldClass}
-            />
+            <SyncedField label="Gemeinschafts-ID" value={settings.eegId} />
             <p className="text-xs text-muted-foreground">
               Wird im Excel-Export (Spalte B) für den eegFaktura-Import verwendet.
             </p>
