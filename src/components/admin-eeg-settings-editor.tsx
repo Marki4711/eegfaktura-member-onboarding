@@ -153,15 +153,6 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
             />
           </div>
 
-          {/* Gemeinschafts-ID — Core-mastered (PROJ-32). Wird im
-              Excel-Export (Spalte B) für den eegFaktura-Import verwendet. */}
-          <div className="space-y-1.5">
-            <SyncedField label="Gemeinschafts-ID" value={settings.eegId} />
-            <p className="text-xs text-muted-foreground">
-              Wird im Excel-Export (Spalte B) für den eegFaktura-Import verwendet.
-            </p>
-          </div>
-
           {/* PROJ-32: Stammdaten aus eegFaktura — read-only */}
           <div className="rounded-md border bg-card p-4 space-y-3">
             <div className="flex items-start justify-between gap-2">
@@ -267,7 +258,13 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
               </Alert>
             )}
 
-            {/* The seven read-only synced fields */}
+            {/* The eight read-only synced fields */}
+            <div className="space-y-1.5">
+              <SyncedField label="Gemeinschafts-ID" value={settings.eegId} />
+              <p className="text-xs text-muted-foreground">
+                Wird im Excel-Export (Spalte B) für den eegFaktura-Import verwendet.
+              </p>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <SyncedField label="EEG-Name" value={settings.eegName} />
               <SyncedField label="Kontakt-E-Mail" value={settings.contactEmail} />
