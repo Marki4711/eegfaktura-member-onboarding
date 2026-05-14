@@ -70,7 +70,17 @@ export function AdminStatusActions({ applicationId, rcNumber, status, targetPart
   function handleActionError(err: unknown) {
     if (err instanceof ApiResponseError && err.apiError.code === "conflict") {
       setIsConflict(true);
-      setError("Diese Aktion ist nicht mehr gültig. Bitte laden Sie die Seite neu, um den aktuellen Status zu sehen.");
+      // Prefer the server's specific German message (e.g. PROJ-31's
+      // "E-Mail-Adresse des Bewerbers ist noch nicht bestätigt …") over
+      // the generic "Aktion nicht mehr gültig"-Text. The reload button
+      // is still shown afterwards so the admin can refresh the view if
+      // the conflict was about a stale local status.
+      const serverMessage = err.apiError.message?.trim();
+      setError(
+        serverMessage && serverMessage.length > 0
+          ? serverMessage
+          : "Diese Aktion ist nicht mehr gültig. Bitte laden Sie die Seite neu, um den aktuellen Status zu sehen.",
+      );
     } else {
       setIsConflict(false);
       setError(err instanceof Error ? err.message : "Fehler bei der Statusänderung");
