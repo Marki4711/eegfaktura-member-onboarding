@@ -1,4 +1,4 @@
-.PHONY: build run test clean migrate-up migrate-down docker-up docker-down dev-setup dev
+.PHONY: build run test clean migrate-up migrate-down docker-up docker-down dev-setup dev seed-dev
 
 # Default database URL matching docker-compose.yml defaults.
 # Override on the command line: make migrate-up DATABASE_URL=postgres://...
@@ -36,6 +36,12 @@ docker-down:
 
 # Start postgres and apply migrations
 dev-setup: docker-up migrate-up
+
+# Insert demo data used by the screenshot generator
+# (RC123456 + one application in every status, two metering points each).
+# Idempotent — safe to re-run.
+seed-dev:
+	docker compose exec -T postgres psql -U postgres -d member_onboarding -f - < db/seed/dev_screenshots.sql
 
 # Full local workflow
 dev: dev-setup run
