@@ -69,19 +69,19 @@ type graphqlEEGResponse struct {
 	} `json:"errors,omitempty"`
 }
 
-// eegMasterDataQuery is the exact GraphQL document we POST. Kept as a
-// constant so that schema changes in the core surface as a single
-// localised edit here, not scattered across the codebase.
-const eegMasterDataQuery = `query EEGMasterData {
-  eeg {
-    id
-    name
-    rcNumber
-    address { street streetNumber zip city }
-    contact { email phone }
-    accountInfo { iban owner bankName creditorId bic sepa }
-  }
-}`
+// eegMasterDataQuery is the exact GraphQL document we POST.
+//
+// The core's `eeg` field returns a **scalar** type (`scalar Eeg` in
+// schema.graphqls), not an object — gqlgen marshals the whole Go
+// `model.Eeg` struct as a single JSON blob at `data.eeg`. We therefore
+// request `eeg` without a selection set (selection on a scalar is a
+// GraphQL validation error: "Field 'eeg' must not have a selection
+// since type 'Eeg' has no subfields").
+//
+// The JSON keys we consume (`id`, `name`, `rcNumber`, `address.*`,
+// `contact.*`, `accountInfo.*`) come from the json tags on `model.Eeg`
+// in eegfaktura-backend; the EEGMasterData DTO below maps them.
+const eegMasterDataQuery = `query EEGMasterData { eeg }`
 
 // FetchEEGMasterData fires the GraphQL query against `<baseURL>/api/query` and
 // returns the parsed EEG record. The bearer token must belong to a Keycloak
