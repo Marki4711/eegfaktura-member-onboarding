@@ -135,6 +135,34 @@ type SubmitResponse struct {
 	SubmittedAt     time.Time         `json:"submittedAt"`
 }
 
+// EEGSettingsFieldDiff describes one field where the local Onboarding value
+// differs from what the eegFaktura core currently has. Both string-typed
+// values are pre-dereffed (empty string for NULL) so the frontend can render
+// them as-is. Field is a stable identifier (`eegName`, `creditorId`, …);
+// Label is the German human-readable label for the admin UI banner.
+type EEGSettingsFieldDiff struct {
+	Field      string `json:"field"`
+	Label      string `json:"label"`
+	LocalValue string `json:"localValue"`
+	CoreValue  string `json:"coreValue"`
+}
+
+// EEGSettingsComparisonResponse is what GET /core-comparison and
+// POST /sync both return — same shape, so the frontend can use one render
+// path. inSync==true ⇒ differingFields is empty.
+//
+// coreReachable=false signals the comparison couldn't be performed (Core
+// down / not configured); the frontend then renders a neutral "Core nicht
+// erreichbar — letzter Stand: lastSyncedAt" banner instead of either a
+// drift warning or a synchron-OK.
+type EEGSettingsComparisonResponse struct {
+	CoreReachable        bool                    `json:"coreReachable"`
+	CoreUnreachableError string                  `json:"coreUnreachableError,omitempty"`
+	InSync               bool                    `json:"inSync"`
+	DifferingFields      []EEGSettingsFieldDiff  `json:"differingFields,omitempty"`
+	LastSyncedAt         *time.Time              `json:"lastSyncedAt,omitempty"`
+}
+
 // ConfirmEmailRequest carries the plaintext token sent in the confirmation
 // e-mail. Used by POST /api/public/applications/confirm-email (PROJ-31).
 type ConfirmEmailRequest struct {

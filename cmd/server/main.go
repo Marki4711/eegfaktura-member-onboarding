@@ -148,7 +148,7 @@ func main() {
 	// Initialize handlers
 	registrationHandler := internalhttp.NewRegistrationHandler(registrationService)
 	applicationHandler := internalhttp.NewApplicationHandler(applicationService, cfg.Turnstile.SecretKey)
-	adminHandler := internalhttp.NewAdminHandler(adminService, entrypointRepo, apiKeyRepo, legalDocumentRepo, importService)
+	adminHandler := internalhttp.NewAdminHandler(adminService, entrypointRepo, apiKeyRepo, legalDocumentRepo, importService, coreHTTPClient)
 	externalHandler := internalhttp.NewExternalHandler(applicationService)
 	healthHandler := internalhttp.NewHealthHandler(db)
 
@@ -247,6 +247,8 @@ func main() {
 			r.Put("/intro-text", adminHandler.SaveIntroText)
 			r.Get("/eeg", adminHandler.GetEEGSettings)
 			r.Put("/eeg", adminHandler.SaveEEGSettings)
+			r.Get("/eeg/core-comparison", adminHandler.CompareEEGSettingsWithCore)
+			r.Post("/eeg/sync", adminHandler.SyncEEGSettingsFromCore)
 			r.Get("/api-key", adminHandler.GetAPIKeyStatus)
 			r.Post("/api-key", adminHandler.GenerateAPIKey)
 			r.Delete("/api-key", adminHandler.RevokeAPIKey)

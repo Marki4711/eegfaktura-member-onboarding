@@ -41,6 +41,7 @@ func (r *RegistrationEntrypointRepository) GetByRCNumber(rcNumber string) (*shar
 		       eeg_name, eeg_street, eeg_street_number, eeg_zip, eeg_city,
 		       creditor_id, sepa_mandate_enabled, use_company_sepa_mandate,
 		       show_central_policy, member_number_start, require_email_confirmation,
+		       last_synced_from_core_at,
 		       created_at, updated_at
 		FROM member_onboarding.registration_entrypoint
 		WHERE rc_number = $1`
@@ -51,6 +52,7 @@ func (r *RegistrationEntrypointRepository) GetByRCNumber(rcNumber string) (*shar
 		&ep.EEGName, &ep.EEGStreet, &ep.EEGStreetNumber, &ep.EEGZip, &ep.EEGCity,
 		&ep.CreditorID, &ep.SEPAMandateEnabled, &ep.UseCompanySEPAMandate,
 		&ep.ShowCentralPolicy, &ep.MemberNumberStart, &ep.RequireEmailConfirmation,
+		&ep.LastSyncedFromCoreAt,
 		&ep.CreatedAt, &ep.UpdatedAt,
 	)
 	if err != nil {
@@ -62,23 +64,26 @@ func (r *RegistrationEntrypointRepository) GetByRCNumber(rcNumber string) (*shar
 	return ep, nil
 }
 
-// SaveEEGSettings persists the EEG master data and SEPA mandate toggles for the given RC number.
+// SaveEEGSettings persists the Onboarding-owned settings for the given RC
+// number. Since PROJ-32 the EEG master data (name, address, creditor-id,
+// contact-email) is **not** written here anymore — those fields are now
+// mastered by the eegFaktura core and only modified via SyncFromCore. This
+// function still takes the eeg_id (Excel export ID, Onboarding-only) and
+// the two SEPA toggles (Onboarding-only).
 func (r *RegistrationEntrypointRepository) SaveEEGSettings(
 	rcNumber string,
 	eegID *string,
-	eegName, eegStreet, eegStreetNumber, eegZip, eegCity, creditorID *string,
 	sepaMandateEnabled bool,
 	useCompanySEPAMandate bool,
 ) error {
 	result, err := r.db.Exec(`
 		UPDATE member_onboarding.registration_entrypoint
-		SET eeg_id = $1, eeg_name = $2, eeg_street = $3, eeg_street_number = $4,
-		    eeg_zip = $5, eeg_city = $6, creditor_id = $7,
-		    sepa_mandate_enabled = $8, use_company_sepa_mandate = $9,
+		SET eeg_id = $1,
+		    sepa_mandate_enabled = $2,
+		    use_company_sepa_mandate = $3,
 		    updated_at = NOW()
-		WHERE rc_number = $10`,
-		eegID, eegName, eegStreet, eegStreetNumber, eegZip, eegCity, creditorID,
-		sepaMandateEnabled, useCompanySEPAMandate, rcNumber)
+		WHERE rc_number = $4`,
+		eegID, sepaMandateEnabled, useCompanySEPAMandate, rcNumber)
 	if err != nil {
 		return fmt.Errorf("failed to save EEG settings for %s: %w", rcNumber, err)
 	}
@@ -140,6 +145,54 @@ func (r *RegistrationEntrypointRepository) SaveIntroText(rcNumber string, introT
 		WHERE rc_number = $2`, introText, rcNumber)
 	if err != nil {
 		return fmt.Errorf("failed to save intro text for %s: %w", rcNumber, err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check rows affected: %w", err)
+	}
+	if rows == 0 {
+		return shared.ErrNotFound
+	}
+	return nil
+}
+
+// SyncFromCore overwrites the Core-mastered fields with values pulled from
+// the eegFaktura core (PROJ-32). The Onboarding does NOT own these values
+// — they are mirrored here so PDF/Mail render code can keep reading the
+// registration_entrypoint table unchanged. last_synced_from_core_at is
+// stamped with NOW() inside the same UPDATE so the admin UI can show a
+// reliable "Stand vom" timestamp.
+//
+// nil values overwrite the local column with NULL. That is the intended
+// behaviour: if the Core has no value (e.g. creditor_id not configured),
+// we should reflect that, not retain a stale local value.
+type CoreMasterDataUpdate struct {
+	EEGName         *string
+	EEGStreet       *string
+	EEGStreetNumber *string
+	EEGZip          *string
+	EEGCity         *string
+	CreditorID      *string
+	ContactEmail    *string
+}
+
+func (r *RegistrationEntrypointRepository) SyncFromCore(rcNumber string, u CoreMasterDataUpdate) error {
+	result, err := r.db.Exec(`
+		UPDATE member_onboarding.registration_entrypoint
+		SET eeg_name = $1,
+		    eeg_street = $2,
+		    eeg_street_number = $3,
+		    eeg_zip = $4,
+		    eeg_city = $5,
+		    creditor_id = $6,
+		    contact_email = $7,
+		    last_synced_from_core_at = NOW(),
+		    updated_at = NOW()
+		WHERE rc_number = $8`,
+		u.EEGName, u.EEGStreet, u.EEGStreetNumber, u.EEGZip, u.EEGCity,
+		u.CreditorID, u.ContactEmail, rcNumber)
+	if err != nil {
+		return fmt.Errorf("failed to sync from core for %s: %w", rcNumber, err)
 	}
 	rows, err := result.RowsAffected()
 	if err != nil {

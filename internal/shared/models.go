@@ -26,6 +26,9 @@ type RegistrationEntrypoint struct {
 	ShowCentralPolicy          bool      `json:"showCentralPolicy"          db:"show_central_policy"`
 	MemberNumberStart          int       `json:"memberNumberStart"          db:"member_number_start"`
 	RequireEmailConfirmation   bool      `json:"requireEmailConfirmation"   db:"require_email_confirmation"`
+	// LastSyncedFromCoreAt is NULL until the admin has triggered the first
+	// sync (PROJ-32). After that, every successful sync stamps it with NOW().
+	LastSyncedFromCoreAt       *time.Time `json:"lastSyncedFromCoreAt,omitempty" db:"last_synced_from_core_at"`
 	CreatedAt                  time.Time `json:"createdAt"                  db:"created_at"`
 	UpdatedAt          time.Time `json:"updatedAt"          db:"updated_at"`
 }

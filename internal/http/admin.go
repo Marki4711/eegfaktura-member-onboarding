@@ -18,6 +18,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 
 	"github.com/your-org/eegfaktura-member-onboarding/internal/application"
+	"github.com/your-org/eegfaktura-member-onboarding/internal/coreclient"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/importing"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/shared"
 )
@@ -29,18 +30,24 @@ type AdminHandler struct {
 	apiKeyRepo        *application.ExternalAPIKeyRepository
 	legalDocumentRepo *application.LegalDocumentRepository
 	importService     *importing.ImportService
-	validate          *validator.Validate
-	sanitizer         *bluemonday.Policy
+	// coreClient is shared with importService — used by PROJ-32 for the
+	// master-data sync GraphQL call. nil when CORE_GRAPHQL_URL is not set.
+	coreClient *coreclient.HTTPCoreClient
+	validate   *validator.Validate
+	sanitizer  *bluemonday.Policy
 }
 
 // NewAdminHandler creates a new AdminHandler. importService may be nil when
-// CORE_BASE_URL is not configured — the import endpoint then returns 503.
+// CORE_BASE_URL is not configured (import endpoint returns 503), and
+// coreClient may be nil when neither CORE_BASE_URL nor CORE_GRAPHQL_URL is
+// set (master-data-sync endpoints return 503).
 func NewAdminHandler(
 	adminService *application.AdminApplicationService,
 	entrypointRepo *application.RegistrationEntrypointRepository,
 	apiKeyRepo *application.ExternalAPIKeyRepository,
 	legalDocumentRepo *application.LegalDocumentRepository,
 	importService *importing.ImportService,
+	coreClient *coreclient.HTTPCoreClient,
 ) *AdminHandler {
 	p := bluemonday.NewPolicy()
 	p.AllowElements("p", "br", "strong", "b", "em", "i", "ul", "ol", "li")
@@ -52,6 +59,7 @@ func NewAdminHandler(
 		apiKeyRepo:        apiKeyRepo,
 		legalDocumentRepo: legalDocumentRepo,
 		importService:     importService,
+		coreClient:        coreClient,
 		validate:          validator.New(),
 		sanitizer:         p,
 	}
@@ -518,6 +526,213 @@ func (h *AdminHandler) ResendMemberConfirmation(w http.ResponseWriter, r *http.R
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// CompareEEGSettingsWithCore handles GET /api/admin/settings/eeg/core-comparison?rc_number=…
+//
+// @Summary      Compare local EEG master data with the eegFaktura core (PROJ-32)
+// @Description  Fetches the EEG master data from the core via GraphQL and diffs it field-by-field against the local registration_entrypoint row. Used by the Settings UI to show a drift banner.
+// @Tags         Admin
+// @Produce      json
+// @Security     BearerAuth
+// @Param        rc_number  query  string  true  "RC number"
+// @Success      200  {object}  shared.EEGSettingsComparisonResponse
+// @Failure      401  {object}  shared.ErrorResponse
+// @Failure      403  {object}  shared.ErrorResponse
+// @Failure      503  {object}  shared.ErrorResponse  "Core not configured or unreachable"
+// @Router       /api/admin/settings/eeg/core-comparison [get]
+func (h *AdminHandler) CompareEEGSettingsWithCore(w http.ResponseWriter, r *http.Request) {
+	rcNumber, ok := h.parseRCAndCheck(w, r)
+	if !ok {
+		return
+	}
+	if h.coreClient == nil {
+		h.writeJSON(w, http.StatusServiceUnavailable, shared.ErrorResponse{
+			Code:    "service_unavailable",
+			Message: "EEG-Stammdaten-Sync ist nicht konfiguriert (CORE_GRAPHQL_URL leer).",
+		})
+		return
+	}
+	bearerToken := extractBearerToken(r)
+	if bearerToken == "" {
+		h.writeJSON(w, http.StatusServiceUnavailable, shared.ErrorResponse{
+			Code:    "service_unavailable",
+			Message: "Vergleich erfordert eine authentifizierte Admin-Session (Keycloak).",
+		})
+		return
+	}
+
+	local, err := h.entrypointRepo.GetByRCNumber(rcNumber)
+	if err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+
+	ctx, cancel := r.Context(), func() {}
+	_ = cancel
+	core, fetchErr := h.coreClient.FetchEEGMasterData(ctx, bearerToken, rcNumber)
+	if fetchErr != nil {
+		// Surface as a graceful 200 with `coreReachable: false` so the
+		// frontend can render a "Core nicht erreichbar"-Hinweis instead of
+		// a hard error toast.
+		h.writeJSON(w, http.StatusOK, shared.EEGSettingsComparisonResponse{
+			CoreReachable:        false,
+			CoreUnreachableError: fetchErr.Error(),
+			LastSyncedAt:         local.LastSyncedFromCoreAt,
+		})
+		return
+	}
+
+	resp := buildEEGSettingsComparison(local, core)
+	h.writeJSON(w, http.StatusOK, resp)
+}
+
+// SyncEEGSettingsFromCore handles POST /api/admin/settings/eeg/sync?rc_number=…
+//
+// @Summary      Pull EEG master data from the eegFaktura core (PROJ-32)
+// @Description  Fetches the latest EEG master data from the core via GraphQL and writes the synced columns on registration_entrypoint. Stamps last_synced_from_core_at. The synced fields (name, address, creditor-id, contact-email) are not user-editable elsewhere.
+// @Tags         Admin
+// @Produce      json
+// @Security     BearerAuth
+// @Param        rc_number  query  string  true  "RC number"
+// @Success      200  {object}  shared.EEGSettingsComparisonResponse
+// @Failure      401  {object}  shared.ErrorResponse
+// @Failure      403  {object}  shared.ErrorResponse
+// @Failure      502  {object}  shared.ErrorResponse  "Core returned an error"
+// @Failure      503  {object}  shared.ErrorResponse  "Core not configured"
+// @Router       /api/admin/settings/eeg/sync [post]
+func (h *AdminHandler) SyncEEGSettingsFromCore(w http.ResponseWriter, r *http.Request) {
+	rcNumber, ok := h.parseRCAndCheck(w, r)
+	if !ok {
+		return
+	}
+	if h.coreClient == nil {
+		h.writeJSON(w, http.StatusServiceUnavailable, shared.ErrorResponse{
+			Code:    "service_unavailable",
+			Message: "EEG-Stammdaten-Sync ist nicht konfiguriert (CORE_GRAPHQL_URL leer).",
+		})
+		return
+	}
+	bearerToken := extractBearerToken(r)
+	if bearerToken == "" {
+		h.writeJSON(w, http.StatusServiceUnavailable, shared.ErrorResponse{
+			Code:    "service_unavailable",
+			Message: "Sync erfordert eine authentifizierte Admin-Session (Keycloak).",
+		})
+		return
+	}
+
+	core, fetchErr := h.coreClient.FetchEEGMasterData(r.Context(), bearerToken, rcNumber)
+	if fetchErr != nil {
+		h.writeJSON(w, http.StatusBadGateway, shared.ErrorResponse{
+			Code:    "core_unreachable",
+			Message: "eegFaktura konnte nicht abgefragt werden: " + fetchErr.Error(),
+		})
+		return
+	}
+
+	update := application.CoreMasterDataUpdate{
+		EEGName:    core.Name,
+		CreditorID: nilIfAccount(core, func(a *coreclient.EEGMasterDataAccount) *string { return a.CreditorID }),
+	}
+	if core.Address != nil {
+		update.EEGStreet = core.Address.Street
+		update.EEGStreetNumber = core.Address.StreetNumber
+		update.EEGZip = core.Address.Zip
+		update.EEGCity = core.Address.City
+	}
+	if core.Contact != nil {
+		update.ContactEmail = core.Contact.Email
+	}
+
+	if err := h.entrypointRepo.SyncFromCore(rcNumber, update); err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+
+	// Reload so the response carries the freshly stamped last_synced_at.
+	local, err := h.entrypointRepo.GetByRCNumber(rcNumber)
+	if err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+	resp := buildEEGSettingsComparison(local, core)
+	h.writeJSON(w, http.StatusOK, resp)
+}
+
+// nilIfAccount is a tiny helper for the SyncEEGSettingsFromCore path that
+// avoids a nil-deref when core.AccountInfo is missing from the GraphQL
+// response.
+func nilIfAccount(core *coreclient.EEGMasterData, pick func(*coreclient.EEGMasterDataAccount) *string) *string {
+	if core == nil || core.AccountInfo == nil {
+		return nil
+	}
+	return pick(core.AccountInfo)
+}
+
+// buildEEGSettingsComparison computes the per-field diff between the local
+// registration_entrypoint row and a freshly fetched core response. Used by
+// both the comparison endpoint (read-only) and the sync endpoint (which
+// runs the comparison again against the just-written values, so the front-
+// end can immediately render the new "synchron"-Status).
+func buildEEGSettingsComparison(local *shared.RegistrationEntrypoint, core *coreclient.EEGMasterData) shared.EEGSettingsComparisonResponse {
+	resp := shared.EEGSettingsComparisonResponse{
+		CoreReachable: true,
+		LastSyncedAt:  local.LastSyncedFromCoreAt,
+	}
+	var coreStreet, coreStreetNumber, coreZip, coreCity *string
+	if core.Address != nil {
+		coreStreet = core.Address.Street
+		coreStreetNumber = core.Address.StreetNumber
+		coreZip = core.Address.Zip
+		coreCity = core.Address.City
+	}
+	var coreContactEmail *string
+	if core.Contact != nil {
+		coreContactEmail = core.Contact.Email
+	}
+	var coreCreditorID *string
+	if core.AccountInfo != nil {
+		coreCreditorID = core.AccountInfo.CreditorID
+	}
+
+	add := func(field, label string, localVal, coreVal *string) {
+		if !stringPointersEqual(localVal, coreVal) {
+			resp.DifferingFields = append(resp.DifferingFields, shared.EEGSettingsFieldDiff{
+				Field:     field,
+				Label:     label,
+				LocalValue:  derefStringPointer(localVal),
+				CoreValue: derefStringPointer(coreVal),
+			})
+		}
+	}
+	add("eegName", "EEG-Name", local.EEGName, core.Name)
+	add("eegStreet", "Straße", local.EEGStreet, coreStreet)
+	add("eegStreetNumber", "Hausnummer", local.EEGStreetNumber, coreStreetNumber)
+	add("eegZip", "PLZ", local.EEGZip, coreZip)
+	add("eegCity", "Ort", local.EEGCity, coreCity)
+	add("creditorId", "Creditor-ID", local.CreditorID, coreCreditorID)
+	add("contactEmail", "Kontakt-E-Mail", local.ContactEmail, coreContactEmail)
+
+	resp.InSync = len(resp.DifferingFields) == 0
+	return resp
+}
+
+func stringPointersEqual(a, b *string) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return *a == *b
+}
+
+func derefStringPointer(p *string) string {
+	if p == nil {
+		return ""
+	}
+	return *p
 }
 
 // ResendEmailConfirmation handles POST /api/admin/applications/{id}/resend-email-confirmation
@@ -1175,26 +1390,24 @@ func (h *AdminHandler) SaveEEGSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body struct {
-		RegistrationActive    *bool   `json:"registrationActive"`
-		EegID                 *string `json:"eegId"`
-		EEGName               *string `json:"eegName"`
-		EEGStreet             *string `json:"eegStreet"`
-		EEGStreetNumber       *string `json:"eegStreetNumber"`
-		EEGZip                *string `json:"eegZip"`
-		EEGCity               *string `json:"eegCity"`
-		CreditorID            *string `json:"creditorId"`
-		SEPAMandateEnabled    bool    `json:"sepaMandateEnabled"`
-		UseCompanySEPAMandate bool    `json:"useCompanySEPAMandate"`
+		RegistrationActive       *bool   `json:"registrationActive"`
+		EegID                    *string `json:"eegId"`
+		SEPAMandateEnabled       bool    `json:"sepaMandateEnabled"`
+		UseCompanySEPAMandate    bool    `json:"useCompanySEPAMandate"`
 		ShowCentralPolicy        *bool   `json:"showCentralPolicy"`
 		MemberNumberStart        *int    `json:"memberNumberStart"`
 		RequireEmailConfirmation *bool   `json:"requireEmailConfirmation"`
+		// Fields that are now Core-mastered (PROJ-32) are deliberately NOT
+		// accepted here. The frontend may still include them in the request
+		// body for forward compatibility — they will be silently ignored
+		// rather than rejected, so a legacy admin client doesn't crash on a
+		// 400 when it tries to send them.
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Invalid JSON", nil)))
 		return
 	}
 
-	// Normalise: empty string → nil
 	nilIfEmpty := func(s *string) *string {
 		if s == nil || *s == "" {
 			return nil
@@ -1205,12 +1418,6 @@ func (h *AdminHandler) SaveEEGSettings(w http.ResponseWriter, r *http.Request) {
 	if err := h.entrypointRepo.SaveEEGSettings(
 		rcNumber,
 		nilIfEmpty(body.EegID),
-		nilIfEmpty(body.EEGName),
-		nilIfEmpty(body.EEGStreet),
-		nilIfEmpty(body.EEGStreetNumber),
-		nilIfEmpty(body.EEGZip),
-		nilIfEmpty(body.EEGCity),
-		nilIfEmpty(body.CreditorID),
 		body.SEPAMandateEnabled,
 		body.UseCompanySEPAMandate,
 	); err != nil {
