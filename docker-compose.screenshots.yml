@@ -1,0 +1,28 @@
+# Override compose for the screenshot-generation stack.
+#
+# Adds a local Keycloak instance (dev mode, in-memory storage, no realm
+# persistence across container restarts) used exclusively by the screenshot
+# generator. Combine with the base docker-compose.yml:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.screenshots.yml up -d
+#
+# The realm + screenshot-bot user are configured at runtime by
+# scripts/setup-screenshot-keycloak.ts, not at boot via realm import — this
+# keeps the compose file static and the bot-user password rotatable per setup.
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    command: ["start-dev"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
+    ports:
+      - "8180:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /health/ready HTTP/1.1\\nhost: localhost\\n' >&3 && cat <&3 | grep -q '\"status\": \"UP\"'"]
+      interval: 5s
+      timeout: 5s
+      retries: 30

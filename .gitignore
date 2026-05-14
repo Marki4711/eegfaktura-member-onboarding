@@ -51,3 +51,6 @@ next-env.d.ts
 
 # screenshot generator cache (cookies, not for git)
 .cache/
+
+# screenshot-keycloak generated credentials (per-machine, regenerated on setup)
+.env.screenshots.local

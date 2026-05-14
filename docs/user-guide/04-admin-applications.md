@@ -7,13 +7,14 @@ Nach der Anmeldung sehen Sie die **Antragsübersicht** mit allen eingereichten A
 ![Antragsübersicht](images/admin-applications-list.png)
 
 Die Tabelle zeigt:
-- **Antragsnummer** — eindeutige Kennung des Antrags
-- **EEG** — RC-Nummer der zugehörigen EEG
-- **Mitglied** — Name oder Firmenname
+- **Referenznummer** — eindeutige Kennung des Antrags
+- **Name** — Mitgliedsname oder Firmenname
 - **E-Mail** — Kontaktadresse des Mitglieds
-- **Mitgliedsnummer** — Wird erst beim Import vergeben und kann alphanumerisch sein (z. B. `A005`). Vor dem Import bleibt die Spalte leer.
+- **EEG** — RC-Nummer der zugehörigen EEG
 - **Status** — aktueller Bearbeitungsstand
 - **Eingereicht am** — Datum und Uhrzeit der Einreichung (Anzeige in Europe/Vienna)
+
+Die Mitgliedsnummer ist nicht in der Liste, sondern erst in der Detailansicht eines Antrags sichtbar (sie wird erst beim Import vergeben und kann alphanumerisch sein, z. B. `A005`).
 
 ## Anträge filtern
 

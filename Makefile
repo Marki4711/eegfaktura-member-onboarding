@@ -43,5 +43,18 @@ dev-setup: docker-up migrate-up
 seed-dev:
 	docker compose exec -T postgres psql -U postgres -d member_onboarding -f - < db/seed/dev_screenshots.sql
 
+# Full screenshot stack: Postgres + Keycloak + migrations + seed + Keycloak config.
+# After this you can `npm run screenshots` fully headless.
+.PHONY: screenshots-stack
+screenshots-stack:
+	docker compose -f docker-compose.yml -f docker-compose.screenshots.yml up -d
+	DATABASE_URL="$(DATABASE_URL)" go run ./cmd/migrate -direction up
+	docker compose exec -T postgres psql -U postgres -d member_onboarding -f - < db/seed/dev_screenshots.sql
+	npx tsx scripts/setup-screenshot-keycloak.ts
+
+.PHONY: screenshots-stack-down
+screenshots-stack-down:
+	docker compose -f docker-compose.yml -f docker-compose.screenshots.yml down
+
 # Full local workflow
 dev: dev-setup run

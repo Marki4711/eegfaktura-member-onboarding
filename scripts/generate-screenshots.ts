@@ -28,6 +28,18 @@ import { chromium, type BrowserContext, type Browser, type Cookie, type Page } f
 import fs from "fs"
 import path from "path"
 
+// Pull screenshot-stack overrides from .env.screenshots.local (if present)
+// without dragging in a real dotenv dependency. Setup-script writes that file.
+const SCREENSHOT_ENV = path.resolve(".env.screenshots.local")
+if (fs.existsSync(SCREENSHOT_ENV)) {
+  for (const line of fs.readFileSync(SCREENSHOT_ENV, "utf8").split(/\r?\n/)) {
+    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/)
+    if (m && !line.startsWith("#")) {
+      process.env[m[1]] ??= m[2]
+    }
+  }
+}
+
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000"
 const RC_NUMBER = process.env.RC_NUMBER ?? "RC123456"
 const OUT_DIR = path.resolve("docs/user-guide/images")
@@ -65,23 +77,55 @@ async function ensureLoggedInContext(browser: Browser): Promise<BrowserContext> 
     }
   }
 
-  // Interactive login
-  log("🔐 Opening browser for Keycloak login — please sign in.")
-  const loginBrowser = await chromium.launch({ headless: false })
+  // Auto-login path: SCREENSHOT_BOT_USERNAME + _PASSWORD set (typically by
+  // .env.screenshots.local) → run headless, fill the Keycloak form ourselves.
+  const botUser = process.env.SCREENSHOT_BOT_USERNAME
+  const botPass = process.env.SCREENSHOT_BOT_PASSWORD
+  const headless = Boolean(botUser && botPass)
+
+  if (headless) {
+    log("🔐 Auto-login as bot user (headless)")
+  } else {
+    log("🔐 Opening browser for Keycloak login — please sign in.")
+  }
+  const loginBrowser = await chromium.launch({ headless })
   const loginCtx = await loginBrowser.newContext({ viewport: VIEWPORT })
   const page = await loginCtx.newPage()
   await page.goto(`${BASE_URL}/admin`)
+
+  if (headless && botUser && botPass) {
+    // Wait for Keycloak's login form (NextAuth's intermediate /signin page
+    // immediately submits to Keycloak's authorize endpoint).
+    try {
+      await page.waitForSelector('input[name="username"], input#username', { timeout: 30_000 })
+    } catch {
+      // Some NextAuth setups render a provider-picker first — click "Sign in with Keycloak"
+      const provider = page.locator('button:has-text("Keycloak"), a:has-text("Keycloak")').first()
+      if ((await provider.count()) > 0) {
+        await provider.click()
+        await page.waitForSelector('input[name="username"], input#username', { timeout: 30_000 })
+      } else {
+        throw new Error("Could not locate the Keycloak username field")
+      }
+    }
+    await page.fill('input[name="username"], input#username', botUser)
+    await page.fill('input[name="password"], input#password', botPass)
+    await Promise.all([
+      page.waitForLoadState("networkidle"),
+      page.click('input[type="submit"], button[type="submit"], #kc-login'),
+    ])
+  }
 
   // Wait until we're back on our own /admin/* domain (and not on a NextAuth signin page)
   const ownOrigin = new URL(BASE_URL).origin
   try {
     await page.waitForURL(
       (url) => url.origin === ownOrigin && url.pathname.startsWith("/admin") && !url.pathname.includes("signin"),
-      { timeout: LOGIN_TIMEOUT_MS }
+      { timeout: headless ? 30_000 : LOGIN_TIMEOUT_MS }
     )
   } catch {
     await loginBrowser.close()
-    throw new Error(`Login did not complete within ${LOGIN_TIMEOUT_MS / 1000}s`)
+    throw new Error(`Login did not complete within the timeout`)
   }
   await page.waitForLoadState("networkidle")
 
@@ -101,15 +145,19 @@ async function findFirstAppIdByStatus(page: Page, status: string): Promise<strin
   await page.goto(`${BASE_URL}/admin/applications?status=${encodeURIComponent(status)}&page_size=1`)
   await page.waitForLoadState("networkidle")
 
-  // First strategy: scrape the first detail link in the rendered table
-  const allLinks = await page.locator('a[href*="/admin/applications/"]').all()
-  for (const link of allLinks) {
-    const href = await link.getAttribute("href")
-    if (!href) continue
-    const m = href.match(/\/admin\/applications\/([0-9a-f-]{36})/i)
-    if (m) return m[1]
+  // Rows use a router.push click handler — no href to scrape. Click the first
+  // row and read the UUID out of the resulting URL, then navigate back so the
+  // caller can proceed without losing the listing context.
+  const firstRow = page.locator("table tbody tr").first()
+  if ((await firstRow.count()) === 0) return null
+  await firstRow.click()
+  try {
+    await page.waitForURL(/\/admin\/applications\/[0-9a-f-]{36}/i, { timeout: 10_000 })
+  } catch {
+    return null
   }
-  return null
+  const m = page.url().match(/\/admin\/applications\/([0-9a-f-]{36})/i)
+  return m ? m[1] : null
 }
 
 async function shoot(page: Page, name: string, opts: { fullPage?: boolean } = {}) {
