@@ -9,6 +9,32 @@
 
   <p>wir bestätigen den Eingang Ihrer Beitrittserklärung{{if .EEGName}} bei <strong>{{.EEGName}}</strong>{{end}}.</p>
 
+  {{if .EmailConfirmationURL}}
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin: 24px 0 16px; width: 100%; max-width: 600px;">
+    <tr>
+      <td style="background-color: #fff8e1; border-left: 4px solid #f9a825; padding: 16px 18px; border-radius: 4px;">
+        <p style="margin: 0 0 12px; font-size: 15px; color: #4a3a00;">
+          <strong>Bitte bestätigen Sie Ihre E-Mail-Adresse.</strong><br>
+          {{if .EEGName}}{{.EEGName}}{{else}}Ihre Energiegemeinschaft{{end}} bearbeitet Ihren Antrag, sobald Sie die E-Mail-Adresse mit einem Klick auf den Button unten bestätigt haben.
+        </p>
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+          <tr>
+            <td style="background-color: #2e7d32; border-radius: 4px;">
+              <a href="{{.EmailConfirmationURL}}" style="display: inline-block; padding: 12px 28px; font-size: 16px; font-weight: bold; color: #ffffff; text-decoration: none; border-radius: 4px;">
+                E-Mail-Adresse bestätigen
+              </a>
+            </td>
+          </tr>
+        </table>
+        <p style="margin: 14px 0 0; font-size: 12px; color: #6f5b00;">
+          Der Link ist 30 Tage gültig. Falls der Button nicht klickbar ist, kopieren Sie folgende Adresse in Ihren Browser:<br>
+          <a href="{{.EmailConfirmationURL}}" style="color: #4a3a00; word-break: break-all;">{{.EmailConfirmationURL}}</a>
+        </p>
+      </td>
+    </tr>
+  </table>
+  {{end}}
+
   {{if .EEGName}}
   <p>
     <strong>Energiegemeinschaft:</strong><br>
@@ -177,10 +203,16 @@
   </ol>
   {{end}}
 
+  {{if .EmailConfirmationURL}}
+  <p>
+    Sobald Sie auf den Bestätigungs-Button geklickt haben, prüft Ihre Energiegemeinschaft Ihren Antrag und meldet sich bei Ihnen.
+  </p>
+  {{else}}
   <p>
     Ihre Energiegemeinschaft wird Ihren Antrag in Kürze prüfen und sich bei Ihnen melden.
     Bitte haben Sie etwas Geduld – wir werden Sie so schnell wie möglich informieren.
   </p>
+  {{end}}
 
   <p>Mit freundlichen Grüßen<br>Ihr eegFaktura-Team</p>
 
