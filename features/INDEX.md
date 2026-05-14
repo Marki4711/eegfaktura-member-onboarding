@@ -47,5 +47,6 @@ Central tracking for all features.
 | PROJ-30 | Reset eines importierten Antrags auf approved | Approved | `features/PROJ-30-reset-imported-to-approved.md` | 2026-05-12 |
 | PROJ-31 | E-Mail-Adresse-Bestätigung (Anti-Abuse) | Deployed | `features/PROJ-31-email-confirmation.md` | 2026-05-14 |
 | PROJ-32 | EEG-Stammdaten aus Core (Phase 1 – ohne Logo) | Deployed | `features/PROJ-32-eeg-master-data-from-core.md` | 2026-05-14 |
+| PROJ-33 | EEG-Logo aus Core (Phase 2 von PROJ-32) | Planned | `features/PROJ-33-eeg-logo-from-core.md` | 2026-05-14 |
 
-## Next Available ID: PROJ-33
+## Next Available ID: PROJ-34
