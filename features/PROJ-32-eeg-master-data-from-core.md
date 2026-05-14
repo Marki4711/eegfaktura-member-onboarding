@@ -34,13 +34,20 @@ Recherche-Ergebnis 2026-05-14:
 
 ### Core-Client-Erweiterung
 
-- [ ] Neuer Methode `(c *HTTPCoreClient) GetEEG(ctx, bearerToken, tenant) (*CoreEEG, error)` analog zu `GetTariffs`. Trifft `GET <CORE_BASE_URL>/eeg` mit Bearer-Auth und `tenant`-Header.
-- [ ] Neuer DTO-Typ `CoreEEG` in `internal/coreclient/` mit den Feldern aus dem Core-Response (Name, Adresse-Komponenten, Creditor-ID, Contact-E-Mail, Logo, …).
-- [ ] Logo-Repräsentation: zur Implementierungszeit gegen die deployte API verifizieren (siehe Q1). Wahrscheinliche Optionen:
-  - (a) `logoUrl string` → absoluter Pfad in den Filestore-Service
-  - (b) `logo string` → base64-encoded Bytes inkl. MIME-Typ-Prefix
-  - (c) Logo lebt in eigenem Endpoint `GET /eeg/logo`
-- [ ] Fehlerbehandlung: Core 404 → `shared.ErrNotFound`, alle anderen Fehler werden gewrappt und gemeldet.
+- [ ] Neuer Service-Token-Fetcher `coreclient.ServiceAccountTokenSource` (caches access token, refreshes before expiry via Keycloak `client_credentials`).
+- [ ] Neue Methode `(c *HTTPCoreClient) FetchEEGMasterData(ctx, rc) (*CoreEEG, error)` mit GraphQL-POST gegen `CORE_GRAPHQL_URL`. Query:
+  ```graphql
+  query { eeg { id name description rcNumber
+                address { street streetNumber zip city }
+                contact { phone email }
+                accountInfo { iban owner bankName creditorId bic sepa }
+                optionals { website } } }
+  ```
+- [ ] Neuer DTO-Typ `CoreEEG` in `internal/coreclient/` mit den Feldern oben (alle nullable).
+- [ ] Neue Methode `(c *BillingClient) FetchEEGLogo(ctx, rc) (bytes []byte, mimeType string, err error)` — zweistufig:
+  1. `GET <BILLING_BASE_URL>/billingConfigs/tenant/{rc}` → BillingConfigDTO mit `id` und `headerImageFileDataId`
+  2. Falls `headerImageFileDataId != nil`: `GET <BILLING_BASE_URL>/billingConfigs/{id}/logoImage` → Bytes
+- [ ] Fehlerbehandlung: 404 → `shared.ErrNotFound`, GraphQL-`errors` Array → wrap mit klarem Message, alle anderen Fehler → wrap.
 
 ### Cache-Schicht
 
@@ -116,6 +123,19 @@ Recherche-Ergebnis 2026-05-14:
 - **Sicherheit:** der Core-Call nutzt denselben Bearer-Token wie der `POST /participant`-Call. **Wichtig:** dieser Token wird heute aus dem Admin-JWT extrahiert. Beim PDF-Render (z.B. Bestätigungs-Mail beim Submit) gibt es **kein Admin-JWT**. → siehe Q8 (kritische Frage zur Auth).
 - **Privacy:** Core-Stammdaten enthalten kontaktinfos (E-Mail, Telefon des EEG). Werden sie in Logs gedruckt? Antwort: nein, nur die rc_number wird geloggt.
 - **Rückwärts-Kompatibilität:** Tenants ohne Core-Anbindung (`CORE_BASE_URL` leer) sollen weiterhin funktionieren — Resolver liefert dann immer aus der DB-Tabelle.
+
+## Resolved Decisions (2026-05-14)
+
+Source-Recherche im `myeegfaktura`-Mono-Repo hat alle Open Questions außer Q2/Q5/Q6/Q7 (Defaults) eindeutig beantwortet:
+
+- **Stammdaten:** GraphQL-Endpoint im `eegfaktura-backend`-Service. Route: `POST /query` (server.go:179). Auth: User-JWT-OIDC via `GQLProtect()`. Query liefert das komplette `Eeg`-Modell mit allen für PDFs/Mails relevanten Feldern.
+- **Logo + BillingConfig:** Eigener Service `eegfaktura-billing` (Java/Spring Boot, separates Repo `c:\opt\repos\myeegfaktura\eegfaktura-billing`). Endpoints:
+  - `GET /api/billingConfigs/tenant/{tenantId}` → BillingConfigDTO mit `id`, `headerImageFileDataId`, `footerImageFileDataId`, +Invoice-Templating-Felder (für uns irrelevant). 1:1-Mapping RC ↔ BillingConfig.
+  - `GET /api/billingConfigs/{id}/logoImage` → liefert PNG/JPG-Bytes direkt (Content-Type aus DB-MimeType-Spalte). Bytes liegen als `@Lob byte[]` in eegfaktura-billing's eigener Postgres-DB — **kein** zusätzlicher Filestore-Roundtrip.
+  - Auth: `TenantContext.validateTenant()` prüft `tenant`-Claim im JWT gegen Request-PathVariable. Service-Account-Token mit `tenant`-Claim akzeptiert (via Custom-Mapper im Keycloak-Client).
+- **Reverse-Proxy-Pfad:** Im Live-System (`eegfaktura.at`) wird beiden Services ein `/cash`-Prefix vorgeschaltet. Aus Onboarding-Sicht:
+  - `CORE_GRAPHQL_URL = https://eegfaktura.at/cash/api/query`
+  - `BILLING_BASE_URL = https://eegfaktura.at/cash/api`
 
 ## Open Questions
 
@@ -223,24 +243,31 @@ Implementations-Plan:
 
 **Empfehlung:** (a). Die User-Frage war explizit "braucht es überhaupt eine manuelle Wartungsmöglichkeit?". Antwort: nein, der Fallback bei Core-Ausfall ist genug. Spart Code, spart UI-Komplexität.
 
-### Q8: ⚠️ Auth-Knoten — wer hat ein Bearer-Token beim PDF-Render?
+### Q8: Auth — geklärt: Service-Account via Keycloak client_credentials
 
-**Code-Recherche 2026-05-14:** `c:\opt\repos\myeegfaktura\eegfaktura-backend\api\middleware\tokenVerifier.go` (`ConditionProtect`, Zeilen 244-304) zeigt: der Core kennt **nur User-JWT-Auth** (Keycloak OIDC mit `claims.Tenants` + `claims.AccessGroups`). Es gibt **keinen** Service-Account-Mechanismus, **keinen** API-Key-Pfad, **keinen** internal-only Token. Auch eine optionale `superuser`-Rolle ist nur ein "User mit mehr Rechten", kein M2M-Account.
+**Recherche 2026-05-14:**
+- Keycloak ist bereits Auth-Provider für Core+Billing — und Keycloak unterstützt `grant_type=client_credentials` out-of-the-box.
+- `eegfaktura-backend` (`keycloak.go:48,50,66`) zeigt Bestandscode für client_credentials-Flow, das Konzept ist also im Stack vertraut.
+- Sowohl `GQLProtect()` (backend) als auch `TenantContext.validateTenant()` (billing) konsumieren standard-OIDC-Tokens mit `tenant`-Claim. Das Token muss nur korrekt geclaimt sein, woher es kommt (User-Login oder client_credentials) ist egal.
 
-Das heißt: ohne Core-Änderung gibt es **keinen** Weg, `GET /eeg` aus einem Server-Kontext ohne Admin-JWT aufzurufen. Drei Wege:
+**Lösung — keine Code-Änderungen am Core/Billing nötig:**
+1. **Im Keycloak einrichten** (einmalige Aktion durch vfeeg-Betreiber):
+   - Neuen Client `eegfaktura-onboarding-service` mit `Service Accounts Enabled`
+   - Custom-Mapper: hardcoded oder per-Client-Attribut konfigurierter `tenant`-Claim mit allen RC-Nummern, die das Onboarding bedienen darf
+   - Rollen-Mapping: passende Rolle, die `GQLProtect`/`TenantContext` akzeptieren
+2. **Im Onboarding:**
+   - Neue Env-Vars `CORE_OAUTH_CLIENT_ID` + `CORE_OAUTH_CLIENT_SECRET` + `CORE_OAUTH_TOKEN_URL`
+   - Token-Cache mit Refresh: Token holen, gültig bis Ablauf, dann refreshen
+   - Bei jedem Core/Billing-Call: Bearer aus dem Cache + `tenant`-Header
 
-- (a) **Core-seitig** einen Service-Account-Mechanismus einbauen (Client-Credentials-Flow gegen denselben Keycloak). Sauberer Standard-OAuth2-Weg. Onboarding hält Client-ID + Secret in K8s-Secrets. Aufwand: 1–2 Tage Core-Arbeit (separates Repo `myeegfaktura/eegfaktura-backend`).
-- (b) Cache **nur** durch Admin-Aktionen befüllen, Submit-Pfad nutzt den Cache passiv. Beim ersten Submit kann der Cache leer sein → Fallback auf manuelle DB-Werte. Sobald ein Admin die EEG-Settings-Seite besucht (oder den "Aktualisieren"-Button drückt), wird der Cache gefüllt und die nächsten Submits sehen die Core-Daten.
-- (c) Onboarding speichert das Admin-JWT bei jeder Admin-Anmeldung als "Tenant-Service-Token" und nutzt es bis zum Ablauf. Bricht alle Auth-Prinzipien (Tokens sollen kurzlebig sein, nicht serverseitig persistiert werden). **Verboten.**
+**Damit ist die "PDF-Render ohne Admin-JWT"-Sorge gelöst** — das Onboarding hat **immer** ein gültiges Token zur Hand, unabhängig davon ob ein Admin gerade aktiv ist.
 
-**Empfehlung:** (b) für Phase 1, (a) als Folge-Spec wenn der vfeeg-Betreiber bereit ist, im Core nachzubessern.
+Vorteil gegenüber der "passive cache, befüllt nur durch Admin-Action"-Variante: vollständige Funktionalität auch bei Erst-Submit nach Reboot, ohne dass jemand vorher die Admin-UI angefasst haben muss.
 
-Folgen von (b):
-- Erst-Submit nach Deploy / Reboot ohne Admin-Aktivität bekommt die alten DB-Werte. Nicht schlimm, weil der Admin die Felder weiterhin manuell vorpflegen kann (Fallback).
-- Auto-Reject-Job (PROJ-31 Stage E) muss `GET /eeg` **nicht** aufrufen — der nutzt nur lokale DB-Felder.
-- Die Resolver-Order wird umgekehrt: **lokale DB zuerst** (immer verfügbar), Cache (falls befüllt) **überschreibt** Felder selektiv (nur die Core-gepflegten). Cache-Befüllung passiert ausschließlich beim Admin-Click auf "Aktualisieren" oder bei jeder Admin-Detail-Anzeige.
-
-Dies entspricht einem "Eventual Consistency Read-Through, getriggert durch Admin-Aktivität". Pragmatisch und ohne Core-Änderung lauffähig.
+**Sicherheits-Implikationen:**
+- Service-Account-Secret muss in K8s-Secret (nicht in `values.yaml`).
+- Tenant-Mapper begrenzt den Blast-Radius: das Token sieht nur die expliziten RC-Nummern.
+- Token-Lebensdauer: 1 h Default Keycloak, refresh implementiert.
 
 ## Notes
 
