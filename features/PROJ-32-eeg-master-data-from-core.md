@@ -1,8 +1,19 @@
 # PROJ-32: EEG-Stammdaten aus eegFaktura-Core beziehen (inkl. Logo)
 
-## Status: Planned
+## Status: In Review
 **Created:** 2026-05-14
-**Last Updated:** 2026-05-14
+**Last Updated:** 2026-05-14 (Phase 1 implementiert: Sync-Endpoints + Frontend-Drift-Banner. Phase 2 / Logo-Embed steht als Folge-Spec aus.)
+
+> **Spec-Anmerkung:** Während der Implementierung wurde die ursprüngliche
+> Architektur (Live-Resolver mit In-Memory-Cache + Service-Account) zu einem
+> einfacheren Modell vereinfacht. Statt eines Caches überträgt der **Sync
+> die Core-Daten direkt in `registration_entrypoint`** — die DB ist der
+> single-source-of-truth-Speicher für Render-Pfade. Auth nutzt das **Admin-
+> JWT** des klickenden Admins (Token-Forwarding wie bei `POST /participant`)
+> statt eines Service-Accounts. Damit sind die Original-Stages A–G und die
+> Open Questions Q2/Q4/Q6/Q7/Q8 hinfällig; die effektive Umsetzung ist in
+> den drei Stages A–C der commit history dokumentiert. Detailtext oben ist
+> aus Doku-Gründen erhalten geblieben, aber nicht die gelieferte Implementation.
 
 ## Dependencies
 - Requires: PROJ-4 (Core Import) — wieder­verwendet die bestehende `coreclient`-Infrastruktur (Bearer-Auth, tenant-Header, Timeouts).

@@ -25,9 +25,17 @@ Neue EEGs starten standardmäßig als inaktiv. Aktivieren Sie die Registrierung 
 
 Die interne ID Ihrer EEG in eegFaktura. Sie wird im Excel-Export für den Datenimport verwendet.
 
-### EEG-Stammdaten
+### EEG-Stammdaten — aus eegFaktura
 
-Name, Adresse und Creditor-ID Ihrer Energiegemeinschaft. Diese Felder werden für das SEPA-Lastschriftmandat benötigt.
+Name, Adresse, Creditor-ID und Kontakt-E-Mail Ihrer Energiegemeinschaft werden direkt aus eegFaktura übernommen. Diese Felder sind in der Onboarding-Oberfläche **schreibgeschützt** (kleines Schloss-Symbol). Änderungen erfolgen ausschließlich in eegFaktura selbst.
+
+**Stand-Anzeige am oberen Rand der Stammdaten-Card:**
+
+- **Grün — „Synchron mit eegFaktura · Stand: DD.MM. HH:MM"**: die Daten stimmen mit eegFaktura überein, kein Handlungsbedarf.
+- **Orange — „Stammdaten weichen ab"**: in eegFaktura wurden Daten geändert seit dem letzten Sync. Über **„Details anzeigen ▾"** sieht man eine Tabelle „Im Onboarding | In eegFaktura" je geändertem Feld. Mit **„Aus eegFaktura aktualisieren"** wird der lokale Stand überschrieben.
+- **Grau — „eegFaktura nicht erreichbar"**: temporärer Ausfall des Core-Systems. Onboarding nutzt weiter den zuletzt gesyncten Stand.
+
+**Erstmaliger Sync nach Inbetriebnahme:** klicken Sie einmal „Aus eegFaktura aktualisieren", damit die Stammdaten in die Onboarding-Datenbank kopiert werden. Bis dahin sind die Felder leer und die Hinweis-Box weist Sie darauf hin.
 
 ### SEPA-Lastschriftmandat
 

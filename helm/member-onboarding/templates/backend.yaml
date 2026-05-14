@@ -90,6 +90,8 @@ spec:
               value: {{ .Values.backend.centralPolicyUrl | quote }}
             - name: CORE_BASE_URL
               value: {{ .Values.backend.coreBaseUrl | quote }}
+            - name: CORE_GRAPHQL_URL
+              value: {{ .Values.backend.coreGraphqlUrl | default "" | quote }}
             - name: CORE_TIMEOUT_SECONDS
               value: {{ .Values.backend.coreTimeoutSeconds | default 30 | quote }}
             - name: TRUSTED_PROXY_CIDRS
