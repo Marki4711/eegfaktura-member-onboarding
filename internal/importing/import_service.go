@@ -460,6 +460,12 @@ const importErrorMessageMaxLen = 1000
 // normalizeError converts a coreclient error into a human-readable string for
 // storage in import_error_message. The result is always bounded to
 // importErrorMessageMaxLen characters, regardless of error source.
+//
+// HTTP 400 from the core is special-cased: the eegFaktura backend logs the
+// SQL constraint violation reason on its side but returns an empty `{}`
+// body to us, so the raw error message is unhelpful. We attach the most
+// common cause as a hint — duplicate metering point — so the admin
+// doesn't need to chase down the operator for the server log.
 func normalizeError(err error) string {
 	if err == nil {
 		return ""
@@ -475,7 +481,7 @@ func normalizeError(err error) string {
 		var parseErr *coreclient.CoreParseError
 		switch {
 		case errors.As(err, &httpErr):
-			msg = httpErr.Error()
+			msg = annotateCoreHTTPError(httpErr)
 		case errors.As(err, &parseErr):
 			msg = parseErr.Error()
 		default:
@@ -483,6 +489,34 @@ func normalizeError(err error) string {
 		}
 	}
 	return truncateRunes(msg, importErrorMessageMaxLen)
+}
+
+// annotateCoreHTTPError translates the opaque "core returned HTTP <code>:
+// <body>" message into something the admin can act on. The core typically
+// hides the SQL-constraint reason in its own log and returns an empty body
+// to us, so a literal echo of the HTTP envelope wastes the admin's time.
+//
+// 400 with empty/short body during import almost always means "duplicate
+// metering point on the (metering_point_id, active=1, tenant) unique index"
+// — that's the only validation the core enforces server-side that we
+// can't pre-check from our end. We add that hint as the German message,
+// keeping the raw HTTP echo as a technical postscript.
+//
+// Other status codes (401/403/5xx) are passed through unchanged — they
+// already carry enough info or are not actionable from the admin UI.
+func annotateCoreHTTPError(httpErr *coreclient.CoreHTTPError) string {
+	if httpErr.StatusCode != 400 {
+		return httpErr.Error()
+	}
+	body := strings.TrimSpace(httpErr.Body)
+	if body == "" || body == "{}" || body == "<empty>" {
+		return "Import abgelehnt vom eegFaktura-Core (HTTP 400). " +
+			"Wahrscheinlichste Ursache: einer der Zählpunkte ist im Core bereits " +
+			"einem aktiven Teilnehmer zugeordnet. Bitte im eegFaktura prüfen, ob die " +
+			"Zählpunkte schon einer anderen Mitgliedschaft gehören; ggf. den bestehenden " +
+			"Teilnehmer deaktivieren oder den Zählpunkt im Antrag korrigieren."
+	}
+	return httpErr.Error()
 }
 
 // truncateRunes shortens s to at most maxRunes runes, appending an ellipsis
