@@ -135,6 +135,21 @@ type SubmitResponse struct {
 	SubmittedAt     time.Time         `json:"submittedAt"`
 }
 
+// ConfirmEmailRequest carries the plaintext token sent in the confirmation
+// e-mail. Used by POST /api/public/applications/confirm-email (PROJ-31).
+type ConfirmEmailRequest struct {
+	Token string `json:"token" validate:"required,min=10,max=200"`
+}
+
+// ConfirmEmailResponse is intentionally minimal — it carries only what the
+// success page needs to render. Notably it does NOT echo back the application
+// id, the member's name, e-mail, or any other PII.
+type ConfirmEmailResponse struct {
+	EEGName             string `json:"eegName,omitempty"`
+	EEGContactEmail     string `json:"eegContactEmail,omitempty"`
+	AlreadyConfirmed    bool   `json:"alreadyConfirmed,omitempty"`
+}
+
 // ---------- Admin request / response models ----------
 
 // AdminUpdateApplicationRequest is the admin partial-update payload.

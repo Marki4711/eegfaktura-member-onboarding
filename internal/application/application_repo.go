@@ -719,6 +719,83 @@ func (r *ApplicationRepository) ResetImportTx(tx *sql.Tx, id uuid.UUID) error {
 	return nil
 }
 
+// AssignEmailConfirmationTokenTx persists the SHA-256 token hash and its
+// expiry on an application. Called inside the submit transaction when the
+// EEG has require_email_confirmation = TRUE (PROJ-31).
+func (r *ApplicationRepository) AssignEmailConfirmationTokenTx(tx *sql.Tx, id uuid.UUID, tokenHash string, expiresAt time.Time) error {
+	_, err := tx.Exec(`
+		UPDATE member_onboarding.application
+		SET email_confirmation_token_hash = $1,
+		    email_confirmation_token_expires_at = $2,
+		    email_confirmation_used_at = NULL,
+		    email_confirmed_at = NULL,
+		    updated_at = NOW()
+		WHERE id = $3`, tokenHash, expiresAt, id)
+	if err != nil {
+		return fmt.Errorf("failed to assign email confirmation token: %w", err)
+	}
+	return nil
+}
+
+// FindByEmailConfirmationTokenHash returns the application carrying the given
+// token hash (or shared.ErrNotFound if none does). Used by the public confirm
+// endpoint. The application is loaded slim — only the fields needed to render
+// the success page and decide on the state transition.
+func (r *ApplicationRepository) FindByEmailConfirmationTokenHash(tokenHash string) (*shared.Application, error) {
+	if tokenHash == "" {
+		return nil, shared.ErrNotFound
+	}
+	id, err := r.findIDByEmailConfirmationTokenHash(tokenHash)
+	if err != nil {
+		return nil, err
+	}
+	return r.GetByID(id)
+}
+
+func (r *ApplicationRepository) findIDByEmailConfirmationTokenHash(tokenHash string) (uuid.UUID, error) {
+	var id uuid.UUID
+	err := r.db.QueryRow(`
+		SELECT id FROM member_onboarding.application
+		WHERE email_confirmation_token_hash = $1`, tokenHash).Scan(&id)
+	if err == sql.ErrNoRows {
+		return uuid.UUID{}, shared.ErrNotFound
+	}
+	if err != nil {
+		return uuid.UUID{}, fmt.Errorf("token-hash lookup: %w", err)
+	}
+	return id, nil
+}
+
+// MarkEmailConfirmedTx transitions the application to status email_confirmed,
+// stamps email_confirmed_at + email_confirmation_used_at, and clears the
+// token hash + expiry (one-time-use). The status_log entry is written by the
+// caller.
+func (r *ApplicationRepository) MarkEmailConfirmedTx(tx *sql.Tx, id uuid.UUID, now time.Time) error {
+	res, err := tx.Exec(`
+		UPDATE member_onboarding.application
+		SET status = $1,
+		    email_confirmed_at = $2,
+		    email_confirmation_used_at = $2,
+		    email_confirmation_token_hash = NULL,
+		    email_confirmation_token_expires_at = NULL,
+		    updated_at = NOW()
+		WHERE id = $3 AND status = $4`,
+		shared.StatusEmailConfirmed, now, id, shared.StatusSubmitted)
+	if err != nil {
+		return fmt.Errorf("failed to mark email confirmed: %w", err)
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("rows affected: %w", err)
+	}
+	if affected == 0 {
+		// Either the application moved out of `submitted` already (race
+		// with admin reject) or the id doesn't exist. Surface as conflict.
+		return shared.NewConflictError("application is not in submitted status")
+	}
+	return nil
+}
+
 // GetRCNumberByID returns just the rc_number column for a given application
 // id — used by the admin tenant-access check so that confirming "is this row
 // inside the calling admin's scope?" doesn't pull the full application detail

@@ -29,6 +29,7 @@ type ApplicationService struct {
 	consentRepo         *DocumentConsentRepository
 	mailService         mail.MailService
 	pdfGenerator        pdf.SEPAMandateGenerator
+	publicBaseURL       string
 }
 
 // NewApplicationService creates a new application service
@@ -42,6 +43,7 @@ func NewApplicationService(
 	consentRepo *DocumentConsentRepository,
 	mailService mail.MailService,
 	pdfGenerator pdf.SEPAMandateGenerator,
+	publicBaseURL string,
 ) *ApplicationService {
 	return &ApplicationService{
 		db:              db,
@@ -53,8 +55,15 @@ func NewApplicationService(
 		consentRepo:     consentRepo,
 		mailService:     mailService,
 		pdfGenerator:    pdfGenerator,
+		publicBaseURL:   publicBaseURL,
 	}
 }
+
+// emailConfirmationTokenLifetime is how long a freshly-issued e-mail
+// confirmation token stays valid. After this period the auto-reject job
+// (Stage E) transitions the application to `rejected` if the member never
+// clicked. 30 days is the spec-recommended default (PROJ-31).
+const emailConfirmationTokenLifetime = 30 * 24 * time.Hour
 
 // CreateApplication creates a new application wrapped in a single database transaction.
 // If metering point insertion fails the application row is rolled back automatically.
@@ -436,8 +445,35 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID, consents []shared.C
 		return nil, err
 	}
 
+	// Load the entrypoint up-front: we need to know whether the EEG requires
+	// e-mail confirmation BEFORE the transaction starts, so we can generate the
+	// token in the same transaction as the status transition.
+	entrypoint, epErr := s.entrypointRepo.GetByRCNumber(app.RCNumber)
+	if epErr != nil {
+		return nil, fmt.Errorf("failed to load entrypoint for submit: %w", epErr)
+	}
+
 	now := time.Now()
 	oldStatus := string(app.Status)
+
+	// PROJ-31: when the EEG opt-in is on AND the public base URL is configured,
+	// mint a fresh token, persist the SHA-256 hash, and ship the plaintext into
+	// the outgoing mail. Without a public base URL the link can't be built — log
+	// loudly and fall back to the legacy flow (better than blocking the submit).
+	var emailConfirmationURL string
+	var emailConfirmationTokenHash string
+	if entrypoint.RequireEmailConfirmation {
+		if s.publicBaseURL == "" {
+			slog.Warn("email-confirmation: PUBLIC_BASE_URL unset — falling back to legacy flow", "rc", app.RCNumber)
+		} else {
+			plaintext, hash, tokErr := GenerateEmailConfirmationToken()
+			if tokErr != nil {
+				return nil, fmt.Errorf("token generation: %w", tokErr)
+			}
+			emailConfirmationTokenHash = hash
+			emailConfirmationURL = BuildEmailConfirmationURL(s.publicBaseURL, plaintext)
+		}
+	}
 
 	// All DB mutations (status, status log, consents, member number) run in one transaction
 	// so a partial failure cannot leave the application in an inconsistent state.
@@ -482,6 +518,13 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID, consents []shared.C
 		}
 	}
 
+	if emailConfirmationTokenHash != "" {
+		expiresAt := now.Add(emailConfirmationTokenLifetime)
+		if err = s.appRepo.AssignEmailConfirmationTokenTx(tx, id, emailConfirmationTokenHash, expiresAt); err != nil {
+			return nil, err
+		}
+	}
+
 	// Member number is no longer auto-assigned at submit time. The admin
 	// picks it at import time in the tariff dialog (pre-filled from the
 	// core's max+1 suggestion). application.member_number stays NULL until
@@ -494,10 +537,7 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID, consents []shared.C
 	// Send submission emails only on first submission (draft → submitted).
 	if oldStatus == string(shared.StatusDraft) {
 		metrics.ApplicationsSubmittedTotal.Inc()
-		entrypoint, epErr := s.entrypointRepo.GetByRCNumber(app.RCNumber)
-		if epErr != nil {
-			slog.Warn("mail: failed to load entrypoint", "rc", app.RCNumber, "error", epErr)
-		} else {
+		{
 			var attachment []byte
 			if mandate := buildSEPAMandateData(app, entrypoint); mandate != nil {
 				useCompany := entrypoint.UseCompanySEPAMandate &&
@@ -525,10 +565,11 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID, consents []shared.C
 					savedConsents = sc
 				}
 			}
+			confirmationURL := emailConfirmationURL
 			go func() {
 				acquireMailSem()
 				defer releaseMailSem()
-				s.mailService.SendSubmissionEmails(app, meteringPoints, entrypoint, toStateMap(fieldConfig), attachment, savedConsents)
+				s.mailService.SendSubmissionEmails(app, meteringPoints, entrypoint, toStateMap(fieldConfig), attachment, savedConsents, confirmationURL)
 			}()
 		}
 	}
@@ -539,6 +580,107 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID, consents []shared.C
 		Status:          shared.StatusSubmitted,
 		SubmittedAt:     now,
 	}, nil
+}
+
+// ConfirmEmail validates a member-supplied confirmation token, transitions the
+// application from `submitted` to `email_confirmed`, writes the status_log
+// entry, and triggers the deferred EEG-notification mail.
+//
+// Idempotent on re-clicks: when the application has already been confirmed
+// (and the token row was already consumed) the call returns AlreadyConfirmed
+// without an error so the success page renders cleanly the second time.
+func (s *ApplicationService) ConfirmEmail(plaintext string) (*shared.ConfirmEmailResponse, error) {
+	if strings.TrimSpace(plaintext) == "" {
+		return nil, shared.NewValidationError("Validation failed", map[string]string{
+			"token": "Token ist erforderlich",
+		})
+	}
+	hash := HashEmailConfirmationToken(plaintext)
+
+	app, err := s.appRepo.FindByEmailConfirmationTokenHash(hash)
+	if err != nil {
+		// Token doesn't (or no longer) matches any pending confirmation.
+		// We surface ErrNotFound — the handler maps that to the generic
+		// "ungültig oder abgelaufen" error message so an attacker can't
+		// distinguish "wrong token" from "expired token".
+		return nil, shared.ErrNotFound
+	}
+
+	// Expiry check
+	if app.EmailConfirmationTokenExpiresAt == nil || app.EmailConfirmationTokenExpiresAt.Before(time.Now()) {
+		return nil, shared.ErrNotFound
+	}
+
+	// Status must be submitted. If something else is going on (admin
+	// rejected first, race with auto-reject job), treat as conflict.
+	if app.Status != shared.StatusSubmitted {
+		return nil, shared.NewConflictError("application is not waiting for e-mail confirmation")
+	}
+
+	now := time.Now()
+	oldStatus := string(shared.StatusSubmitted)
+
+	tx, txErr := s.db.Begin()
+	if txErr != nil {
+		return nil, fmt.Errorf("begin tx: %w", txErr)
+	}
+	defer tx.Rollback()
+
+	if err := s.appRepo.MarkEmailConfirmedTx(tx, app.ID, now); err != nil {
+		return nil, err
+	}
+
+	statusLog := &shared.StatusLogEntry{
+		ApplicationID: app.ID,
+		FromStatus:    &oldStatus,
+		ToStatus:      string(shared.StatusEmailConfirmed),
+		CreatedAt:     now,
+	}
+	reason := "E-Mail-Adresse über Bestätigungs-Link bestätigt"
+	statusLog.Reason = &reason
+	memberActor := "member"
+	statusLog.ChangedByUserID = &memberActor
+
+	if err := s.statusLogRepo.CreateTx(tx, statusLog); err != nil {
+		return nil, fmt.Errorf("status log: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit: %w", err)
+	}
+
+	// Trigger the deferred EEG-notification mail. Best-effort — log on
+	// failure but don't fail the member's confirmation.
+	entrypoint, epErr := s.entrypointRepo.GetByRCNumber(app.RCNumber)
+	if epErr == nil {
+		meteringPoints, mpErr := s.meteringRepo.GetByApplicationID(app.ID)
+		if mpErr == nil {
+			fieldConfig, fcErr := s.fieldConfigRepo.Get(strings.ToUpper(app.RCNumber))
+			if fcErr != nil {
+				fieldConfig = map[string]FieldConfigEntry{}
+			}
+			go func() {
+				acquireMailSem()
+				defer releaseMailSem()
+				s.mailService.SendEEGNotification(app, meteringPoints, entrypoint, toStateMap(fieldConfig))
+			}()
+		} else {
+			slog.Warn("confirm-email: failed to load metering points for EEG notification", "application_id", app.ID, "error", mpErr)
+		}
+	} else {
+		slog.Warn("confirm-email: failed to load entrypoint for EEG notification", "application_id", app.ID, "error", epErr)
+	}
+
+	resp := &shared.ConfirmEmailResponse{}
+	if entrypoint != nil {
+		if entrypoint.EEGName != nil {
+			resp.EEGName = *entrypoint.EEGName
+		}
+		if entrypoint.ContactEmail != nil {
+			resp.EEGContactEmail = *entrypoint.ContactEmail
+		}
+	}
+	return resp, nil
 }
 
 // parseDateString parses an optional "YYYY-MM-DD" string into *time.Time.

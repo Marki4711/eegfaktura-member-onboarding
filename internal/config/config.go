@@ -19,6 +19,12 @@ type Config struct {
 	CentralPolicy CentralPolicyConfig
 	Core          CoreConfig
 	AdminBaseURL  string
+	// PublicBaseURL is the externally-reachable URL of the public-facing
+	// frontend (e.g. https://onboarding.eeg-x.at). Used to build absolute
+	// URLs for outgoing e-mails — notably the e-mail-confirmation link.
+	// Falls back to "" when unset; the e-mail-confirmation feature will
+	// log a warning and skip the link in that case.
+	PublicBaseURL string
 	// MetricsPort, when non-empty, starts a separate HTTP server on that port
 	// that serves /metrics (Prometheus exposition format). Default "9090".
 	// Set to "" to disable the metrics endpoint entirely.
@@ -137,6 +143,7 @@ func Load() (*Config, error) {
 			TimeoutSeconds: getIntEnv("CORE_TIMEOUT_SECONDS", 30),
 		},
 		AdminBaseURL:      getEnv("ADMIN_BASE_URL", ""),
+		PublicBaseURL:     getEnv("PUBLIC_BASE_URL", ""),
 		TrustedProxyCIDRs: getEnv("TRUSTED_PROXY_CIDRS", ""),
 		MetricsPort:       getEnv("METRICS_PORT", "9090"),
 	}

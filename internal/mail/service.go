@@ -19,8 +19,18 @@ import (
 var templateFS embed.FS
 
 // MailService defines the contract for sending notification emails.
+//
+// SendSubmissionEmails:
+//   - Always sends the member-facing confirmation mail.
+//   - When emailConfirmationURL is non-empty (PROJ-31), the mail carries the
+//     confirmation button and the EEG-notification mail is **deferred** until
+//     the member clicks the button (the confirm-email handler then invokes
+//     SendEEGNotification).
+//   - When emailConfirmationURL is empty (the default / pre-PROJ-31 flow),
+//     both mails are sent immediately.
 type MailService interface {
-	SendSubmissionEmails(app *shared.Application, meteringPoints []shared.MeteringPoint, entrypoint *shared.RegistrationEntrypoint, fieldConfig map[string]string, attachment []byte, consents []shared.DocumentConsent)
+	SendSubmissionEmails(app *shared.Application, meteringPoints []shared.MeteringPoint, entrypoint *shared.RegistrationEntrypoint, fieldConfig map[string]string, attachment []byte, consents []shared.DocumentConsent, emailConfirmationURL string)
+	SendEEGNotification(app *shared.Application, meteringPoints []shared.MeteringPoint, entrypoint *shared.RegistrationEntrypoint, fieldConfig map[string]string)
 	SendMemberConfirmation(app *shared.Application, entrypoint *shared.RegistrationEntrypoint) error
 	SendApprovalEmail(app *shared.Application, entrypoint *shared.RegistrationEntrypoint, pdfBytes []byte, pdfFailed bool) error
 }
@@ -28,7 +38,9 @@ type MailService interface {
 // NoOpMailService silently drops all mail calls. Used when SMTP is not configured.
 type NoOpMailService struct{}
 
-func (n *NoOpMailService) SendSubmissionEmails(_ *shared.Application, _ []shared.MeteringPoint, _ *shared.RegistrationEntrypoint, _ map[string]string, _ []byte, _ []shared.DocumentConsent) {
+func (n *NoOpMailService) SendSubmissionEmails(_ *shared.Application, _ []shared.MeteringPoint, _ *shared.RegistrationEntrypoint, _ map[string]string, _ []byte, _ []shared.DocumentConsent, _ string) {
+}
+func (n *NoOpMailService) SendEEGNotification(_ *shared.Application, _ []shared.MeteringPoint, _ *shared.RegistrationEntrypoint, _ map[string]string) {
 }
 func (n *NoOpMailService) SendMemberConfirmation(_ *shared.Application, _ *shared.RegistrationEntrypoint) error {
 	return nil
@@ -110,6 +122,9 @@ type memberTemplateData struct {
 	SepaMandateAccepted bool
 	SEPAMandateEnabled  bool
 	DocumentConsents    []shared.DocumentConsent
+	// E-Mail-Bestätigung (PROJ-31). Non-empty triggers the conditional
+	// confirmation-button block in the mail template.
+	EmailConfirmationURL string
 }
 
 // meteringPointView is a resolved metering point with translated direction label.
@@ -279,8 +294,12 @@ func memberDisplayName(app *shared.Application) string {
 
 // SendSubmissionEmails sends the member confirmation and EEG notification emails.
 // Errors are logged but never propagate to the caller.
-func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, meteringPoints []shared.MeteringPoint, entrypoint *shared.RegistrationEntrypoint, fieldConfig map[string]string, attachment []byte, consents []shared.DocumentConsent) {
-	slog.Info("mail: sending submission emails", "application_id", app.ID, "ref", app.ReferenceNumber, "to", app.Email)
+//
+// When emailConfirmationURL is non-empty (PROJ-31), the member mail carries
+// the confirmation button and the EEG-notification mail is deferred — the
+// confirm-email handler invokes SendEEGNotification once the member clicks.
+func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, meteringPoints []shared.MeteringPoint, entrypoint *shared.RegistrationEntrypoint, fieldConfig map[string]string, attachment []byte, consents []shared.DocumentConsent, emailConfirmationURL string) {
+	slog.Info("mail: sending submission emails", "application_id", app.ID, "ref", app.ReferenceNumber, "to", app.Email, "confirmation_pending", emailConfirmationURL != "")
 
 	memberMpViews := make([]meteringPointView, len(meteringPoints))
 	for i, mp := range meteringPoints {
@@ -333,9 +352,10 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 		PrivacyAccepted:     app.PrivacyAccepted,
 		PrivacyVersion:      derefString(app.PrivacyVersion),
 		AccuracyConfirmed:   app.AccuracyConfirmed,
-		SepaMandateAccepted: app.SepaMandateAccepted,
-		SEPAMandateEnabled:  entrypoint.SEPAMandateEnabled,
-		DocumentConsents:    consents,
+		SepaMandateAccepted:  app.SepaMandateAccepted,
+		SEPAMandateEnabled:   entrypoint.SEPAMandateEnabled,
+		DocumentConsents:     consents,
+		EmailConfirmationURL: emailConfirmationURL,
 	}); err != nil {
 		slog.Error("mail: failed to render member template", "application_id", app.ID, "error", err)
 	} else {
@@ -360,7 +380,19 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 		}
 	}
 
-	// EEG notification — only when contact_email is set
+	// EEG notification is deferred when an e-mail-confirmation is pending —
+	// it gets triggered by the confirm-email handler once the member clicks.
+	if emailConfirmationURL != "" {
+		slog.Info("mail: deferring EEG notification until e-mail confirmation", "application_id", app.ID, "rc_number", entrypoint.RCNumber)
+		return
+	}
+	s.SendEEGNotification(app, meteringPoints, entrypoint, fieldConfig)
+}
+
+// SendEEGNotification renders + sends the EEG-facing "new application" mail.
+// Called either immediately by SendSubmissionEmails (legacy flow) or by the
+// confirm-email handler after the member has confirmed (PROJ-31).
+func (s *SMTPMailService) SendEEGNotification(app *shared.Application, meteringPoints []shared.MeteringPoint, entrypoint *shared.RegistrationEntrypoint, fieldConfig map[string]string) {
 	if entrypoint.ContactEmail == nil || *entrypoint.ContactEmail == "" {
 		slog.Info("mail: skipping EEG notification (no contact_email)", "application_id", app.ID, "rc_number", entrypoint.RCNumber)
 		return
@@ -386,8 +418,7 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 		adminDetailURL = s.adminBaseURL + "/admin/applications/" + app.ID.String()
 	}
 
-	// Member type label (reused for EEG template)
-	memberTypeLabel = memberTypeLabels[string(app.MemberType)]
+	memberTypeLabel := memberTypeLabels[string(app.MemberType)]
 	if memberTypeLabel == "" {
 		memberTypeLabel = string(app.MemberType)
 	}

@@ -165,6 +165,48 @@ func (h *ApplicationHandler) SubmitApplication(w http.ResponseWriter, r *http.Re
 	h.writeJSON(w, http.StatusOK, response)
 }
 
+// ConfirmEmail handles POST /api/public/applications/confirm-email
+//
+// @Summary      Confirm member e-mail address (PROJ-31)
+// @Description  Validates a token from the confirmation e-mail. On success transitions the application from `submitted` to `email_confirmed` and triggers the deferred EEG-notification mail.
+// @Tags         Public
+// @Accept       json
+// @Produce      json
+// @Param        body  body     shared.ConfirmEmailRequest  true  "Token from the confirmation e-mail"
+// @Success      200   {object} shared.ConfirmEmailResponse
+// @Failure      400   {object} shared.ErrorResponse  "Token invalid or expired"
+// @Failure      409   {object} shared.ErrorResponse  "Application is no longer waiting for confirmation"
+// @Failure      500   {object} shared.ErrorResponse
+// @Router       /api/public/applications/confirm-email [post]
+func (h *ApplicationHandler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
+	var req shared.ConfirmEmailRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Invalid JSON", nil)))
+		return
+	}
+	if err := h.validate.Struct(req); err != nil {
+		h.writeValidationError(w, err)
+		return
+	}
+
+	resp, err := h.applicationService.ConfirmEmail(req.Token)
+	if err != nil {
+		// Map the not-found/expired/invalid trio to a single neutral error
+		// so attackers can't distinguish "unknown token" from "expired".
+		switch err {
+		case shared.ErrNotFound:
+			h.writeError(w, shared.NewErrorResponse(shared.NewValidationError(
+				"Der Bestätigungs-Link ist ungültig oder abgelaufen.",
+				map[string]string{"token": "ungültig oder abgelaufen"},
+			)))
+			return
+		}
+		h.handleServiceError(w, err)
+		return
+	}
+	h.writeJSON(w, http.StatusOK, resp)
+}
+
 // Helper methods
 
 func (h *ApplicationHandler) writeValidationError(w http.ResponseWriter, err error) {

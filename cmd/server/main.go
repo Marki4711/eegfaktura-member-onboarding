@@ -123,7 +123,7 @@ func main() {
 	pdfGenerator := pdf.NewFPDFGenerator()
 	approvalPDFGenerator := pdf.NewFPDFApprovalGenerator()
 	registrationService := application.NewRegistrationService(entrypointRepo, fieldConfigRepo, legalDocumentRepo, cfg.CentralPolicy.Title, cfg.CentralPolicy.URL)
-	applicationService := application.NewApplicationService(db, appRepo, meteringRepo, statusLogRepo, entrypointRepo, fieldConfigRepo, consentRepo, mailService, pdfGenerator)
+	applicationService := application.NewApplicationService(db, appRepo, meteringRepo, statusLogRepo, entrypointRepo, fieldConfigRepo, consentRepo, mailService, pdfGenerator, cfg.PublicBaseURL)
 	adminService := application.NewAdminApplicationService(db, appRepo, meteringRepo, statusLogRepo, fieldConfigRepo, entrypointRepo, consentRepo, mailService, approvalPDFGenerator)
 
 	// PROJ-4: Core import. Disabled when CORE_BASE_URL is empty — the import
@@ -191,6 +191,11 @@ func main() {
 
 		r.Route("/applications", func(r chi.Router) {
 			r.With(internalhttp.PublicSubmitRateLimitMiddleware).Post("/", applicationHandler.CreateApplication)
+			// PROJ-31: e-mail confirmation endpoint. Rate-limited via the same
+			// public-submit middleware so an attacker can't brute-force tokens
+			// (the 32-byte entropy already makes that astronomical, but the
+			// rate-limit is a cheap defence-in-depth).
+			r.With(internalhttp.PublicSubmitRateLimitMiddleware).Post("/confirm-email", applicationHandler.ConfirmEmail)
 			r.Route("/{id}", func(r chi.Router) {
 				r.Put("/", applicationHandler.UpdateApplication)
 				r.Route("/submit", func(r chi.Router) {
