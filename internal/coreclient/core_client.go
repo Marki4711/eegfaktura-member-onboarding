@@ -104,24 +104,26 @@ func (e *CoreParseError) Error() string {
 // HTTPCoreClient is the production implementation that talks to the core
 // service over HTTP/JSON.
 //
-// baseURL    — root of the REST API used by PROJ-4 (POST /participant etc.).
-// graphqlURL — full URL of the Core's GraphQL endpoint used by PROJ-32 for
-//              the EEG master-data sync. Either URL may be empty when the
-//              corresponding feature is disabled.
+// baseURL — hostname of the eegFaktura core (e.g. `https://eegfaktura.at`).
+// Per-call path prefixes are hardcoded in each method, because the deployed
+// reverse-proxy multiplexes several services behind one hostname under
+// different prefixes:
+//   - `/api/...`      — REST (PROJ-4 participant import, tariffs) + GraphQL (PROJ-32 master-data sync)
+//   - `/cash/api/...` — eegfaktura-billing (PROJ-32 Phase 2 logo embed)
+//
+// Set CORE_BASE_URL to the hostname only — do not append `/api`.
 type HTTPCoreClient struct {
-	baseURL    string
-	graphqlURL string
-	http       *http.Client
+	baseURL string
+	http    *http.Client
 }
 
-// NewHTTPCoreClient builds a client. Empty baseURL disables REST-side calls
-// (PROJ-4); empty graphqlURL disables PROJ-32. Both can be empty during
-// local development.
-func NewHTTPCoreClient(baseURL, graphqlURL string, timeout time.Duration) *HTTPCoreClient {
+// NewHTTPCoreClient builds a client. Empty baseURL disables every method
+// (each returns ErrCoreNotConfigured), which is useful for local dev where
+// the core service isn't reachable.
+func NewHTTPCoreClient(baseURL string, timeout time.Duration) *HTTPCoreClient {
 	return &HTTPCoreClient{
-		baseURL:    strings.TrimRight(baseURL, "/"),
-		graphqlURL: strings.TrimSpace(graphqlURL),
-		http:       &http.Client{Timeout: timeout},
+		baseURL: strings.TrimRight(baseURL, "/"),
+		http:    &http.Client{Timeout: timeout},
 	}
 }
 
@@ -145,7 +147,7 @@ func (c *HTTPCoreClient) CreateParticipant(ctx context.Context, payload any, bea
 		return "", fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/participant", bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/api/participant", bytes.NewReader(body))
 	if err != nil {
 		return "", fmt.Errorf("failed to build request: %w", err)
 	}
@@ -207,7 +209,7 @@ func (c *HTTPCoreClient) ListTariffs(ctx context.Context, bearerToken, tenant st
 		return nil, ErrTenantRequired
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/eeg/tariff", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/api/eeg/tariff", nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build request: %w", err)
 	}
@@ -261,7 +263,7 @@ func (c *HTTPCoreClient) UpdateParticipantField(ctx context.Context, bearerToken
 	if err != nil {
 		return fmt.Errorf("failed to marshal payload: %w", err)
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, c.baseURL+"/participant/v2/"+participantID, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, c.baseURL+"/api/participant/v2/"+participantID, bytes.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("failed to build request: %w", err)
 	}
@@ -303,7 +305,7 @@ func (c *HTTPCoreClient) ListParticipants(ctx context.Context, bearerToken, tena
 		return nil, ErrTenantRequired
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/participant", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/api/participant", nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build request: %w", err)
 	}

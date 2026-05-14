@@ -28,7 +28,7 @@ func TestCreateParticipant_Success(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := NewHTTPCoreClient(srv.URL, "", 5*time.Second)
+	c := NewHTTPCoreClient(srv.URL, 5*time.Second)
 	id, err := c.CreateParticipant(context.Background(), map[string]string{"firstname": "Anna"}, "tok-xyz", "RC101665")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -39,8 +39,8 @@ func TestCreateParticipant_Success(t *testing.T) {
 	if gotMethod != http.MethodPost {
 		t.Errorf("method = %q, want POST", gotMethod)
 	}
-	if gotPath != "/participant" {
-		t.Errorf("path = %q, want /participant", gotPath)
+	if gotPath != "/api/participant" {
+		t.Errorf("path = %q, want /api/participant", gotPath)
 	}
 	if gotAuth != "Bearer tok-xyz" {
 		t.Errorf("auth header = %q, want Bearer tok-xyz", gotAuth)
@@ -60,7 +60,7 @@ func TestCreateParticipant_HTTPError(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := NewHTTPCoreClient(srv.URL, "", 5*time.Second)
+	c := NewHTTPCoreClient(srv.URL, 5*time.Second)
 	_, err := c.CreateParticipant(context.Background(), struct{}{}, "tok", "RC101665")
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -84,7 +84,7 @@ func TestCreateParticipant_MissingID(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := NewHTTPCoreClient(srv.URL, "", 5*time.Second)
+	c := NewHTTPCoreClient(srv.URL, 5*time.Second)
 	_, err := c.CreateParticipant(context.Background(), struct{}{}, "tok", "RC101665")
 	if err == nil {
 		t.Fatal("expected parse error, got nil")
@@ -116,7 +116,7 @@ func TestCreateParticipant_HTMLResponse(t *testing.T) {
 			}))
 			defer srv.Close()
 
-			c := NewHTTPCoreClient(srv.URL, "", 5*time.Second)
+			c := NewHTTPCoreClient(srv.URL, 5*time.Second)
 			_, err := c.CreateParticipant(context.Background(), struct{}{}, "tok", "RC")
 			var parseErr *CoreParseError
 			if !errors.As(err, &parseErr) {
@@ -130,7 +130,7 @@ func TestCreateParticipant_HTMLResponse(t *testing.T) {
 }
 
 func TestCreateParticipant_NotConfigured(t *testing.T) {
-	c := NewHTTPCoreClient("", "", 5*time.Second)
+	c := NewHTTPCoreClient("", 5*time.Second)
 	_, err := c.CreateParticipant(context.Background(), struct{}{}, "tok", "RC")
 	if !errors.Is(err, ErrCoreNotConfigured) {
 		t.Errorf("got %v, want ErrCoreNotConfigured", err)
@@ -138,7 +138,7 @@ func TestCreateParticipant_NotConfigured(t *testing.T) {
 }
 
 func TestCreateParticipant_RequiresTokenAndTenant(t *testing.T) {
-	c := NewHTTPCoreClient("http://example.invalid", "", 5*time.Second)
+	c := NewHTTPCoreClient("http://example.invalid", 5*time.Second)
 	if _, err := c.CreateParticipant(context.Background(), struct{}{}, "", "RC"); err == nil {
 		t.Error("expected error for missing token")
 	}

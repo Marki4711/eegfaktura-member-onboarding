@@ -83,20 +83,24 @@ const eegMasterDataQuery = `query EEGMasterData {
   }
 }`
 
-// FetchEEGMasterData fires the GraphQL query against the configured
-// graphqlURL and returns the parsed EEG record. The bearer token must
-// belong to a Keycloak identity whose tenant claim includes `tenant`
-// (typically the admin's own JWT, forwarded from the Settings UI).
+// FetchEEGMasterData fires the GraphQL query against `<baseURL>/api/query` and
+// returns the parsed EEG record. The bearer token must belong to a Keycloak
+// identity whose tenant claim includes `tenant` (typically the admin's own
+// JWT, forwarded from the Settings UI).
+//
+// The GraphQL endpoint lives on the same hostname as the existing REST
+// endpoints — both are reached under the `/api/...` prefix served by the
+// eegFaktura core reverse-proxy.
 //
 // Errors:
-//   - ErrCoreNotConfigured   – the operator hasn't set CORE_GRAPHQL_URL.
+//   - ErrCoreNotConfigured   – CORE_BASE_URL is empty.
 //   - ErrBearerTokenRequired – caller passed an empty bearer.
 //   - ErrTenantRequired      – caller passed an empty tenant.
-//   - ErrCoreTimeout         – HTTP client timed out (5s default).
+//   - ErrCoreTimeout         – HTTP client timed out.
 //   - CoreHTTPError          – non-2xx response (4xx auth / 5xx core down).
 //   - CoreParseError         – non-JSON or GraphQL `errors` array set.
 func (c *HTTPCoreClient) FetchEEGMasterData(ctx context.Context, bearerToken, tenant string) (*EEGMasterData, error) {
-	if c.graphqlURL == "" {
+	if c.baseURL == "" {
 		return nil, ErrCoreNotConfigured
 	}
 	if bearerToken == "" {
@@ -111,7 +115,7 @@ func (c *HTTPCoreClient) FetchEEGMasterData(ctx context.Context, bearerToken, te
 		return nil, fmt.Errorf("marshal graphql request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.graphqlURL, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/api/query", bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("build request: %w", err)
 	}
@@ -138,7 +142,7 @@ func (c *HTTPCoreClient) FetchEEGMasterData(ctx context.Context, bearerToken, te
 		return nil, &CoreHTTPError{StatusCode: resp.StatusCode, Body: truncate(string(respBody), 1000)}
 	}
 	if isHTMLResponse(resp.Header.Get("Content-Type"), respBody) {
-		return nil, &CoreParseError{Detail: "core graphql returned HTML — CORE_GRAPHQL_URL likely points to a frontend or auth proxy, not the GraphQL endpoint"}
+		return nil, &CoreParseError{Detail: "core graphql returned HTML — CORE_BASE_URL likely points to a frontend or auth proxy, not the core API"}
 	}
 
 	var parsed graphqlEEGResponse

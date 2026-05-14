@@ -78,7 +78,7 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
       const c = await compareEEGSettingsWithCore(rcNumber, session.accessToken);
       setComparison(c);
     } catch {
-      // Endpoint returns 503 when CORE_GRAPHQL_URL is empty — treat as
+      // Endpoint returns 503 when CORE_BASE_URL is empty — treat as
       // "feature disabled" and render no banner at all.
       setComparison(null);
     } finally {

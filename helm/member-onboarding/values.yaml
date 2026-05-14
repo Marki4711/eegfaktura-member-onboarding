@@ -73,12 +73,10 @@ backend:
   centralPolicyTitle: "Datenschutzerklärung"
   centralPolicyUrl: "" # Optional: absolute URL zur Datenschutzerklärung (z.B. https://onboarding.example.at/datenschutz)
   # Leer lassen = internes /datenschutz wird verlinkt
-  # eegFaktura Core service. Beide URLs unabhängig konfigurierbar.
-  # coreBaseUrl    — REST (PROJ-4 Import). Leer = Import-Endpoint liefert 503.
-  # coreGraphqlUrl — GraphQL (PROJ-32 Stammdaten-Sync). Leer = Sync liefert 503,
-  #                  Settings-UI fällt auf legacy-Verhalten zurück.
-  coreBaseUrl: "" # z.B. https://eegfaktura.example.at/cash/api
-  coreGraphqlUrl: "" # z.B. https://eegfaktura.example.at/cash/api/query
+  # eegFaktura Core service — Hostname (ohne Pfad). Pfad-Präfixe sind im
+  # Code hardcoded: /api/... (REST + GraphQL) und /cash/api/... (Phase 2 Logo).
+  # Leer = Import-Endpoint + Stammdaten-Sync-Endpoints liefern 503.
+  coreBaseUrl: "" # z.B. https://eegfaktura.example.at
   coreTimeoutSeconds: 30
   # Trusted-Proxy-CIDRs: aus diesen IP-Bereichen werden X-Real-IP /
   # X-Forwarded-For-Header akzeptiert. Alles andere wird ignoriert und

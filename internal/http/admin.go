@@ -31,16 +31,15 @@ type AdminHandler struct {
 	legalDocumentRepo *application.LegalDocumentRepository
 	importService     *importing.ImportService
 	// coreClient is shared with importService — used by PROJ-32 for the
-	// master-data sync GraphQL call. nil when CORE_GRAPHQL_URL is not set.
+	// master-data sync GraphQL call. nil when CORE_BASE_URL is not set.
 	coreClient *coreclient.HTTPCoreClient
 	validate   *validator.Validate
 	sanitizer  *bluemonday.Policy
 }
 
-// NewAdminHandler creates a new AdminHandler. importService may be nil when
-// CORE_BASE_URL is not configured (import endpoint returns 503), and
-// coreClient may be nil when neither CORE_BASE_URL nor CORE_GRAPHQL_URL is
-// set (master-data-sync endpoints return 503).
+// NewAdminHandler creates a new AdminHandler. Both importService and coreClient
+// may be nil when CORE_BASE_URL is not configured — import endpoint and
+// master-data-sync endpoints then return 503.
 func NewAdminHandler(
 	adminService *application.AdminApplicationService,
 	entrypointRepo *application.RegistrationEntrypointRepository,
@@ -549,7 +548,7 @@ func (h *AdminHandler) CompareEEGSettingsWithCore(w http.ResponseWriter, r *http
 	if h.coreClient == nil {
 		h.writeJSON(w, http.StatusServiceUnavailable, shared.ErrorResponse{
 			Code:    "service_unavailable",
-			Message: "EEG-Stammdaten-Sync ist nicht konfiguriert (CORE_GRAPHQL_URL leer).",
+			Message: "EEG-Stammdaten-Sync ist nicht konfiguriert (CORE_BASE_URL leer).",
 		})
 		return
 	}
@@ -609,7 +608,7 @@ func (h *AdminHandler) SyncEEGSettingsFromCore(w http.ResponseWriter, r *http.Re
 	if h.coreClient == nil {
 		h.writeJSON(w, http.StatusServiceUnavailable, shared.ErrorResponse{
 			Code:    "service_unavailable",
-			Message: "EEG-Stammdaten-Sync ist nicht konfiguriert (CORE_GRAPHQL_URL leer).",
+			Message: "EEG-Stammdaten-Sync ist nicht konfiguriert (CORE_BASE_URL leer).",
 		})
 		return
 	}

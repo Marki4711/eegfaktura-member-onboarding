@@ -2,7 +2,7 @@
 
 ## Status: In Review
 **Created:** 2026-05-14
-**Last Updated:** 2026-05-14 (Phase 1 implementiert: Sync-Endpoints + Frontend-Drift-Banner. Phase 2 / Logo-Embed steht als Folge-Spec aus.)
+**Last Updated:** 2026-05-14 (Phase 1 implementiert + URL-Architektur final: single Hostname-only env var. Phase 2 / Logo-Embed steht als Folge-Spec aus.)
 
 > **Spec-Anmerkung:** Während der Implementierung wurde die ursprüngliche
 > Architektur (Live-Resolver mit In-Memory-Cache + Service-Account) zu einem
@@ -14,6 +14,16 @@
 > Open Questions Q2/Q4/Q6/Q7/Q8 hinfällig; die effektive Umsetzung ist in
 > den drei Stages A–C der commit history dokumentiert. Detailtext oben ist
 > aus Doku-Gründen erhalten geblieben, aber nicht die gelieferte Implementation.
+
+> **URL-Architektur (final 2026-05-14):** `CORE_BASE_URL` ist nur der
+> **Hostname** (z.B. `https://eegfaktura.at`). Die Pfad-Präfixe sind im
+> coreclient pro Aufruf hardcoded, weil der produktive Reverse-Proxy
+> mehrere Services unter demselben Host multiplext:
+> - `{base}/api/participant`, `{base}/api/eeg/tariff`, `{base}/api/query` — eegFaktura-backend
+> - `{base}/cash/api/billingConfigs/...` — eegfaktura-billing (Phase 2 Logo)
+>
+> Ein separates `CORE_GRAPHQL_URL` env existiert NICHT mehr. Deployments
+> müssen `CORE_BASE_URL` von `…/cash/api` auf den reinen Hostname umstellen.
 
 ## Dependencies
 - Requires: PROJ-4 (Core Import) — wieder­verwendet die bestehende `coreclient`-Infrastruktur (Bearer-Auth, tenant-Header, Timeouts).

@@ -36,26 +36,18 @@ type Config struct {
 	TrustedProxyCIDRs string
 }
 
-// CoreConfig holds connection settings for the eegFaktura core service used by
-// the import endpoint (PROJ-4) and the EEG-master-data sync (PROJ-32).
+// CoreConfig holds connection settings for the eegFaktura core service used
+// by the import endpoint (PROJ-4) and the EEG-master-data sync (PROJ-32).
 //
-// BaseURL — REST endpoints (POST /participant, GET /eeg/tariff, …). Empty
-// disables PROJ-4 import.
-//
-// GraphQLURL — full URL of the Core's GraphQL endpoint (e.g.
-// "https://eegfaktura.at/cash/api/query"). Used by PROJ-32 to fetch EEG
-// master data. Empty disables the sync feature; the EEG-settings UI then
-// stays on the legacy manual-edit behaviour.
-//
-// MasterDataCacheTTLSeconds — currently unused while PROJ-32 stores synced
-// values directly in registration_entrypoint (single source of truth model,
-// no in-memory cache layer). Reserved for a future scenario where we add
-// per-request live lookups.
+// BaseURL — hostname of the eegFaktura core (e.g. `https://eegfaktura.at`).
+// Path prefixes are appended by the coreclient at the call site:
+//   - REST       — {BaseURL}/api/participant, {BaseURL}/api/eeg/tariff, …
+//   - GraphQL    — {BaseURL}/api/query (PROJ-32)
+// Phase 2 (logo) will append `/cash/api/billingConfigs/...` to the same
+// hostname. Empty BaseURL disables every core-dependent feature.
 type CoreConfig struct {
-	BaseURL                   string
-	GraphQLURL                string
-	TimeoutSeconds            int
-	MasterDataCacheTTLSeconds int
+	BaseURL        string
+	TimeoutSeconds int
 }
 
 // CentralPolicyConfig holds title and URL of the operator's central privacy policy.
@@ -153,10 +145,8 @@ func Load() (*Config, error) {
 			URL:   getEnv("CENTRAL_POLICY_URL", ""),
 		},
 		Core: CoreConfig{
-			BaseURL:                   getEnv("CORE_BASE_URL", ""),
-			GraphQLURL:                getEnv("CORE_GRAPHQL_URL", ""),
-			TimeoutSeconds:            getIntEnv("CORE_TIMEOUT_SECONDS", 30),
-			MasterDataCacheTTLSeconds: getIntEnv("CORE_MASTER_DATA_CACHE_TTL_SECONDS", 900),
+			BaseURL:        getEnv("CORE_BASE_URL", ""),
+			TimeoutSeconds: getIntEnv("CORE_TIMEOUT_SECONDS", 30),
 		},
 		AdminBaseURL:      getEnv("ADMIN_BASE_URL", ""),
 		PublicBaseURL:     getEnv("PUBLIC_BASE_URL", ""),
