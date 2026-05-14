@@ -25,6 +25,24 @@
 > Ein separates `CORE_GRAPHQL_URL` env existiert NICHT mehr. Deployments
 > müssen `CORE_BASE_URL` von `…/cash/api` auf den reinen Hostname umstellen.
 
+> **Auth-Modell — User-Context-Bearer-Forwarding (locked 2026-05-14):**
+> Alle Core-Aufrufe (Stammdaten-Sync, Import, Tarif-Lookup) leiten das
+> **Bearer-JWT des angemeldeten Admins** unverändert an den Core weiter,
+> zusammen mit dem `tenant`-Header (RC-Nummer). **Kein Service-Account,
+> kein client_credentials-Flow, kein zusätzlicher Keycloak-Client.**
+>
+> Die ursprüngliche Spec (Stages A–G) sah einen Service-Account mit
+> tenant-Claim-Mapper vor; das ist bewusst verworfen worden:
+> - Audit-Trail im Core attribuiert die Änderung an den realen Admin
+>   statt an einen anonymen Onboarding-Service-Account.
+> - Keine zusätzliche Infrastruktur (Client + Secret-Rotation + Mapper).
+> - Der Admin ist im Settings-UI ohnehin schon authentifiziert; sein
+>   Tenant-Claim deckt genau die RCs ab, für die er syncen darf.
+>
+> **Nicht ohne explizite Entscheidung umstellen.** Mögliche Gründe für
+> einen späteren Umbau: Hintergrund-Jobs ohne Admin-Klick, oder
+> Rate-Limit-Isolation zwischen Onboarding- und Human-Traffic.
+
 ## Dependencies
 - Requires: PROJ-4 (Core Import) — wieder­verwendet die bestehende `coreclient`-Infrastruktur (Bearer-Auth, tenant-Header, Timeouts).
 - Requires: PROJ-12 / PROJ-21 (SEPA-PDF, Beitrittsbestätigung-PDF) — die EEG-Stammdaten werden dort gerendert; ein Logo-Embed kommt hier hinzu.

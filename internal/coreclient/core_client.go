@@ -1,7 +1,25 @@
-// Package coreclient wraps the HTTP call to the eegFaktura core service used
-// by the onboarding import endpoint (PROJ-4). The core API contract is taken
-// from github.com/eegfaktura/eegfaktura-backend (POST /participant, JWT auth,
-// tenant HTTP header). See features/PROJ-4-core-import.md for details.
+// Package coreclient wraps every HTTP call from the onboarding to the
+// eegFaktura core service: the participant import (PROJ-4), tariff
+// lookup (PROJ-27), and the EEG master-data sync (PROJ-32).
+//
+// # Auth model — user-context bearer forwarding
+//
+// All methods take a `bearerToken` parameter and forward it verbatim as
+// `Authorization: Bearer <jwt>` to the core, together with a `tenant`
+// header set to the EEG's RC number. The token is the **logged-in
+// admin's Keycloak JWT**, threaded through from the HTTP handler. There
+// is NO service account, NO client_credentials grant, NO cached token.
+//
+// This is a deliberate decision (locked 2026-05-14): the admin is
+// already authenticated for the Onboarding UI, their `Tenants` JWT
+// claim already enumerates the RCs they may operate on, and the core
+// records the actual human as the actor in its audit trail. Reasons to
+// reconsider would be background jobs that need to call the core
+// without an admin click — none exist today.
+//
+// The core API contract (endpoints, headers, payload mapping, gotchas)
+// is captured in features/PROJ-4-core-import.md and the
+// "eegFaktura Core API contract" memory.
 package coreclient
 
 import (
