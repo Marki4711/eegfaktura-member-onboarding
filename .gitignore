@@ -48,3 +48,6 @@ helm/**/values-secret.yaml
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# screenshot generator cache (cookies, not for git)
+.cache/
