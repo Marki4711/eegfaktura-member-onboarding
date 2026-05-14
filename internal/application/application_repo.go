@@ -21,58 +21,6 @@ func NewApplicationRepository(db *sql.DB) *ApplicationRepository {
 	return &ApplicationRepository{db: db}
 }
 
-// Create creates a new application
-func (r *ApplicationRepository) Create(app *shared.Application) error {
-	query := `
-		INSERT INTO member_onboarding.application (
-			reference_number, rc_number, status, started_at,
-			member_type, titel, firstname, lastname, birth_date,
-			company_name, uid_number, register_number,
-			email, phone,
-			resident_street, resident_street_number, resident_zip, resident_city,
-			privacy_accepted, privacy_version, privacy_accepted_at, accuracy_confirmed,
-			iban, account_holder, sepa_mandate_accepted, sepa_mandate_accepted_at,
-			membership_start_date, persons_in_household, consumption_previous_year,
-			consumption_forecast, feed_in_forecast, pv_power_kwp,
-			heat_pump, electric_vehicle, electric_hot_water,
-			created_at, updated_at
-		) VALUES (
-			$1, $2, $3, $4,
-			$5, $6, $7, $8, $9,
-			$10, $11, $12,
-			$13, $14,
-			$15, $16, $17, $18,
-			$19, $20, $21, $22,
-			$23, $24, $25, $26,
-			$27, $28, $29,
-			$30, $31, $32,
-			$33, $34, $35,
-			$36, $37
-		) RETURNING id`
-
-	now := app.CreatedAt
-	args := []interface{}{
-		app.ReferenceNumber, app.RCNumber, app.Status, app.StartedAt,
-		app.MemberType, app.Titel, app.Firstname, app.Lastname, app.BirthDate,
-		app.CompanyName, app.UIDNumber, app.RegisterNumber,
-		app.Email, app.Phone,
-		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity,
-		app.PrivacyAccepted, app.PrivacyVersion, &now, app.AccuracyConfirmed,
-		app.IBAN, app.AccountHolder, app.SepaMandateAccepted, app.SepaMandateAcceptedAt,
-		app.MembershipStartDate, app.PersonsInHousehold, app.ConsumptionPreviousYear,
-		app.ConsumptionForecast, app.FeedInForecast, app.PvPowerKwp,
-		app.HeatPump, app.ElectricVehicle, app.ElectricHotWater,
-		app.CreatedAt, app.UpdatedAt,
-	}
-
-	err := r.db.QueryRow(query, args...).Scan(&app.ID)
-	if err != nil {
-		return fmt.Errorf("failed to create application: %w", err)
-	}
-
-	return nil
-}
-
 // CreateTx inserts a new application using an existing transaction.
 func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) error {
 	query := `
@@ -338,44 +286,6 @@ func (r *ApplicationRepository) AssignMemberNumberTx(tx *sql.Tx, appID uuid.UUID
 	return nil
 }
 
-// Update updates an application
-func (r *ApplicationRepository) Update(app *shared.Application) error {
-	query := `
-		UPDATE member_onboarding.application SET
-			member_type = $1,
-			titel = $2, firstname = $3, lastname = $4, birth_date = $5,
-			company_name = $6, uid_number = $7, register_number = $8,
-			email = $9, phone = $10,
-			resident_street = $11, resident_street_number = $12, resident_zip = $13,
-			resident_city = $14, privacy_accepted = $15,
-			privacy_version = $16, accuracy_confirmed = $17,
-			iban = $18, account_holder = $19, sepa_mandate_accepted = $20, sepa_mandate_accepted_at = $21,
-			membership_start_date = $22, persons_in_household = $23, consumption_previous_year = $24,
-			consumption_forecast = $25, feed_in_forecast = $26, pv_power_kwp = $27,
-			heat_pump = $28, electric_vehicle = $29, electric_hot_water = $30,
-			updated_at = NOW()
-		WHERE id = $31`
-
-	_, err := r.db.Exec(query,
-		app.MemberType,
-		app.Titel, app.Firstname, app.Lastname, app.BirthDate,
-		app.CompanyName, app.UIDNumber, app.RegisterNumber,
-		app.Email, app.Phone,
-		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity,
-		app.PrivacyAccepted, app.PrivacyVersion, app.AccuracyConfirmed,
-		app.IBAN, app.AccountHolder, app.SepaMandateAccepted, app.SepaMandateAcceptedAt,
-		app.MembershipStartDate, app.PersonsInHousehold, app.ConsumptionPreviousYear,
-		app.ConsumptionForecast, app.FeedInForecast, app.PvPowerKwp,
-		app.HeatPump, app.ElectricVehicle, app.ElectricHotWater,
-		app.ID,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to update application: %w", err)
-	}
-
-	return nil
-}
-
 // UpdateTx updates an application using an existing transaction.
 func (r *ApplicationRepository) UpdateTx(tx *sql.Tx, app *shared.Application) error {
 	query := `
@@ -410,21 +320,6 @@ func (r *ApplicationRepository) UpdateTx(tx *sql.Tx, app *shared.Application) er
 	if err != nil {
 		return fmt.Errorf("failed to update application: %w", err)
 	}
-	return nil
-}
-
-// UpdateStatus updates the status of an application
-func (r *ApplicationRepository) UpdateStatus(id uuid.UUID, status shared.ApplicationStatus, submittedAt *time.Time) error {
-	query := `
-		UPDATE member_onboarding.application SET
-			status = $1, submitted_at = $2, updated_at = NOW()
-		WHERE id = $3`
-
-	_, err := r.db.Exec(query, status, submittedAt, id)
-	if err != nil {
-		return fmt.Errorf("failed to update application status: %w", err)
-	}
-
 	return nil
 }
 

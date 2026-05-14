@@ -20,50 +20,6 @@ func NewMeteringPointRepository(db *sql.DB) *MeteringPointRepository {
 	return &MeteringPointRepository{db: db}
 }
 
-// CreateBulk creates multiple metering points for an application
-func (r *MeteringPointRepository) CreateBulk(applicationID uuid.UUID, points []shared.MeteringPoint) error {
-	if len(points) == 0 {
-		return nil
-	}
-
-	tx, err := r.db.Begin()
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer tx.Rollback()
-
-	// First, delete existing metering points for this application
-	_, err = tx.Exec(`DELETE FROM member_onboarding.metering_point WHERE application_id = $1`, applicationID)
-	if err != nil {
-		return fmt.Errorf("failed to delete existing metering points: %w", err)
-	}
-
-	// Insert new metering points
-	stmt, err := tx.Prepare(`
-		INSERT INTO member_onboarding.metering_point (
-			application_id, metering_point, direction, participation_factor,
-			transformer, installation_number, installation_name,
-			created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`)
-	if err != nil {
-		return fmt.Errorf("failed to prepare statement: %w", err)
-	}
-	defer stmt.Close()
-
-	for _, point := range points {
-		_, err = stmt.Exec(
-			applicationID, point.MeteringPoint, point.Direction, point.ParticipationFactor,
-			point.Transformer, point.InstallationNumber, point.InstallationName,
-			point.CreatedAt, point.UpdatedAt,
-		)
-		if err != nil {
-			return fmt.Errorf("failed to insert metering point: %w", err)
-		}
-	}
-
-	return tx.Commit()
-}
-
 // CreateBulkTx replaces all metering points for an application using an existing transaction.
 func (r *MeteringPointRepository) CreateBulkTx(tx *sql.Tx, applicationID uuid.UUID, points []shared.MeteringPoint) error {
 	_, err := tx.Exec(`DELETE FROM member_onboarding.metering_point WHERE application_id = $1`, applicationID)

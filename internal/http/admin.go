@@ -176,7 +176,6 @@ func (h *AdminHandler) SyncEntrypoints(w http.ResponseWriter, r *http.Request) {
 }
 
 // ListApplications handles GET /api/admin/applications
-// ListApplications handles GET /api/admin/applications
 //
 // @Summary      List applications
 // @Description  Returns a paginated, filterable list of member applications. Tenant-admins only see their own EEG's applications; superusers see all.
@@ -956,24 +955,6 @@ func (h *AdminHandler) SuggestNextMemberNumber(w http.ResponseWriter, r *http.Re
 	h.writeJSON(w, http.StatusOK, map[string]string{"next_member_number": next})
 }
 
-// ResetImport handles POST /api/admin/applications/{id}/reset-import
-//
-// @Summary      Reset an imported application back to approved (PROJ-30)
-// @Description  Transitions an application from `imported` back to `approved` so it can be re-imported after the eegFaktura admin deleted the participant in the core. Clears `target_participant_id` and all `import_*` bookkeeping fields. A reason is mandatory and recorded in the status_log; the previous `target_participant_id` is archived in the same log entry. The eegFaktura core is NOT contacted — admin verifies the deletion manually.
-// @Tags         Admin
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        id    path  string                       true  "Application UUID"
-// @Param        body  body  shared.ResetImportRequest    true  "Reason for the reset"
-// @Success      200   {object}  shared.AdminApplicationDetail
-// @Failure      400   {object}  shared.ErrorResponse  "Validation failed"
-// @Failure      401   {object}  shared.ErrorResponse
-// @Failure      403   {object}  shared.ErrorResponse  "Tenant mismatch"
-// @Failure      404   {object}  shared.ErrorResponse
-// @Failure      409   {object}  shared.ErrorResponse  "Application not in imported status"
-// @Failure      500   {object}  shared.ErrorResponse
-// @Router       /api/admin/applications/{id}/reset-import [post]
 // UpdateAdminNote handles PATCH /api/admin/applications/{id}/admin-note
 //
 // @Summary      Update admin note
@@ -1017,6 +998,24 @@ func (h *AdminHandler) UpdateAdminNote(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// ResetImport handles POST /api/admin/applications/{id}/reset-import
+//
+// @Summary      Reset an imported application back to approved (PROJ-30)
+// @Description  Transitions an application from `imported` back to `approved` so it can be re-imported after the eegFaktura admin deleted the participant in the core. Clears `target_participant_id` and all `import_*` bookkeeping fields. A reason is mandatory and recorded in the status_log; the previous `target_participant_id` is archived in the same log entry. The eegFaktura core is NOT contacted — admin verifies the deletion manually.
+// @Tags         Admin
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id    path  string                       true  "Application UUID"
+// @Param        body  body  shared.ResetImportRequest    true  "Reason for the reset"
+// @Success      200   {object}  shared.AdminApplicationDetail
+// @Failure      400   {object}  shared.ErrorResponse  "Validation failed"
+// @Failure      401   {object}  shared.ErrorResponse
+// @Failure      403   {object}  shared.ErrorResponse  "Tenant mismatch"
+// @Failure      404   {object}  shared.ErrorResponse
+// @Failure      409   {object}  shared.ErrorResponse  "Application not in imported status"
+// @Failure      500   {object}  shared.ErrorResponse
+// @Router       /api/admin/applications/{id}/reset-import [post]
 func (h *AdminHandler) ResetImport(w http.ResponseWriter, r *http.Request) {
 	id, err := h.parseID(w, r)
 	if err != nil {
