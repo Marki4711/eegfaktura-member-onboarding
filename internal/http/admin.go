@@ -520,6 +520,35 @@ func (h *AdminHandler) ResendMemberConfirmation(w http.ResponseWriter, r *http.R
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// ResendEmailConfirmation handles POST /api/admin/applications/{id}/resend-email-confirmation
+//
+// @Summary      Resend e-mail confirmation link (PROJ-31)
+// @Description  Rotates the confirmation token and re-sends the member confirmation mail with a fresh link. Throttled to one resend every 5 minutes per application.
+// @Tags         Admin
+// @Security     BearerAuth
+// @Param        id   path  string  true  "Application UUID"
+// @Success      204  "Email resent"
+// @Failure      401  {object}  shared.ErrorResponse
+// @Failure      403  {object}  shared.ErrorResponse
+// @Failure      404  {object}  shared.ErrorResponse
+// @Failure      409  {object}  shared.ErrorResponse  "Throttled, wrong status, or EEG opt-out"
+// @Failure      500  {object}  shared.ErrorResponse
+// @Router       /api/admin/applications/{id}/resend-email-confirmation [post]
+func (h *AdminHandler) ResendEmailConfirmation(w http.ResponseWriter, r *http.Request) {
+	id, err := h.parseID(w, r)
+	if err != nil {
+		return
+	}
+	if !h.checkTenantAccess(w, r, id) {
+		return
+	}
+	if err := h.adminService.ResendEmailConfirmation(id); err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // DeleteApplication handles DELETE /api/admin/applications/{id}
 //
 // @Summary      Delete application
@@ -1156,8 +1185,9 @@ func (h *AdminHandler) SaveEEGSettings(w http.ResponseWriter, r *http.Request) {
 		CreditorID            *string `json:"creditorId"`
 		SEPAMandateEnabled    bool    `json:"sepaMandateEnabled"`
 		UseCompanySEPAMandate bool    `json:"useCompanySEPAMandate"`
-		ShowCentralPolicy     *bool   `json:"showCentralPolicy"`
-		MemberNumberStart     *int    `json:"memberNumberStart"`
+		ShowCentralPolicy        *bool   `json:"showCentralPolicy"`
+		MemberNumberStart        *int    `json:"memberNumberStart"`
+		RequireEmailConfirmation *bool   `json:"requireEmailConfirmation"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Invalid JSON", nil)))
@@ -1204,6 +1234,13 @@ func (h *AdminHandler) SaveEEGSettings(w http.ResponseWriter, r *http.Request) {
 
 	if body.MemberNumberStart != nil {
 		if err := h.entrypointRepo.SaveMemberNumberStart(rcNumber, *body.MemberNumberStart); err != nil {
+			h.handleServiceError(w, err)
+			return
+		}
+	}
+
+	if body.RequireEmailConfirmation != nil {
+		if err := h.entrypointRepo.SaveRequireEmailConfirmation(rcNumber, *body.RequireEmailConfirmation); err != nil {
 			h.handleServiceError(w, err)
 			return
 		}

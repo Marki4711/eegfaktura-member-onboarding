@@ -124,7 +124,7 @@ func main() {
 	approvalPDFGenerator := pdf.NewFPDFApprovalGenerator()
 	registrationService := application.NewRegistrationService(entrypointRepo, fieldConfigRepo, legalDocumentRepo, cfg.CentralPolicy.Title, cfg.CentralPolicy.URL)
 	applicationService := application.NewApplicationService(db, appRepo, meteringRepo, statusLogRepo, entrypointRepo, fieldConfigRepo, consentRepo, mailService, pdfGenerator, cfg.PublicBaseURL)
-	adminService := application.NewAdminApplicationService(db, appRepo, meteringRepo, statusLogRepo, fieldConfigRepo, entrypointRepo, consentRepo, mailService, approvalPDFGenerator)
+	adminService := application.NewAdminApplicationService(db, appRepo, meteringRepo, statusLogRepo, fieldConfigRepo, entrypointRepo, consentRepo, mailService, approvalPDFGenerator, cfg.PublicBaseURL)
 
 	// PROJ-4: Core import. Disabled when CORE_BASE_URL is empty — the import
 	// endpoint then returns 503.
@@ -221,6 +221,7 @@ func main() {
 				r.Delete("/", adminHandler.DeleteApplication)
 				r.Post("/status", adminHandler.ChangeStatus)
 				r.Post("/resend-confirmation", adminHandler.ResendMemberConfirmation)
+				r.Post("/resend-email-confirmation", adminHandler.ResendEmailConfirmation)
 				r.Get("/export/excel", adminHandler.ExportApplicationExcel)
 				r.Get("/approval-pdf", adminHandler.DownloadApprovalPDF)
 				r.Post("/import", adminHandler.ImportApplication)

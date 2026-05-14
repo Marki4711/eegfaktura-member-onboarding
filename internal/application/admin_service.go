@@ -43,10 +43,16 @@ type ApplicationListFilters struct {
 // action (re-approve after failed import) and is handled here so the approval email
 // is re-sent consistently via ChangeStatus.
 var adminTransitions = map[shared.ApplicationStatus][]shared.ApplicationStatus{
-	shared.StatusSubmitted:    {shared.StatusUnderReview},
-	shared.StatusUnderReview:  {shared.StatusNeedsInfo, shared.StatusApproved, shared.StatusRejected},
-	shared.StatusNeedsInfo:    {shared.StatusSubmitted},
-	shared.StatusImportFailed: {shared.StatusApproved},
+	// `submitted → rejected` is allowed even when the EEG requires e-mail
+	// confirmation: the admin can dismiss obvious junk without waiting for
+	// the member to click. The runtime guard below blocks all OTHER
+	// submitted-targets when require_email_confirmation is on and the
+	// e-mail has not yet been confirmed (PROJ-31).
+	shared.StatusSubmitted:       {shared.StatusUnderReview, shared.StatusRejected},
+	shared.StatusEmailConfirmed:  {shared.StatusUnderReview, shared.StatusNeedsInfo, shared.StatusApproved, shared.StatusRejected},
+	shared.StatusUnderReview:     {shared.StatusNeedsInfo, shared.StatusApproved, shared.StatusRejected},
+	shared.StatusNeedsInfo:       {shared.StatusSubmitted},
+	shared.StatusImportFailed:    {shared.StatusApproved},
 }
 
 // AdminApplicationService implements admin review business logic.
@@ -60,6 +66,7 @@ type AdminApplicationService struct {
 	consentRepo          *DocumentConsentRepository
 	mailService          mail.MailService
 	approvalPDFGenerator pdf.ApprovalPDFGenerator
+	publicBaseURL        string
 }
 
 // NewAdminApplicationService creates an AdminApplicationService.
@@ -73,6 +80,7 @@ func NewAdminApplicationService(
 	consentRepo *DocumentConsentRepository,
 	mailService mail.MailService,
 	approvalPDFGenerator pdf.ApprovalPDFGenerator,
+	publicBaseURL string,
 ) *AdminApplicationService {
 	return &AdminApplicationService{
 		db:                   db,
@@ -84,8 +92,14 @@ func NewAdminApplicationService(
 		consentRepo:          consentRepo,
 		mailService:          mailService,
 		approvalPDFGenerator: approvalPDFGenerator,
+		publicBaseURL:        publicBaseURL,
 	}
 }
+
+// resendThrottle is the minimum interval between two resend-email-confirmation
+// clicks on the same application — protects against admin accidentally
+// double-clicking and spamming the member's inbox (PROJ-31 Q6).
+const resendThrottle = 5 * time.Minute
 
 // GetFieldConfig returns the field configuration for a given RC number.
 func (s *AdminApplicationService) GetFieldConfig(rcNumber string) (map[string]FieldConfigEntry, error) {
@@ -109,6 +123,103 @@ func (s *AdminApplicationService) ResendMemberConfirmation(id uuid.UUID) error {
 	}
 	return s.mailService.SendMemberConfirmation(app, entrypoint)
 }
+
+// ResendEmailConfirmation rotates the e-mail confirmation token for a still-
+// pending application and re-sends the confirmation mail (PROJ-31). The
+// original token (if any) is invalidated. Throttled to one resend every
+// resendThrottle to prevent the admin from spamming the member's inbox.
+func (s *AdminApplicationService) ResendEmailConfirmation(id uuid.UUID) error {
+	app, err := s.appRepo.GetByID(id)
+	if err != nil {
+		return err
+	}
+	if app.Status != shared.StatusSubmitted {
+		return shared.NewConflictError("application is not in submitted status")
+	}
+	if app.EmailConfirmedAt != nil {
+		return shared.NewConflictError("application e-mail is already confirmed")
+	}
+
+	entrypoint, err := s.entrypointRepo.GetByRCNumber(app.RCNumber)
+	if err != nil {
+		return err
+	}
+	if !entrypoint.RequireEmailConfirmation {
+		return shared.NewConflictError("EEG does not require e-mail confirmation")
+	}
+	if s.publicBaseURL == "" {
+		return fmt.Errorf("public base URL not configured — cannot build confirmation link")
+	}
+
+	// Throttle: derive the previous token's issue time from
+	// expires_at - 30d. If the previous resend was less than resendThrottle
+	// ago, refuse. First-time resend after a fresh submit goes through the
+	// same calculation: refuses within 5min of the original submit.
+	if app.EmailConfirmationTokenExpiresAt != nil {
+		issuedAt := app.EmailConfirmationTokenExpiresAt.Add(-emailConfirmationTokenLifetime)
+		if time.Since(issuedAt) < resendThrottle {
+			return shared.NewConflictError(fmt.Sprintf("bitte warten Sie noch %s vor dem nächsten Versand", resendThrottle))
+		}
+	}
+
+	plaintext, hash, tokErr := GenerateEmailConfirmationToken()
+	if tokErr != nil {
+		return fmt.Errorf("token generation: %w", tokErr)
+	}
+	now := time.Now()
+	expiresAt := now.Add(emailConfirmationTokenLifetime)
+
+	tx, txErr := s.db.Begin()
+	if txErr != nil {
+		return fmt.Errorf("begin tx: %w", txErr)
+	}
+	defer tx.Rollback()
+
+	if err := s.appRepo.AssignEmailConfirmationTokenTx(tx, id, hash, expiresAt); err != nil {
+		return err
+	}
+
+	logReason := "Bestätigungs-Mail erneut versendet"
+	systemActor := "admin"
+	statusLog := &shared.StatusLogEntry{
+		ApplicationID:   id,
+		FromStatus:      stringPtr(string(shared.StatusSubmitted)),
+		ToStatus:        string(shared.StatusSubmitted),
+		ChangedByUserID: &systemActor,
+		Reason:          &logReason,
+		CreatedAt:       now,
+	}
+	if err := s.statusLogRepo.CreateTx(tx, statusLog); err != nil {
+		return fmt.Errorf("status log: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit: %w", err)
+	}
+
+	url := BuildEmailConfirmationURL(s.publicBaseURL, plaintext)
+	go func() {
+		acquireMailSem()
+		defer releaseMailSem()
+		meteringPoints, mpErr := s.meteringRepo.GetByApplicationID(id)
+		if mpErr != nil {
+			slog.Error("resend-confirmation: failed to load metering points", "application_id", id, "error", mpErr)
+			return
+		}
+		fieldConfig, _ := s.fieldConfigRepo.Get(strings.ToUpper(app.RCNumber))
+		var consents []shared.DocumentConsent
+		if s.consentRepo != nil {
+			consents, _ = s.consentRepo.GetByApplicationID(id)
+		}
+		// Re-uses SendSubmissionEmails so the member mail keeps the same
+		// shape it had at first submit — only the confirmation URL is new.
+		// EEG-notification is deferred again (same condition as initial submit).
+		s.mailService.SendSubmissionEmails(app, meteringPoints, entrypoint, toStateMap(fieldConfig), nil, consents, url)
+	}()
+	return nil
+}
+
+func stringPtr(s string) *string { return &s }
 
 // ListApplications returns a paginated, filtered list of applications for admin review.
 func (s *AdminApplicationService) ListApplications(filters ApplicationListFilters, page, pageSize int) (*shared.ApplicationListResponse, error) {
@@ -330,6 +441,17 @@ func (s *AdminApplicationService) ChangeStatus(id uuid.UUID, toStatus shared.App
 		return nil, shared.NewConflictError(
 			fmt.Sprintf("transition from %s to %s is not allowed", app.Status, toStatus),
 		)
+	}
+
+	// PROJ-31: when the EEG requires e-mail confirmation, block all moves
+	// out of `submitted` except `rejected` until the member has clicked the
+	// confirmation link. The transition map keeps `submitted → under_review`
+	// because EEGs without the setting still need it.
+	if app.Status == shared.StatusSubmitted && toStatus != shared.StatusRejected {
+		entrypoint, epErr := s.entrypointRepo.GetByRCNumber(app.RCNumber)
+		if epErr == nil && entrypoint.RequireEmailConfirmation && app.EmailConfirmedAt == nil {
+			return nil, shared.NewConflictError("E-Mail-Adresse des Bewerbers ist noch nicht bestätigt — der Antrag kann erst nach Bestätigung weiterbearbeitet werden.")
+		}
 	}
 
 	if requiresReason(toStatus) && reason == "" {
