@@ -95,12 +95,19 @@ export function ApplicationsPageContent() {
   const fetchDraftCount = useCallback(async () => {
     if (!session?.accessToken) return;
     try {
-      const result = await listApplications({ status: "draft", page: 1, page_size: 1 }, session.accessToken);
+      // Respect the active rc_number filter so the dialog shows (and the
+      // delete button removes) only drafts in the EEG the admin is looking
+      // at. Multi-EEG admins viewing "all" still see the union.
+      const rcFilter = searchParams.get("rc_number") ?? undefined;
+      const result = await listApplications(
+        { status: "draft", page: 1, page_size: 1, rc_number: rcFilter },
+        session.accessToken,
+      );
       setDraftCount(result.total);
     } catch {
       setDraftCount(null);
     }
-  }, [session?.accessToken]);
+  }, [searchParams, session?.accessToken]);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -115,7 +122,8 @@ export function ApplicationsPageContent() {
   const handleDeleteDrafts = async () => {
     setDeletingDrafts(true);
     try {
-      await deleteDraftApplications(session?.accessToken);
+      const rcFilter = searchParams.get("rc_number") ?? undefined;
+      await deleteDraftApplications(session?.accessToken, rcFilter);
       await fetchApplications();
       await fetchDraftCount();
     } finally {

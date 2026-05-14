@@ -661,8 +661,16 @@ export function deleteApplication(id: string, token?: string): Promise<void> {
   return adminRequest<void>(`/api/admin/applications/${id}`, token, { method: "DELETE" });
 }
 
-export function deleteDraftApplications(token?: string): Promise<{ deleted: number }> {
-  return adminRequest<{ deleted: number }>("/api/admin/applications/drafts", token, { method: "DELETE" });
+export function deleteDraftApplications(
+  token?: string,
+  rcNumber?: string,
+): Promise<{ deleted: number }> {
+  const qs = rcNumber ? `?rc_number=${encodeURIComponent(rcNumber)}` : "";
+  return adminRequest<{ deleted: number }>(
+    `/api/admin/applications/drafts${qs}`,
+    token,
+    { method: "DELETE" },
+  );
 }
 
 export function getFieldConfig(rcNumber: string, token?: string): Promise<{ fieldConfig: AdminFieldConfig }> {

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -242,6 +243,13 @@ func (h *AdminHandler) ListApplications(w http.ResponseWriter, r *http.Request) 
 
 	page := intQueryParam(q.Get("page"), 1)
 	pageSize := intQueryParam(q.Get("page_size"), 20)
+	// Hard cap on deep pagination so a buggy/abusive client can't make the
+	// DB scan-and-sort millions of rows behind a giant OFFSET. 10_000 pages
+	// at any pageSize is far beyond legitimate admin browsing.
+	const maxPage = 10_000
+	if page > maxPage {
+		page = maxPage
+	}
 
 	resp, err := h.adminService.ListApplications(filters, page, pageSize)
 	if err != nil {
@@ -568,21 +576,53 @@ func (h *AdminHandler) DeleteDraftApplications(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	// Optional rc_number filter narrows the deletion to drafts of one EEG.
+	// Used by the multi-EEG admin UI so the "delete all drafts" button
+	// respects the currently active rc_number filter instead of nuking
+	// drafts across every accessible EEG. The tenant-scope check below
+	// still applies: a tenant-admin cannot delete in foreign RC numbers.
+	rcFilter := strings.TrimSpace(r.URL.Query().Get("rc_number"))
+
+	var rcNumbers []string
+	if claims.IsSuperuser() {
+		if rcFilter != "" {
+			rcNumbers = []string{rcFilter}
+		}
+		// else: empty list signals "all RCs" → use DeleteAllDrafts below
+	} else {
+		tenants := []string(claims.Tenant)
+		if rcFilter != "" {
+			if !containsRC(tenants, rcFilter) {
+				h.writeError(w, shared.NewErrorResponse(shared.ErrForbidden))
+				return
+			}
+			rcNumbers = []string{rcFilter}
+		} else {
+			rcNumbers = tenants
+		}
+	}
+
 	var (
 		n   int64
 		err error
 	)
-	if claims.IsSuperuser() {
+	if len(rcNumbers) == 0 {
+		// Only reachable for superusers with no rc_number filter.
 		n, err = h.adminService.DeleteAllDrafts()
 	} else {
-		n, err = h.adminService.DeleteDrafts([]string(claims.Tenant))
+		n, err = h.adminService.DeleteDrafts(rcNumbers)
 	}
 	if err != nil {
 		h.handleServiceError(w, err)
 		return
 	}
 
-	slog.Info("admin: draft applications deleted", "count", n, "user_id", claims.Subject, "superuser", claims.IsSuperuser())
+	slog.Info("admin: draft applications deleted",
+		"count", n,
+		"user_id", claims.Subject,
+		"superuser", claims.IsSuperuser(),
+		"rc_filter", rcFilter,
+	)
 	h.writeJSON(w, http.StatusOK, map[string]int64{"deleted": n})
 }
 
