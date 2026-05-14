@@ -184,9 +184,24 @@ async function main() {
       await shoot(page, "register-form-metering-points.png")
     }
 
-    // Keycloak login page — visit /admin in a fresh, unauthenticated context
+    // Keycloak login page — visit /admin in a fresh, unauthenticated context.
+    // NextAuth lands on the provider picker first; click "Sign in with Keycloak"
+    // so the screenshot shows the actual Keycloak username/password form, not
+    // the NextAuth intermediate page.
     await page.goto(`${BASE_URL}/admin`)
     await page.waitForLoadState("networkidle")
+    const kcProvider = page
+      .locator('button:has-text("Keycloak"), a:has-text("Keycloak")')
+      .first()
+    if ((await kcProvider.count()) > 0) {
+      await kcProvider.click()
+      try {
+        await page.waitForSelector('input[name="username"], input#username', { timeout: 15_000 })
+        await page.waitForTimeout(300)
+      } catch {
+        // fall through and capture whatever ended up on screen
+      }
+    }
     await shoot(page, "admin-login-keycloak.png")
 
     await ctx.close()
@@ -231,23 +246,32 @@ async function main() {
     await page.waitForTimeout(200)
     await shoot(page, "admin-application-detail-2.png")
 
-    const statusArea = page.locator('[data-testid="status-actions"], :text("Status-Aktionen")').first()
-    if ((await statusArea.count()) > 0) {
-      await statusArea.scrollIntoViewIfNeeded()
-      await shoot(page, "admin-status-actions.png")
+    // Section-specific shots: force each section to the TOP of the viewport
+    // (not just "visible") so consecutive shots show different content.
+    // scrollIntoViewIfNeeded() is a no-op if the element is already in view,
+    // which is why earlier runs produced identical detail-2 / status-log shots.
+    const shootSection = async (text: string, name: string) => {
+      const elem = page.getByText(text, { exact: false }).first()
+      if ((await elem.count()) === 0) {
+        log(`  ⚠ ${name} — could not locate "${text}" heading`)
+        return
+      }
+      await elem.evaluate((el) => el.scrollIntoView({ block: "start", behavior: "instant" }))
+      await page.waitForTimeout(200)
+      await shoot(page, name)
     }
+    await shootSection("Statusaktionen", "admin-status-actions.png")
+    await shootSection("Statusverlauf", "admin-status-log.png")
 
-    const logArea = page.locator('[data-testid="status-log"], :text("Statusverlauf")').first()
-    if ((await logArea.count()) > 0) {
-      await logArea.scrollIntoViewIfNeeded()
-      await shoot(page, "admin-status-log.png")
-    }
-
-    const logoutBtn = page.locator('button:has-text("Abmelden"), a:has-text("Abmelden")').first()
-    if ((await logoutBtn.count()) > 0) {
-      await logoutBtn.scrollIntoViewIfNeeded()
-      await shoot(page, "admin-logout.png")
-    }
+    // Logout button lives in the header; scroll to top, then clip to the
+    // header strip so we see "Abmelden" without the rest of the detail page.
+    await page.evaluate(() => window.scrollTo(0, 0))
+    await page.waitForTimeout(150)
+    await page.screenshot({
+      path: `${OUT_DIR}/admin-logout.png`,
+      clip: { x: 0, y: 0, width: VIEWPORT.width, height: 80 },
+    })
+    log("  ✓ admin-logout.png")
   } else {
     log("  ⚠ No application rows found — detail screenshots skipped (seed missing?)")
   }
