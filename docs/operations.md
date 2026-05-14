@@ -191,12 +191,38 @@ helm rollback member-onboarding <REVISION> -n member-onboarding
 
 ## 4. Monitoring & Alerts
 
+### Prometheus-Metrics (ab Chart 1.9.0)
+
+Backend exponiert `/metrics` auf Port `9090` (separater HTTP-Server, **nicht** über den Public-Ingress). Scrape-fähig direkt aus dem Cluster (ClusterIP-Service `member-onboarding-backend-metrics`).
+
+| Counter | Bedeutung | Beispiel-Alert |
+|---|---|---|
+| `eegfaktura_mo_applications_submitted_total` | Eingehende Public-Form-Submits | Plötzlicher Drop → Public-Form kaputt? |
+| `eegfaktura_mo_imports_total{result}` | Imports zum Core, `success` vs `failed` | `rate(...{result="failed"}[5m]) > 0.1` |
+| `eegfaktura_mo_mail_sent_total{kind,result}` | Mails pro Template+Result | `rate(...{result="failed"}[15m]) > 0` |
+| `eegfaktura_mo_rate_limit_hits_total` | Public-Submit Rate-Limit-Denials | Plötzlicher Anstieg → Scraper |
+| `eegfaktura_mo_member_number_lookups_total{result}` | next-member-number-Lookup-Result | `core_error`-Spikes → Core langsam |
+| `eegfaktura_mo_http_request_duration_seconds` | HTTP-Latenz-Histogramm | P95/P99 nach Status-Klasse |
+
+Plus die standard Prometheus-Collectors: `go_*` (GC, Goroutines, Memory) + `process_*` (CPU, RSS, FDs).
+
+**Aktivierung der prometheus-operator-Integration**: in `values-env.yaml`:
+```yaml
+metrics:
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: rancher-monitoring   # je nach Stack
+```
+
+### Sonstige Beobachtung
+
 | Was | Wo | Aktion bei Alert |
 |---|---|---|
 | Velero-Backup-Alerts | Grafana-Folder `Velero` | siehe 2.4 |
 | Pod-Restart-Loops | `kubectl get pods -n member-onboarding -w` | Logs prüfen, ggf. Helm-Rollback |
-| HTTP 5xx-Rate | Backend-Logs (`slog` JSON) | siehe Backend-Logs |
-| Import-Failures | bisher nur in Logs → siehe Architektur-Review (Metrics-TODO) | manuell beobachten |
+| HTTP 5xx-Rate | Prometheus + Backend-Logs | siehe Backend-Logs |
+| Import-Failures | `eegfaktura_mo_imports_total{result="failed"}` | Alert ab >0/min für 5 min |
 
 > Strukturierte Logs des Backends:
 > ```bash

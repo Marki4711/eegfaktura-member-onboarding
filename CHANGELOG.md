@@ -131,6 +131,51 @@ Bestätigte Analyse einer realen Production-Mail: DKIM=pass (`postal-TA3f2w._dom
 - `internal/mail/mailer_test.go` neu: 4 Tests gegen Multipart-Struktur, Headers, User-Agent-Branding, Message-ID-Domain.
 - `docs/architecture.md` ergänzt um Time/Timezone-Konvention und (siehe oben) Resilience-Bausteine.
 
+### Neu — Mitgliedsnummer wird beim Import vergeben (statt beim Submit)
+
+Die Mitgliedsnummer ist im Core-System die Quelle der Wahrheit. Das Onboarding kennt erst zum Import-Zeitpunkt den aktuellen höchsten Wert. Die Pflege im Onboarding (`registration_entrypoint.member_number_start` + Auto-Assign in `AssignMemberNumberTx`) wird durch eine Live-Abfrage am Core ersetzt.
+
+- **Neuer Endpoint** `GET /api/admin/applications/{id}/next-member-number` — ruft Core `GET /participant`, ermittelt nächste freie Nummer
+- **Pattern-aware Vorschlag**: Algorithmus erkennt dominantes Muster (Präfix + Padding). `A001, A002, A005` → Vorschlag `A006`. `M-12, M-13` → `M-14`. Reine Ziffern: `1, 2, 3` → `4`. Padding wächst (`01, 99` → `100`). Bei gemischten Mustern gewinnt die Gruppe mit den meisten Einträgen.
+- **String-typed**: Migration 000027 promoted `application.member_number` von `INT` auf `TEXT`, weil Core `participantNumber` `VARCHAR` ist. Models, Repo, Payload, PDF, Excel, Frontend-Types durchgängig string.
+- **Pre-Import-Duplikat-Check** im Backend: vor `POST /participant` wird die gewählte Nummer gegen die Core-Teilnehmerliste verglichen; bei Doppelvergabe 409.
+- **Tariff-Dialog erweitert** um „Mitgliedsnummer"-Input (Pflichtfeld, max 50 Zeichen, mit Vorschlag-Prefill).
+- **AdminEditForm**: Mitgliedsnummer-Feld entfernt.
+- **AdminEEGSettingsEditor**: „Mitgliedsnummer Startwert"-Feld entfernt; Spalte `registration_entrypoint.member_number_start` bleibt im Schema (unbenutzt).
+- **`AssignMemberNumberTx`** Call beim Submit ist raus. `application.member_number` ist von Submit bis Import `NULL`; das Approval-PDF rendert die Spalte erst nach erfolgreichem Import.
+
+### Neu — Click-to-Sort, Auth-Loop-Cooldown, Import-Robustheit
+
+#### Click-to-Sort auf der Admin-Liste
+- Server-seitige Sortierung mit strict Allowlist (`allowedSortColumns`); URL-persistierte `sort`/`order`-Parameter; Pfeil-Icons (↕/↑/↓) im Header
+- „Name"-Sortierung nutzt `COALESCE(NULLIF(TRIM(CONCAT_WS(' ', firstname, lastname)), ''), company_name)` — Privatpersonen und Firmen mischen alphabetisch korrekt
+
+#### Auth-Loop nach Deploy
+- 401 → `signIn("keycloak")` → Keycloak-Roundtrip → 401 (neuer Pod noch nicht ready) → Loop. Behoben mit sessionStorage-basiertem 30s-Cooldown der die Page-Navigation überlebt. Zweite 401 innerhalb des Cooldowns triggert keinen erneuten Redirect; Banner „Anmeldung erforderlich, aber automatische Weiterleitung wurde unterdrückt".
+
+#### Import-Robustheit-Bündel
+- **Import-Context detachen**: nach `MarkImportInFlight` läuft der Core-Call auf `context.WithTimeout(context.Background(), 2*time.Minute)`. Browser-Close oder Network-Drop unterbricht den Core-Call nicht mehr → keine Orphan-Participants im Core + Duplikat bei Retry.
+- **ResetImportTx mit `SELECT ... FOR UPDATE`**: explizite Row-Lock + Pre-Check `(import_started_at NOT NULL AND import_finished_at IS NULL)`. Reset während laufenden Imports = 409 statt Race.
+- **Migration 000028**: partial UNIQUE Index `(rc_number, member_number) WHERE NOT NULL` als Defense-in-Depth gegen Doppelvergabe.
+
+### Neu — Observability: Prometheus /metrics
+
+Counter (Namespace `eegfaktura_mo`): `applications_submitted_total`, `imports_total{result}`, `mail_sent_total{kind,result}`, `rate_limit_hits_total`, `member_number_lookups_total{result}`, `http_request_duration_seconds{method,status_class}`. Bundled `go_*` + `process_*`.
+
+- **Separater HTTP-Server auf :9090** (env `METRICS_PORT`, default `9090`), bewusst NICHT durch den Public-Ingress geroutet
+- **Helm**: dedizierter ClusterIP-Service (`backend-metrics`) mit `prometheus.io/scrape`-Annotationen; optional `ServiceMonitor` (`metrics.serviceMonitor.enabled`) für prometheus-operator-Stacks; NetworkPolicy erlaubt Ingress aus `networkPolicies.prometheusNamespace` (Default `cattle-monitoring-system` für Rancher)
+- **Counter-Overhead vernachlässigbar** (Nanosekunden pro `Inc()`); deaktivierbar via `metrics.enabled: false`
+
+### Performance — Quickwins-Bündel
+
+- **Migration 000029**: composite indexes `(application_id, created_at)` auf `status_log`, `document_consent`, `metering_point`. Admin-Detail-View liest jetzt ohne heap-fetch + sort.
+- **Deep-Pagination-Cap**: `page > 10_000` wird gedeckelt — kein OFFSET-Scan über Millionen Zeilen durch Buggy-Clients.
+- **„Alle Entwürfe löschen"-Dialog respektiert `rc_number`-Filter**: Count + Delete-Call führen den aktiven Filter mit. Multi-EEG-Admin kann nicht mehr versehentlich über alle EEGs hinweg löschen.
+
+### External-API Scope-Review (Befund)
+
+Audit: `/api/external/*` exponiert ausschließlich `POST /v1/applications` mit API-Key-Auth. Keine Liste/Detail-Endpoints, keine RC-Number-Enumeration, keine Admin-Operations. **Scope ist bereits minimal**, keine Cleanup-Arbeit notwendig.
+
 ---
 
 ## [v1.10.0] - 2026-05-09

@@ -175,6 +175,29 @@ Standalone build and standalone migrations in repository `eegfaktura-member-onbo
 - Admin frontend obtains a Keycloak JWT via NextAuth; backend validates via JWKS.
 - `adminRequest` merges caller-supplied headers on top of the default headers so Authorization is never accidentally dropped.
 - A 401 from the backend dispatches a global `auth:expired` window event; `SessionRefreshGuard` calls `signIn("keycloak")` so users hit a real login page instead of stale error banners.
+- A sessionStorage-backed 30 s cooldown prevents an infinite redirect loop when a transient 401 (deploy in progress, new pod still loading JWKS) keeps recurring after the signIn roundtrip.
+
+### Member Numbers
+
+- Authoritative source is the eegFaktura core (`participantNumber` column, VARCHAR — values like `A005`, `M-12`, `123`).
+- The onboarding does **not** assign numbers at submit time. `application.member_number` stays NULL until import succeeds.
+- At import time the admin picks the number in the tariff dialog. The backend pre-fills the suggestion via `GET /api/admin/applications/{id}/next-member-number`, which groups existing core values by prefix + padding, picks the dominant pattern, and emits `<prefix><max+1>` zero-padded to the group's width.
+- Pre-import duplicate check (`ImportService.MemberNumberTaken`) compares the chosen value against the core's participant list; surfaces 409 to the dialog.
+- Partial UNIQUE index on `(rc_number, member_number) WHERE member_number IS NOT NULL` as defense-in-depth.
+
+### Observability
+
+- Prometheus `/metrics` on a separate port (env `METRICS_PORT`, default 9090). Never routed through the public ingress — only the in-cluster Prometheus pod can scrape it.
+- Counters: `applications_submitted_total`, `imports_total{result}`, `mail_sent_total{kind,result}`, `rate_limit_hits_total`, `member_number_lookups_total{result}`. Plus `http_request_duration_seconds{method,status_class}` histogram. The bundled `go_*` and `process_*` collectors come for free.
+- Helm: dedicated ClusterIP service with `prometheus.io/scrape` annotations (works with `kubernetes_sd_configs`). Optional `ServiceMonitor` (`metrics.serviceMonitor.enabled`) for prometheus-operator stacks.
+- NetworkPolicy: backend pod allows ingress on :9090 from the configured Prometheus namespace (`networkPolicies.prometheusNamespace`, default `cattle-monitoring-system` for Rancher Monitoring).
+
+### Database Performance Indexes
+
+- `application(rc_number, status)` — list filtering by tenant + status (admin landing page)
+- `status_log(application_id, created_at)`, `document_consent(application_id, consented_at)`, `metering_point(application_id, created_at)` — the three "list children, ordered by time" queries on every admin detail view
+- `(rc_number, member_number) WHERE member_number IS NOT NULL` — partial UNIQUE for duplicate-detection
+- Deep pagination is capped at `page = 10000` in the admin list handler so no OFFSET scan can run away.
 
 ### Mail Deliverability
 
