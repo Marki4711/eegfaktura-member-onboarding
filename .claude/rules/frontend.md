@@ -28,6 +28,13 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 - Keep components small and focused
 - Use TypeScript interfaces for all props
 
+## No Placeholders on Form Inputs (MANDATORY)
+Do **not** set `placeholder="…"` on `<Input>` / `<Textarea>` / `<Select>` in form fields. Placeholders are accessibility traps (they disappear when the user starts typing) and tend to be mistaken for pre-filled values. If a field needs guidance, use the Hint / Popover Pattern below.
+
+The only legitimate placeholder usage is on shadcn `<SelectValue placeholder="…" />` where it represents the "no selection yet" label — that's not a hint.
+
+When adding new form fields, do not introduce placeholders. When touching existing fields, leave their placeholders alone unless you are explicitly removing them as part of a cleanup commit.
+
 ## Hint / Popover Pattern (MANDATORY)
 When a field needs explanatory text, use a Popover with an `Info` icon next to the label — never a `<p>` block below the input. Use Popover (not Tooltip) so it works on touch devices:
 ```tsx

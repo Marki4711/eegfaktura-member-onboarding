@@ -208,7 +208,7 @@ export function MeteringPointFields({ form, fieldConfig }: MeteringPointFieldsPr
                         Anlagen-Nr.{mpfs("installation_number") === "required" ? " *" : ""}
                       </FormLabel>
                       <FormControl>
-                        <Input placeholder="ANL-12345" {...field} value={field.value ?? ""} />
+                        <Input {...field} value={field.value ?? ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -221,11 +221,21 @@ export function MeteringPointFields({ form, fieldConfig }: MeteringPointFieldsPr
                   name={`meteringPoints.${index}.installationName`}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        Anlagenname{mpfs("installation_name") === "required" ? " *" : ""}
-                      </FormLabel>
+                      <div className="flex items-center gap-1">
+                        <FormLabel>
+                          Anlagenname{mpfs("installation_name") === "required" ? " *" : ""}
+                        </FormLabel>
+                        <Popover>
+                          <PopoverTrigger type="button" className="cursor-help">
+                            <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                          </PopoverTrigger>
+                          <PopoverContent className="max-w-60 text-sm">
+                            Der Anlagenname ist eine Bezeichnung des Zählpunkts und wird auch auf der Rechnung ausgewiesen, z. B. Hauptanlage, Nebengebäude, Warmwasser, …
+                          </PopoverContent>
+                        </Popover>
+                      </div>
                       <FormControl>
-                        <Input placeholder="Hauptanlage" {...field} value={field.value ?? ""} />
+                        <Input {...field} value={field.value ?? ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
