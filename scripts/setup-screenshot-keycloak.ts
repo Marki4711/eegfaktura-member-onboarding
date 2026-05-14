@@ -27,7 +27,7 @@ const REALM = "EEGFaktura"
 const CLIENT_ID = "eegfaktura-member-onboarding"
 const BOT_USERNAME = "screenshot-bot"
 const REDIRECT_URI = "http://localhost:3000/api/auth/callback/keycloak"
-const TENANT_RC = "RC123456"
+const TENANT_RC = "RC-DEMO"
 
 const ENV_FILE = path.resolve(".env.screenshots.local")
 

@@ -41,7 +41,7 @@ if (fs.existsSync(SCREENSHOT_ENV)) {
 }
 
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000"
-const RC_NUMBER = process.env.RC_NUMBER ?? "RC123456"
+const RC_NUMBER = process.env.RC_NUMBER ?? "RC-DEMO"
 const OUT_DIR = path.resolve("docs/user-guide/images")
 const COOKIE_CACHE = path.resolve(".cache/screenshots-cookies.json")
 const FORCE_RELOGIN = process.argv.includes("--re-login")
@@ -232,10 +232,14 @@ async function main() {
     await shoot(page, "admin-filter-panel.png")
   }
 
-  // Detail view — top + bottom halves
-  const firstRow = page.locator("table tbody tr").first()
-  if ((await firstRow.count()) > 0) {
-    await firstRow.click()
+  // Detail view — top + bottom halves. Target an application that *has*
+  // admin actions (anything past draft); drafts have no Statusaktionen and
+  // would defeat the section-specific captures below.
+  const detailId = (await findFirstAppIdByStatus(page, "submitted"))
+    ?? (await findFirstAppIdByStatus(page, "under_review"))
+    ?? (await findFirstAppIdByStatus(page, "approved"))
+  if (detailId) {
+    await page.goto(`${BASE_URL}/admin/applications/${detailId}`)
     await page.waitForLoadState("networkidle")
 
     await page.evaluate(() => window.scrollTo(0, 0))
@@ -285,7 +289,7 @@ async function main() {
     })
     log("  ✓ admin-logout.png")
   } else {
-    log("  ⚠ No application rows found — detail screenshots skipped (seed missing?)")
+    log("  ⚠ no non-draft application found — detail screenshots skipped")
   }
 
   // Import dialog — auto-discover an approved application

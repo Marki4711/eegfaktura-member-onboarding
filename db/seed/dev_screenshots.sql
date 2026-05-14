@@ -1,14 +1,21 @@
 -- ============================================================================
 -- Dev seed for screenshot generation
 -- ============================================================================
--- Inserts one registration_entrypoint (RC123456) plus one application in each
+-- Inserts one registration_entrypoint (RC-DEMO) plus one application in each
 -- of the eight application statuses, two metering points per application,
 -- and a status_log trail for every non-draft.
 --
--- Idempotent: uses deterministic UUIDs and ON CONFLICT DO NOTHING so re-running
--- this script after a partial failure or after a code reload does not duplicate
--- rows. Truncate-and-reseed semantics are intentionally NOT used — re-running
--- preserves any existing data.
+-- All names / emails / phones / addresses are deliberately obvious placeholders
+-- ("Mustermann", "@example.invalid" per RFC 2606, "Musterstraße") so the
+-- screenshots never look like real personal data.
+--
+-- RC-DEMO is a dedicated screenshot tenant — separate from any RC numbers the
+-- developer may already have in their local database. The screenshot bot user
+-- in Keycloak is configured to see only this tenant.
+--
+-- Idempotent: wipes and reinserts the screenshot rows on every run, so
+-- changes to the placeholder values propagate without manual cleanup.
+-- Existing applications on OTHER rc_numbers are untouched.
 --
 -- Usage:
 --   psql "$DATABASE_URL" -f db/seed/dev_screenshots.sql
@@ -18,6 +25,12 @@
 
 BEGIN;
 
+-- Wipe previous screenshot data. CASCADE on application removes child rows
+-- (metering_point, status_log, document_consent). The registration_entrypoint
+-- can only be deleted after its applications are gone (ON DELETE RESTRICT).
+DELETE FROM member_onboarding.application WHERE reference_number LIKE 'R-DEMO-%';
+DELETE FROM member_onboarding.registration_entrypoint WHERE rc_number IN ('RC-DEMO', 'RC123456-DEMO-OBSOLETE');
+
 -- ── registration_entrypoint ────────────────────────────────────────────────
 INSERT INTO member_onboarding.registration_entrypoint (
     id, rc_number, is_active, contact_email,
@@ -26,9 +39,9 @@ INSERT INTO member_onboarding.registration_entrypoint (
     member_number_start
 ) VALUES (
     '11111111-1111-1111-1111-111111111111',
-    'RC123456', TRUE, 'office@demo-eeg.at',
-    'Demo Energiegemeinschaft', 'Musterstraße', '1', '1010', 'Wien',
-    'AT12ZZZ00000000001', TRUE, 'demo-eeg-1', TRUE,
+    'RC-DEMO', TRUE, 'office@example.invalid',
+    'Demo Energiegemeinschaft', 'Musterstraße', '1', '1010', 'Musterstadt',
+    'AT00ZZZ00000000000', TRUE, 'demo-eeg-1', TRUE,
     1
 )
 ON CONFLICT (rc_number) DO NOTHING;
@@ -37,6 +50,10 @@ ON CONFLICT (rc_number) DO NOTHING;
 -- Common values factored into a CTE-ish pattern via repetition; PostgreSQL
 -- doesn't allow CTEs to drive multi-row VALUES with mixed status semantics
 -- in one INSERT, so we do eight explicit INSERTs.
+
+-- Placeholder addresses, phone numbers, and bank details below are deliberately
+-- non-functional: Musterstraße / Musterweg, +43 1 234567X, AT-format IBANs
+-- with all-zero body, and @example.invalid (RFC 2606) emails.
 
 -- 1. draft — started, not yet submitted
 INSERT INTO member_onboarding.application (
@@ -49,14 +66,14 @@ INSERT INTO member_onboarding.application (
     member_type, einzugsart
 ) VALUES (
     '22222222-0001-0000-0000-000000000001',
-    'R-DEMO-0001', 'RC123456', 'draft', NOW() - INTERVAL '6 hours',
-    NULL, 'Lukas', 'Müller', '1985-03-12',
-    'lukas.mueller@example.at', '+43 660 1234567',
-    'Praterstraße', '15', '1020', 'Wien',
+    'R-DEMO-0001', 'RC-DEMO', 'draft', NOW() - INTERVAL '6 hours',
+    NULL, 'Max', 'Mustermann', '1985-03-12',
+    'demo1@example.invalid', '+43 1 2345671',
+    'Musterstraße', '1', '1010', 'Musterstadt',
     FALSE, FALSE,
     NULL, NULL, FALSE,
     'private', 'core'
-) ON CONFLICT (id) DO NOTHING;
+);
 
 -- 2. submitted — fresh submission, waiting for review
 INSERT INTO member_onboarding.application (
@@ -69,15 +86,15 @@ INSERT INTO member_onboarding.application (
     member_type, einzugsart, membership_start_date, persons_in_household
 ) VALUES (
     '22222222-0002-0000-0000-000000000002',
-    'R-DEMO-0002', 'RC123456', 'submitted',
+    'R-DEMO-0002', 'RC-DEMO', 'submitted',
     NOW() - INTERVAL '3 days', NOW() - INTERVAL '2 days',
-    NULL, 'Anna', 'Bauer', '1990-07-25',
-    'anna.bauer@example.at', '+43 664 2345678',
-    'Mariahilferstraße', '42', '1060', 'Wien',
+    NULL, 'Erika', 'Mustermann', '1990-07-25',
+    'demo2@example.invalid', '+43 1 2345672',
+    'Musterstraße', '2', '1020', 'Musterstadt',
     TRUE, 'v1', NOW() - INTERVAL '2 days', TRUE,
-    'AT611904300234573201', 'Anna Bauer', TRUE, NOW() - INTERVAL '2 days',
+    'AT000000000000000000', 'Erika Mustermann', TRUE, NOW() - INTERVAL '2 days',
     'private', 'core', '2026-06-01', 1
-) ON CONFLICT (id) DO NOTHING;
+);
 
 -- 3. under_review — admin is currently looking at it
 INSERT INTO member_onboarding.application (
@@ -91,16 +108,16 @@ INSERT INTO member_onboarding.application (
     admin_note
 ) VALUES (
     '22222222-0003-0000-0000-000000000003',
-    'R-DEMO-0003', 'RC123456', 'under_review',
+    'R-DEMO-0003', 'RC-DEMO', 'under_review',
     NOW() - INTERVAL '5 days', NOW() - INTERVAL '4 days',
-    'Familie', 'Steiner', '1978-11-03',
-    'steiner@example.at', '+43 660 3456789',
-    'Lerchenfelderstraße', '7', '1080', 'Wien',
+    'Otto', 'Beispiel', '1978-11-03',
+    'demo3@example.invalid', '+43 1 2345673',
+    'Musterstraße', '3', '1030', 'Musterstadt',
     TRUE, 'v1', NOW() - INTERVAL '4 days', TRUE,
-    'AT421100000123456789', 'Thomas Steiner', TRUE, NOW() - INTERVAL '4 days',
+    'AT000000000000000003', 'Otto Beispiel', TRUE, NOW() - INTERVAL '4 days',
     'private', 'core', '2026-06-01', 4,
     'Wartet auf Rückmeldung bzgl. zweitem Zählpunkt.'
-) ON CONFLICT (id) DO NOTHING;
+);
 
 -- 4. needs_info — admin asked for clarification
 INSERT INTO member_onboarding.application (
@@ -114,16 +131,16 @@ INSERT INTO member_onboarding.application (
     needs_info_reason
 ) VALUES (
     '22222222-0004-0000-0000-000000000004',
-    'R-DEMO-0004', 'RC123456', 'needs_info',
+    'R-DEMO-0004', 'RC-DEMO', 'needs_info',
     NOW() - INTERVAL '10 days', NOW() - INTERVAL '8 days',
-    'Johann', 'Huber', '1965-04-20',
-    'j.huber@example.at', '+43 699 4567890',
-    'Hauptstraße', '23', '3100', 'St. Pölten',
+    'Anna', 'Musterfrau', '1965-04-20',
+    'demo4@example.invalid', '+43 1 2345674',
+    'Musterstraße', '4', '4020', 'Musterstadt',
     TRUE, 'v1', NOW() - INTERVAL '8 days', TRUE,
-    'AT151200000987654321', 'Johann Huber', TRUE, NOW() - INTERVAL '8 days',
+    'AT000000000000000004', 'Anna Musterfrau', TRUE, NOW() - INTERVAL '8 days',
     'private', 'core', '2026-07-01', 2,
     'Bitte Zählpunktnummer überprüfen — die angegebene Nummer ist nur 32-stellig.'
-) ON CONFLICT (id) DO NOTHING;
+);
 
 -- 5. approved — ready for import (triggers admin-import-action.png)
 INSERT INTO member_onboarding.application (
@@ -138,16 +155,16 @@ INSERT INTO member_onboarding.application (
     consumption_previous_year, consumption_forecast, pv_power_kwp
 ) VALUES (
     '22222222-0005-0000-0000-000000000005',
-    'R-DEMO-0005', 'RC123456', 'approved',
+    'R-DEMO-0005', 'RC-DEMO', 'approved',
     NOW() - INTERVAL '14 days', NOW() - INTERVAL '12 days', NOW() - INTERVAL '1 day',
-    'Maria', 'Wagner', '1982-09-15',
-    'maria.wagner@example.at', '+43 676 5678901',
-    'Schönbrunnerstraße', '88', '1120', 'Wien',
+    'Hans', 'Probekunde', '1982-09-15',
+    'demo5@example.invalid', '+43 1 2345675',
+    'Musterstraße', '5', '8010', 'Musterstadt',
     TRUE, 'v1', NOW() - INTERVAL '12 days', TRUE,
-    'AT021420020010938765', 'Maria Wagner', TRUE, NOW() - INTERVAL '12 days',
+    'AT000000000000000005', 'Hans Probekunde', TRUE, NOW() - INTERVAL '12 days',
     'private', 'core', '2026-06-15', 3,
     4200, 3800, 5.5
-) ON CONFLICT (id) DO NOTHING;
+);
 
 -- 6. rejected — declined
 INSERT INTO member_onboarding.application (
@@ -161,16 +178,16 @@ INSERT INTO member_onboarding.application (
     member_type, einzugsart, admin_note
 ) VALUES (
     '22222222-0006-0000-0000-000000000006',
-    'R-DEMO-0006', 'RC123456', 'rejected',
+    'R-DEMO-0006', 'RC-DEMO', 'rejected',
     NOW() - INTERVAL '20 days', NOW() - INTERVAL '18 days', NOW() - INTERVAL '15 days',
-    'Karl', 'Maier', '1972-01-08',
-    'k.maier@example.at', '+43 660 6789012',
-    'Ringstraße', '5', '8010', 'Graz',
+    'Maria', 'Testkundin', '1972-01-08',
+    'demo6@example.invalid', '+43 1 2345676',
+    'Musterstraße', '6', '5020', 'Musterstadt',
     TRUE, 'v1', NOW() - INTERVAL '18 days', TRUE,
-    'AT483200000111222333', 'Karl Maier', TRUE, NOW() - INTERVAL '18 days',
+    'AT000000000000000006', 'Maria Testkundin', TRUE, NOW() - INTERVAL '18 days',
     'private', 'core',
     'Zählpunkte liegen außerhalb des EEG-Versorgungsgebiets.'
-) ON CONFLICT (id) DO NOTHING;
+);
 
 -- 7. imported — already in eegFaktura (triggers admin-reset-import.png)
 INSERT INTO member_onboarding.application (
@@ -186,18 +203,18 @@ INSERT INTO member_onboarding.application (
     import_started_at, import_finished_at
 ) VALUES (
     '22222222-0007-0000-0000-000000000007',
-    'R-DEMO-0007', 'RC123456', 'imported',
+    'R-DEMO-0007', 'RC-DEMO', 'imported',
     NOW() - INTERVAL '40 days', NOW() - INTERVAL '38 days',
     NOW() - INTERVAL '35 days', NOW() - INTERVAL '34 days',
-    'Stefanie', 'Pichler', '1995-12-19',
-    's.pichler@example.at', '+43 664 7890123',
-    'Landstraßer Hauptstraße', '99', '1030', 'Wien',
+    'Karl', 'Demo', '1995-12-19',
+    'demo7@example.invalid', '+43 1 2345677',
+    'Musterstraße', '7', '6020', 'Musterstadt',
     TRUE, 'v1', NOW() - INTERVAL '38 days', TRUE,
-    'AT741750000123456789', 'Stefanie Pichler', TRUE, NOW() - INTERVAL '38 days',
+    'AT000000000000000007', 'Karl Demo', TRUE, NOW() - INTERVAL '38 days',
     'private', 'core', '2026-05-01', 2,
     'A005', 'core-part-A005-uuid',
     NOW() - INTERVAL '34 days', NOW() - INTERVAL '34 days'
-) ON CONFLICT (id) DO NOTHING;
+);
 
 -- 8. import_failed — approved but core call failed
 INSERT INTO member_onboarding.application (
@@ -212,57 +229,46 @@ INSERT INTO member_onboarding.application (
     import_started_at, import_finished_at, import_error_message
 ) VALUES (
     '22222222-0008-0000-0000-000000000008',
-    'R-DEMO-0008', 'RC123456', 'import_failed',
+    'R-DEMO-0008', 'RC-DEMO', 'import_failed',
     NOW() - INTERVAL '7 days', NOW() - INTERVAL '5 days', NOW() - INTERVAL '2 days',
-    'Robert', 'Gruber', '1988-08-30',
-    'robert.gruber@example.at', '+43 699 8901234',
-    'Mozartgasse', '12', '4020', 'Linz',
+    'Stefanie', 'Beispiel', '1988-08-30',
+    'demo8@example.invalid', '+43 1 2345678',
+    'Musterstraße', '8', '9020', 'Musterstadt',
     TRUE, 'v1', NOW() - INTERVAL '5 days', TRUE,
-    'AT091500000444555666', 'Robert Gruber', TRUE, NOW() - INTERVAL '5 days',
+    'AT000000000000000008', 'Stefanie Beispiel', TRUE, NOW() - INTERVAL '5 days',
     'private', 'core', '2026-06-01',
     NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day',
     'eegFaktura-Core: 503 service unavailable (timeout nach 30s)'
-) ON CONFLICT (id) DO NOTHING;
+);
 
 -- ── metering_points (two per application) ──────────────────────────────────
 INSERT INTO member_onboarding.metering_point (application_id, metering_point, direction, participation_factor)
 SELECT a.id, 'AT0010000000000000000000000' || lpad((row_number() OVER (ORDER BY a.reference_number) * 2 - 1)::text, 6, '0'), 'CONSUMPTION', 100
 FROM member_onboarding.application a
-WHERE a.rc_number = 'RC123456' AND a.reference_number LIKE 'R-DEMO-%'
-ON CONFLICT (application_id, metering_point) DO NOTHING;
+WHERE a.rc_number = 'RC-DEMO' AND a.reference_number LIKE 'R-DEMO-%';
 
 INSERT INTO member_onboarding.metering_point (application_id, metering_point, direction, participation_factor)
 SELECT a.id, 'AT0010000000000000000000000' || lpad((row_number() OVER (ORDER BY a.reference_number) * 2)::text, 6, '0'), 'PRODUCTION', 100
 FROM member_onboarding.application a
-WHERE a.rc_number = 'RC123456' AND a.reference_number LIKE 'R-DEMO-%'
-ON CONFLICT (application_id, metering_point) DO NOTHING;
+WHERE a.rc_number = 'RC-DEMO' AND a.reference_number LIKE 'R-DEMO-%';
 
 -- ── status_log trails ──────────────────────────────────────────────────────
 -- For each non-draft application, log the transitions in chronological order.
--- status_log has no natural unique key, so we wipe-and-reinsert for the
--- demo applications to keep this script idempotent.
-DELETE FROM member_onboarding.status_log
-WHERE application_id IN (
-    '22222222-0002-0000-0000-000000000002',
-    '22222222-0003-0000-0000-000000000003',
-    '22222222-0004-0000-0000-000000000004',
-    '22222222-0005-0000-0000-000000000005',
-    '22222222-0006-0000-0000-000000000006',
-    '22222222-0007-0000-0000-000000000007',
-    '22222222-0008-0000-0000-000000000008'
-);
+-- The earlier wipe-and-reinsert already removed status_log rows via the
+-- application CASCADE; the entries below are inserted fresh against the
+-- newly created application rows.
 
 -- submitted: draft → submitted
 INSERT INTO member_onboarding.status_log (application_id, from_status, to_status, changed_by_user_id, created_at)
 VALUES ('22222222-0002-0000-0000-000000000002', 'draft', 'submitted', 'system', NOW() - INTERVAL '2 days')
-ON CONFLICT DO NOTHING;
+;
 
 -- under_review: draft → submitted → under_review
 INSERT INTO member_onboarding.status_log (application_id, from_status, to_status, changed_by_user_id, created_at)
 VALUES
     ('22222222-0003-0000-0000-000000000003', 'draft', 'submitted', 'system', NOW() - INTERVAL '4 days'),
     ('22222222-0003-0000-0000-000000000003', 'submitted', 'under_review', 'admin-demo', NOW() - INTERVAL '3 days')
-ON CONFLICT DO NOTHING;
+;
 
 -- needs_info trail
 INSERT INTO member_onboarding.status_log (application_id, from_status, to_status, changed_by_user_id, reason, created_at)
@@ -272,7 +278,7 @@ VALUES
     ('22222222-0004-0000-0000-000000000004', 'under_review', 'needs_info', 'admin-demo',
      'Bitte Zählpunktnummer überprüfen — die angegebene Nummer ist nur 32-stellig.',
      NOW() - INTERVAL '6 days')
-ON CONFLICT DO NOTHING;
+;
 
 -- approved trail
 INSERT INTO member_onboarding.status_log (application_id, from_status, to_status, changed_by_user_id, created_at)
@@ -280,7 +286,7 @@ VALUES
     ('22222222-0005-0000-0000-000000000005', 'draft', 'submitted', 'system', NOW() - INTERVAL '12 days'),
     ('22222222-0005-0000-0000-000000000005', 'submitted', 'under_review', 'admin-demo', NOW() - INTERVAL '10 days'),
     ('22222222-0005-0000-0000-000000000005', 'under_review', 'approved', 'admin-demo', NOW() - INTERVAL '1 day')
-ON CONFLICT DO NOTHING;
+;
 
 -- rejected trail
 INSERT INTO member_onboarding.status_log (application_id, from_status, to_status, changed_by_user_id, reason, created_at)
@@ -289,7 +295,7 @@ VALUES
     ('22222222-0006-0000-0000-000000000006', 'submitted', 'under_review', 'admin-demo', NULL, NOW() - INTERVAL '17 days'),
     ('22222222-0006-0000-0000-000000000006', 'under_review', 'rejected', 'admin-demo',
      'Zählpunkte liegen außerhalb des EEG-Versorgungsgebiets.', NOW() - INTERVAL '15 days')
-ON CONFLICT DO NOTHING;
+;
 
 -- imported trail
 INSERT INTO member_onboarding.status_log (application_id, from_status, to_status, changed_by_user_id, created_at)
@@ -298,7 +304,7 @@ VALUES
     ('22222222-0007-0000-0000-000000000007', 'submitted', 'under_review', 'admin-demo', NOW() - INTERVAL '36 days'),
     ('22222222-0007-0000-0000-000000000007', 'under_review', 'approved', 'admin-demo', NOW() - INTERVAL '35 days'),
     ('22222222-0007-0000-0000-000000000007', 'approved', 'imported', 'admin-demo', NOW() - INTERVAL '34 days')
-ON CONFLICT DO NOTHING;
+;
 
 -- import_failed trail
 INSERT INTO member_onboarding.status_log (application_id, from_status, to_status, changed_by_user_id, reason, created_at)
@@ -308,7 +314,7 @@ VALUES
     ('22222222-0008-0000-0000-000000000008', 'under_review', 'approved', 'admin-demo', NULL, NOW() - INTERVAL '2 days'),
     ('22222222-0008-0000-0000-000000000008', 'approved', 'import_failed', 'admin-demo',
      'eegFaktura-Core: 503 service unavailable (timeout nach 30s)', NOW() - INTERVAL '1 day')
-ON CONFLICT DO NOTHING;
+;
 
 COMMIT;
 
@@ -316,4 +322,4 @@ COMMIT;
 \echo '--------------------------------------------------------------------'
 \echo 'dev_screenshots.sql complete.'
 \echo 'Applications by status:'
-SELECT status, count(*) FROM member_onboarding.application WHERE rc_number = 'RC123456' GROUP BY status ORDER BY status;
+SELECT status, count(*) FROM member_onboarding.application WHERE rc_number = 'RC-DEMO' GROUP BY status ORDER BY status;
