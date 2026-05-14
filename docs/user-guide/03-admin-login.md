@@ -22,6 +22,12 @@ Wenden Sie sich an Ihren Systembetreiber, falls Sie noch keinen Zugang haben.
 
 Als EEG-Betreiber sehen Sie ausschließlich die Anträge jener EEGs, die in Ihrem Keycloak-Account hinterlegt sind. Es ist nicht möglich, Anträge anderer EEGs einzusehen.
 
+## Sitzungsablauf
+
+Aus Sicherheitsgründen läuft Ihre Anmelde-Sitzung nach einiger Zeit ab. Wenn Sie nach Ablauf eine Aktion ausführen (z. B. einen Antrag öffnen), werden Sie automatisch zur Keycloak-Anmeldeseite zurückgeleitet, um Ihre Sitzung zu erneuern. Nach erfolgreicher Re-Authentifizierung landen Sie wieder in der Admin-Oberfläche.
+
+Sollte die automatische Re-Anmeldung selbst fehlschlagen (z. B. weil das Backend gerade einen Neustart durchführt), wird die Weiterleitung für 30 Sekunden ausgesetzt, um Endlos-Schleifen zu vermeiden. Versuchen Sie es danach erneut oder laden Sie die Seite neu.
+
 ## Abmeldung
 
 Klicken Sie oben rechts auf **Abmelden**, um sich sicher aus der Admin-Oberfläche abzumelden.

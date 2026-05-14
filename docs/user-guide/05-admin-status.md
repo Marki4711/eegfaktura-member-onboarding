@@ -6,11 +6,20 @@ Der Status eines Antrags steuert den Bearbeitungsablauf. Folgende Übergänge si
 
 ```
 submitted ──→ under_review ──→ approved ──→ imported
+                   │                 │           │
                    │                 └──→ import_failed
+                   │                              │
+                   │              ┌───────────────┘
+                   │              ↓
+                   │           approved  (Import zurücksetzen)
+                   │
                    ├──→ needs_info
                    │       └──→ submitted (nach Ergänzung durch Mitglied)
                    └──→ rejected
 ```
+
+* `import_failed → approved`: nach Fehlerbehebung kann der Import erneut versucht werden.
+* `imported → approved`: über die Aktion **Import zurücksetzen** (siehe unten) — z. B. wenn der Teilnehmer im eegFaktura-Core manuell gelöscht und neu importiert werden soll.
 
 ## Status ändern
 
@@ -27,6 +36,7 @@ Klicken Sie auf die gewünschte Aktion. Je nach aktuellem Status stehen untersch
 | `needs_info` | — (wartet auf Ergänzung durch das Mitglied) |
 | `approved` | Import starten |
 | `import_failed` | Import erneut starten |
+| `imported` | Import zurücksetzen |
 
 ## In Prüfung nehmen (`under_review`)
 
@@ -62,20 +72,37 @@ Nach der Genehmigung kann der Antrag in eegFaktura importiert werden:
 
 1. Öffnen Sie den genehmigten Antrag
 2. Klicken Sie auf **In eegFaktura importieren**
-3. Bei Erfolg wechselt der Status auf `imported`
-4. Bei Fehler wechselt der Status auf `import_failed` — der Import kann wiederholt werden
+3. Es öffnet sich der Dialog **Import-Konfiguration**:
+   * **Tarif** — Auswahl aus den im eegFaktura-Core hinterlegten Tarifen der EEG
+   * **Mitgliedsnummer** — Vorbelegt mit der nächsten freien Nummer (basierend auf dem dominanten Muster in eegFaktura, z. B. `A005 → A006` oder `12 → 13`). Maximal 50 Zeichen, alphanumerisch erlaubt. Sie können den Vorschlag übernehmen oder überschreiben.
+4. Klicken Sie auf **Importieren**
+5. Bei Erfolg wechselt der Status auf `imported`
+6. Bei Fehler wechselt der Status auf `import_failed` — der Import kann wiederholt werden (Mitgliedsnummer und Tarif werden erneut abgefragt)
 
 ![Import-Aktion](images/admin-import-action.png)
 
+> **Hinweis:** Die Mitgliedsnummer wird erst beim Import vergeben. Im Status `submitted` / `under_review` / `approved` ist sie noch leer — das ist beabsichtigt, weil nur eegFaktura die endgültige Nummern­vergabe steuert.
+
 > **Hinweis:** Der Import kann bei technischen Problemen mit eegFaktura fehlschlagen. In diesem Fall prüfen Sie den Fehlerhinweis und wiederholen Sie den Import, sobald das Problem behoben ist.
+
+## Import zurücksetzen (`imported → approved`)
+
+Wenn ein bereits importierter Teilnehmer im eegFaktura-Core gelöscht wurde (z. B. weil das Mitglied seine Teilnahme widerrufen hat oder der Import fehlerhaft war), kann der Antrag in den Status `approved` zurückgesetzt werden, um einen Neu-Import zu ermöglichen.
+
+1. Öffnen Sie den importierten Antrag
+2. Klicken Sie auf **Import zurücksetzen**
+3. Geben Sie eine Begründung an (Pflichtfeld, wird im Statusverlauf protokolliert)
+4. Der Antrag wechselt auf `approved`; die alte `target_participant_id` wird im Statusverlauf archiviert
+
+> **Wichtig:** Diese Aktion kontaktiert den eegFaktura-Core *nicht*. Bevor Sie sie nutzen, müssen Sie den Teilnehmer im Core manuell gelöscht haben.
 
 ## Statusverlauf
 
 Jede Statusänderung wird automatisch im **Statusverlauf** protokolliert:
 
-- Zeitpunkt der Änderung
+- Zeitpunkt der Änderung (Anzeige in Europe/Vienna mit CET/CEST-Umstellung)
 - Von-Status und An-Status
 - Benutzer der die Änderung vorgenommen hat
-- Optionaler Grund (bei Rückfragen und Ablehnung)
+- Optionaler Grund (bei Rückfragen, Ablehnung und Import-Reset)
 
 ![Statusverlauf](images/admin-status-log.png)

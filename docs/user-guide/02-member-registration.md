@@ -62,7 +62,11 @@ Geben Sie mindestens einen Zählpunkt an:
 - Bestätigen Sie die **Richtigkeit Ihrer Angaben**
 - Klicken Sie auf **Antrag einreichen**
 
-Nach der Einreichung erhalten Sie eine **Bestätigungs-E-Mail** mit Ihrer Antragsnummer.
+Nach der Einreichung erhalten Sie eine **Bestätigungs-E-Mail** mit Ihrer Antragsnummer. Die E-Mail enthält zusätzlich:
+
+* eine PDF-Zusammenfassung Ihrer Angaben,
+* eine Identifikations-Fußzeile mit Ihrer EEG, damit Sie die Mail eindeutig zuordnen können,
+* eine **Reply-To**-Adresse, über die Sie direkt mit Ihrer EEG in Kontakt treten können (Antworten gehen nicht an einen „noreply"-Postfach).
 
 ![Bestätigung](images/register-form-success.png)
 

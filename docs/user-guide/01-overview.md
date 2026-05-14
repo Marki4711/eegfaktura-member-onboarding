@@ -18,8 +18,11 @@ Mitglied                    EEG-Betreiber              eegFaktura
    |                    Antrag genehmigen                   |
    |                              |                         |
    |                              |-- Import starten ------>|
+   |                              |   (inkl. Mitgliedsnr.)  |
    |                              |                         |
 ```
+
+> **Hinweis:** Die **Mitgliedsnummer** wird nicht beim Einreichen, sondern erst beim Import in eegFaktura vergeben. Das eegFaktura-Core schlägt die nächste freie Nummer vor (numerisch oder alphanumerisch, z. B. `A006`), die der EEG-Betreiber im Import-Dialog übernehmen oder anpassen kann.
 
 ## Benutzerrollen
 
@@ -32,11 +35,16 @@ Mitglied                    EEG-Betreiber              eegFaktura
 
 ```
 draft → submitted → under_review → approved → imported
-                         ↕
-                    needs_info
-                         ↕
-                      rejected
+                         ↕             ↑          │
+                    needs_info         │     (Import zurücksetzen)
+                         ↕             │          │
+                      rejected         └──────────┘
+                                       │
+                                  import_failed
 ```
+
+* `import_failed → approved`: nach Fehlerbehebung kann der Import erneut versucht werden.
+* `imported → approved`: über die Aktion **Import zurücksetzen** in der Detailansicht.
 
 | Status | Bedeutung |
 |--------|-----------|
