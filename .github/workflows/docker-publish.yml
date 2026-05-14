@@ -168,6 +168,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
+          # Start from current main, not the SHA that triggered this run.
+          # If a commit landed between trigger and now, we want to apply
+          # the tag bump on top of it instead of producing a non-fast-forward
+          # push that gets rejected.
+          ref: main
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update image tags in values.yaml
@@ -178,8 +183,28 @@ jobs:
 
       - name: Commit updated Helm values
         run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add helm/member-onboarding/values.yaml
-          git diff --staged --quiet || git commit -m "chore: update Helm image tags to ${{ needs.build-backend.outputs.sha_tag }} [skip ci]"
-          git push
+          if git diff --staged --quiet; then
+            echo "No tag change, nothing to commit."
+            exit 0
+          fi
+          git commit -m "chore: update Helm image tags to ${{ needs.build-backend.outputs.sha_tag }} [skip ci]"
+          # Retry-with-rebase: if another commit raced us between checkout
+          # and push (manual push by a maintainer, or a parallel workflow
+          # run's tag bump), rebase our 1-commit-ahead state onto the new
+          # tip and try again. 5 attempts is plenty for the human-pace races
+          # this is designed to absorb.
+          for attempt in 1 2 3 4 5; do
+            if git push; then
+              echo "Pushed on attempt ${attempt}."
+              exit 0
+            fi
+            echo "Push rejected on attempt ${attempt} — fetching + rebasing onto origin/main."
+            git fetch origin main
+            git rebase origin/main
+          done
+          echo "Helm-tag push still failing after 5 attempts; bailing out."
+          exit 1
