@@ -332,10 +332,19 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
                   {comparison.logoSyncWarning}
                 </p>
               )}
-              <p className="text-xs text-muted-foreground">
-                Erscheint oben rechts auf Beitrittsbestätigung + SEPA-Mandat. Wird beim
-                nächsten „Aus eegFaktura aktualisieren" mitsynchronisiert.
-              </p>
+              {settings.eegLogoSyncedAt && (
+                <p className="text-xs text-muted-foreground">
+                  Logo zuletzt aus eegFaktura geladen: {formatDateTime(settings.eegLogoSyncedAt)}.
+                  Der „Synchron"-Status oben prüft nur die Text-Felder — das Logo wird bei jedem
+                  „Aus eegFaktura aktualisieren" mitgeholt.
+                </p>
+              )}
+              {!settings.eegLogoSyncedAt && (
+                <p className="text-xs text-muted-foreground">
+                  Erscheint oben rechts auf Beitrittsbestätigung + SEPA-Mandat. Wird beim
+                  nächsten „Aus eegFaktura aktualisieren" mitsynchronisiert.
+                </p>
+              )}
             </div>
           </div>
 
