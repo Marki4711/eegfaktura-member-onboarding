@@ -324,6 +324,7 @@ export function submitApplication(id: string, consents?: ConsentInput[]): Promis
 export type ApplicationStatus =
   | "draft"
   | "submitted"
+  | "email_confirmed"
   | "under_review"
   | "needs_info"
   | "approved"
@@ -404,6 +405,8 @@ export interface AdminApplicationDetail {
   mandateReference?: string | null;
   mandateDate?: string | null;
   memberNumber?: string | null;
+  emailConfirmedAt?: string | null;
+  emailConfirmationPending?: boolean;
   needsInfoReason: string | null;
   targetParticipantId: string | null;
   importStartedAt: string | null;
@@ -699,6 +702,40 @@ export interface EEGSettings {
   useCompanySEPAMandate: boolean;
   showCentralPolicy?: boolean;
   memberNumberStart?: number;
+  requireEmailConfirmation?: boolean;
+}
+
+export interface ConfirmEmailResponse {
+  eegName?: string;
+  eegContactEmail?: string;
+  alreadyConfirmed?: boolean;
+}
+
+export async function confirmEmail(token: string): Promise<ConfirmEmailResponse> {
+  const res = await fetch(`${API_URL}/api/public/applications/confirm-email`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
+  if (!res.ok) {
+    let message = "Der Bestätigungs-Link ist ungültig oder abgelaufen.";
+    try {
+      const body = await res.json();
+      if (body?.message) message = String(body.message);
+    } catch {
+      /* keep default */
+    }
+    throw new Error(message);
+  }
+  return res.json();
+}
+
+export function resendEmailConfirmation(applicationId: string, token?: string): Promise<void> {
+  return adminRequest<void>(
+    `/api/admin/applications/${encodeURIComponent(applicationId)}/resend-email-confirmation`,
+    token,
+    { method: "POST" }
+  );
 }
 
 export function getEEGSettings(rcNumber: string, token?: string): Promise<EEGSettings> {

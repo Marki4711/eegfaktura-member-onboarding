@@ -128,6 +128,11 @@ type Application struct {
 	EmailConfirmationUsedAt          *time.Time `json:"-"                               db:"email_confirmation_used_at"`
 	EmailConfirmationTokenHash       *string    `json:"-"                               db:"email_confirmation_token_hash"`
 	EmailConfirmationTokenExpiresAt  *time.Time `json:"-"                               db:"email_confirmation_token_expires_at"`
+	// EmailConfirmationPending is a derived, non-persistent flag set by the
+	// repository after load: true when a confirmation token is still active
+	// and the member has not yet clicked it. Lets the admin UI render the
+	// "⏳ unbestätigt" badge without re-deriving from internal columns.
+	EmailConfirmationPending bool `json:"emailConfirmationPending,omitempty" db:"-"`
 }
 
 // MeteringPoint represents a metering point entity

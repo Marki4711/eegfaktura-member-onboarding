@@ -25,6 +25,10 @@ interface Props {
   importErrorMessage?: string | null;
   meteringPoints: MeteringPointDetail[];
   onRefresh: () => void;
+  // PROJ-31: when true, only "Ablehnen" is available — the EEG requires
+  // e-mail confirmation and the member hasn't clicked yet, so review-style
+  // transitions are blocked server-side too.
+  emailConfirmationPending?: boolean;
 }
 
 type DialogTarget = "rejected" | "needs_info" | "reset_import";
@@ -47,7 +51,7 @@ const DIALOG_LABELS: Record<DialogTarget, { title: string; placeholder: string; 
   },
 };
 
-export function AdminStatusActions({ applicationId, rcNumber, status, targetParticipantId, importErrorMessage, meteringPoints, onRefresh }: Props) {
+export function AdminStatusActions({ applicationId, rcNumber, status, targetParticipantId, importErrorMessage, meteringPoints, onRefresh, emailConfirmationPending }: Props) {
   const { data: session } = useSession();
   const [dialogTarget, setDialogTarget] = useState<DialogTarget | null>(null);
   const [reason, setReason] = useState("");
@@ -167,6 +171,25 @@ export function AdminStatusActions({ applicationId, rcNumber, status, targetPart
     <>
       <div className="flex flex-wrap gap-2">
         {status === "submitted" && (
+          <>
+            <Button
+              onClick={() => directAction("under_review")}
+              disabled={loading || emailConfirmationPending}
+              title={emailConfirmationPending ? "E-Mail-Adresse muss zuerst bestätigt werden" : undefined}
+            >
+              {loading ? "Bitte warten..." : "In Prüfung nehmen"}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => openDialog("rejected")}
+              disabled={loading}
+            >
+              Ablehnen
+            </Button>
+          </>
+        )}
+
+        {status === "email_confirmed" && (
           <Button
             onClick={() => directAction("under_review")}
             disabled={loading}

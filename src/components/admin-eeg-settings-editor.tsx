@@ -47,6 +47,7 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
   const [sepaMandateEnabled, setSepaMandateEnabled] = useState(false);
   const [useCompanySEPAMandate, setUseCompanySEPAMandate] = useState(false);
   const [registrationActive, setRegistrationActive] = useState(false);
+  const [requireEmailConfirmation, setRequireEmailConfirmation] = useState(false);
 
   useEffect(() => {
     if (!rcNumber || !session?.accessToken) return;
@@ -63,6 +64,7 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
         setCreditorId(s.creditorId ?? "");
         setSepaMandateEnabled(s.sepaMandateEnabled);
         setUseCompanySEPAMandate(s.useCompanySEPAMandate ?? false);
+        setRequireEmailConfirmation(s.requireEmailConfirmation ?? false);
         setLoaded(true);
       })
       .catch(() => setLoaded(true));
@@ -88,6 +90,7 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
           creditorId: creditorId.trim() || null,
           sepaMandateEnabled,
           useCompanySEPAMandate,
+          requireEmailConfirmation,
         },
         session?.accessToken
       );
@@ -241,6 +244,26 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
               </AlertDescription>
             </Alert>
           )}
+
+          {/* E-Mail-Bestätigung (PROJ-31) */}
+          <div className="flex items-start gap-3 pt-1">
+            <Switch
+              id="require-email-confirmation"
+              checked={requireEmailConfirmation}
+              onCheckedChange={(v) => { setRequireEmailConfirmation(v); setSaveResult(null); }}
+            />
+            <div className="-mt-0.5">
+              <Label htmlFor="require-email-confirmation" className="text-sm cursor-pointer">
+                E-Mail-Adresse bestätigen
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1 max-w-xl">
+                Wenn aktiviert, erhält das neue Mitglied in der Bestätigungs-Mail einen Button
+                „E-Mail-Adresse bestätigen". Erst nach dem Klick wird der Antrag für Sie zur
+                Prüfung freigegeben. Empfohlen als Schutz vor Müll-Anträgen und Tippfehlern bei
+                der E-Mail-Adresse.
+              </p>
+            </div>
+          </div>
 
           {/* Save */}
           <div className="flex items-center gap-3">

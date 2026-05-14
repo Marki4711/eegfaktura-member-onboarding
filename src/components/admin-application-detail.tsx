@@ -24,7 +24,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { getApplicationDetail, resendMemberConfirmation, deleteApplication, downloadApplicationExcel, downloadApprovalPDF, ApiResponseError } from "@/lib/api";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { getApplicationDetail, resendMemberConfirmation, resendEmailConfirmation, deleteApplication, downloadApplicationExcel, downloadApprovalPDF, ApiResponseError } from "@/lib/api";
 import type { AdminApplicationDetail, MemberType, DocumentConsentView } from "@/lib/api";
 import { formatPlainDate as formatDate, formatDateTime } from "@/lib/datetime";
 
@@ -149,6 +150,29 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
     }
   };
 
+  const handleResendEmailConfirmation = async () => {
+    if (!application) return;
+    setResending(true);
+    setResendResult(null);
+    try {
+      await resendEmailConfirmation(application.id, session?.accessToken);
+      setResendResult("ok");
+    } catch (err) {
+      setResendResult("error");
+      if (err instanceof ApiResponseError && err.apiError.message) {
+        setError(err.apiError.message);
+      }
+    } finally {
+      setResending(false);
+    }
+  };
+
+  // PROJ-31: backend sets emailConfirmationPending=true when a confirmation
+  // token is active and unconsumed. In that state we show a dedicated
+  // resend button that ROTATES the token and suppress the generic
+  // "Bestätigung erneut senden" button to avoid confusion.
+  const isPendingEmailConfirmation = application?.emailConfirmationPending === true;
+
   const fetchApplication = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
@@ -254,9 +278,15 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
           {pdfError && (
             <span className="text-xs text-destructive">{pdfError}</span>
           )}
-          <Button variant="outline" size="sm" onClick={handleResend} disabled={resending}>
-            {resending ? "Wird gesendet…" : "Bestätigung erneut senden"}
-          </Button>
+          {isPendingEmailConfirmation ? (
+            <Button variant="outline" size="sm" onClick={handleResendEmailConfirmation} disabled={resending}>
+              {resending ? "Wird gesendet…" : "Bestätigungs-Link erneut senden"}
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" onClick={handleResend} disabled={resending}>
+              {resending ? "Wird gesendet…" : "Bestätigung erneut senden"}
+            </Button>
+          )}
           {(application.status === "approved" || application.status === "imported" || application.status === "import_failed") && (
             <Button variant="outline" size="sm" onClick={handleExcelDownload} disabled={downloadingExcel}>
               {downloadingExcel ? "Wird erstellt…" : "Excel herunterladen"}
@@ -296,6 +326,31 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
       </div>
 
       <div className="space-y-6">
+        {/* E-Mail confirmation banner (PROJ-31) */}
+        {isPendingEmailConfirmation && (
+          <Alert className="border-orange-300 bg-orange-50 text-orange-900">
+            <AlertDescription>
+              <strong>E-Mail-Adresse noch nicht bestätigt.</strong>{" "}
+              Das Mitglied hat den Bestätigungs-Link noch nicht angeklickt. Der Antrag kann
+              erst nach Bestätigung weiterbearbeitet werden — bis dahin ist nur „Ablehnen"
+              als Status-Aktion möglich.
+              Wenn die Bestätigungs-Mail im Spam-Ordner gelandet ist, schicken Sie den Link
+              über „Bestätigungs-Link erneut senden" oben rechts neu.
+            </AlertDescription>
+          </Alert>
+        )}
+        {application.status === "email_confirmed" && (
+          <Alert className="border-teal-300 bg-teal-50 text-teal-900">
+            <AlertDescription>
+              <strong>E-Mail-Adresse bestätigt</strong>
+              {application.emailConfirmedAt && (
+                <> am {formatDateTime(application.emailConfirmedAt)}</>
+              )}.{" "}
+              Der Antrag liegt jetzt zur Prüfung bereit.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Status Actions */}
         <Card>
           <CardHeader>
@@ -310,6 +365,7 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
               importErrorMessage={application.importErrorMessage}
               meteringPoints={application.meteringPoints}
               onRefresh={fetchApplication}
+              emailConfirmationPending={isPendingEmailConfirmation}
             />
           </CardContent>
         </Card>

@@ -268,6 +268,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	if emailConfirmationTokenExpiresAt.Valid {
 		app.EmailConfirmationTokenExpiresAt = &emailConfirmationTokenExpiresAt.Time
 	}
+	app.EmailConfirmationPending = app.EmailConfirmationTokenHash != nil && app.EmailConfirmedAt == nil
 
 	return app, nil
 }
