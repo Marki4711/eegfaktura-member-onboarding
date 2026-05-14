@@ -710,51 +710,25 @@ func applyAdminValues(app *shared.Application, fieldConfig map[string]FieldConfi
 func validateConfigurableRequiredFields(app *shared.Application, fieldConfig map[string]FieldConfigEntry) error {
 	errs := map[string]string{}
 
-	checkStr := func(name, jsonKey string, val *string, label string) {
-		if effectiveState(fieldConfig, name) == "required" {
-			if val == nil || strings.TrimSpace(*val) == "" {
-				errs[jsonKey] = label + " ist erforderlich"
-			}
-		}
-	}
-	checkTime := func(name, jsonKey string, val *time.Time, label string) {
-		if effectiveState(fieldConfig, name) == "required" && val == nil {
+	requiredIfMissing := func(name, jsonKey, label string, missing bool) {
+		if effectiveState(fieldConfig, name) == "required" && missing {
 			errs[jsonKey] = label + " ist erforderlich"
 		}
 	}
-	checkInt := func(name, jsonKey string, val *int, label string) {
-		if effectiveState(fieldConfig, name) == "required" && val == nil {
-			errs[jsonKey] = label + " ist erforderlich"
-		}
-	}
-	checkInt64 := func(name, jsonKey string, val *int64, label string) {
-		if effectiveState(fieldConfig, name) == "required" && val == nil {
-			errs[jsonKey] = label + " ist erforderlich"
-		}
-	}
-	checkFloat := func(name, jsonKey string, val *float64, label string) {
-		if effectiveState(fieldConfig, name) == "required" && val == nil {
-			errs[jsonKey] = label + " ist erforderlich"
-		}
-	}
-	checkBool := func(name, jsonKey string, val *bool, label string) {
-		if effectiveState(fieldConfig, name) == "required" && val == nil {
-			errs[jsonKey] = label + " ist erforderlich"
-		}
-	}
+	missingStr := func(v *string) bool { return v == nil || strings.TrimSpace(*v) == "" }
 
-	checkStr("phone", "phone", app.Phone, "Telefonnummer")
-	checkTime("birth_date", "birthDate", app.BirthDate, "Geburtsdatum")
-	checkStr("uid_number", "uidNumber", app.UIDNumber, "UID-Nummer")
-	checkTime("membership_start_date", "membershipStartDate", app.MembershipStartDate, "Beitrittsdatum")
-	checkInt("persons_in_household", "personsInHousehold", app.PersonsInHousehold, "Anzahl Personen im Haushalt")
-	checkInt64("consumption_previous_year", "consumptionPreviousYear", app.ConsumptionPreviousYear, "Verbrauch Vorjahr")
-	checkInt64("consumption_forecast", "consumptionForecast", app.ConsumptionForecast, "Verbrauch Prognose")
-	checkInt64("feed_in_forecast", "feedInForecast", app.FeedInForecast, "Einspeisung Prognose")
-	checkFloat("pv_power_kwp", "pvPowerKwp", app.PvPowerKwp, "PV-Leistung")
-	checkBool("heat_pump", "heatPump", app.HeatPump, "Wärmepumpe vorhanden")
-	checkBool("electric_vehicle", "electricVehicle", app.ElectricVehicle, "E-Auto vorhanden")
-	checkBool("electric_hot_water", "electricHotWater", app.ElectricHotWater, "Warmwasser elektrisch")
+	requiredIfMissing("phone", "phone", "Telefonnummer", missingStr(app.Phone))
+	requiredIfMissing("birth_date", "birthDate", "Geburtsdatum", app.BirthDate == nil)
+	requiredIfMissing("uid_number", "uidNumber", "UID-Nummer", missingStr(app.UIDNumber))
+	requiredIfMissing("membership_start_date", "membershipStartDate", "Beitrittsdatum", app.MembershipStartDate == nil)
+	requiredIfMissing("persons_in_household", "personsInHousehold", "Anzahl Personen im Haushalt", app.PersonsInHousehold == nil)
+	requiredIfMissing("consumption_previous_year", "consumptionPreviousYear", "Verbrauch Vorjahr", app.ConsumptionPreviousYear == nil)
+	requiredIfMissing("consumption_forecast", "consumptionForecast", "Verbrauch Prognose", app.ConsumptionForecast == nil)
+	requiredIfMissing("feed_in_forecast", "feedInForecast", "Einspeisung Prognose", app.FeedInForecast == nil)
+	requiredIfMissing("pv_power_kwp", "pvPowerKwp", "PV-Leistung", app.PvPowerKwp == nil)
+	requiredIfMissing("heat_pump", "heatPump", "Wärmepumpe vorhanden", app.HeatPump == nil)
+	requiredIfMissing("electric_vehicle", "electricVehicle", "E-Auto vorhanden", app.ElectricVehicle == nil)
+	requiredIfMissing("electric_hot_water", "electricHotWater", "Warmwasser elektrisch", app.ElectricHotWater == nil)
 
 	if len(errs) > 0 {
 		return shared.NewValidationError("Validation failed", errs)

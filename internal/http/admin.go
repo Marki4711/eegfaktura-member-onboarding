@@ -57,6 +57,25 @@ func NewAdminHandler(
 	}
 }
 
+// parseRCAndCheck reads the rc_number query parameter and verifies that the
+// authenticated tenant-admin is allowed to access it. Superusers pass through.
+// On failure writes the appropriate error response and returns ("", false).
+func (h *AdminHandler) parseRCAndCheck(w http.ResponseWriter, r *http.Request) (string, bool) {
+	rcNumber := r.URL.Query().Get("rc_number")
+	if rcNumber == "" {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string]string{
+			"rc_number": "rc_number query parameter is required",
+		})))
+		return "", false
+	}
+	claims := ClaimsFromContext(r.Context())
+	if claims != nil && !claims.IsSuperuser() && !containsRC(claims.Tenant, rcNumber) {
+		h.writeError(w, shared.NewErrorResponse(shared.ErrForbidden))
+		return "", false
+	}
+	return rcNumber, true
+}
+
 // checkTenantAccess verifies that the authenticated tenant-admin is allowed to
 // operate on the given application. Superusers are always allowed. Returns true
 // if access is granted; writes 403 and returns false otherwise.
@@ -85,17 +104,8 @@ func (h *AdminHandler) checkTenantAccess(w http.ResponseWriter, r *http.Request,
 
 // GetFieldConfig handles GET /api/admin/settings/fields?rc_number=...
 func (h *AdminHandler) GetFieldConfig(w http.ResponseWriter, r *http.Request) {
-	rcNumber := r.URL.Query().Get("rc_number")
-	if rcNumber == "" {
-		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string]string{
-			"rc_number": "rc_number query parameter is required",
-		})))
-		return
-	}
-
-	claims := ClaimsFromContext(r.Context())
-	if claims != nil && !claims.IsSuperuser() && !containsRC(claims.Tenant, rcNumber) {
-		h.writeError(w, shared.NewErrorResponse(shared.ErrForbidden))
+	rcNumber, ok := h.parseRCAndCheck(w, r)
+	if !ok {
 		return
 	}
 
@@ -118,17 +128,8 @@ func (h *AdminHandler) GetFieldConfig(w http.ResponseWriter, r *http.Request) {
 
 // SaveFieldConfig handles PUT /api/admin/settings/fields?rc_number=...
 func (h *AdminHandler) SaveFieldConfig(w http.ResponseWriter, r *http.Request) {
-	rcNumber := r.URL.Query().Get("rc_number")
-	if rcNumber == "" {
-		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string]string{
-			"rc_number": "rc_number query parameter is required",
-		})))
-		return
-	}
-
-	claims := ClaimsFromContext(r.Context())
-	if claims != nil && !claims.IsSuperuser() && !containsRC(claims.Tenant, rcNumber) {
-		h.writeError(w, shared.NewErrorResponse(shared.ErrForbidden))
+	rcNumber, ok := h.parseRCAndCheck(w, r)
+	if !ok {
 		return
 	}
 
@@ -1060,17 +1061,8 @@ func (h *AdminHandler) ResetImport(w http.ResponseWriter, r *http.Request) {
 
 // GetIntroText handles GET /api/admin/settings/intro-text?rc_number=...
 func (h *AdminHandler) GetIntroText(w http.ResponseWriter, r *http.Request) {
-	rcNumber := r.URL.Query().Get("rc_number")
-	if rcNumber == "" {
-		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string]string{
-			"rc_number": "rc_number query parameter is required",
-		})))
-		return
-	}
-
-	claims := ClaimsFromContext(r.Context())
-	if claims != nil && !claims.IsSuperuser() && !containsRC(claims.Tenant, rcNumber) {
-		h.writeError(w, shared.NewErrorResponse(shared.ErrForbidden))
+	rcNumber, ok := h.parseRCAndCheck(w, r)
+	if !ok {
 		return
 	}
 
@@ -1085,17 +1077,8 @@ func (h *AdminHandler) GetIntroText(w http.ResponseWriter, r *http.Request) {
 
 // SaveIntroText handles PUT /api/admin/settings/intro-text?rc_number=...
 func (h *AdminHandler) SaveIntroText(w http.ResponseWriter, r *http.Request) {
-	rcNumber := r.URL.Query().Get("rc_number")
-	if rcNumber == "" {
-		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string]string{
-			"rc_number": "rc_number query parameter is required",
-		})))
-		return
-	}
-
-	claims := ClaimsFromContext(r.Context())
-	if claims != nil && !claims.IsSuperuser() && !containsRC(claims.Tenant, rcNumber) {
-		h.writeError(w, shared.NewErrorResponse(shared.ErrForbidden))
+	rcNumber, ok := h.parseRCAndCheck(w, r)
+	if !ok {
 		return
 	}
 
@@ -1127,17 +1110,8 @@ func (h *AdminHandler) SaveIntroText(w http.ResponseWriter, r *http.Request) {
 
 // GetEEGSettings handles GET /api/admin/settings/eeg?rc_number=...
 func (h *AdminHandler) GetEEGSettings(w http.ResponseWriter, r *http.Request) {
-	rcNumber := r.URL.Query().Get("rc_number")
-	if rcNumber == "" {
-		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string]string{
-			"rc_number": "rc_number query parameter is required",
-		})))
-		return
-	}
-
-	claims := ClaimsFromContext(r.Context())
-	if claims != nil && !claims.IsSuperuser() && !containsRC(claims.Tenant, rcNumber) {
-		h.writeError(w, shared.NewErrorResponse(shared.ErrForbidden))
+	rcNumber, ok := h.parseRCAndCheck(w, r)
+	if !ok {
 		return
 	}
 
@@ -1166,17 +1140,8 @@ func (h *AdminHandler) GetEEGSettings(w http.ResponseWriter, r *http.Request) {
 
 // SaveEEGSettings handles PUT /api/admin/settings/eeg?rc_number=...
 func (h *AdminHandler) SaveEEGSettings(w http.ResponseWriter, r *http.Request) {
-	rcNumber := r.URL.Query().Get("rc_number")
-	if rcNumber == "" {
-		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string]string{
-			"rc_number": "rc_number query parameter is required",
-		})))
-		return
-	}
-
-	claims := ClaimsFromContext(r.Context())
-	if claims != nil && !claims.IsSuperuser() && !containsRC(claims.Tenant, rcNumber) {
-		h.writeError(w, shared.NewErrorResponse(shared.ErrForbidden))
+	rcNumber, ok := h.parseRCAndCheck(w, r)
+	if !ok {
 		return
 	}
 
