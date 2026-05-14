@@ -2,8 +2,9 @@
  * Screenshot generator for user documentation.
  *
  * Usage:
- *   npm run screenshots                # interactive on first run, headless on re-runs
- *   npm run screenshots -- --re-login  # force a fresh Keycloak login
+ *   npm run screenshots                   # interactive on first run, headless on re-runs
+ *   npm run screenshots -- --re-login     # force a fresh Keycloak login
+ *   npm run screenshots -- --public-only  # only the screens that need no admin login
  *
  * What it does:
  *   1. If a valid cookie cache exists, reuses it. Otherwise opens a visible
@@ -32,6 +33,7 @@ const RC_NUMBER = process.env.RC_NUMBER ?? "RC123456"
 const OUT_DIR = path.resolve("docs/user-guide/images")
 const COOKIE_CACHE = path.resolve(".cache/screenshots-cookies.json")
 const FORCE_RELOGIN = process.argv.includes("--re-login")
+const PUBLIC_ONLY = process.argv.includes("--public-only")
 
 const VIEWPORT = { width: 1280, height: 800 }
 const LOGIN_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes for the user to log in
@@ -140,6 +142,13 @@ async function main() {
     await shoot(page, "admin-login-keycloak.png")
 
     await ctx.close()
+  }
+
+  if (PUBLIC_ONLY) {
+    log("\n--public-only set — skipping admin screens")
+    await browser.close()
+    log(`\nScreenshots written to ${path.relative(process.cwd(), OUT_DIR)}`)
+    return
   }
 
   // ── Authenticated admin screens ──────────────────────────────────────────
