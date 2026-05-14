@@ -92,13 +92,25 @@ backend:
   #   # Pflichtfeld wenn host gesetzt — Absenderadresse
   #   from: noreply@example.com
 
-  # eegFaktura Core Service (PROJ-4 Import)
-  # Leer lassen = Import-Endpoint deaktiviert (Aufruf liefert 503).
-  # Wenn gesetzt: Backend ruft <coreBaseUrl>/participant auf, mit dem Bearer-JWT
-  # des angemeldeten Admins und dem tenant-Header (RC-Nummer).
-  # Achtung: Pfad-Präfix (typischerweise /api) gehört in die URL — die deployten
-  # eegFaktura-Cores stehen i.d.R. hinter einem Reverse-Proxy unter /api/*.
-  coreBaseUrl: "https://eegfaktura.example.at/api"
+  # eegFaktura Core Service.
+  # Beide URLs lassen sich unabhängig konfigurieren:
+  #
+  # coreBaseUrl (PROJ-4 Import) — REST-Endpoints (POST /participant,
+  # GET /eeg/tariff). Backend ruft <coreBaseUrl>/participant auf, mit
+  # dem Bearer-JWT des angemeldeten Admins und tenant-Header (RC-Nummer).
+  # Leer = Import-Endpoint deaktiviert (Aufruf liefert 503).
+  #
+  # coreGraphqlUrl (PROJ-32 EEG-Stammdaten-Sync) — vollständige URL des
+  # GraphQL-Endpoints. Backend POSTet die Stammdaten-Query mit demselben
+  # Bearer + tenant-Header. Leer = Sync-Endpoints liefern 503; die
+  # Settings-UI zeigt dann gar keine Stammdaten-Card-Banner.
+  #
+  # Achtung: Pfad-Präfix gehört in beide URLs. Bei der produktiven
+  # eegFaktura.at-Deployment ist das /cash/api/* — also z.B.:
+  #   coreBaseUrl    = https://eegfaktura.example.at/cash/api
+  #   coreGraphqlUrl = https://eegfaktura.example.at/cash/api/query
+  coreBaseUrl: "https://eegfaktura.example.at/cash/api"
+  coreGraphqlUrl: "https://eegfaktura.example.at/cash/api/query"
   coreTimeoutSeconds: 30
 
   # Trusted-Proxy-CIDRs: aus diesen IP-Bereichen werden X-Real-IP /
