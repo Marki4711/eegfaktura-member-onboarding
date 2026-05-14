@@ -95,7 +95,7 @@ export function AdminStatusActions({ applicationId, rcNumber, status, targetPart
   }
 
   async function runImport(selection: {
-    memberNumber: number;
+    memberNumber: string;
     tariffId: string;
     meterTariffs: Record<string, string>;
   }) {

@@ -155,7 +155,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	var personsInHousehold, consumptionPreviousYear, consumptionForecast, feedInForecast sql.NullInt64
 	var pvPowerKwp sql.NullFloat64
 	var heatPump, electricVehicle, electricHotWater sql.NullBool
-	var memberNumber sql.NullInt64
+	var memberNumber sql.NullString
 
 	err := r.db.QueryRow(query, id).Scan(
 		&app.ID, &app.ReferenceNumber, &app.RCNumber, &app.Status, &startedAt,
@@ -298,7 +298,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		app.MandateDate = &mandateDate.Time
 	}
 	if memberNumber.Valid {
-		v := int(memberNumber.Int64)
+		v := memberNumber.String
 		app.MemberNumber = &v
 	}
 
@@ -725,8 +725,8 @@ type ImportResultUpdate struct {
 	// MemberNumber, when non-nil, is written through (no COALESCE) so a
 	// successful import always records the number the admin chose in the
 	// import dialog. Failed-import paths pass nil to leave the column
-	// unchanged.
-	MemberNumber *int
+	// unchanged. Stored as string to match the core's VARCHAR convention.
+	MemberNumber *string
 }
 
 // UpdateImportResultTx writes the outcome of one import attempt inside the

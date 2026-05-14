@@ -57,7 +57,7 @@ type ApprovalPDFData struct {
 	SepaMandateAcceptedAt *time.Time
 	SEPAMandateEnabled    bool // true = Mandat-PDF an Willkommensmail anhängen, false = Mandat wird separat per Mail übermittelt
 
-	MemberNumber *int
+	MemberNumber *string
 }
 
 // MeteringPointPDF holds metering point data for the approval PDF.
@@ -172,8 +172,8 @@ func (g *FPDFApprovalGenerator) GenerateApproval(data ApprovalPDFData) ([]byte, 
 
 	// ── MITGLIEDSDATEN ───────────────────────────────────────────────────────
 	sectionHeader("MITGLIEDSDATEN")
-	if data.MemberNumber != nil {
-		dataRow("Mitgliedsnummer:", fmt.Sprintf("%d", *data.MemberNumber))
+	if data.MemberNumber != nil && *data.MemberNumber != "" {
+		dataRow("Mitgliedsnummer:", *data.MemberNumber)
 	}
 	dataRow("Mitgliedstyp:", data.MemberType)
 	if data.Firstname != "" || data.Lastname != "" {

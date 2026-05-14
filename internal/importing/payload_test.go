@@ -103,7 +103,7 @@ func TestBuildPayload_OptionalFields(t *testing.T) {
 		Titel:                strPtr("Dr."),
 		IBAN:                 strPtr("AT00 0000 0000 0000 0000"),
 		AccountHolder:        strPtr("First Last"),
-		MemberNumber:         intPtr(42),
+		MemberNumber:         strPtr("42"),
 		UIDNumber:            strPtr("ATU12345678"),
 		RegisterNumber:       strPtr("FN 12345 a"),
 	}

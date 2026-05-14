@@ -3,7 +3,6 @@
 package importing
 
 import (
-	"strconv"
 	"time"
 
 	"github.com/your-org/eegfaktura-member-onboarding/internal/shared"
@@ -149,7 +148,7 @@ func BuildPayload(app *shared.Application, meteringPoints []shared.MeteringPoint
 	}
 
 	if app.MemberNumber != nil {
-		payload.ParticipantNumber = strconv.Itoa(*app.MemberNumber)
+		payload.ParticipantNumber = *app.MemberNumber
 	}
 	if app.UIDNumber != nil {
 		payload.VatNumber = *app.UIDNumber

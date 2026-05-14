@@ -913,7 +913,7 @@ func (h *AdminHandler) SuggestNextMemberNumber(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	h.writeJSON(w, http.StatusOK, map[string]int{"next_member_number": next})
+	h.writeJSON(w, http.StatusOK, map[string]string{"next_member_number": next})
 }
 
 // ResetImport handles POST /api/admin/applications/{id}/reset-import

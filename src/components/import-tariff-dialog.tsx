@@ -29,7 +29,7 @@ interface Props {
   loading: boolean;
   onCancel: () => void;
   onConfirm: (selection: {
-    memberNumber: number;
+    memberNumber: string;
     tariffId: string;
     meterTariffs: Record<string, string>;
   }) => void;
@@ -91,7 +91,7 @@ export function ImportTariffDialog({
       })
       .finally(() => setFetching(false));
     fetchNextMemberNumber(applicationId, accessToken, ac.signal)
-      .then((res) => setMemberNumber(String(res.next_member_number)))
+      .then((res) => setMemberNumber(res.next_member_number))
       .catch((err) => {
         if (err instanceof DOMException && err.name === "AbortError") return;
         // Soft-fail: dialog stays usable, admin types the number manually.
@@ -115,16 +115,14 @@ export function ImportTariffDialog({
     (t) => t.type === "EZP" && t.inactiveSince == null,
   );
 
-  const memberNumberInt = Number(memberNumber);
+  const trimmedMemberNumber = memberNumber.trim();
   const memberNumberValid =
-    memberNumber.trim() !== "" &&
-    Number.isInteger(memberNumberInt) &&
-    memberNumberInt > 0;
+    trimmedMemberNumber.length > 0 && trimmedMemberNumber.length <= 50;
 
   function handleConfirm() {
     if (!memberNumberValid) return;
     onConfirm({
-      memberNumber: memberNumberInt,
+      memberNumber: trimmedMemberNumber,
       tariffId: memberTariffId === NONE ? "" : memberTariffId,
       meterTariffs: Object.fromEntries(
         Object.entries(meterTariffs).filter(([, v]) => v !== "" && v !== NONE),
@@ -153,12 +151,11 @@ export function ImportTariffDialog({
           <Label htmlFor="member-number">Mitgliedsnummer</Label>
           <Input
             id="member-number"
-            type="number"
-            min={1}
-            step={1}
+            type="text"
+            maxLength={50}
             value={memberNumber}
             onChange={(e) => setMemberNumber(e.target.value)}
-            placeholder={memberNumberLoading ? "Wird ermittelt…" : "z.B. 42"}
+            placeholder={memberNumberLoading ? "Wird ermittelt…" : "z.B. 42 oder A006"}
             disabled={memberNumberLoading || loading}
           />
           {memberNumberError && (
@@ -168,7 +165,7 @@ export function ImportTariffDialog({
           )}
           {!memberNumberLoading && !memberNumberError && (
             <p className="text-xs text-muted-foreground">
-              Vorschlag aus eegFaktura (höchste vergebene Nummer + 1). Anpassbar; das Backend prüft vor dem Import auf Doppelvergabe.
+              Vorschlag aus eegFaktura (folgt dem dominanten Schema in dieser EEG, z.B. „A006" wenn die letzte „A005" war). Anpassbar; das Backend prüft vor dem Import auf Doppelvergabe.
             </p>
           )}
         </div>

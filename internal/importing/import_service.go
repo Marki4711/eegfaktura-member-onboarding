@@ -42,41 +42,86 @@ func (s *ImportService) ListTariffs(ctx context.Context, bearerToken, tenant str
 	return s.coreClient.ListTariffs(ctx, bearerToken, tenant)
 }
 
-// SuggestNextMemberNumber returns max(numeric participantNumber) + 1 for the
-// tenant — the value the import dialog pre-fills. Non-numeric values are
-// ignored (the core stores participantNumber as VARCHAR, so legacy entries
-// like "ABC-123" may exist). Returns 1 when there are no participants yet.
-func (s *ImportService) SuggestNextMemberNumber(ctx context.Context, bearerToken, tenant string) (int, error) {
+// SuggestNextMemberNumber pre-fills the member-number input in the import
+// dialog with the next free value in the tenant's dominant numbering pattern.
+//
+// Algorithm:
+//   1. For each existing participantNumber, split off the trailing run of
+//      digits — the rest is the "prefix" (e.g. "A005" → prefix="A", n=5;
+//      "M-12" → "M-"/12; "123" → ""/123).
+//   2. Group by prefix; track max(n) and the longest digit-padding seen.
+//   3. Pick the largest group (most populous pattern wins). Tiebreak by the
+//      longer prefix so "A001" beats "" when both have one entry.
+//   4. Emit "<prefix><n+1>" with the group's padding (zero-pad).
+//
+// Returns "1" when no participantNumber has a parseable digit suffix.
+func (s *ImportService) SuggestNextMemberNumber(ctx context.Context, bearerToken, tenant string) (string, error) {
 	participants, err := s.coreClient.ListParticipants(ctx, bearerToken, tenant)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	maxN := 0
+
+	type group struct {
+		prefix  string
+		padding int
+		maxN    int
+		count   int
+	}
+	groups := map[string]*group{}
+
 	for _, p := range participants {
 		if p.ParticipantNumber == nil {
 			continue
 		}
-		n, err := strconv.Atoi(strings.TrimSpace(*p.ParticipantNumber))
+		v := strings.TrimSpace(*p.ParticipantNumber)
+		if v == "" {
+			continue
+		}
+		prefix, digits := splitTrailingDigits(v)
+		if digits == "" {
+			continue
+		}
+		n, err := strconv.Atoi(digits)
 		if err != nil {
 			continue
 		}
-		if n > maxN {
-			maxN = n
+		g, ok := groups[prefix]
+		if !ok {
+			g = &group{prefix: prefix}
+			groups[prefix] = g
+		}
+		g.count++
+		if n > g.maxN {
+			g.maxN = n
+		}
+		if len(digits) > g.padding {
+			g.padding = len(digits)
 		}
 	}
-	return maxN + 1, nil
+
+	if len(groups) == 0 {
+		return "1", nil
+	}
+
+	var best *group
+	for _, g := range groups {
+		if best == nil ||
+			g.count > best.count ||
+			(g.count == best.count && len(g.prefix) > len(best.prefix)) {
+			best = g
+		}
+	}
+	return fmt.Sprintf("%s%0*d", best.prefix, best.padding, best.maxN+1), nil
 }
 
-// MemberNumberTaken checks whether the given number is already used by an
-// existing participant in the tenant. Called pre-import after the admin
-// possibly overrode the suggested number, so we surface a 409 in the dialog
-// instead of silently letting two members share a number.
-func (s *ImportService) MemberNumberTaken(ctx context.Context, bearerToken, tenant string, number int) (bool, error) {
+// MemberNumberTaken checks whether the given value (e.g. "A006") is already
+// used by an existing participant in the tenant. Compared as raw strings.
+func (s *ImportService) MemberNumberTaken(ctx context.Context, bearerToken, tenant, number string) (bool, error) {
 	participants, err := s.coreClient.ListParticipants(ctx, bearerToken, tenant)
 	if err != nil {
 		return false, err
 	}
-	target := strconv.Itoa(number)
+	target := strings.TrimSpace(number)
 	for _, p := range participants {
 		if p.ParticipantNumber == nil {
 			continue
@@ -86,6 +131,16 @@ func (s *ImportService) MemberNumberTaken(ctx context.Context, bearerToken, tena
 		}
 	}
 	return false, nil
+}
+
+// splitTrailingDigits returns the prefix and the trailing run of decimal
+// digits. "A005" → ("A", "005"), "123" → ("", "123"), "M-foo" → ("M-foo", "").
+func splitTrailingDigits(s string) (prefix, digits string) {
+	i := len(s)
+	for i > 0 && s[i-1] >= '0' && s[i-1] <= '9' {
+		i--
+	}
+	return s[:i], s[i:]
 }
 
 // NewImportService wires the dependencies. coreClient may be a stub in tests.
@@ -144,10 +199,11 @@ type TariffSelection struct {
 // is left untouched. Core failures transition the application into
 // import_failed and return a wrapped error so the handler can render a 500
 // with the stored error message.
-func (s *ImportService) Import(ctx context.Context, id uuid.UUID, bearerToken, actorID string, allowedTenants []string, selection TariffSelection, memberNumber int) (*ImportResult, error) {
-	if memberNumber < 1 {
+func (s *ImportService) Import(ctx context.Context, id uuid.UUID, bearerToken, actorID string, allowedTenants []string, selection TariffSelection, memberNumber string) (*ImportResult, error) {
+	memberNumber = strings.TrimSpace(memberNumber)
+	if memberNumber == "" {
 		return nil, shared.NewValidationError("Validation failed", map[string]string{
-			"memberNumber": "Mitgliedsnummer muss > 0 sein",
+			"memberNumber": "Mitgliedsnummer darf nicht leer sein",
 		})
 	}
 
@@ -184,7 +240,7 @@ func (s *ImportService) Import(ctx context.Context, id uuid.UUID, bearerToken, a
 	}
 	if taken {
 		return nil, shared.NewConflictError(
-			fmt.Sprintf("Mitgliedsnummer %d ist im Core bereits vergeben", memberNumber),
+			fmt.Sprintf("Mitgliedsnummer %q ist im Core bereits vergeben", memberNumber),
 		)
 	}
 
@@ -206,7 +262,7 @@ func (s *ImportService) Import(ctx context.Context, id uuid.UUID, bearerToken, a
 	// Member number is provided per import call now (no longer auto-assigned
 	// at submit time), so override whatever BuildPayload picked up from the
 	// stale `application.member_number` column.
-	payload.ParticipantNumber = strconv.Itoa(memberNumber)
+	payload.ParticipantNumber = memberNumber
 
 	participantID, coreErr := s.coreClient.CreateParticipant(ctx, payload, bearerToken, app.RCNumber)
 	importFinishedAt := time.Now()

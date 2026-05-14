@@ -294,9 +294,9 @@ func writeDataRow(f *excelize.File, rowNum int, app *shared.Application, mp *sha
 			return err
 		}
 	}
-	// AG: MitgliedsNr
-	if app.MemberNumber != nil {
-		if err := setInt("AG", *app.MemberNumber); err != nil {
+	// AG: MitgliedsNr (now string-typed; core accepts alphanumeric values).
+	if app.MemberNumber != nil && *app.MemberNumber != "" {
+		if err := set("AG", *app.MemberNumber); err != nil {
 			return err
 		}
 	}

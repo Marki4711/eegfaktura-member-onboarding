@@ -119,7 +119,7 @@ type Application struct {
 	HeatPump                *bool      `json:"heatPump,omitempty" db:"heat_pump"`
 	ElectricVehicle         *bool      `json:"electricVehicle,omitempty" db:"electric_vehicle"`
 	ElectricHotWater        *bool      `json:"electricHotWater,omitempty" db:"electric_hot_water"`
-	MemberNumber            *int       `json:"memberNumber,omitempty" db:"member_number"`
+	MemberNumber            *string    `json:"memberNumber,omitempty" db:"member_number"`
 }
 
 // MeteringPoint represents a metering point entity

@@ -199,9 +199,11 @@ type ImportApplicationRequest struct {
 	MeterTariffs map[string]string `json:"meterTariffs,omitempty"`
 	// MemberNumber is required: since the onboarding stopped auto-assigning
 	// numbers, the import dialog passes the admin's chosen number (pre-filled
-	// from the core's max+1 suggestion). The backend verifies the number is
-	// not already taken in the core before sending POST /participant.
-	MemberNumber *int `json:"memberNumber" validate:"required,min=1"`
+	// from the core's pattern-aware suggestion). The backend verifies the
+	// number is not already taken in the core before sending POST /participant.
+	// Stored as string because the core's participantNumber column is VARCHAR
+	// and may contain letters (e.g. "A005", "M-12").
+	MemberNumber *string `json:"memberNumber" validate:"required,min=1,max=50"`
 }
 
 // ApplicationListItem is one summary row in the admin list response.

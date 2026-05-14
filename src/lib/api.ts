@@ -371,7 +371,7 @@ export interface AdminApplicationDetail {
   bankName?: string | null;
   mandateReference?: string | null;
   mandateDate?: string | null;
-  memberNumber?: number | null;
+  memberNumber?: string | null;
   needsInfoReason: string | null;
   targetParticipantId: string | null;
   importStartedAt: string | null;
@@ -529,11 +529,11 @@ export interface ImportResponse {
   memberTariffWarning?: string;
 }
 
-// Import-time payload. memberNumber is now required — the onboarding no
-// longer auto-assigns it at submit time; the import dialog presents the
-// next free number (suggestion from the core) and the admin can override.
+// Import-time payload. memberNumber is now required and string-typed because
+// the core's participantNumber column is VARCHAR; legitimate values include
+// "A005", "M-12" etc. as well as plain "42".
 export interface ImportRequestBody {
-  memberNumber: number;
+  memberNumber: string;
   tariffId?: string;
   meterTariffs?: Record<string, string>; // metering_point UUID -> tariff UUID
 }
@@ -553,15 +553,17 @@ export function importApplication(
   );
 }
 
-// PROJ-X: ask the core for max(participantNumber)+1 to pre-fill the member
-// number field in the import dialog. Returns null on lookup failure so the
-// dialog can fall back to an empty input the admin fills in manually.
+// Ask the backend for the next free member-number suggestion. The backend
+// derives this from the core's existing participantNumber values, detecting
+// the dominant pattern (prefix + padding) so "A001, A002" suggests "A003"
+// and "1, 2, 3" suggests "4". String-typed because the core accepts
+// alphanumeric values.
 export function fetchNextMemberNumber(
   applicationId: string,
   token?: string,
   signal?: AbortSignal,
-): Promise<{ next_member_number: number }> {
-  return adminRequest<{ next_member_number: number }>(
+): Promise<{ next_member_number: string }> {
+  return adminRequest<{ next_member_number: string }>(
     `/api/admin/applications/${applicationId}/next-member-number`,
     token,
     { method: "GET", signal },
