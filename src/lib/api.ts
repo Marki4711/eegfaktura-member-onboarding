@@ -202,14 +202,38 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 // ---------- admin request helper (adds Bearer token when present) ----------
 
-// Guard so a burst of parallel admin calls failing with 401 only triggers
-// one global "auth:expired" event (and one signIn redirect). Reset when the
-// browser navigates so a fresh login can fail again normally.
-let authExpiredEmitted = false;
-if (typeof window !== "undefined") {
-  window.addEventListener("pageshow", () => {
-    authExpiredEmitted = false;
-  });
+// Cooldown for the 401 → signIn("keycloak") redirect. Stored in
+// sessionStorage so it survives the Keycloak roundtrip — without that, an
+// unauthorized response right after a deploy (new backend pod not yet ready,
+// stale browser bundle, etc.) puts the user into an infinite redirect loop:
+// 401 → signIn → Keycloak → back to app → 401 → signIn → …
+//
+// With the cooldown, a second 401 within the window throws an
+// ApiResponseError that callers surface as a visible error banner; the user
+// either reloads manually or waits for the upstream to recover.
+const AUTH_EXPIRED_COOLDOWN_MS = 30_000;
+const AUTH_EXPIRED_SS_KEY = "auth:lastSignInTrigger";
+
+function shouldTriggerSignIn(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const raw = window.sessionStorage.getItem(AUTH_EXPIRED_SS_KEY);
+    if (!raw) return true;
+    return Date.now() - Number(raw) > AUTH_EXPIRED_COOLDOWN_MS;
+  } catch {
+    // sessionStorage can be blocked (private mode + strict settings); fail
+    // open so we keep the legacy "redirect to login on 401" behaviour.
+    return true;
+  }
+}
+
+function markSignInTriggered(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(AUTH_EXPIRED_SS_KEY, String(Date.now()));
+  } catch {
+    // ignore — see shouldTriggerSignIn()
+  }
 }
 
 async function adminRequest<T>(
@@ -230,16 +254,24 @@ async function adminRequest<T>(
 
   if (res.status === 401 && typeof window !== "undefined") {
     // Backend rejected the JWT (revoked session, clock skew, Keycloak
-    // restart). SessionRefreshGuard's refresh-token-error hook only covers
-    // *client*-side refresh failures, not *server*-side rejections. Emit
-    // a single global event; the guard will trigger signIn("keycloak").
-    if (!authExpiredEmitted) {
-      authExpiredEmitted = true;
+    // restart, new pod still loading JWKS after a deploy). SessionRefreshGuard
+    // listens for "auth:expired" and triggers signIn("keycloak"). The
+    // cooldown above prevents an infinite redirect loop when the first
+    // signIn does not actually fix the 401 (deploy still in progress, etc.).
+    if (shouldTriggerSignIn()) {
+      markSignInTriggered();
       window.dispatchEvent(new Event("auth:expired"));
+      throw new ApiResponseError({
+        code: "unauthorized",
+        message: "Sitzung abgelaufen — Sie werden zur Anmeldung weitergeleitet.",
+      });
     }
+    // Within cooldown: do NOT redirect again. Surface a clear error the UI
+    // can render so the user understands they need to act (typically: wait
+    // a moment and reload manually).
     throw new ApiResponseError({
       code: "unauthorized",
-      message: "Sitzung abgelaufen — Sie werden zur Anmeldung weitergeleitet.",
+      message: "Anmeldung erforderlich, aber automatische Weiterleitung wurde unterdrückt (Loop-Schutz). Bitte Seite neu laden.",
     });
   }
 
