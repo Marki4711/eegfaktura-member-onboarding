@@ -12,6 +12,7 @@ import {
   saveEEGSettings,
   compareEEGSettingsWithCore,
   syncEEGSettingsFromCore,
+  fetchEEGLogoBlob,
   type EEGSettings,
   type EEGSettingsComparisonResponse,
 } from "@/lib/api";
@@ -48,6 +49,10 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
   // PROJ-32 sync state
   const [comparison, setComparison] = useState<EEGSettingsComparisonResponse | null>(null);
   const [comparisonLoaded, setComparisonLoaded] = useState(false);
+
+  // PROJ-33 logo preview state. logoURL is an Object URL backed by a Blob;
+  // we revoke it on change/unmount via the returned dispose() callback.
+  const [logoURL, setLogoURL] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [diffExpanded, setDiffExpanded] = useState(false);
@@ -90,6 +95,33 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
   useEffect(() => {
     reloadComparison();
   }, [reloadComparison]);
+
+  // PROJ-33: load the cached logo preview. Re-runs whenever the EEGLogoSyncedAt
+  // changes (i.e. after a sync click). Object URL is revoked on cleanup so the
+  // blob doesn't leak across re-renders.
+  useEffect(() => {
+    if (!rcNumber || !session?.accessToken) return;
+    let disposed = false;
+    let cleanup: (() => void) | null = null;
+    fetchEEGLogoBlob(rcNumber, session.accessToken)
+      .then((res) => {
+        if (disposed) {
+          res?.dispose();
+          return;
+        }
+        if (res) {
+          cleanup = res.dispose;
+          setLogoURL(res.objectURL);
+        } else {
+          setLogoURL(null);
+        }
+      })
+      .catch(() => setLogoURL(null));
+    return () => {
+      disposed = true;
+      if (cleanup) cleanup();
+    };
+  }, [rcNumber, session?.accessToken, settings?.eegLogoSyncedAt]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -273,6 +305,37 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
               <SyncedField label="PLZ" value={settings.eegZip} />
               <SyncedField label="Ort" value={settings.eegCity} />
               <SyncedField label="Creditor-ID" value={settings.creditorId} />
+            </div>
+
+            {/* PROJ-33: Logo-Vorschau */}
+            <div className="space-y-1.5">
+              <Label className="text-sm flex items-center gap-1.5 text-muted-foreground">
+                Logo
+                <Lock className="h-3 w-3" />
+              </Label>
+              <div className="min-h-[80px] px-3 py-2 rounded-md border bg-muted/40 flex items-center">
+                {logoURL ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={logoURL}
+                    alt="EEG-Logo"
+                    className="max-h-[60px] max-w-[200px] object-contain"
+                  />
+                ) : (
+                  <span className="text-muted-foreground italic text-sm">
+                    Noch kein Logo aus eegFaktura geladen
+                  </span>
+                )}
+              </div>
+              {comparison?.logoSyncWarning && (
+                <p className="text-xs text-orange-700">
+                  {comparison.logoSyncWarning}
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Erscheint oben rechts auf Beitrittsbestätigung + SEPA-Mandat. Wird beim
+                nächsten „Aus eegFaktura aktualisieren" mitsynchronisiert.
+              </p>
             </div>
           </div>
 

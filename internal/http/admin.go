@@ -709,6 +709,29 @@ func (h *AdminHandler) SyncEEGSettingsFromCore(w http.ResponseWriter, r *http.Re
 	// arriving within the TTL doesn't re-hit the core for the same data.
 	h.eegCache.put(rcNumber, core)
 
+	// PROJ-33: best-effort logo sync. Master-data sync already succeeded;
+	// a logo failure (too large, wrong MIME, billing service down) becomes
+	// a warning on the response, not a hard error. ErrLogoNotFound is the
+	// "no logo configured" signal — we just skip silently in that case.
+	logoWarning := ""
+	if logoBytes, mime, logoErr := h.coreClient.FetchEEGLogo(r.Context(), bearerToken, rcNumber); logoErr == nil {
+		if saveErr := h.entrypointRepo.SaveLogoFromCore(rcNumber, logoBytes, mime); saveErr != nil {
+			slog.Warn("sync: logo bytes fetched but DB write failed",
+				"rc_number", rcNumber, "error", saveErr)
+			logoWarning = "Logo wurde geladen, konnte aber nicht gespeichert werden"
+		}
+	} else if !errors.Is(logoErr, coreclient.ErrLogoNotFound) {
+		switch {
+		case errors.Is(logoErr, coreclient.ErrLogoTooLarge):
+			logoWarning = "Logo überschreitet 256 KB — bitte in eegFaktura ein kleineres hinterlegen"
+		case errors.Is(logoErr, coreclient.ErrLogoUnsupportedMIME):
+			logoWarning = "Logo-Format wird nicht unterstützt (nur PNG, JPEG, GIF)"
+		default:
+			logoWarning = "Logo konnte nicht aus eegFaktura geladen werden: " + logoErr.Error()
+		}
+		slog.Info("sync: logo fetch failed", "rc_number", rcNumber, "warning", logoWarning, "error", logoErr)
+	}
+
 	// Reload so the response carries the freshly stamped last_synced_at.
 	local, err := h.entrypointRepo.GetByRCNumber(rcNumber)
 	if err != nil {
@@ -716,7 +739,47 @@ func (h *AdminHandler) SyncEEGSettingsFromCore(w http.ResponseWriter, r *http.Re
 		return
 	}
 	resp := buildEEGSettingsComparison(local, core)
+	resp.LogoSyncWarning = logoWarning
+	resp.LogoSyncedAt = local.EEGLogoSyncedAt
 	h.writeJSON(w, http.StatusOK, resp)
+}
+
+// GetEEGLogo handles GET /api/admin/settings/eeg/logo?rc_number=…
+//
+// @Summary      Serve the cached EEG logo for inline preview (PROJ-33)
+// @Description  Returns the BYTEA logo bytes pulled from the eegFaktura-billing service on the last successful sync, with the correct Content-Type. 404 when no logo has been synced yet (or the EEG has no logo configured).
+// @Tags         Admin
+// @Produce      image/png
+// @Produce      image/jpeg
+// @Produce      image/gif
+// @Security     BearerAuth
+// @Param        rc_number  query  string  true  "RC number"
+// @Success      200  {file}    file
+// @Failure      401  {object}  shared.ErrorResponse
+// @Failure      403  {object}  shared.ErrorResponse
+// @Failure      404  {object}  shared.ErrorResponse  "No logo synced yet"
+// @Router       /api/admin/settings/eeg/logo [get]
+func (h *AdminHandler) GetEEGLogo(w http.ResponseWriter, r *http.Request) {
+	rcNumber, ok := h.parseRCAndCheck(w, r)
+	if !ok {
+		return
+	}
+	logoBytes, mime, err := h.entrypointRepo.GetLogo(rcNumber)
+	if err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+	if len(logoBytes) == 0 || mime == "" {
+		h.writeJSON(w, http.StatusNotFound, shared.ErrorResponse{
+			Code:    "not_found",
+			Message: "Noch kein Logo aus eegFaktura geladen",
+		})
+		return
+	}
+	w.Header().Set("Content-Type", mime)
+	w.Header().Set("Cache-Control", "private, max-age=300")
+	w.Header().Set("Content-Length", strconv.Itoa(len(logoBytes)))
+	_, _ = w.Write(logoBytes)
 }
 
 // nilIfAccount is a tiny helper for the SyncEEGSettingsFromCore path that
@@ -1437,6 +1500,7 @@ func (h *AdminHandler) GetEEGSettings(w http.ResponseWriter, r *http.Request) {
 		"creditorId":              ep.CreditorID,
 		"contactEmail":            ep.ContactEmail,
 		"lastSyncedFromCoreAt":    ep.LastSyncedFromCoreAt,
+		"eegLogoSyncedAt":         ep.EEGLogoSyncedAt,
 		"sepaMandateEnabled":      ep.SEPAMandateEnabled,
 		"useCompanySEPAMandate":   ep.UseCompanySEPAMandate,
 		"showCentralPolicy":       ep.ShowCentralPolicy,

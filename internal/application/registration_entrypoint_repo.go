@@ -41,7 +41,7 @@ func (r *RegistrationEntrypointRepository) GetByRCNumber(rcNumber string) (*shar
 		       eeg_name, eeg_street, eeg_street_number, eeg_zip, eeg_city,
 		       creditor_id, sepa_mandate_enabled, use_company_sepa_mandate,
 		       show_central_policy, member_number_start, require_email_confirmation,
-		       last_synced_from_core_at,
+		       last_synced_from_core_at, eeg_logo_synced_at,
 		       created_at, updated_at
 		FROM member_onboarding.registration_entrypoint
 		WHERE rc_number = $1`
@@ -52,7 +52,7 @@ func (r *RegistrationEntrypointRepository) GetByRCNumber(rcNumber string) (*shar
 		&ep.EEGName, &ep.EEGStreet, &ep.EEGStreetNumber, &ep.EEGZip, &ep.EEGCity,
 		&ep.CreditorID, &ep.SEPAMandateEnabled, &ep.UseCompanySEPAMandate,
 		&ep.ShowCentralPolicy, &ep.MemberNumberStart, &ep.RequireEmailConfirmation,
-		&ep.LastSyncedFromCoreAt,
+		&ep.LastSyncedFromCoreAt, &ep.EEGLogoSyncedAt,
 		&ep.CreatedAt, &ep.UpdatedAt,
 	)
 	if err != nil {
@@ -202,6 +202,64 @@ func (r *RegistrationEntrypointRepository) SyncFromCore(rcNumber string, u CoreM
 		return shared.ErrNotFound
 	}
 	return nil
+}
+
+// SaveLogoFromCore persists the EEG logo bytes + MIME type pulled from the
+// eegFaktura-billing service (PROJ-33). Pure overwrite — there is no "merge"
+// semantic: every successful sync replaces the previous bytes. Stamps
+// eeg_logo_synced_at = NOW() for the admin UI's "Stand vom" indicator.
+//
+// Called only from the Sync handler after a successful FetchEEGLogo. If the
+// caller observed ErrLogoNotFound it should NOT call this method — keep the
+// old cached bytes around (the core having lost its logo doesn't mean we
+// want to drop ours, because there might be a transient billing-config
+// reshuffle on the other side).
+func (r *RegistrationEntrypointRepository) SaveLogoFromCore(rcNumber string, logoBytes []byte, mime string) error {
+	result, err := r.db.Exec(`
+		UPDATE member_onboarding.registration_entrypoint
+		SET eeg_logo_bytes = $1,
+		    eeg_logo_mime = $2,
+		    eeg_logo_synced_at = NOW(),
+		    updated_at = NOW()
+		WHERE rc_number = $3`,
+		logoBytes, mime, rcNumber)
+	if err != nil {
+		return fmt.Errorf("failed to save eeg logo for %s: %w", rcNumber, err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check rows affected: %w", err)
+	}
+	if rows == 0 {
+		return shared.ErrNotFound
+	}
+	return nil
+}
+
+// GetLogo reads only the logo columns for the given RC number. Separate from
+// GetByRCNumber so that the typical settings-page read doesn't pull the
+// BYTEA into memory. Returns (nil, "", nil) when the entrypoint exists but
+// has no logo synced yet — the caller renders a 404 in that case.
+//
+// Returns shared.ErrNotFound when the entrypoint row itself doesn't exist.
+func (r *RegistrationEntrypointRepository) GetLogo(rcNumber string) ([]byte, string, error) {
+	var logoBytes []byte
+	var mime *string
+	err := r.db.QueryRow(`
+		SELECT eeg_logo_bytes, eeg_logo_mime
+		FROM member_onboarding.registration_entrypoint
+		WHERE rc_number = $1`,
+		rcNumber).Scan(&logoBytes, &mime)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, "", shared.ErrNotFound
+		}
+		return nil, "", fmt.Errorf("failed to get logo for %s: %w", rcNumber, err)
+	}
+	if mime == nil {
+		return nil, "", nil
+	}
+	return logoBytes, *mime, nil
 }
 
 // SaveRequireEmailConfirmation toggles whether new applications for this EEG

@@ -21,9 +21,9 @@ Der Toggle ganz oben steuert, ob der öffentliche Registrierungslink für Ihre E
 
 Neue EEGs starten standardmäßig als inaktiv. Aktivieren Sie die Registrierung erst, wenn alle Einstellungen konfiguriert sind.
 
-### EEG-Stammdaten — aus eegFaktura
+### EEG-Stammdaten & Logo — aus eegFaktura
 
-Acht Felder werden direkt aus eegFaktura übernommen und sind in der Onboarding-Oberfläche **schreibgeschützt** (kleines Schloss-Symbol). Änderungen erfolgen ausschließlich in eegFaktura selbst, danach hier per „Aus eegFaktura aktualisieren" synchronisieren.
+Neun Werte werden direkt aus eegFaktura übernommen und sind in der Onboarding-Oberfläche **schreibgeschützt** (kleines Schloss-Symbol). Änderungen erfolgen ausschließlich in eegFaktura selbst, danach hier per „Aus eegFaktura aktualisieren" synchronisieren.
 
 | Feld | Verwendung im Onboarding |
 |---|---|
@@ -32,6 +32,7 @@ Acht Felder werden direkt aus eegFaktura übernommen und sind in der Onboarding-
 | **Straße, Hausnummer, PLZ, Ort** | SEPA-Mandat, Adressblock im Anschreiben |
 | **Creditor-ID** | SEPA-Mandat (Pflichtfeld für gültige Lastschrift) |
 | **Kontakt-E-Mail** | Empfänger-Adresse für die Admin-Benachrichtigung bei jedem neuen Antrag |
+| **Logo** | Erscheint oben rechts auf Beitrittsbestätigung und SEPA-Mandat. Max 256 KB, PNG/JPEG/GIF. Bei größeren Logos in eegFaktura erscheint nach dem Sync ein orange-Hinweis unter der Logo-Vorschau („Logo überschreitet 256 KB"). |
 
 **Stand-Anzeige am oberen Rand der Stammdaten-Card:**
 

@@ -103,16 +103,18 @@ The onboarding backend speaks to the core over HTTP/JSON and (since PROJ-32) Gra
 | List tariffs | `GET /api/eeg/tariff` | PROJ-27 import dialog |
 | List participants (member-number derivation) | `GET /api/participant` | PROJ-27 import dialog + duplicate check |
 | EEG master data (GraphQL scalar `Eeg`) | `POST /api/query` with `{"query":"query { eeg }"}` | PROJ-32 stammdaten sync |
+| Billing config (logo reference) | `GET /cash/api/billingConfigs/tenant/{rcNumber}` | PROJ-33 logo sync |
+| Logo bytes | `GET /cash/api/billingConfigs/{id}/logoImage` | PROJ-33 logo sync |
 
 **URL model.** `CORE_BASE_URL` is the **hostname only** (e.g. `https://eegfaktura.at`). Path prefixes are hardcoded per call site in `internal/coreclient/` because the deployed reverse-proxy multiplexes several services under one host (`/api/...` → eegFaktura-backend, `/cash/api/...` → eegfaktura-billing).
 
 **Auth.** Every call forwards the **logged-in admin's Keycloak JWT verbatim** as `Authorization: Bearer ...`, with the EEG's RC number in the `tenant` header. No service account, no `client_credentials`. The core enforces tenant scoping via the JWT's `Tenants` claim. Rationale: audit trail attributes the change to the actual human, no extra Keycloak infra needed.
 
-**EEG master data — single source of truth.** PROJ-32 mirrors eight values (Gemeinschafts-ID, name, four address fields, creditor-ID, contact-email) from the core into `registration_entrypoint`. The admin UI renders them read-only with a lock icon. PDF/Mail rendering reads from `registration_entrypoint` unchanged. Sync writes are triggered manually via the "Aus eegFaktura aktualisieren" button; the admin's JWT travels Browser → backend → Core.
+**EEG master data — single source of truth.** PROJ-32 mirrors eight values (Gemeinschafts-ID, name, four address fields, creditor-ID, contact-email) from the core into `registration_entrypoint`. PROJ-33 adds the EEG logo bytes (max 256 KB, PNG/JPEG/GIF) as a ninth synced asset, embedded top-right on the approval + SEPA mandate PDFs. The admin UI renders all of these read-only with a lock icon. PDF/Mail rendering reads from `registration_entrypoint` unchanged. Sync writes are triggered manually via the "Aus eegFaktura aktualisieren" button; the admin's JWT travels Browser → backend → Core. The logo step is **best-effort**: if it fails (oversize, unsupported MIME, billing service down) the master-data sync still succeeds and the UI shows a warning under the logo preview.
 
 **Performance.**
 - `&http.Client{Timeout: ...}` uses Go's `http.DefaultTransport` — keep-alive, connection pool, HTTP/2 automatic.
-- Body caps via `io.LimitReader`: 64 KiB (participant create + GraphQL eeg), 256 KiB (eeg/tariff), 4 MiB (participant list).
+- Body caps via `io.LimitReader`: 64 KiB (participant create + GraphQL eeg + billingConfig), 256 KiB (eeg/tariff), 4 MiB (participant list), **256 KB (logo bytes — hard reject above)**.
 - The drift-comparison endpoint (`GET /api/admin/settings/eeg/core-comparison`) memoises FetchEEGMasterData per RC for 30 s. Sync warms the cache with the just-fetched payload.
 
 ## 4. System Boundaries

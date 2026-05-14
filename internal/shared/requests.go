@@ -156,11 +156,21 @@ type EEGSettingsFieldDiff struct {
 // erreichbar — letzter Stand: lastSyncedAt" banner instead of either a
 // drift warning or a synchron-OK.
 type EEGSettingsComparisonResponse struct {
-	CoreReachable        bool                    `json:"coreReachable"`
-	CoreUnreachableError string                  `json:"coreUnreachableError,omitempty"`
-	InSync               bool                    `json:"inSync"`
-	DifferingFields      []EEGSettingsFieldDiff  `json:"differingFields,omitempty"`
-	LastSyncedAt         *time.Time              `json:"lastSyncedAt,omitempty"`
+	CoreReachable        bool                   `json:"coreReachable"`
+	CoreUnreachableError string                 `json:"coreUnreachableError,omitempty"`
+	InSync               bool                   `json:"inSync"`
+	DifferingFields      []EEGSettingsFieldDiff `json:"differingFields,omitempty"`
+	LastSyncedAt         *time.Time             `json:"lastSyncedAt,omitempty"`
+	// LogoSyncWarning is set by POST /sync when the master-data sync
+	// succeeded but the follow-up logo fetch did not — e.g. the core's
+	// logo is larger than the 256 KB cap, or has an unsupported MIME.
+	// Empty on the comparison endpoint and on a clean sync.
+	LogoSyncWarning string `json:"logoSyncWarning,omitempty"`
+	// LogoSyncedAt mirrors registration_entrypoint.eeg_logo_synced_at —
+	// the admin UI uses it to render a "Logo zuletzt synchronisiert"
+	// label next to the preview. NULL until the first successful logo
+	// sync.
+	LogoSyncedAt *time.Time `json:"logoSyncedAt,omitempty"`
 }
 
 // ConfirmEmailRequest carries the plaintext token sent in the confirmation

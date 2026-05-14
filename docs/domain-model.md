@@ -54,9 +54,12 @@ Fields:
 - `eeg_street`, `eeg_street_number`, `eeg_zip`, `eeg_city` — EEG address. Source: `eeg.address.{street, streetNumber, zip, city}`.
 - `creditor_id` — SEPA creditor ID (max 35 chars). Source: `eeg.accountInfo.creditorId`.
 - `contact_email` — EEG notification recipient (admin-Benachrichtigung bei neuem Antrag). Source: `eeg.contact.email`.
-- `last_synced_from_core_at` — nullable TIMESTAMPTZ; stamped on every successful sync; NULL until the first sync after PROJ-32 deploy.
+- `last_synced_from_core_at` — nullable TIMESTAMPTZ; stamped on every successful master-data sync; NULL until the first sync after PROJ-32 deploy.
+- `eeg_logo_bytes` *(PROJ-33)* — nullable BYTEA, max 256 KB; PNG/JPEG/GIF bytes of the EEG logo pulled from `eegfaktura-billing` (`/cash/api/billingConfigs/{id}/logoImage`). Embedded top-right in approval + SEPA mandate PDFs.
+- `eeg_logo_mime` *(PROJ-33)* — nullable TEXT; one of `image/png`, `image/jpeg`, `image/gif`. NULL ⇒ no logo.
+- `eeg_logo_synced_at` *(PROJ-33)* — nullable TIMESTAMPTZ; stamped on every successful logo sync. Separate from `last_synced_from_core_at` because the logo sync is best-effort: master-data can sync successfully while the logo step skips or fails.
 
-These eight values are written exclusively by the sync endpoint (`POST /api/admin/settings/eeg/sync`) which forwards the admin's Keycloak JWT to the eegFaktura core. The legacy `PUT /api/admin/settings/eeg` no longer accepts them in the request body. See `features/PROJ-32-eeg-master-data-from-core.md`.
+These ten values are written exclusively by the sync endpoint (`POST /api/admin/settings/eeg/sync`) which forwards the admin's Keycloak JWT to the eegFaktura core. The legacy `PUT /api/admin/settings/eeg` no longer accepts them in the request body. See `features/PROJ-32-eeg-master-data-from-core.md` and `features/PROJ-33-eeg-logo-from-core.md`.
 
 Rules:
 - `rc_number` is unique

@@ -575,6 +575,13 @@ func (s *AdminApplicationService) ChangeStatus(id uuid.UUID, toStatus shared.App
 			}
 
 			pdfData := buildApprovalPDFData(reloadedApp, mps, statusLog, consents, entrypoint, toStateMap(fieldConfig))
+			// PROJ-33: embed the cached EEG logo. Optional — if the read
+			// fails or the logo isn't synced yet, the PDF renders without
+			// it; we never block the approval mail on a logo issue.
+			if logoBytes, logoMime, logoErr := s.entrypointRepo.GetLogo(reloadedApp.RCNumber); logoErr == nil && len(logoBytes) > 0 {
+				pdfData.LogoBytes = logoBytes
+				pdfData.LogoMIME = logoMime
+			}
 			pdfBytes, pdfErr := s.approvalPDFGenerator.GenerateApproval(pdfData)
 			pdfFailed := pdfErr != nil
 			if pdfFailed {
@@ -1065,6 +1072,12 @@ func (s *AdminApplicationService) GenerateApprovalPDF(id uuid.UUID) ([]byte, str
 	}
 
 	pdfData := buildApprovalPDFData(app, mps, statusLog, consents, entrypoint, toStateMap(fieldConfig))
+	// PROJ-33: embed the cached EEG logo. Optional — same fallback story
+	// as in the approval-mail path: a missing logo simply renders without it.
+	if logoBytes, logoMime, logoErr := s.entrypointRepo.GetLogo(app.RCNumber); logoErr == nil && len(logoBytes) > 0 {
+		pdfData.LogoBytes = logoBytes
+		pdfData.LogoMIME = logoMime
+	}
 	pdfBytes, err := s.approvalPDFGenerator.GenerateApproval(pdfData)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to generate approval PDF: %w", err)

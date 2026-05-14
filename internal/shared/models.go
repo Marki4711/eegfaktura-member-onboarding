@@ -29,6 +29,11 @@ type RegistrationEntrypoint struct {
 	// LastSyncedFromCoreAt is NULL until the admin has triggered the first
 	// sync (PROJ-32). After that, every successful sync stamps it with NOW().
 	LastSyncedFromCoreAt       *time.Time `json:"lastSyncedFromCoreAt,omitempty" db:"last_synced_from_core_at"`
+	// EEGLogoSyncedAt is NULL until the first successful logo fetch from the
+	// eegFaktura-billing service (PROJ-33). Set separately from
+	// LastSyncedFromCoreAt because the logo sync is best-effort: master-data
+	// sync can succeed while the logo sync skips or fails.
+	EEGLogoSyncedAt            *time.Time `json:"eegLogoSyncedAt,omitempty" db:"eeg_logo_synced_at"`
 	CreatedAt                  time.Time `json:"createdAt"                  db:"created_at"`
 	UpdatedAt          time.Time `json:"updatedAt"          db:"updated_at"`
 }

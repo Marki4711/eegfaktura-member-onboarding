@@ -22,6 +22,13 @@ type SEPAMandateData struct {
 	MemberZip          string
 	MemberCity         string
 	IBAN               string
+	// LogoBytes is the EEG logo cached from the eegFaktura-billing service
+	// (PROJ-33). Empty = no logo embedded; the PDF renders without it.
+	LogoBytes []byte
+	// LogoMIME is the Content-Type the billing service returned with the
+	// bytes. Must be one of image/png, image/jpeg, image/gif; anything else
+	// is silently skipped by embedLogoTopRight.
+	LogoMIME string
 }
 
 // SEPAMandateGenerator generates a SEPA direct debit mandate as a PDF byte slice.
@@ -55,6 +62,7 @@ func (g *FPDFGenerator) Generate(data SEPAMandateData) ([]byte, error) {
 	f.SetMargins(15, 15, 15)
 	f.SetAutoPageBreak(false, 0)
 	f.AddPage()
+	embedLogoTopRight(f, data.LogoBytes, data.LogoMIME)
 
 	lm, _, rm, _ := f.GetMargins()
 	pageW, _ := f.GetPageSize()
@@ -210,6 +218,7 @@ func (g *FPDFGenerator) GenerateCompany(data SEPAMandateData) ([]byte, error) {
 	f.SetMargins(15, 15, 15)
 	f.SetAutoPageBreak(false, 0)
 	f.AddPage()
+	embedLogoTopRight(f, data.LogoBytes, data.LogoMIME)
 
 	lm, _, rm, _ := f.GetMargins()
 	pageW, _ := f.GetPageSize()

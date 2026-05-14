@@ -540,6 +540,13 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID, consents []shared.C
 		{
 			var attachment []byte
 			if mandate := buildSEPAMandateData(app, entrypoint); mandate != nil {
+				// PROJ-33: pull the cached EEG logo for the PDF embed. Logo
+				// is optional — a missing/failed read just means the PDF
+				// renders without a logo, never blocks the welcome mail.
+				if logoBytes, logoMime, logoErr := s.entrypointRepo.GetLogo(app.RCNumber); logoErr == nil && len(logoBytes) > 0 {
+					mandate.LogoBytes = logoBytes
+					mandate.LogoMIME = logoMime
+				}
 				useCompany := entrypoint.UseCompanySEPAMandate &&
 					(app.MemberType == shared.MemberTypeCompany || app.MemberType == shared.MemberTypeAssociation)
 				// For B2B mandates, the debtor name must be the company name, not the contact person.

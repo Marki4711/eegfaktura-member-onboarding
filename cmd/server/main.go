@@ -242,6 +242,7 @@ func main() {
 			r.Put("/eeg", adminHandler.SaveEEGSettings)
 			r.Get("/eeg/core-comparison", adminHandler.CompareEEGSettingsWithCore)
 			r.Post("/eeg/sync", adminHandler.SyncEEGSettingsFromCore)
+			r.Get("/eeg/logo", adminHandler.GetEEGLogo)
 			r.Get("/api-key", adminHandler.GetAPIKeyStatus)
 			r.Post("/api-key", adminHandler.GenerateAPIKey)
 			r.Delete("/api-key", adminHandler.RevokeAPIKey)

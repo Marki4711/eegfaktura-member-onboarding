@@ -58,6 +58,14 @@ type ApprovalPDFData struct {
 	SEPAMandateEnabled    bool // true = Mandat-PDF an Willkommensmail anhängen, false = Mandat wird separat per Mail übermittelt
 
 	MemberNumber *string
+
+	// LogoBytes is the EEG logo cached from the eegFaktura-billing service
+	// (PROJ-33). Empty = no logo embedded; the PDF renders without it.
+	LogoBytes []byte
+	// LogoMIME is the Content-Type the billing service returned with the
+	// bytes. Must be one of image/png, image/jpeg, image/gif; anything else
+	// is silently skipped by embedLogoTopRight.
+	LogoMIME string
 }
 
 // MeteringPointPDF holds metering point data for the approval PDF.
@@ -125,6 +133,7 @@ func (g *FPDFApprovalGenerator) GenerateApproval(data ApprovalPDFData) ([]byte, 
 	f.SetMargins(15, 15, 15)
 	f.SetAutoPageBreak(true, 15)
 	f.AddPage()
+	embedLogoTopRight(f, data.LogoBytes, data.LogoMIME)
 
 	lm, _, rm, _ := f.GetMargins()
 	pageW, _ := f.GetPageSize()

@@ -969,13 +969,35 @@ Failure modes are returned as `200` so the UI can render the appropriate banner 
 Pulls the current EEG master data from the eegFaktura core and overwrites the eight synced fields on `registration_entrypoint`. Stamps `last_synced_from_core_at = NOW()`. Returns the same shape as `/core-comparison` so the frontend can re-render without an extra round-trip.
 
 ### Response 200
-Same shape as `/core-comparison`. With `inSync: true` and the freshly stamped `lastSyncedAt`.
+Same shape as `/core-comparison`. With `inSync: true` and the freshly stamped `lastSyncedAt`. PROJ-33: two additional fields cover the logo sync:
+- `logoSyncedAt` — timestamp of the last successful logo fetch (NULL until the first one). Mirrors `registration_entrypoint.eeg_logo_synced_at`.
+- `logoSyncWarning` — only set when the master-data sync succeeded but the follow-up logo fetch did not. Examples: "Logo überschreitet 256 KB — bitte in eegFaktura ein kleineres hinterlegen", "Logo-Format wird nicht unterstützt (nur PNG, JPEG, GIF)". The frontend renders this under the logo preview as an orange hint.
 
 ### Errors
 - `400` missing `rc_number`
 - `403` not authorized for this EEG
-- `502` core returned an error (auth, schema mismatch, …) — message in `code: "core_unreachable"` body
+- `502` core returned an error on the master-data step (auth, schema mismatch, …) — message in `code: "core_unreachable"` body
 - `503` `CORE_BASE_URL` is not configured, or no bearer token in the request
+
+Logo-step failures do NOT produce a 502 — they become `logoSyncWarning` on a 200 response (best-effort semantics).
+
+---
+
+## 6.11c Get EEG logo (PROJ-33)
+
+### GET `/api/admin/settings/eeg/logo?rc_number={rc_number}`
+
+Returns the bytes of the EEG logo cached during the last successful sync, with the original `Content-Type` (PNG / JPEG / GIF). Intended for inline preview in the admin UI — the frontend fetches via JS (to supply the Bearer header) and renders the bytes through an Object URL.
+
+### Response 200
+- Body: raw image bytes
+- `Content-Type`: `image/png` | `image/jpeg` | `image/gif`
+- `Cache-Control: private, max-age=300`
+
+### Errors
+- `400` missing `rc_number`
+- `403` not authorized for this EEG
+- `404` no logo synced yet — the EEG either hasn't synced from the core, or the core has no logo configured. Body is `{"code":"not_found","message":"Noch kein Logo aus eegFaktura geladen"}`.
 
 ---
 

@@ -703,6 +703,9 @@ export interface EEGSettings {
   creditorId: string | null;
   contactEmail?: string | null;
   lastSyncedFromCoreAt?: string | null;
+  // PROJ-33: timestamp of the last successful logo fetch from the
+  // eegFaktura-billing service. null until the first successful sync.
+  eegLogoSyncedAt?: string | null;
   sepaMandateEnabled: boolean;
   useCompanySEPAMandate: boolean;
   showCentralPolicy?: boolean;
@@ -782,6 +785,33 @@ export interface EEGSettingsComparisonResponse {
   inSync: boolean;
   differingFields?: EEGSettingsFieldDiff[];
   lastSyncedAt?: string | null;
+  // PROJ-33: set by POST /sync when the master-data sync succeeded but
+  // the follow-up logo fetch did not (oversize, unsupported MIME, etc.).
+  logoSyncWarning?: string;
+  logoSyncedAt?: string | null;
+}
+
+// Fetches the EEG logo bytes via the admin API (which requires a Keycloak
+// bearer token in the Authorization header — therefore `<img src>` can't
+// load this URL directly, since the browser wouldn't attach the token).
+// Returns an Object URL the caller can drop into an <img> tag, plus a
+// dispose() callback to release the blob when the component unmounts.
+// On 404 ("no logo synced yet") returns null without throwing.
+export async function fetchEEGLogoBlob(
+  rcNumber: string,
+  token?: string,
+): Promise<{ objectURL: string; dispose: () => void } | null> {
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(
+    `${API_URL}/api/admin/settings/eeg/logo?rc_number=${encodeURIComponent(rcNumber)}`,
+    { headers },
+  );
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`logo fetch failed: ${res.status}`);
+  const blob = await res.blob();
+  const objectURL = URL.createObjectURL(blob);
+  return { objectURL, dispose: () => URL.revokeObjectURL(objectURL) };
 }
 
 export function compareEEGSettingsWithCore(rcNumber: string, token?: string): Promise<EEGSettingsComparisonResponse> {
