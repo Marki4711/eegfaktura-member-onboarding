@@ -1,8 +1,8 @@
 # PROJ-32: EEG-Stammdaten aus eegFaktura-Core beziehen (inkl. Logo)
 
-## Status: In Review
+## Status: Deployed
 **Created:** 2026-05-14
-**Last Updated:** 2026-05-14 (Phase 1 implementiert + URL-Architektur final: single Hostname-only env var. Phase 2 / Logo-Embed steht als Folge-Spec aus.)
+**Last Updated:** 2026-05-14 (Phase 1 deployt nach Prod. URL-Architektur final: single Hostname-only env var. Phase 2 / Logo-Embed parked als Folge-Spec.)
 
 > **Spec-Anmerkung:** Während der Implementierung wurde die ursprüngliche
 > Architektur (Live-Resolver mit In-Memory-Cache + Service-Account) zu einem
