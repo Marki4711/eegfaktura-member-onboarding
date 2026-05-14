@@ -343,8 +343,12 @@ func (c *HTTPCoreClient) ListParticipants(ctx context.Context, bearerToken, tena
 	}
 	defer resp.Body.Close()
 
-	// 1 MiB cap — a tenant with 10k participants is well below this.
-	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 1024*1024))
+	// 4 MiB cap. The full EegParticipant payload is ~2 KB per row, so this
+	// holds ~2000 participants safely. The cap exists to bound memory, not
+	// as a per-tenant limit — silent truncation at 1 MiB would break the
+	// JSON decode for any larger EEG. If we ever push past 2000/tenant, the
+	// right fix is a thinner core endpoint (id + participantNumber only).
+	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4*1024*1024))
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, &CoreHTTPError{StatusCode: resp.StatusCode, Body: truncate(string(respBody), 1000)}
 	}

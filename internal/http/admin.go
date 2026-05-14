@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -23,6 +24,50 @@ import (
 	"github.com/your-org/eegfaktura-member-onboarding/internal/shared"
 )
 
+// eegMasterDataCacheTTL bounds how long CompareEEGSettingsWithCore reuses a
+// previously-fetched EEG master-data payload before hitting the core again.
+// The settings page reloads the comparison on every open; 30 s collapses the
+// burst of "open settings, glance at banner, close" page-views into a single
+// core call without making the drift indicator meaningfully stale.
+const eegMasterDataCacheTTL = 30 * time.Second
+
+type eegMasterDataCacheEntry struct {
+	data      *coreclient.EEGMasterData
+	fetchedAt time.Time
+}
+
+// eegMasterDataCache memoises FetchEEGMasterData by RC number. It is owned by
+// AdminHandler (single in-process map; the deployment is single-replica). On
+// sync the entry is overwritten with the just-fetched payload so the next
+// compare-call doesn't re-hit the core to confirm what we just wrote.
+type eegMasterDataCache struct {
+	mu      sync.Mutex
+	entries map[string]eegMasterDataCacheEntry
+}
+
+func (c *eegMasterDataCache) get(rcNumber string) *coreclient.EEGMasterData {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	e, ok := c.entries[rcNumber]
+	if !ok {
+		return nil
+	}
+	if time.Since(e.fetchedAt) > eegMasterDataCacheTTL {
+		delete(c.entries, rcNumber)
+		return nil
+	}
+	return e.data
+}
+
+func (c *eegMasterDataCache) put(rcNumber string, data *coreclient.EEGMasterData) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.entries == nil {
+		c.entries = map[string]eegMasterDataCacheEntry{}
+	}
+	c.entries[rcNumber] = eegMasterDataCacheEntry{data: data, fetchedAt: time.Now()}
+}
+
 // AdminHandler handles admin-facing HTTP requests.
 type AdminHandler struct {
 	adminService      *application.AdminApplicationService
@@ -33,8 +78,11 @@ type AdminHandler struct {
 	// coreClient is shared with importService — used by PROJ-32 for the
 	// master-data sync GraphQL call. nil when CORE_BASE_URL is not set.
 	coreClient *coreclient.HTTPCoreClient
-	validate   *validator.Validate
-	sanitizer  *bluemonday.Policy
+	// eegCache memoises FetchEEGMasterData calls from CompareEEGSettingsWithCore
+	// for eegMasterDataCacheTTL. Always non-nil.
+	eegCache  *eegMasterDataCache
+	validate  *validator.Validate
+	sanitizer *bluemonday.Policy
 }
 
 // NewAdminHandler creates a new AdminHandler. Both importService and coreClient
@@ -59,6 +107,7 @@ func NewAdminHandler(
 		legalDocumentRepo: legalDocumentRepo,
 		importService:     importService,
 		coreClient:        coreClient,
+		eegCache:          &eegMasterDataCache{},
 		validate:          validator.New(),
 		sanitizer:         p,
 	}
@@ -567,19 +616,22 @@ func (h *AdminHandler) CompareEEGSettingsWithCore(w http.ResponseWriter, r *http
 		return
 	}
 
-	ctx, cancel := r.Context(), func() {}
-	_ = cancel
-	core, fetchErr := h.coreClient.FetchEEGMasterData(ctx, bearerToken, rcNumber)
-	if fetchErr != nil {
-		// Surface as a graceful 200 with `coreReachable: false` so the
-		// frontend can render a "Core nicht erreichbar"-Hinweis instead of
-		// a hard error toast.
-		h.writeJSON(w, http.StatusOK, shared.EEGSettingsComparisonResponse{
-			CoreReachable:        false,
-			CoreUnreachableError: fetchErr.Error(),
-			LastSyncedAt:         local.LastSyncedFromCoreAt,
-		})
-		return
+	core := h.eegCache.get(rcNumber)
+	if core == nil {
+		fetched, fetchErr := h.coreClient.FetchEEGMasterData(r.Context(), bearerToken, rcNumber)
+		if fetchErr != nil {
+			// Surface as a graceful 200 with `coreReachable: false` so the
+			// frontend can render a "Core nicht erreichbar"-Hinweis instead of
+			// a hard error toast.
+			h.writeJSON(w, http.StatusOK, shared.EEGSettingsComparisonResponse{
+				CoreReachable:        false,
+				CoreUnreachableError: fetchErr.Error(),
+				LastSyncedAt:         local.LastSyncedFromCoreAt,
+			})
+			return
+		}
+		h.eegCache.put(rcNumber, fetched)
+		core = fetched
 	}
 
 	resp := buildEEGSettingsComparison(local, core)
@@ -621,6 +673,9 @@ func (h *AdminHandler) SyncEEGSettingsFromCore(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	// Sync always bypasses the cache — the admin explicitly asked for
+	// fresh data. Store the result so a subsequent Compare-call doesn't
+	// re-hit the core just to confirm what we wrote.
 	core, fetchErr := h.coreClient.FetchEEGMasterData(r.Context(), bearerToken, rcNumber)
 	if fetchErr != nil {
 		h.writeJSON(w, http.StatusBadGateway, shared.ErrorResponse{
@@ -649,6 +704,10 @@ func (h *AdminHandler) SyncEEGSettingsFromCore(w http.ResponseWriter, r *http.Re
 		h.handleServiceError(w, err)
 		return
 	}
+
+	// Warm the compare-cache with the just-fetched payload so a Compare-call
+	// arriving within the TTL doesn't re-hit the core for the same data.
+	h.eegCache.put(rcNumber, core)
 
 	// Reload so the response carries the freshly stamped last_synced_at.
 	local, err := h.entrypointRepo.GetByRCNumber(rcNumber)
