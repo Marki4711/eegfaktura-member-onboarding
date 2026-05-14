@@ -156,9 +156,18 @@ func StartIPBucketCleanup(ctx context.Context) {
 	}()
 }
 
+// healthProbePaths are noisy probe endpoints hit by Kubernetes every few
+// seconds. We skip request-logging for them entirely; the duration
+// histogram still gets the data points via the metrics path.
+var healthProbePaths = map[string]bool{
+	"/health": true,
+	"/livez":  true,
+	"/readyz": true,
+}
+
 func SlogRequestLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/health" {
+		if healthProbePaths[r.URL.Path] {
 			next.ServeHTTP(w, r)
 			return
 		}
