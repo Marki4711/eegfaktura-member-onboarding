@@ -220,6 +220,16 @@ Danach Claude Code neu starten. Prüfen mit: `claude mcp list` → `Snyk: ✓ Co
 - [x] GitHub-Repository auf snyk.io importieren (für CI-Alerts im PR-Flow) — `snyk monitor` läuft auch in CI automatisch
 - [x] Snyk-GitHub-Action in `.github/workflows/snyk.yml` ergänzt — SAST + SCA (Go + npm), `SNYK_TOKEN` als GitHub Secret gesetzt
 
+## Lizenz-Compliance
+
+Die Anwendung ist proprietäre, kommerzielle Software. Lizenzhinweise:
+
+- `LICENSE` im Repo-Root enthält die proprietäre Lizenz-Erklärung des Copyright-Inhabers.
+- `THIRD_PARTY_NOTICES.md` listet alle direkten Go- und Node-Abhängigkeiten mit ihren OSS-Lizenzen, inklusive Quellenangaben.
+- Geprüft wurde am 2026-05-14: keine GPL-, AGPL- oder SSPL-kontaminierten Abhängigkeiten in der Produktions-Lieferkette. Sharp/libvips (LGPL-3.0-or-later) ist als dynamisch geladenes Native-Addon des `sharp`-npm-Pakets enthalten; der LGPL-§6-Source-Offer ist in `THIRD_PARTY_NOTICES.md` dokumentiert.
+- Bei neuen Abhängigkeiten (`go get` / `npm install`) muss die Lizenz vor dem Merge geprüft werden. Empfohlene Tools: `go-licenses report ./...` für Go, `license-checker --production --excludePrivatePackages` für npm.
+- Pauschale Suppressions oder das Aufnehmen GPL-/AGPL-/SSPL-Pakete erfordern menschliche Freigabe.
+
 ## Dokumentierte False Positives
 
 | Scanner | Regel | Datei | Begründung |
