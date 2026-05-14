@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import DOMPurify from "dompurify";
 
 const DEFAULT_TEXT = "Füllen Sie das Formular aus, um Ihre Mitgliedschaft zu beantragen.";
 
@@ -17,13 +16,20 @@ export function IntroTextDisplay({ introText }: Props) {
       setSanitized(null);
       return;
     }
-    setSanitized(
-      DOMPurify.sanitize(introText, {
-        ALLOWED_TAGS: ["p", "br", "strong", "b", "em", "i", "ul", "ol", "li", "a"],
-        ALLOWED_ATTR: ["href", "target", "rel"],
-        FORCE_BODY: true,
-      })
-    );
+    let cancelled = false;
+    void import("dompurify").then(({ default: DOMPurify }) => {
+      if (cancelled) return;
+      setSanitized(
+        DOMPurify.sanitize(introText, {
+          ALLOWED_TAGS: ["p", "br", "strong", "b", "em", "i", "ul", "ol", "li", "a"],
+          ALLOWED_ATTR: ["href", "target", "rel"],
+          FORCE_BODY: true,
+        })
+      );
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [introText]);
 
   if (!sanitized) {
