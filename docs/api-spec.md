@@ -317,11 +317,45 @@ Before submit, the following must be set:
 - `application.status = submitted`
 - set `application.submitted_at`
 - write entry in `status_log`
+- when the EEG has `require_email_confirmation = true` (PROJ-31), a confirmation token is generated, hashed (SHA-256) into `email_confirmation_token_hash`, and the confirmation link is included in the welcome mail. The application stays at `submitted` until the member clicks the link (see 5.5).
 
 ### Errors
 - `400` required fields missing
 - `404` application not found
 - `409` application already submitted or in a disallowed status
+
+---
+
+## 5.5 Confirm e-mail (PROJ-31)
+
+### POST `/api/public/applications/confirm-email`
+
+Consumes the single-use token sent in the welcome mail. On success, transitions the application from `submitted` → `email_confirmed` and unblocks admin review. The token travels in the request body (not the URL path) so it stays out of server access logs; the frontend page reads it from a URL fragment and posts it here.
+
+### Request
+```json
+{ "token": "<32-byte url-safe random string>" }
+```
+
+### Response 200
+```json
+{
+  "eegName": "Muster Energiegemeinschaft",
+  "eegContactEmail": "kontakt@beispiel-eeg.at",
+  "alreadyConfirmed": false
+}
+```
+
+`alreadyConfirmed` is `true` when the same token is presented again after the first successful consumption — the page renders "Bereits bestätigt" instead of an error so the user doesn't worry about a broken link.
+
+### Errors
+- `400` token missing, malformed, expired (>30 days old), or no matching application
+- All other failure modes are rendered as `400` with the generic German message "Der Bestätigungs-Link ist ungültig oder abgelaufen" — token enumeration is not possible from the response.
+
+### Side effects on success
+- `application.email_confirmed_at = NOW()` and `application.email_confirmation_used_at = NOW()` (first click only)
+- `application.status` → `email_confirmed`
+- entry in `status_log`
 
 ---
 
@@ -811,27 +845,33 @@ Send `{ "introText": null }` to clear the text (public form will show default te
 
 ### GET `/api/admin/settings/eeg?rc_number={rc_number}`
 
-Returns the EEG master data used for SEPA mandate PDF generation.
+Returns the EEG settings — the eight Core-mastered fields (PROJ-32) plus the onboarding-only toggles.
 
 ### Response 200
 ```json
 {
   "rcNumber": "RC123456",
+  "eegId": "AT0040000000RC123456000000000000",
   "eegName": "Muster Energiegemeinschaft",
   "eegStreet": "Hauptstraße",
   "eegStreetNumber": "12",
   "eegZip": "4020",
   "eegCity": "Linz",
   "creditorId": "AT28ZZZ00000000000",
+  "contactEmail": "kontakt@beispiel-eeg.at",
+  "lastSyncedFromCoreAt": "2026-05-14T16:58:58.750289Z",
   "registrationActive": true,
   "sepaMandateEnabled": true,
   "useCompanySEPAMandate": false,
   "showCentralPolicy": true,
-  "memberNumberStart": 1
+  "memberNumberStart": 1,
+  "requireEmailConfirmation": false
 }
 ```
 
-All address/name fields are `null` when not yet configured. `registrationActive` is `false` by default — new EEGs are inactive until explicitly activated by an admin. `sepaMandateEnabled` defaults to `false`. `useCompanySEPAMandate` defaults to `false`. `showCentralPolicy` defaults to `true`. `memberNumberStart` defaults to `1` — the first member number assigned for this EEG will be this value.
+**Core-mastered fields** (PROJ-32, read-only — only modified via `/sync` below): `eegId`, `eegName`, `eegStreet`, `eegStreetNumber`, `eegZip`, `eegCity`, `creditorId`, `contactEmail`. `lastSyncedFromCoreAt` is `null` until the first successful sync.
+
+`registrationActive` is `false` by default. `sepaMandateEnabled` and `useCompanySEPAMandate` default to `false`. `showCentralPolicy` defaults to `true`. `memberNumberStart` defaults to `1`. `requireEmailConfirmation` (PROJ-31) defaults to `false`.
 
 ### Errors
 - `400` missing `rc_number`
@@ -843,20 +883,17 @@ All address/name fields are `null` when not yet configured. `registrationActive`
 
 ### PUT `/api/admin/settings/eeg?rc_number={rc_number}`
 
+Writes the onboarding-only editable fields. The Core-mastered fields (`eegId`, `eegName`, address, `creditorId`, `contactEmail`) are **not** accepted in the request body — they are silently ignored (no 400) so a legacy client continues to work. To change those, use the sync endpoint (6.11b).
+
 ### Request body
 ```json
 {
-  "eegName": "Muster Energiegemeinschaft",
-  "eegStreet": "Hauptstraße",
-  "eegStreetNumber": "12",
-  "eegZip": "4020",
-  "eegCity": "Linz",
-  "creditorId": "AT28ZZZ00000000000",
   "registrationActive": true,
   "sepaMandateEnabled": true,
   "useCompanySEPAMandate": false,
   "showCentralPolicy": true,
-  "memberNumberStart": 1
+  "memberNumberStart": 1,
+  "requireEmailConfirmation": false
 }
 ```
 
@@ -866,7 +903,9 @@ All address/name fields are `null` when not yet configured. `registrationActive`
 
 `useCompanySEPAMandate`: when `true`, members of type `company` or `association` receive the SEPA B2B mandate PDF instead of the standard CORE mandate. Only evaluated when `sepaMandateEnabled = true`.
 
-`memberNumberStart`: starting value for the per-EEG member number auto-increment counter. The first member number assigned for this EEG will be this value. Defaults to `1` when not explicitly set.
+`memberNumberStart`: starting value for the per-EEG member number auto-increment counter. Defaults to `1` when not explicitly set.
+
+`requireEmailConfirmation` (PROJ-31): when `true`, members must click the confirmation link in the welcome mail before the application becomes reviewable. While pending, the admin `/status` endpoint rejects `submitted → under_review|needs_info|approved` with 409.
 
 ### Response
 - `204 No Content`
@@ -874,6 +913,69 @@ All address/name fields are `null` when not yet configured. `registrationActive`
 ### Errors
 - `400` missing `rc_number` or invalid JSON
 - `403` not authorized for this EEG
+
+---
+
+## 6.11a Compare EEG settings with core (PROJ-32)
+
+### GET `/api/admin/settings/eeg/core-comparison?rc_number={rc_number}`
+
+Fetches the current EEG master data from the eegFaktura core (forwarding the admin's bearer token) and diffs it against the locally stored values. Used by the settings page to render the drift banner. Memoised per RC for 30 s — repeated page-opens within that window share one core call.
+
+### Response 200 (synchron)
+```json
+{
+  "coreReachable": true,
+  "inSync": true,
+  "differingFields": [],
+  "lastSyncedAt": "2026-05-14T16:58:58.750289Z"
+}
+```
+
+### Response 200 (Drift)
+```json
+{
+  "coreReachable": true,
+  "inSync": false,
+  "differingFields": [
+    {"field": "eegName", "label": "EEG-Name", "localValue": "Alt", "coreValue": "Neu"}
+  ],
+  "lastSyncedAt": "2026-05-14T16:58:58.750289Z"
+}
+```
+
+### Response 200 (Core nicht erreichbar)
+```json
+{
+  "coreReachable": false,
+  "coreUnreachableError": "core service timeout",
+  "lastSyncedAt": "2026-05-14T16:58:58.750289Z"
+}
+```
+
+Failure modes are returned as `200` so the UI can render the appropriate banner state without treating it as an error toast.
+
+### Errors
+- `400` missing `rc_number`
+- `403` not authorized for this EEG
+- `503` `CORE_BASE_URL` is not configured, or no bearer token in the request (admin session expired)
+
+---
+
+## 6.11b Sync EEG settings from core (PROJ-32)
+
+### POST `/api/admin/settings/eeg/sync?rc_number={rc_number}`
+
+Pulls the current EEG master data from the eegFaktura core and overwrites the eight synced fields on `registration_entrypoint`. Stamps `last_synced_from_core_at = NOW()`. Returns the same shape as `/core-comparison` so the frontend can re-render without an extra round-trip.
+
+### Response 200
+Same shape as `/core-comparison`. With `inSync: true` and the freshly stamped `lastSyncedAt`.
+
+### Errors
+- `400` missing `rc_number`
+- `403` not authorized for this EEG
+- `502` core returned an error (auth, schema mismatch, …) — message in `code: "core_unreachable"` body
+- `503` `CORE_BASE_URL` is not configured, or no bearer token in the request
 
 ---
 

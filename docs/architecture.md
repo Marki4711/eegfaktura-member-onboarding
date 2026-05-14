@@ -90,6 +90,30 @@ Responsibilities:
 - final business validation during import
 - productive creation of the participant
 - returning a target ID or error message
+- authoritative source for EEG master data (Gemeinschafts-ID, name, address, creditor-ID, contact-email) — synced into the onboarding via PROJ-32 (see 3.5a)
+
+### 3.5a Core integration — calls from the onboarding backend
+
+The onboarding backend speaks to the core over HTTP/JSON and (since PROJ-32) GraphQL. The call surface is:
+
+| Purpose | Endpoint | Used by |
+|---|---|---|
+| Create participant | `POST /api/participant` | PROJ-4 import |
+| Assign member tariff (post-create) | `PUT /api/participant/v2/{id}` | PROJ-27 import |
+| List tariffs | `GET /api/eeg/tariff` | PROJ-27 import dialog |
+| List participants (member-number derivation) | `GET /api/participant` | PROJ-27 import dialog + duplicate check |
+| EEG master data (GraphQL scalar `Eeg`) | `POST /api/query` with `{"query":"query { eeg }"}` | PROJ-32 stammdaten sync |
+
+**URL model.** `CORE_BASE_URL` is the **hostname only** (e.g. `https://eegfaktura.at`). Path prefixes are hardcoded per call site in `internal/coreclient/` because the deployed reverse-proxy multiplexes several services under one host (`/api/...` → eegFaktura-backend, `/cash/api/...` → eegfaktura-billing).
+
+**Auth.** Every call forwards the **logged-in admin's Keycloak JWT verbatim** as `Authorization: Bearer ...`, with the EEG's RC number in the `tenant` header. No service account, no `client_credentials`. The core enforces tenant scoping via the JWT's `Tenants` claim. Rationale: audit trail attributes the change to the actual human, no extra Keycloak infra needed.
+
+**EEG master data — single source of truth.** PROJ-32 mirrors eight values (Gemeinschafts-ID, name, four address fields, creditor-ID, contact-email) from the core into `registration_entrypoint`. The admin UI renders them read-only with a lock icon. PDF/Mail rendering reads from `registration_entrypoint` unchanged. Sync writes are triggered manually via the "Aus eegFaktura aktualisieren" button; the admin's JWT travels Browser → backend → Core.
+
+**Performance.**
+- `&http.Client{Timeout: ...}` uses Go's `http.DefaultTransport` — keep-alive, connection pool, HTTP/2 automatic.
+- Body caps via `io.LimitReader`: 64 KiB (participant create + GraphQL eeg), 256 KiB (eeg/tariff), 4 MiB (participant list).
+- The drift-comparison endpoint (`GET /api/admin/settings/eeg/core-comparison`) memoises FetchEEGMasterData per RC for 30 s. Sync warms the cache with the just-fetched payload.
 
 ## 4. System Boundaries
 

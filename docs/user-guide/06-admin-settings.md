@@ -21,13 +21,17 @@ Der Toggle ganz oben steuert, ob der öffentliche Registrierungslink für Ihre E
 
 Neue EEGs starten standardmäßig als inaktiv. Aktivieren Sie die Registrierung erst, wenn alle Einstellungen konfiguriert sind.
 
-### Gemeinschafts-ID
-
-Die interne ID Ihrer EEG in eegFaktura. Sie wird im Excel-Export für den Datenimport verwendet.
-
 ### EEG-Stammdaten — aus eegFaktura
 
-Name, Adresse, Creditor-ID und Kontakt-E-Mail Ihrer Energiegemeinschaft werden direkt aus eegFaktura übernommen. Diese Felder sind in der Onboarding-Oberfläche **schreibgeschützt** (kleines Schloss-Symbol). Änderungen erfolgen ausschließlich in eegFaktura selbst.
+Acht Felder werden direkt aus eegFaktura übernommen und sind in der Onboarding-Oberfläche **schreibgeschützt** (kleines Schloss-Symbol). Änderungen erfolgen ausschließlich in eegFaktura selbst, danach hier per „Aus eegFaktura aktualisieren" synchronisieren.
+
+| Feld | Verwendung im Onboarding |
+|---|---|
+| **Gemeinschafts-ID** | Excel-Export (Spalte B), eegFaktura-Import |
+| **EEG-Name** | Antrags-PDF, Willkommens- und Bestätigungs-Mail, SEPA-Mandat |
+| **Straße, Hausnummer, PLZ, Ort** | SEPA-Mandat, Adressblock im Anschreiben |
+| **Creditor-ID** | SEPA-Mandat (Pflichtfeld für gültige Lastschrift) |
+| **Kontakt-E-Mail** | Empfänger-Adresse für die Admin-Benachrichtigung bei jedem neuen Antrag |
 
 **Stand-Anzeige am oberen Rand der Stammdaten-Card:**
 

@@ -38,22 +38,25 @@ Purpose:
 Fields:
 - `id`
 - `rc_number`
-- `eeg_id` — nullable, internal EEG identifier used for the Gemeinschafts-ID column in the Excel export
 - `is_active` — boolean, default false; controls whether the public registration form is active; must be explicitly enabled by the admin via the settings page
-- `contact_email` — nullable, EEG notification email address
 - `intro_text` — nullable, sanitized HTML string for the public registration form
-- `eeg_name` — nullable, official name of the energy community
-- `eeg_street` — nullable, street of the EEG address
-- `eeg_street_number` — nullable, house number of the EEG address
-- `eeg_zip` — nullable, postal code of the EEG address
-- `eeg_city` — nullable, city of the EEG address
-- `creditor_id` — nullable, SEPA creditor ID (max 35 chars)
 - `sepa_mandate_enabled` — boolean, default false; controls whether SEPA mandate PDF is attached to welcome email
 - `use_company_sepa_mandate` — boolean, default false; when true, members of type `company`/`association` receive the SEPA B2B mandate instead of the CORE mandate (only evaluated when `sepa_mandate_enabled = true`)
 - `show_central_policy` — boolean, default true; when false, the central operator privacy policy is not shown in the public registration form (for EEGs that configure their own policy as a legal document)
 - `member_number_start` — INT NOT NULL DEFAULT 1; starting value for the per-EEG member number auto-increment counter; the first member number assigned for this EEG will be this value
+- `require_email_confirmation` — boolean, default false (PROJ-31); when true, members must click the link in the confirmation mail before the application becomes reviewable; admin `/status` endpoint rejects `submitted → under_review|needs_info|approved` with 409 until confirmed
 - `created_at`
 - `updated_at`
+
+**Core-mastered fields (PROJ-32 — synced from eegFaktura, read-only in the admin UI):**
+- `eeg_id` — Gemeinschafts-ID; used as the Excel-Export Spalte B value and for the eegFaktura import. Source: GraphQL `eeg.communityId`.
+- `eeg_name` — official name of the energy community. Source: `eeg.name`.
+- `eeg_street`, `eeg_street_number`, `eeg_zip`, `eeg_city` — EEG address. Source: `eeg.address.{street, streetNumber, zip, city}`.
+- `creditor_id` — SEPA creditor ID (max 35 chars). Source: `eeg.accountInfo.creditorId`.
+- `contact_email` — EEG notification recipient (admin-Benachrichtigung bei neuem Antrag). Source: `eeg.contact.email`.
+- `last_synced_from_core_at` — nullable TIMESTAMPTZ; stamped on every successful sync; NULL until the first sync after PROJ-32 deploy.
+
+These eight values are written exclusively by the sync endpoint (`POST /api/admin/settings/eeg/sync`) which forwards the admin's Keycloak JWT to the eegFaktura core. The legacy `PUT /api/admin/settings/eeg` no longer accepts them in the request body. See `features/PROJ-32-eeg-master-data-from-core.md`.
 
 Rules:
 - `rc_number` is unique
@@ -153,7 +156,11 @@ Fields:
 - `heat_pump` *(nullable boolean, configurable)*
 - `electric_vehicle` *(nullable boolean, configurable)*
 - `electric_hot_water` *(nullable boolean, configurable)*
-- `member_number` — nullable INT; auto-assigned at first submission per EEG counter (starting at `registration_entrypoint.member_number_start`); shown as first data field in the approval PDF
+- `member_number` — nullable TEXT (since migration 000027); assigned at import time, chosen by the admin in the import dialog (pre-filled with the next free value derived from the core's existing participantNumber pattern, alphanumeric supported, e.g. "A006"). Shown as first data field in the approval PDF.
+- `email_confirmation_token_hash` — nullable BYTEA; SHA-256 of the single-use confirmation token (PROJ-31). NULL means no token has been issued. Cleared on confirmation (kept after consumption so a second click can return "already confirmed").
+- `email_confirmation_token_expires_at` — nullable TIMESTAMPTZ; token validity window (30 days).
+- `email_confirmed_at` — nullable TIMESTAMPTZ; set when the member clicked the link.
+- `email_confirmation_used_at` — nullable TIMESTAMPTZ; first-click timestamp (separate from `email_confirmed_at` to detect re-clicks).
 
 ### 3.3 `member_onboarding.metering_point`
 

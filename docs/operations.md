@@ -187,6 +187,58 @@ helm rollback member-onboarding <REVISION> -n member-onboarding
 
 > **Wichtig**: `helm rollback` rollt **keine DB-Migrationen zurück**. Wenn die migrierte Schema-Version mit dem alten Image inkompatibel ist, muss die DB-Migration manuell zurückgerollt werden (`db/migrations/000NNN_*.down.sql`). Vor schema-relevanten Releases: aktuelles Backup verifizieren.
 
+### Recovery: `Dirty database version N` (Migration abgebrochen)
+
+Wenn der Migrate-Job mit `migrate up failed: Dirty database version N. Fix and force version.` abbricht, hat eine Migration mittendrin gescheitert (typisch: UNIQUE-Constraint, NOT-NULL-Backfill, Typ-Verengung) und golang-migrate hat `schema_migrations.dirty = true` gesetzt. `cmd/migrate` hat keinen `force`-Modus — das Flag wird per SQL zurückgesetzt.
+
+**1. psql öffnen:**
+```bash
+NS=eegfaktura-member-onboarding         # bzw. -test
+kubectl -n $NS exec -it member-onboarding-postgres-0 -c postgres -- \
+  psql -U postgres -d member_onboarding
+```
+
+**2. Migration-Stand sichten** — gibt `version=N, dirty=t`:
+```sql
+SELECT * FROM schema_migrations;
+```
+
+**3. Prüfen, ob Migration N inhaltlich durchgegangen ist.** Die `.up.sql` der Migration anschauen, das wichtigste Artefakt finden (Spalte, Index, Constraint, Funktion …) und in der DB nachsehen, z.B. für einen Index:
+```sql
+SELECT indexname FROM pg_indexes
+ WHERE schemaname='member_onboarding'
+   AND indexname='<expected_index>';
+```
+- **Zeile zurück** → Migration ist durch, nur das Flag hängt → weiter mit Schritt 5a.
+- **Leer** → Migration ist halb abgebrochen → Daten in Schritt 4 fixen.
+
+**4. Daten aufräumen** (Migration-spezifisch). Beispiel UNIQUE-Verletzung — Duplikate finden:
+```sql
+SELECT <key_cols>, COUNT(*) FROM <schema>.<table>
+ WHERE <new_unique_col> IS NOT NULL
+ GROUP BY <key_cols>
+HAVING COUNT(*) > 1;
+```
+Strategie zur Auflösung hängt vom Domänenmodell ab — Status-Felder berücksichtigen, ggf. ältere/neuere Duplikate nullen oder mergen. Bei produktiven Daten vorher mit dem Owner abklären.
+
+**5. Dirty-Flag löschen** — eine der beiden Varianten:
+```sql
+-- 5a: Migration N war durch, nur Flag hängt:
+UPDATE schema_migrations SET dirty = false WHERE version = N;
+
+-- 5b: Migration N läuft beim nächsten Up-Run neu (nach Schritt 4):
+UPDATE schema_migrations SET dirty = false, version = N-1;
+```
+*(`schema_migrations` liegt standardmäßig im `public`-Schema, nicht im `member_onboarding`. Vorher `\dt *.schema_migrations` prüfen.)*
+
+**6. Migrate-Job neu erzeugen** — der pre-upgrade-Hook regeneriert ihn beim nächsten Helm-Upgrade:
+```bash
+kubectl -n $NS delete job <release>-migrate
+helm upgrade <release> ./helm/member-onboarding -n $NS -f ...
+kubectl -n $NS logs -l job-name=<release>-migrate -c migrate
+```
+Erwartet: `Migrations applied successfully` und `SELECT version, dirty FROM schema_migrations;` zeigt die neueste Version mit `dirty=f`.
+
 ---
 
 ## 4. Monitoring & Alerts
