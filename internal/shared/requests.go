@@ -163,7 +163,9 @@ type AdminUpdateApplicationRequest struct {
 	MandateReference     *string                      `json:"mandateReference,omitempty" validate:"omitempty,max=255"`
 	MandateDate          *string                      `json:"mandateDate,omitempty" validate:"omitempty,len=10"`
 	MeteringPoints       []CreateMeteringPointRequest  `json:"meteringPoints,omitempty" validate:"omitempty,min=1,max=10,dive"`
-	MemberNumber         *int                          `json:"memberNumber,omitempty" validate:"omitempty,min=1"`
+	// MemberNumber is no longer admin-editable: the import dialog assigns it
+	// at import time. The struct field is intentionally removed; any value
+	// in the JSON body is silently ignored.
 }
 
 // ChangeStatusRequest is the admin status-transition payload.
@@ -195,6 +197,11 @@ type UpdateAdminNoteRequest struct {
 type ImportApplicationRequest struct {
 	TariffID     string            `json:"tariffId,omitempty"`
 	MeterTariffs map[string]string `json:"meterTariffs,omitempty"`
+	// MemberNumber is required: since the onboarding stopped auto-assigning
+	// numbers, the import dialog passes the admin's chosen number (pre-filled
+	// from the core's max+1 suggestion). The backend verifies the number is
+	// not already taken in the core before sending POST /participant.
+	MemberNumber *int `json:"memberNumber" validate:"required,min=1"`
 }
 
 // ApplicationListItem is one summary row in the admin list response.

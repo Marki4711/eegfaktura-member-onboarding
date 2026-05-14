@@ -73,9 +73,6 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
   const [residentZip, setResidentZip] = useState(application.residentZip);
   const [residentCity, setResidentCity] = useState(application.residentCity);
   const [adminNote, setAdminNote] = useState(application.adminNote ?? "");
-  const [memberNumber, setMemberNumber] = useState(
-    application.memberNumber != null ? String(application.memberNumber) : ""
-  );
   const [einzugsart, setEinzugsart] = useState(application.einzugsart ?? "core");
   const [bankName, setBankName] = useState(application.bankName ?? "");
   const [mandateReference, setMandateReference] = useState(application.mandateReference ?? "");
@@ -211,7 +208,6 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
         bankName: bankName.trim() || undefined,
         mandateReference: mandateReference.trim() || undefined,
         mandateDate: mandateDate || undefined,
-        memberNumber: memberNumber.trim() ? parseInt(memberNumber.trim(), 10) || undefined : undefined,
         meteringPoints: payload,
       }, session?.accessToken);
       toast.success("Änderungen gespeichert");
@@ -233,29 +229,9 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
         </DialogHeader>
 
         <div className="space-y-6 py-2">
-          {/* Mitgliedsnummer */}
-          <div className="space-y-1">
-            <div className="flex items-center gap-1">
-              <Label htmlFor="edit-member-number">Mitgliedsnummer</Label>
-              <Popover>
-                <PopoverTrigger type="button" className="cursor-help">
-                  <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                </PopoverTrigger>
-                <PopoverContent className="max-w-60 text-sm">
-                  Wird bei der ersten Einreichung automatisch vergeben (fortlaufend pro EEG), kann hier aber manuell angepasst werden.
-                </PopoverContent>
-              </Popover>
-            </div>
-            <Input
-              id="edit-member-number"
-              type="number"
-              min={1}
-              value={memberNumber}
-              onChange={(e) => setMemberNumber(e.target.value)}
-            />
-          </div>
-
-          <Separator />
+          {/* Mitgliedsnummer wird nicht mehr im Onboarding verwaltet —
+              sie wird zum Import-Zeitpunkt im Tarif-Dialog vergeben
+              (vorausgefüllt mit max+1 aus dem Core, editierbar). */}
 
           {/* Member type */}
           <div>

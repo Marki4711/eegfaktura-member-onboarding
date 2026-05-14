@@ -714,23 +714,26 @@ func (h *AdminHandler) ImportApplication(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	// PROJ-27: optional tariff selection sent by the import dialog. Body is
-	// fully optional for backward compatibility — an empty body means "no
-	// tariffs", same as the legacy import behaviour.
+	// Tariff selection + member number from the import dialog. memberNumber is
+	// now required: the onboarding no longer auto-assigns it at submit time;
+	// the admin picks it (pre-filled from the core's max+1 suggestion) in the
+	// import dialog.
 	selection := importing.TariffSelection{MeterTariffIDs: map[string]string{}}
-	if r.ContentLength > 0 {
-		var body shared.ImportApplicationRequest
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Invalid JSON", nil)))
-			return
-		}
-		selection.MemberTariffID = body.TariffID
-		if body.MeterTariffs != nil {
-			selection.MeterTariffIDs = body.MeterTariffs
-		}
+	var body shared.ImportApplicationRequest
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Invalid JSON", nil)))
+		return
+	}
+	if err := h.validate.Struct(body); err != nil {
+		h.writeValidationError(w, err)
+		return
+	}
+	selection.MemberTariffID = body.TariffID
+	if body.MeterTariffs != nil {
+		selection.MeterTariffIDs = body.MeterTariffs
 	}
 
-	result, err := h.importService.Import(r.Context(), id, bearerToken, actorID, allowedTenants, selection)
+	result, err := h.importService.Import(r.Context(), id, bearerToken, actorID, allowedTenants, selection, *body.MemberNumber)
 	if err != nil {
 		// Pre-import typed errors — application untouched on disk.
 		var validationErr shared.ValidationError
@@ -853,6 +856,64 @@ func (h *AdminHandler) ListTariffs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.writeJSON(w, http.StatusOK, map[string]interface{}{"tariffs": tariffs})
+}
+
+// SuggestNextMemberNumber handles GET /api/admin/applications/{id}/next-member-number
+//
+// @Summary      Suggest next member number for an application
+// @Description  Returns max(numeric participantNumber) + 1 over the existing participants in the application's tenant. Used by the import dialog to pre-fill the member number field; the admin may override it before submitting the import.
+// @Tags         Admin
+// @Produce      json
+// @Param        id  path  string  true  "Application ID"
+// @Success      200  {object}  map[string]int  "next_member_number"
+// @Failure      403  {object}  shared.ErrorResponse
+// @Failure      404  {object}  shared.ErrorResponse
+// @Failure      503  {object}  shared.ErrorResponse  "Core not configured / lookup failed"
+// @Security     BearerAuth
+// @Router       /api/admin/applications/{id}/next-member-number [get]
+func (h *AdminHandler) SuggestNextMemberNumber(w http.ResponseWriter, r *http.Request) {
+	if h.importService == nil {
+		h.writeJSON(w, http.StatusServiceUnavailable, shared.ErrorResponse{
+			Code:    "service_unavailable",
+			Message: "Core service not configured (CORE_BASE_URL is empty).",
+		})
+		return
+	}
+
+	id, err := h.parseID(w, r)
+	if err != nil {
+		return
+	}
+	if !h.checkTenantAccess(w, r, id) {
+		return
+	}
+
+	rcNumber, err := h.adminService.GetRCNumberByID(id)
+	if err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+
+	bearerToken := extractBearerToken(r)
+	if bearerToken == "" {
+		h.writeJSON(w, http.StatusServiceUnavailable, shared.ErrorResponse{
+			Code:    "service_unavailable",
+			Message: "Member-number lookup requires an authenticated admin session (Keycloak).",
+		})
+		return
+	}
+
+	next, err := h.importService.SuggestNextMemberNumber(r.Context(), bearerToken, rcNumber)
+	if err != nil {
+		slog.Warn("admin: next-member-number lookup failed", "application_id", id, "rc_number", rcNumber, "error", err)
+		h.writeJSON(w, http.StatusServiceUnavailable, shared.ErrorResponse{
+			Code:    "service_unavailable",
+			Message: "Nächste Mitgliedsnummer konnte nicht aus dem Core ermittelt werden.",
+		})
+		return
+	}
+
+	h.writeJSON(w, http.StatusOK, map[string]int{"next_member_number": next})
 }
 
 // ResetImport handles POST /api/admin/applications/{id}/reset-import

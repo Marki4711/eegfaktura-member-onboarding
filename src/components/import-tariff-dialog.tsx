@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -17,16 +18,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { fetchTariffs, type Tariff, type MeteringPointDetail } from "@/lib/api";
+import { fetchTariffs, fetchNextMemberNumber, type Tariff, type MeteringPointDetail } from "@/lib/api";
 
 interface Props {
   open: boolean;
+  applicationId: string;
   rcNumber: string;
   meteringPoints: MeteringPointDetail[];
   accessToken?: string;
   loading: boolean;
   onCancel: () => void;
   onConfirm: (selection: {
+    memberNumber: number;
     tariffId: string;
     meterTariffs: Record<string, string>;
   }) => void;
@@ -43,6 +46,7 @@ function tariffLabel(t: Tariff): string {
 
 export function ImportTariffDialog({
   open,
+  applicationId,
   rcNumber,
   meteringPoints,
   accessToken,
@@ -55,19 +59,29 @@ export function ImportTariffDialog({
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [memberTariffId, setMemberTariffId] = useState<string>(NONE);
   const [meterTariffs, setMeterTariffs] = useState<Record<string, string>>({});
+  // Member number — pre-filled from the core's max+1 suggestion, but the
+  // admin can override before confirming. Empty string while we're still
+  // loading the suggestion; "" + invalid blocks the Confirm button.
+  const [memberNumber, setMemberNumber] = useState<string>("");
+  const [memberNumberLoading, setMemberNumberLoading] = useState(false);
+  const [memberNumberError, setMemberNumberError] = useState<string | null>(null);
 
   // Reload tariffs each time the dialog opens — the user explicitly asked
-  // for "Tarif-Liste zum Zeitpunkt des Imports", so no caching.
+  // for "Tarif-Liste zum Zeitpunkt des Imports", so no caching. Same for the
+  // next-member-number suggestion: the core may have grown between two
+  // dialog opens and we want the freshest value.
   useEffect(() => {
     if (!open) return;
     setTariffs(null);
     setFetchError(null);
     setMemberTariffId(NONE);
     setMeterTariffs({});
+    setMemberNumber("");
+    setMemberNumberError(null);
     setFetching(true);
-    // Abort the tariff fetch if the dialog closes (or rcNumber changes)
-    // before the response lands, otherwise an old EEG's tariff list could
-    // overwrite a freshly-opened one.
+    setMemberNumberLoading(true);
+    // Abort both fetches if the dialog closes (or rcNumber/application
+    // changes) before the responses land.
     const ac = new AbortController();
     fetchTariffs(rcNumber, accessToken, ac.signal)
       .then((res) => setTariffs(res.tariffs))
@@ -76,8 +90,20 @@ export function ImportTariffDialog({
         setFetchError(err instanceof Error ? err.message : "Fehler beim Laden der Tarife");
       })
       .finally(() => setFetching(false));
+    fetchNextMemberNumber(applicationId, accessToken, ac.signal)
+      .then((res) => setMemberNumber(String(res.next_member_number)))
+      .catch((err) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        // Soft-fail: dialog stays usable, admin types the number manually.
+        setMemberNumberError(
+          err instanceof Error
+            ? err.message
+            : "Nächste Mitgliedsnummer konnte nicht aus dem Core ermittelt werden",
+        );
+      })
+      .finally(() => setMemberNumberLoading(false));
     return () => ac.abort();
-  }, [open, rcNumber, accessToken]);
+  }, [open, applicationId, rcNumber, accessToken]);
 
   const eegTariffs = (tariffs ?? []).filter(
     (t) => t.type === "EEG" && t.inactiveSince == null,
@@ -89,8 +115,16 @@ export function ImportTariffDialog({
     (t) => t.type === "EZP" && t.inactiveSince == null,
   );
 
+  const memberNumberInt = Number(memberNumber);
+  const memberNumberValid =
+    memberNumber.trim() !== "" &&
+    Number.isInteger(memberNumberInt) &&
+    memberNumberInt > 0;
+
   function handleConfirm() {
+    if (!memberNumberValid) return;
     onConfirm({
+      memberNumber: memberNumberInt,
       tariffId: memberTariffId === NONE ? "" : memberTariffId,
       meterTariffs: Object.fromEntries(
         Object.entries(meterTariffs).filter(([, v]) => v !== "" && v !== NONE),
@@ -114,6 +148,30 @@ export function ImportTariffDialog({
             Tarife konnten nicht aus dem Core geladen werden ({fetchError}). Der Import läuft ohne Tarif-Zuweisung — du kannst die Tarife später in eegFaktura nachpflegen.
           </div>
         )}
+
+        <div className="space-y-1 py-2 border-b pb-4">
+          <Label htmlFor="member-number">Mitgliedsnummer</Label>
+          <Input
+            id="member-number"
+            type="number"
+            min={1}
+            step={1}
+            value={memberNumber}
+            onChange={(e) => setMemberNumber(e.target.value)}
+            placeholder={memberNumberLoading ? "Wird ermittelt…" : "z.B. 42"}
+            disabled={memberNumberLoading || loading}
+          />
+          {memberNumberError && (
+            <p className="text-xs text-amber-700 dark:text-amber-300">
+              {memberNumberError} — bitte manuell eintragen.
+            </p>
+          )}
+          {!memberNumberLoading && !memberNumberError && (
+            <p className="text-xs text-muted-foreground">
+              Vorschlag aus eegFaktura (höchste vergebene Nummer + 1). Anpassbar; das Backend prüft vor dem Import auf Doppelvergabe.
+            </p>
+          )}
+        </div>
 
         {tariffs && !fetchError && (
           <div className="space-y-4 py-2">
@@ -183,7 +241,10 @@ export function ImportTariffDialog({
           <Button variant="outline" onClick={onCancel} disabled={loading}>
             Abbrechen
           </Button>
-          <Button onClick={handleConfirm} disabled={loading || fetching}>
+          <Button
+            onClick={handleConfirm}
+            disabled={loading || fetching || memberNumberLoading || !memberNumberValid}
+          >
             {loading ? "Import läuft…" : "In eegFaktura importieren"}
           </Button>
         </DialogFooter>

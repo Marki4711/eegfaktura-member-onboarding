@@ -267,9 +267,6 @@ func (s *AdminApplicationService) AdminUpdateApplication(id uuid.UUID, req share
 		}
 		app.MandateDate = parsed
 	}
-	if req.MemberNumber != nil {
-		app.MemberNumber = req.MemberNumber
-	}
 	clearMemberTypeFields(app)
 	if err = validateMemberTypeFields(app); err != nil {
 		return nil, err

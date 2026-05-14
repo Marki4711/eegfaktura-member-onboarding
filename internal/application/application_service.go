@@ -481,11 +481,10 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID, consents []shared.C
 		}
 	}
 
-	if oldStatus == string(shared.StatusDraft) {
-		if err = s.appRepo.AssignMemberNumberTx(tx, id, app.RCNumber); err != nil {
-			return nil, fmt.Errorf("failed to assign member number: %w", err)
-		}
-	}
+	// Member number is no longer auto-assigned at submit time. The admin
+	// picks it at import time in the tariff dialog (pre-filled from the
+	// core's max+1 suggestion). application.member_number stays NULL until
+	// the import succeeds — the approval PDF tolerates that.
 
 	if err = tx.Commit(); err != nil {
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)

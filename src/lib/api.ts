@@ -404,7 +404,6 @@ export interface AdminUpdateApplicationRequest {
   bankName?: string;
   mandateReference?: string;
   mandateDate?: string;
-  memberNumber?: number;
   meteringPoints: MeteringPointRequest[];
 }
 
@@ -530,16 +529,18 @@ export interface ImportResponse {
   memberTariffWarning?: string;
 }
 
-// PROJ-27: Tariff selection sent with the import call. All fields optional;
-// an empty body falls back to the legacy "no tariffs" behaviour.
+// Import-time payload. memberNumber is now required — the onboarding no
+// longer auto-assigns it at submit time; the import dialog presents the
+// next free number (suggestion from the core) and the admin can override.
 export interface ImportRequestBody {
+  memberNumber: number;
   tariffId?: string;
   meterTariffs?: Record<string, string>; // metering_point UUID -> tariff UUID
 }
 
 export function importApplication(
   id: string,
-  body?: ImportRequestBody,
+  body: ImportRequestBody,
   token?: string,
 ): Promise<ImportResponse> {
   return adminRequest<ImportResponse>(
@@ -547,9 +548,23 @@ export function importApplication(
     token,
     {
       method: "POST",
-      headers: body ? { "Content-Type": "application/json" } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
+      body: JSON.stringify(body),
     }
+  );
+}
+
+// PROJ-X: ask the core for max(participantNumber)+1 to pre-fill the member
+// number field in the import dialog. Returns null on lookup failure so the
+// dialog can fall back to an empty input the admin fills in manually.
+export function fetchNextMemberNumber(
+  applicationId: string,
+  token?: string,
+  signal?: AbortSignal,
+): Promise<{ next_member_number: number }> {
+  return adminRequest<{ next_member_number: number }>(
+    `/api/admin/applications/${applicationId}/next-member-number`,
+    token,
+    { method: "GET", signal },
   );
 }
 

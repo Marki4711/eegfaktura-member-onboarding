@@ -722,6 +722,11 @@ type ImportResultUpdate struct {
 	ImportedAt          *time.Time
 	TargetParticipantID *string
 	ImportErrorMessage  *string
+	// MemberNumber, when non-nil, is written through (no COALESCE) so a
+	// successful import always records the number the admin chose in the
+	// import dialog. Failed-import paths pass nil to leave the column
+	// unchanged.
+	MemberNumber *int
 }
 
 // UpdateImportResultTx writes the outcome of one import attempt inside the
@@ -744,10 +749,11 @@ func (r *ApplicationRepository) UpdateImportResultTx(tx *sql.Tx, id uuid.UUID, u
 			imported_at           = COALESCE($4, imported_at),
 			target_participant_id = COALESCE($5, target_participant_id),
 			import_error_message  = $6,
+			member_number         = COALESCE($7, member_number),
 			updated_at            = NOW()
-		WHERE id = $7`
+		WHERE id = $8`
 
-	_, err := tx.Exec(query, u.Status, u.ImportStartedAt, u.ImportFinishedAt, u.ImportedAt, u.TargetParticipantID, u.ImportErrorMessage, id)
+	_, err := tx.Exec(query, u.Status, u.ImportStartedAt, u.ImportFinishedAt, u.ImportedAt, u.TargetParticipantID, u.ImportErrorMessage, u.MemberNumber, id)
 	if err != nil {
 		return fmt.Errorf("failed to update import result: %w", err)
 	}

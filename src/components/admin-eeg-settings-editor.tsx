@@ -47,7 +47,6 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
   const [sepaMandateEnabled, setSepaMandateEnabled] = useState(false);
   const [useCompanySEPAMandate, setUseCompanySEPAMandate] = useState(false);
   const [registrationActive, setRegistrationActive] = useState(false);
-  const [memberNumberStart, setMemberNumberStart] = useState("1");
 
   useEffect(() => {
     if (!rcNumber || !session?.accessToken) return;
@@ -64,7 +63,6 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
         setCreditorId(s.creditorId ?? "");
         setSepaMandateEnabled(s.sepaMandateEnabled);
         setUseCompanySEPAMandate(s.useCompanySEPAMandate ?? false);
-        setMemberNumberStart(String(s.memberNumberStart ?? 1));
         setLoaded(true);
       })
       .catch(() => setLoaded(true));
@@ -90,7 +88,6 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
           creditorId: creditorId.trim() || null,
           sepaMandateEnabled,
           useCompanySEPAMandate,
-          memberNumberStart: parseInt(memberNumberStart, 10) || 1,
         },
         session?.accessToken
       );
@@ -207,21 +204,9 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
             />
           </div>
 
-          {/* Mitgliedsnummer Startwert */}
-          <div className="space-y-1.5">
-            <Label htmlFor="member-number-start" className="text-sm">Mitgliedsnummer — Startwert</Label>
-            <Input
-              id="member-number-start"
-              type="number"
-              min={1}
-              value={memberNumberStart}
-              onChange={(e) => { setMemberNumberStart(e.target.value); setSaveResult(null); }}
-              className={fieldClass}
-            />
-            <p className="text-xs text-muted-foreground">
-              Neue Mitglieder erhalten ab diesem Wert aufsteigende Nummern. Nur wirksam für zukünftige Anträge.
-            </p>
-          </div>
+          {/* Mitgliedsnummer wird nicht mehr im Onboarding gepflegt —
+              sie wird zum Import-Zeitpunkt aus eegFaktura abgeleitet
+              (max+1) und kann im Import-Dialog angepasst werden. */}
 
           {/* SEPA Toggle */}
           <div className="flex items-center gap-3 pt-1">

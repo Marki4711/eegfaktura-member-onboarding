@@ -220,6 +220,7 @@ func main() {
 				r.Post("/import", adminHandler.ImportApplication)
 				r.Post("/reset-import", adminHandler.ResetImport)
 				r.Patch("/admin-note", adminHandler.UpdateAdminNote)
+				r.Get("/next-member-number", adminHandler.SuggestNextMemberNumber)
 			})
 		})
 		r.Route("/settings", func(r chi.Router) {

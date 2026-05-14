@@ -30,6 +30,20 @@ type CoreClient interface {
 	// because the core's POST /participant ignores the tariffId field on
 	// insert (goqu:"skipinsert" on EegParticipantBase.TariffId).
 	UpdateParticipantField(ctx context.Context, bearerToken, tenant, participantID, path string, value any) error
+	// ListParticipants returns the participantNumber field of every existing
+	// participant for the tenant — used to compute "next free member number"
+	// at import time and to detect duplicates when the admin overrides the
+	// suggested number in the import dialog.
+	ListParticipants(ctx context.Context, bearerToken, tenant string) ([]CoreParticipantSummary, error)
+}
+
+// CoreParticipantSummary holds just the fields we need to derive / validate
+// member numbers. participantNumber is VARCHAR in the core schema, so we
+// keep it as a pointer-string and ignore non-numeric values when computing
+// the next free number.
+type CoreParticipantSummary struct {
+	ID                string  `json:"id"`
+	ParticipantNumber *string `json:"participantNumber,omitempty"`
 }
 
 // CoreTariff is the subset of fields PROJ-27 needs from the eegFaktura core's
@@ -266,6 +280,56 @@ func (c *HTTPCoreClient) UpdateParticipantField(ctx context.Context, bearerToken
 		return &CoreHTTPError{StatusCode: resp.StatusCode, Body: truncate(string(respBody), 1000)}
 	}
 	return nil
+}
+
+// ListParticipants fetches the participant list for the given tenant, used
+// by the import dialog to suggest the next free member number and to detect
+// duplicates before sending POST /participant.
+func (c *HTTPCoreClient) ListParticipants(ctx context.Context, bearerToken, tenant string) ([]CoreParticipantSummary, error) {
+	if c.baseURL == "" {
+		return nil, ErrCoreNotConfigured
+	}
+	if bearerToken == "" {
+		return nil, ErrBearerTokenRequired
+	}
+	if tenant == "" {
+		return nil, ErrTenantRequired
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/participant", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build request: %w", err)
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Authorization", "Bearer "+bearerToken)
+	req.Header.Set("tenant", tenant)
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		if isTimeoutErr(err) {
+			return nil, ErrCoreTimeout
+		}
+		if errors.Is(err, context.Canceled) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("core request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// 1 MiB cap — a tenant with 10k participants is well below this.
+	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 1024*1024))
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, &CoreHTTPError{StatusCode: resp.StatusCode, Body: truncate(string(respBody), 1000)}
+	}
+	if isHTMLResponse(resp.Header.Get("Content-Type"), respBody) {
+		return nil, &CoreParseError{Detail: "core returned HTML instead of JSON for /participant"}
+	}
+
+	var participants []CoreParticipantSummary
+	if err := json.Unmarshal(respBody, &participants); err != nil {
+		return nil, &CoreParseError{Detail: fmt.Sprintf("decode /participant: %v", err)}
+	}
+	return participants, nil
 }
 
 // isHTMLResponse returns true when the response body is HTML rather than JSON.

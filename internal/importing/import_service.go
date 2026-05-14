@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -38,6 +40,52 @@ type ImportService struct {
 // handler before calling here).
 func (s *ImportService) ListTariffs(ctx context.Context, bearerToken, tenant string) ([]coreclient.CoreTariff, error) {
 	return s.coreClient.ListTariffs(ctx, bearerToken, tenant)
+}
+
+// SuggestNextMemberNumber returns max(numeric participantNumber) + 1 for the
+// tenant — the value the import dialog pre-fills. Non-numeric values are
+// ignored (the core stores participantNumber as VARCHAR, so legacy entries
+// like "ABC-123" may exist). Returns 1 when there are no participants yet.
+func (s *ImportService) SuggestNextMemberNumber(ctx context.Context, bearerToken, tenant string) (int, error) {
+	participants, err := s.coreClient.ListParticipants(ctx, bearerToken, tenant)
+	if err != nil {
+		return 0, err
+	}
+	maxN := 0
+	for _, p := range participants {
+		if p.ParticipantNumber == nil {
+			continue
+		}
+		n, err := strconv.Atoi(strings.TrimSpace(*p.ParticipantNumber))
+		if err != nil {
+			continue
+		}
+		if n > maxN {
+			maxN = n
+		}
+	}
+	return maxN + 1, nil
+}
+
+// MemberNumberTaken checks whether the given number is already used by an
+// existing participant in the tenant. Called pre-import after the admin
+// possibly overrode the suggested number, so we surface a 409 in the dialog
+// instead of silently letting two members share a number.
+func (s *ImportService) MemberNumberTaken(ctx context.Context, bearerToken, tenant string, number int) (bool, error) {
+	participants, err := s.coreClient.ListParticipants(ctx, bearerToken, tenant)
+	if err != nil {
+		return false, err
+	}
+	target := strconv.Itoa(number)
+	for _, p := range participants {
+		if p.ParticipantNumber == nil {
+			continue
+		}
+		if strings.TrimSpace(*p.ParticipantNumber) == target {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // NewImportService wires the dependencies. coreClient may be a stub in tests.
@@ -84,11 +132,25 @@ type TariffSelection struct {
 // superusers (no tenant restriction). It is asserted as defense-in-depth on
 // top of the handler-level tenant check.
 //
-// Pre-import validation errors (wrong status, no metering points) are returned
-// as typed shared errors and the application is left untouched. Core failures
-// transition the application into import_failed and return a wrapped error so
-// the handler can render a 500 with the stored error message.
-func (s *ImportService) Import(ctx context.Context, id uuid.UUID, bearerToken, actorID string, allowedTenants []string, selection TariffSelection) (*ImportResult, error) {
+// memberNumber is the value chosen by the admin in the import dialog (the
+// frontend pre-fills it from `SuggestNextMemberNumber` but lets the admin
+// override). The number must be > 0 and is checked against the core's
+// existing participants to refuse duplicates before sending POST /participant.
+// On success it is written to application.member_number so the approval PDF
+// can render it.
+//
+// Pre-import validation errors (wrong status, no metering points, member
+// number conflict) are returned as typed shared errors and the application
+// is left untouched. Core failures transition the application into
+// import_failed and return a wrapped error so the handler can render a 500
+// with the stored error message.
+func (s *ImportService) Import(ctx context.Context, id uuid.UUID, bearerToken, actorID string, allowedTenants []string, selection TariffSelection, memberNumber int) (*ImportResult, error) {
+	if memberNumber < 1 {
+		return nil, shared.NewValidationError("Validation failed", map[string]string{
+			"memberNumber": "Mitgliedsnummer muss > 0 sein",
+		})
+	}
+
 	app, err := s.appRepo.GetByID(id)
 	if err != nil {
 		return nil, err
@@ -112,6 +174,20 @@ func (s *ImportService) Import(ctx context.Context, id uuid.UUID, bearerToken, a
 		})
 	}
 
+	// Pre-import duplicate check: catches the race between two admins picking
+	// the same suggested number, or an admin overriding to a value the core
+	// already uses. The core does not enforce uniqueness on participantNumber,
+	// so the guard has to live here.
+	taken, err := s.MemberNumberTaken(ctx, bearerToken, app.RCNumber, memberNumber)
+	if err != nil {
+		return nil, fmt.Errorf("failed to verify member number against core: %w", err)
+	}
+	if taken {
+		return nil, shared.NewConflictError(
+			fmt.Sprintf("Mitgliedsnummer %d ist im Core bereits vergeben", memberNumber),
+		)
+	}
+
 	importStartedAt := time.Now()
 
 	// Reserve the in-flight slot before calling the core. This both persists
@@ -127,6 +203,10 @@ func (s *ImportService) Import(ctx context.Context, id uuid.UUID, bearerToken, a
 	}
 
 	payload := BuildPayload(app, meteringPoints, importStartedAt, selection.MeterTariffIDs)
+	// Member number is provided per import call now (no longer auto-assigned
+	// at submit time), so override whatever BuildPayload picked up from the
+	// stale `application.member_number` column.
+	payload.ParticipantNumber = strconv.Itoa(memberNumber)
 
 	participantID, coreErr := s.coreClient.CreateParticipant(ctx, payload, bearerToken, app.RCNumber)
 	importFinishedAt := time.Now()
@@ -155,6 +235,7 @@ func (s *ImportService) Import(ctx context.Context, id uuid.UUID, bearerToken, a
 		ImportFinishedAt:    importFinishedAt,
 		ImportedAt:          &importFinishedAt,
 		TargetParticipantID: &participantID,
+		MemberNumber:        &memberNumber,
 	}, actorID); err != nil {
 		// The participant exists in the core but our DB couldn't record it.
 		// Log the orphan participant ID so an operator can clean it up by

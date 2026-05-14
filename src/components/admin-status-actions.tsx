@@ -94,16 +94,16 @@ export function AdminStatusActions({ applicationId, rcNumber, status, targetPart
     setImportDialogOpen(true);
   }
 
-  async function runImport(selection: { tariffId: string; meterTariffs: Record<string, string> }) {
+  async function runImport(selection: {
+    memberNumber: number;
+    tariffId: string;
+    meterTariffs: Record<string, string>;
+  }) {
     setLoading(true);
     setError(null);
     setIsConflict(false);
     try {
-      const body =
-        selection.tariffId || Object.keys(selection.meterTariffs).length > 0
-          ? selection
-          : undefined;
-      const res = await importApplication(applicationId, body, session?.accessToken);
+      const res = await importApplication(applicationId, selection, session?.accessToken);
       if (res.memberTariffWarning) {
         toast.warning(
           `Import erfolgreich (Participant-ID: ${res.targetParticipantId ?? "—"}). ` +
@@ -336,6 +336,7 @@ export function AdminStatusActions({ applicationId, rcNumber, status, targetPart
 
       <ImportTariffDialog
         open={importDialogOpen}
+        applicationId={applicationId}
         rcNumber={rcNumber}
         meteringPoints={meteringPoints}
         accessToken={session?.accessToken}
