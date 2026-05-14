@@ -126,13 +126,23 @@ func main() {
 	applicationService := application.NewApplicationService(db, appRepo, meteringRepo, statusLogRepo, entrypointRepo, fieldConfigRepo, consentRepo, mailService, pdfGenerator, cfg.PublicBaseURL)
 	adminService := application.NewAdminApplicationService(db, appRepo, meteringRepo, statusLogRepo, fieldConfigRepo, entrypointRepo, consentRepo, mailService, approvalPDFGenerator, cfg.PublicBaseURL)
 
-	// PROJ-4: Core import. Disabled when CORE_BASE_URL is empty — the import
-	// endpoint then returns 503.
+	// PROJ-4 + PROJ-32 share one HTTPCoreClient. Either feature can be
+	// disabled independently by leaving its URL env var empty:
+	//   CORE_BASE_URL    "" → POST /participant returns 503
+	//   CORE_GRAPHQL_URL "" → EEG master-data sync returns 503
+	// When both are empty we don't bother constructing the client.
+	var coreHTTPClient *coreclient.HTTPCoreClient
+	if cfg.Core.BaseURL != "" || cfg.Core.GraphQLURL != "" {
+		coreHTTPClient = coreclient.NewHTTPCoreClient(cfg.Core.BaseURL, cfg.Core.GraphQLURL, time.Duration(cfg.Core.TimeoutSeconds)*time.Second)
+	}
+
 	var importService *importing.ImportService
 	if cfg.Core.BaseURL != "" {
-		coreHTTPClient := coreclient.NewHTTPCoreClient(cfg.Core.BaseURL, time.Duration(cfg.Core.TimeoutSeconds)*time.Second)
 		importService = importing.NewImportService(db, appRepo, meteringRepo, statusLogRepo, coreHTTPClient)
 		slog.Info("core import enabled", "core_base_url", cfg.Core.BaseURL)
+	}
+	if cfg.Core.GraphQLURL != "" {
+		slog.Info("core master-data sync enabled", "core_graphql_url", cfg.Core.GraphQLURL)
 	}
 
 	// Initialize handlers

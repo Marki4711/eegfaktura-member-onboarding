@@ -103,18 +103,25 @@ func (e *CoreParseError) Error() string {
 
 // HTTPCoreClient is the production implementation that talks to the core
 // service over HTTP/JSON.
+//
+// baseURL    — root of the REST API used by PROJ-4 (POST /participant etc.).
+// graphqlURL — full URL of the Core's GraphQL endpoint used by PROJ-32 for
+//              the EEG master-data sync. Either URL may be empty when the
+//              corresponding feature is disabled.
 type HTTPCoreClient struct {
-	baseURL string
-	http    *http.Client
+	baseURL    string
+	graphqlURL string
+	http       *http.Client
 }
 
-// NewHTTPCoreClient builds a client targeting baseURL. When baseURL is empty,
-// the returned client always returns ErrCoreNotConfigured — this lets the
-// server boot in environments where the import feature is disabled.
-func NewHTTPCoreClient(baseURL string, timeout time.Duration) *HTTPCoreClient {
+// NewHTTPCoreClient builds a client. Empty baseURL disables REST-side calls
+// (PROJ-4); empty graphqlURL disables PROJ-32. Both can be empty during
+// local development.
+func NewHTTPCoreClient(baseURL, graphqlURL string, timeout time.Duration) *HTTPCoreClient {
 	return &HTTPCoreClient{
-		baseURL: strings.TrimRight(baseURL, "/"),
-		http:    &http.Client{Timeout: timeout},
+		baseURL:    strings.TrimRight(baseURL, "/"),
+		graphqlURL: strings.TrimSpace(graphqlURL),
+		http:       &http.Client{Timeout: timeout},
 	}
 }
 

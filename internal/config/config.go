@@ -37,11 +37,25 @@ type Config struct {
 }
 
 // CoreConfig holds connection settings for the eegFaktura core service used by
-// the import endpoint (PROJ-4). When BaseURL is empty, the import feature is
-// disabled and the endpoint returns 503.
+// the import endpoint (PROJ-4) and the EEG-master-data sync (PROJ-32).
+//
+// BaseURL — REST endpoints (POST /participant, GET /eeg/tariff, …). Empty
+// disables PROJ-4 import.
+//
+// GraphQLURL — full URL of the Core's GraphQL endpoint (e.g.
+// "https://eegfaktura.at/cash/api/query"). Used by PROJ-32 to fetch EEG
+// master data. Empty disables the sync feature; the EEG-settings UI then
+// stays on the legacy manual-edit behaviour.
+//
+// MasterDataCacheTTLSeconds — currently unused while PROJ-32 stores synced
+// values directly in registration_entrypoint (single source of truth model,
+// no in-memory cache layer). Reserved for a future scenario where we add
+// per-request live lookups.
 type CoreConfig struct {
-	BaseURL        string
-	TimeoutSeconds int
+	BaseURL                   string
+	GraphQLURL                string
+	TimeoutSeconds            int
+	MasterDataCacheTTLSeconds int
 }
 
 // CentralPolicyConfig holds title and URL of the operator's central privacy policy.
@@ -139,8 +153,10 @@ func Load() (*Config, error) {
 			URL:   getEnv("CENTRAL_POLICY_URL", ""),
 		},
 		Core: CoreConfig{
-			BaseURL:        getEnv("CORE_BASE_URL", ""),
-			TimeoutSeconds: getIntEnv("CORE_TIMEOUT_SECONDS", 30),
+			BaseURL:                   getEnv("CORE_BASE_URL", ""),
+			GraphQLURL:                getEnv("CORE_GRAPHQL_URL", ""),
+			TimeoutSeconds:            getIntEnv("CORE_TIMEOUT_SECONDS", 30),
+			MasterDataCacheTTLSeconds: getIntEnv("CORE_MASTER_DATA_CACHE_TTL_SECONDS", 900),
 		},
 		AdminBaseURL:      getEnv("ADMIN_BASE_URL", ""),
 		PublicBaseURL:     getEnv("PUBLIC_BASE_URL", ""),
