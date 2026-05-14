@@ -1375,10 +1375,13 @@ func (h *AdminHandler) GetEEGSettings(w http.ResponseWriter, r *http.Request) {
 		"eegZip":                  ep.EEGZip,
 		"eegCity":                 ep.EEGCity,
 		"creditorId":              ep.CreditorID,
+		"contactEmail":            ep.ContactEmail,
+		"lastSyncedFromCoreAt":    ep.LastSyncedFromCoreAt,
 		"sepaMandateEnabled":      ep.SEPAMandateEnabled,
 		"useCompanySEPAMandate":   ep.UseCompanySEPAMandate,
 		"showCentralPolicy":       ep.ShowCentralPolicy,
 		"memberNumberStart":       ep.MemberNumberStart,
+		"requireEmailConfirmation": ep.RequireEmailConfirmation,
 	})
 }
 

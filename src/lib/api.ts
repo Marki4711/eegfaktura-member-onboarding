@@ -692,12 +692,17 @@ export interface EEGSettings {
   rcNumber: string;
   registrationActive?: boolean;
   eegId: string | null;
+  // The seven fields below are now Core-mastered (PROJ-32). Frontend
+  // displays them read-only and never sends them in PUT /settings/eeg
+  // (the backend ignores them if a legacy client still does).
   eegName: string | null;
   eegStreet: string | null;
   eegStreetNumber: string | null;
   eegZip: string | null;
   eegCity: string | null;
   creditorId: string | null;
+  contactEmail?: string | null;
+  lastSyncedFromCoreAt?: string | null;
   sepaMandateEnabled: boolean;
   useCompanySEPAMandate: boolean;
   showCentralPolicy?: boolean;
@@ -747,6 +752,38 @@ export function saveEEGSettings(rcNumber: string, settings: Omit<EEGSettings, "r
     `/api/admin/settings/eeg?rc_number=${encodeURIComponent(rcNumber)}`,
     token,
     { method: "PUT", body: JSON.stringify(settings) }
+  );
+}
+
+// PROJ-32: EEG master-data sync from the eegFaktura core.
+
+export interface EEGSettingsFieldDiff {
+  field: string;
+  label: string;
+  localValue: string;
+  coreValue: string;
+}
+
+export interface EEGSettingsComparisonResponse {
+  coreReachable: boolean;
+  coreUnreachableError?: string;
+  inSync: boolean;
+  differingFields?: EEGSettingsFieldDiff[];
+  lastSyncedAt?: string | null;
+}
+
+export function compareEEGSettingsWithCore(rcNumber: string, token?: string): Promise<EEGSettingsComparisonResponse> {
+  return adminRequest<EEGSettingsComparisonResponse>(
+    `/api/admin/settings/eeg/core-comparison?rc_number=${encodeURIComponent(rcNumber)}`,
+    token,
+  );
+}
+
+export function syncEEGSettingsFromCore(rcNumber: string, token?: string): Promise<EEGSettingsComparisonResponse> {
+  return adminRequest<EEGSettingsComparisonResponse>(
+    `/api/admin/settings/eeg/sync?rc_number=${encodeURIComponent(rcNumber)}`,
+    token,
+    { method: "POST" },
   );
 }
 
