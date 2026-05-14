@@ -1,8 +1,8 @@
 # PROJ-31: E-Mail-Adresse-Bestätigung (Anti-Abuse + Validitäts-Check)
 
-## Status: In Review
+## Status: Approved
 **Created:** 2026-05-14
-**Last Updated:** 2026-05-14 (Stages A–I implemented, awaits QA + /security-review)
+**Last Updated:** 2026-05-14 (Stages A–I implemented; security-review verdict YELLOW addressed via the M1/M2/L1/L2 follow-up fixes)
 
 ## Dependencies
 - Requires: PROJ-1 (Public Registration) — der Submit-Pfad wird verzweigt

@@ -829,18 +829,19 @@ func (r *ApplicationRepository) findIDByEmailConfirmationTokenHash(tokenHash str
 	return id, nil
 }
 
-// MarkEmailConfirmedTx transitions the application to status email_confirmed,
-// stamps email_confirmed_at + email_confirmation_used_at, and clears the
-// token hash + expiry (one-time-use). The status_log entry is written by the
-// caller.
+// MarkEmailConfirmedTx transitions the application to status email_confirmed
+// and stamps both email_confirmed_at and email_confirmation_used_at. The
+// token hash + expiry are deliberately kept around — a re-click on the same
+// link is then a no-op rather than a confusing "ungültig oder abgelaufen"
+// error (PROJ-31 Q5). The auto-reject job will not touch the row again
+// because email_confirmed_at is now non-null.
+// The status_log entry is written by the caller.
 func (r *ApplicationRepository) MarkEmailConfirmedTx(tx *sql.Tx, id uuid.UUID, now time.Time) error {
 	res, err := tx.Exec(`
 		UPDATE member_onboarding.application
 		SET status = $1,
 		    email_confirmed_at = $2,
 		    email_confirmation_used_at = $2,
-		    email_confirmation_token_hash = NULL,
-		    email_confirmation_token_expires_at = NULL,
 		    updated_at = NOW()
 		WHERE id = $3 AND status = $4`,
 		shared.StatusEmailConfirmed, now, id, shared.StatusSubmitted)

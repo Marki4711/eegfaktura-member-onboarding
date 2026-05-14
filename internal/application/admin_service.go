@@ -129,18 +129,16 @@ func (s *AdminApplicationService) ResendMemberConfirmation(id uuid.UUID) error {
 // pending application and re-sends the confirmation mail (PROJ-31). The
 // original token (if any) is invalidated. Throttled to one resend every
 // resendThrottle to prevent the admin from spamming the member's inbox.
+//
+// Concurrency-safe: the precondition checks and the token write happen in a
+// single transaction with SELECT … FOR UPDATE so two simultaneous admin
+// clicks don't both sneak past the throttle (PROJ-31 security finding L2).
 func (s *AdminApplicationService) ResendEmailConfirmation(id uuid.UUID) error {
+	// Read-only side: load entrypoint (separate row, no need to lock).
 	app, err := s.appRepo.GetByID(id)
 	if err != nil {
 		return err
 	}
-	if app.Status != shared.StatusSubmitted {
-		return shared.NewConflictError("application is not in submitted status")
-	}
-	if app.EmailConfirmedAt != nil {
-		return shared.NewConflictError("application e-mail is already confirmed")
-	}
-
 	entrypoint, err := s.entrypointRepo.GetByRCNumber(app.RCNumber)
 	if err != nil {
 		return err
@@ -150,17 +148,6 @@ func (s *AdminApplicationService) ResendEmailConfirmation(id uuid.UUID) error {
 	}
 	if s.publicBaseURL == "" {
 		return fmt.Errorf("public base URL not configured — cannot build confirmation link")
-	}
-
-	// Throttle: derive the previous token's issue time from
-	// expires_at - 30d. If the previous resend was less than resendThrottle
-	// ago, refuse. First-time resend after a fresh submit goes through the
-	// same calculation: refuses within 5min of the original submit.
-	if app.EmailConfirmationTokenExpiresAt != nil {
-		issuedAt := app.EmailConfirmationTokenExpiresAt.Add(-emailConfirmationTokenLifetime)
-		if time.Since(issuedAt) < resendThrottle {
-			return shared.NewConflictError(fmt.Sprintf("bitte warten Sie noch %s vor dem nächsten Versand", resendThrottle))
-		}
 	}
 
 	plaintext, hash, tokErr := GenerateEmailConfirmationToken()
@@ -175,6 +162,36 @@ func (s *AdminApplicationService) ResendEmailConfirmation(id uuid.UUID) error {
 		return fmt.Errorf("begin tx: %w", txErr)
 	}
 	defer tx.Rollback()
+
+	// Lock the application row + read the fields the throttle check needs.
+	// Holding the row lock for the rest of the transaction makes a
+	// concurrent second resend wait here, and then see the just-rotated
+	// token expiry — which fails its own throttle check.
+	var lockedStatus shared.ApplicationStatus
+	var lockedConfirmedAt sql.NullTime
+	var lockedExpiresAt sql.NullTime
+	if err := tx.QueryRow(`
+		SELECT status, email_confirmed_at, email_confirmation_token_expires_at
+		FROM member_onboarding.application
+		WHERE id = $1
+		FOR UPDATE`, id).Scan(&lockedStatus, &lockedConfirmedAt, &lockedExpiresAt); err != nil {
+		if err == sql.ErrNoRows {
+			return shared.ErrNotFound
+		}
+		return fmt.Errorf("lock application: %w", err)
+	}
+	if lockedStatus != shared.StatusSubmitted {
+		return shared.NewConflictError("application is not in submitted status")
+	}
+	if lockedConfirmedAt.Valid {
+		return shared.NewConflictError("application e-mail is already confirmed")
+	}
+	if lockedExpiresAt.Valid {
+		issuedAt := lockedExpiresAt.Time.Add(-emailConfirmationTokenLifetime)
+		if time.Since(issuedAt) < resendThrottle {
+			return shared.NewConflictError(fmt.Sprintf("bitte warten Sie noch %s vor dem nächsten Versand", resendThrottle))
+		}
+	}
 
 	if err := s.appRepo.AssignEmailConfirmationTokenTx(tx, id, hash, expiresAt); err != nil {
 		return err

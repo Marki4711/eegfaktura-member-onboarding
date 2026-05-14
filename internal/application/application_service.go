@@ -609,6 +609,22 @@ func (s *ApplicationService) ConfirmEmail(plaintext string) (*shared.ConfirmEmai
 		return nil, shared.ErrNotFound
 	}
 
+	// Idempotent re-click: the token-hash row is kept after consumption
+	// (PROJ-31 Q5) so a member clicking the link twice gets a friendly
+	// "already confirmed" page instead of a generic error.
+	if app.EmailConfirmationUsedAt != nil {
+		resp := &shared.ConfirmEmailResponse{AlreadyConfirmed: true}
+		if entrypoint, epErr := s.entrypointRepo.GetByRCNumber(app.RCNumber); epErr == nil {
+			if entrypoint.EEGName != nil {
+				resp.EEGName = *entrypoint.EEGName
+			}
+			if entrypoint.ContactEmail != nil {
+				resp.EEGContactEmail = *entrypoint.ContactEmail
+			}
+		}
+		return resp, nil
+	}
+
 	// Expiry check
 	if app.EmailConfirmationTokenExpiresAt == nil || app.EmailConfirmationTokenExpiresAt.Before(time.Now()) {
 		return nil, shared.ErrNotFound

@@ -9,11 +9,9 @@ type State =
   | { kind: "success"; data: ConfirmEmailResponse }
   | { kind: "error"; message: string };
 
-interface Props {
-  token: string;
-}
+const GENERIC_ERROR = "Der Bestätigungs-Link ist ungültig oder abgelaufen.";
 
-export function ConfirmEmailClient({ token }: Props) {
+export function ConfirmEmailClient() {
   const [state, setState] = useState<State>({ kind: "loading" });
   // StrictMode in dev runs effects twice — a one-shot guard makes sure
   // the confirm endpoint receives exactly one POST per page mount.
@@ -22,10 +20,30 @@ export function ConfirmEmailClient({ token }: Props) {
   useEffect(() => {
     if (sentRef.current) return;
     sentRef.current = true;
+
+    // PROJ-31 Security M1: the token is delivered in the URL fragment
+    // (`https://.../confirm-email#<token>`), which the browser never
+    // sends to any server. We read it client-side here.
+    const token = window.location.hash.startsWith("#")
+      ? window.location.hash.slice(1)
+      : "";
+
+    if (!token) {
+      setState({ kind: "error", message: GENERIC_ERROR });
+      return;
+    }
+
+    // Strip the token from the URL bar as soon as we've grabbed it. This
+    // prevents browser-history bookmarks of a copied URL from carrying a
+    // (potentially still-valid, for the next ~30 days) token around.
+    if (window.history.replaceState) {
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
+
     confirmEmail(token)
       .then((data) => setState({ kind: "success", data }))
       .catch((err: Error) => setState({ kind: "error", message: err.message }));
-  }, [token]);
+  }, []);
 
   if (state.kind === "loading") {
     return (
@@ -40,9 +58,13 @@ export function ConfirmEmailClient({ token }: Props) {
     return (
       <div className="rounded-md border border-green-200 bg-green-50 p-8 text-center text-green-900">
         <CheckCircle2 className="mx-auto h-10 w-10 text-green-600" />
-        <h1 className="mt-3 text-xl font-semibold">Vielen Dank!</h1>
+        <h1 className="mt-3 text-xl font-semibold">
+          {state.data.alreadyConfirmed ? "Bereits bestätigt" : "Vielen Dank!"}
+        </h1>
         <p className="mt-2 text-sm">
-          Deine E-Mail-Adresse ist bestätigt.
+          {state.data.alreadyConfirmed
+            ? "Deine E-Mail-Adresse wurde bereits bestätigt."
+            : "Deine E-Mail-Adresse ist bestätigt."}
           {state.data.eegName ? (
             <>
               {" "}

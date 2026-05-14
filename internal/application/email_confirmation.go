@@ -3,7 +3,6 @@ package application
 import (
 	"crypto/rand"
 	"crypto/sha256"
-	"crypto/subtle"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
@@ -42,16 +41,18 @@ func HashEmailConfirmationToken(plaintext string) string {
 	return hashEmailConfirmationToken(plaintext)
 }
 
-// CompareEmailConfirmationHash performs a constant-time comparison between a
-// candidate hash and a stored hash. Use this when matching a freshly hashed
-// request token against the value loaded from the DB.
-func CompareEmailConfirmationHash(candidate, stored string) bool {
-	return subtle.ConstantTimeCompare([]byte(candidate), []byte(stored)) == 1
-}
+// Note: the matching path queries Postgres by hash directly (`WHERE
+// email_confirmation_token_hash = $1`) — a timing oracle there would
+// require probing 256-bit hash prefixes, which is computationally
+// infeasible. So we deliberately don't use `subtle.ConstantTimeCompare`
+// at the application layer.
 
 // BuildEmailConfirmationURL composes the link that goes into the outgoing
-// e-mail. The token plaintext is appended as the last path segment.
+// e-mail. The token is placed in the URL **fragment** (`#…`) rather than
+// the path so it never reaches the server's access logs, reverse-proxy
+// access logs, or CDN logs. The client-side page reads
+// `window.location.hash` and POSTs the token to the backend.
 func BuildEmailConfirmationURL(baseURL, plaintext string) string {
 	base := strings.TrimRight(baseURL, "/")
-	return fmt.Sprintf("%s/confirm-email/%s", base, plaintext)
+	return fmt.Sprintf("%s/confirm-email#%s", base, plaintext)
 }
