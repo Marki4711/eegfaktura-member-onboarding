@@ -68,6 +68,15 @@ var (
 		Help:      "next-member-number lookups against the core, by result.",
 	}, []string{"result"})
 
+	// EmailConfirmationsTotal — fires for every step of the PROJ-31 flow.
+	// Labels:
+	//   event: sent | resent | confirmed | expired
+	EmailConfirmationsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Namespace: namespace,
+		Name:      "email_confirmations_total",
+		Help:      "PROJ-31 e-mail confirmation events, by stage.",
+	}, []string{"event"})
+
 	// HTTPRequestDurationSeconds — HTTP latency histogram. Labels:
 	//   method
 	//   status_class: 2xx | 3xx | 4xx | 5xx

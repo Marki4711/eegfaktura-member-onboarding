@@ -719,6 +719,68 @@ func (r *ApplicationRepository) ResetImportTx(tx *sql.Tx, id uuid.UUID) error {
 	return nil
 }
 
+// ListExpiredEmailConfirmationPendingIDs returns IDs of applications that
+// are stuck in `submitted` with an expired confirmation token and no
+// confirmation timestamp — i.e. the candidates the auto-reject job
+// processes. Sorted oldest-first to age out the long-stuck rows first.
+func (r *ApplicationRepository) ListExpiredEmailConfirmationPendingIDs(now time.Time, batch int) ([]uuid.UUID, error) {
+	if batch <= 0 {
+		batch = 100
+	}
+	rows, err := r.db.Query(`
+		SELECT id FROM member_onboarding.application
+		WHERE status = $1
+		  AND email_confirmation_token_hash IS NOT NULL
+		  AND email_confirmed_at IS NULL
+		  AND email_confirmation_token_expires_at < $2
+		ORDER BY email_confirmation_token_expires_at ASC
+		LIMIT $3`, shared.StatusSubmitted, now, batch)
+	if err != nil {
+		return nil, fmt.Errorf("list expired confirmations: %w", err)
+	}
+	defer rows.Close()
+	out := []uuid.UUID{}
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scan id: %w", err)
+		}
+		out = append(out, id)
+	}
+	return out, rows.Err()
+}
+
+// AutoRejectExpiredEmailConfirmationTx transitions a single application from
+// `submitted` to `rejected` because the e-mail confirmation expired (PROJ-31
+// auto-reject job). The token columns are cleared so we never act on the
+// same row twice. Returns ErrConflict if the row moved out of `submitted`
+// since the candidate list was generated (race with admin reject).
+func (r *ApplicationRepository) AutoRejectExpiredEmailConfirmationTx(tx *sql.Tx, id uuid.UUID, now time.Time) error {
+	res, err := tx.Exec(`
+		UPDATE member_onboarding.application
+		SET status = $1,
+		    rejected_at = $2,
+		    email_confirmation_token_hash = NULL,
+		    email_confirmation_token_expires_at = NULL,
+		    updated_at = NOW()
+		WHERE id = $3 AND status = $4
+		  AND email_confirmation_token_hash IS NOT NULL
+		  AND email_confirmation_token_expires_at < $2
+		  AND email_confirmed_at IS NULL`,
+		shared.StatusRejected, now, id, shared.StatusSubmitted)
+	if err != nil {
+		return fmt.Errorf("auto-reject update: %w", err)
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("rows affected: %w", err)
+	}
+	if rows == 0 {
+		return shared.ErrConflict
+	}
+	return nil
+}
+
 // AssignEmailConfirmationTokenTx persists the SHA-256 token hash and its
 // expiry on an application. Called inside the submit transaction when the
 // EEG has require_email_confirmation = TRUE (PROJ-31).

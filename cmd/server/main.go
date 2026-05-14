@@ -261,6 +261,11 @@ func main() {
 	cleanupCtx, cleanupCancel := context.WithCancel(context.Background())
 	internalhttp.StartIPBucketCleanup(cleanupCtx)
 
+	// PROJ-31: scan once a day for applications stuck on an expired
+	// e-mail-confirmation token and auto-reject them. Uses cleanupCtx so it
+	// stops together with the rate-limit bucket cleanup on shutdown.
+	go adminService.RunAutoRejectLoop(cleanupCtx, 24*time.Hour)
+
 	// Start main HTTP server
 	addr := ":" + cfg.Server.Port
 	slog.Info("starting server", "addr", addr)

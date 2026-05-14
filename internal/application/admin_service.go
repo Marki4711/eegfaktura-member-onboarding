@@ -11,6 +11,7 @@ import (
 
 	"github.com/your-org/eegfaktura-member-onboarding/internal/excel"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/mail"
+	"github.com/your-org/eegfaktura-member-onboarding/internal/metrics"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/pdf"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/shared"
 )
@@ -198,6 +199,7 @@ func (s *AdminApplicationService) ResendEmailConfirmation(id uuid.UUID) error {
 	}
 
 	url := BuildEmailConfirmationURL(s.publicBaseURL, plaintext)
+	metrics.EmailConfirmationsTotal.WithLabelValues("resent").Inc()
 	go func() {
 		acquireMailSem()
 		defer releaseMailSem()

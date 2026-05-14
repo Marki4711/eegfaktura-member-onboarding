@@ -566,6 +566,9 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID, consents []shared.C
 				}
 			}
 			confirmationURL := emailConfirmationURL
+			if confirmationURL != "" {
+				metrics.EmailConfirmationsTotal.WithLabelValues("sent").Inc()
+			}
 			go func() {
 				acquireMailSem()
 				defer releaseMailSem()
@@ -648,6 +651,7 @@ func (s *ApplicationService) ConfirmEmail(plaintext string) (*shared.ConfirmEmai
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit: %w", err)
 	}
+	metrics.EmailConfirmationsTotal.WithLabelValues("confirmed").Inc()
 
 	// Trigger the deferred EEG-notification mail. Best-effort — log on
 	// failure but don't fail the member's confirmation.
