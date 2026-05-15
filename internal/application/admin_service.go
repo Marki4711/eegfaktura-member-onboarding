@@ -307,13 +307,24 @@ func (s *AdminApplicationService) GetApplicationDetail(id uuid.UUID) (*shared.Ad
 		})
 	}
 
-	return &shared.AdminApplicationDetailResponse{
+	resp := &shared.AdminApplicationDetailResponse{
 		Application:    *app,
 		MeteringPoints: meteringPoints,
 		StatusLog:      statusLog,
 		Consents:       consentViews,
 		ImportStuck:    shared.IsImportStuck(app, time.Now()),
-	}, nil
+	}
+	// PROJ-37: join in the EEG-level cooperative-shares config so the
+	// admin detail can render the block with current amount × count =
+	// total without an extra round-trip. Failure to load the entrypoint
+	// is logged but does NOT fail the detail load — the block just stays
+	// collapsed in that case.
+	if ep, epErr := s.entrypointRepo.GetByRCNumber(app.RCNumber); epErr == nil {
+		resp.CooperativeSharesEnabled = ep.CooperativeSharesEnabled
+		resp.CooperativeRequiredShares = ep.CooperativeRequiredShares
+		resp.CooperativeShareAmountCents = ep.CooperativeShareAmountCents
+	}
+	return resp, nil
 }
 
 // AdminUpdateApplication applies a partial admin update to a draft or needs_info application.
@@ -1023,7 +1034,31 @@ func buildApprovalPDFData(
 		SepaMandateAcceptedAt: app.SepaMandateAcceptedAt,
 		SEPAMandateEnabled:    entrypoint.SEPAMandateEnabled,
 		MemberNumber:         app.MemberNumber,
+		// PROJ-37: only set both fields together — the PDF render skips
+		// the section if either is missing. EEG entrypoint provides the
+		// price; the application carries the count. When the EEG feature
+		// is off, both stay nil and no section is rendered.
+		CooperativeSharesCount:      cooperativeSharesPDFFields(app, entrypoint),
+		CooperativeShareAmountCents: cooperativeShareAmountPDFField(app, entrypoint),
 	}
+}
+
+// cooperativeSharesPDFFields returns the count to render in the PDF, or
+// nil when the EEG hasn't enabled the feature (so the PDF section is
+// skipped regardless of any legacy non-zero count). Companion helper:
+// cooperativeShareAmountPDFField for the same gate on the price field.
+func cooperativeSharesPDFFields(app *shared.Application, ep *shared.RegistrationEntrypoint) *int {
+	if ep == nil || !ep.CooperativeSharesEnabled {
+		return nil
+	}
+	return app.CooperativeSharesCount
+}
+
+func cooperativeShareAmountPDFField(app *shared.Application, ep *shared.RegistrationEntrypoint) *int64 {
+	if ep == nil || !ep.CooperativeSharesEnabled || app.CooperativeSharesCount == nil {
+		return nil
+	}
+	return ep.CooperativeShareAmountCents
 }
 
 func approvalMemberTypeLabel(mt shared.MemberType) string {

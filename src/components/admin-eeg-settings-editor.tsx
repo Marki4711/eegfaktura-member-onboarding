@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle2, AlertCircle, RefreshCw, Lock } from "lucide-react";
@@ -62,6 +63,12 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
   const [useCompanySEPAMandate, setUseCompanySEPAMandate] = useState(false);
   const [registrationActive, setRegistrationActive] = useState(false);
   const [requireEmailConfirmation, setRequireEmailConfirmation] = useState(false);
+  // PROJ-37 Genossenschaftsanteile. shareAmountInput is a string so the
+  // admin can comfortably type "100,00" or "100.50" without React
+  // fighting the input cursor. Converted to cents on save.
+  const [cooperativeSharesEnabled, setCooperativeSharesEnabled] = useState(false);
+  const [cooperativeRequiredShares, setCooperativeRequiredShares] = useState<number>(1);
+  const [shareAmountInput, setShareAmountInput] = useState("");
 
   const reloadSettings = useCallback(async () => {
     if (!rcNumber || !session?.accessToken) return;
@@ -71,6 +78,13 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
     setSepaMandateEnabled(s.sepaMandateEnabled);
     setUseCompanySEPAMandate(s.useCompanySEPAMandate ?? false);
     setRequireEmailConfirmation(s.requireEmailConfirmation ?? false);
+    setCooperativeSharesEnabled(s.cooperativeSharesEnabled ?? false);
+    setCooperativeRequiredShares(s.cooperativeRequiredShares ?? 1);
+    setShareAmountInput(
+      s.cooperativeShareAmountCents != null
+        ? (s.cooperativeShareAmountCents / 100).toFixed(2).replace(".", ",")
+        : "",
+    );
     setLoaded(true);
   }, [rcNumber, session?.accessToken]);
 
@@ -127,6 +141,16 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
     setSaving(true);
     setSaveResult(null);
     try {
+      // PROJ-37: parse decimal-comma-or-dot Euro string into integer cents.
+      // Empty string when feature disabled — backend clears the field.
+      let amountCents: number | undefined = undefined;
+      if (cooperativeSharesEnabled) {
+        const normalised = shareAmountInput.replace(",", ".").trim();
+        const parsed = parseFloat(normalised);
+        if (!isNaN(parsed) && parsed > 0) {
+          amountCents = Math.round(parsed * 100);
+        }
+      }
       await saveEEGSettings(
         rcNumber,
         {
@@ -134,6 +158,9 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
           sepaMandateEnabled,
           useCompanySEPAMandate,
           requireEmailConfirmation,
+          cooperativeSharesEnabled,
+          cooperativeRequiredShares: cooperativeSharesEnabled ? cooperativeRequiredShares : undefined,
+          cooperativeShareAmountCents: amountCents,
         },
         session?.accessToken,
       );
@@ -377,6 +404,63 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
               <Label htmlFor="use-company-sepa-mandate" className="text-sm cursor-pointer">
                 Firmenlastschrift (B2B) für Unternehmen und Vereine verwenden
               </Label>
+            </div>
+          )}
+
+          {/* PROJ-37: Genossenschaftsanteile (Onboarding-only) */}
+          <div className="flex items-center gap-3 pt-1">
+            <Switch
+              id="cooperative-shares-enabled"
+              checked={cooperativeSharesEnabled}
+              onCheckedChange={(v) => {
+                setCooperativeSharesEnabled(v);
+                setSaveResult(null);
+              }}
+            />
+            <Label htmlFor="cooperative-shares-enabled" className="text-sm cursor-pointer">
+              Genossenschaftsanteile erfassen
+            </Label>
+          </div>
+          {cooperativeSharesEnabled && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-10">
+              <div className="space-y-1.5">
+                <Label htmlFor="coop-required-shares" className="text-sm">
+                  Pflichtanteile je Standort *
+                </Label>
+                <Input
+                  id="coop-required-shares"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  value={cooperativeRequiredShares}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value, 10);
+                    setCooperativeRequiredShares(isNaN(v) ? 1 : Math.max(1, v));
+                    setSaveResult(null);
+                  }}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="coop-share-amount" className="text-sm">
+                  Genossenschaftsanteilswert (€) *
+                </Label>
+                <Input
+                  id="coop-share-amount"
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="100,00"
+                  value={shareAmountInput}
+                  onChange={(e) => {
+                    setShareAmountInput(e.target.value);
+                    setSaveResult(null);
+                  }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground sm:col-span-2">
+                Wird auf der Beitrittsbestätigung als Anzahl × Anteilswert =
+                Gesamtbetrag ausgewiesen. Wird nicht an eegFaktura übermittelt —
+                reine Onboarding-Erfassung.
+              </p>
             </div>
           )}
 

@@ -49,6 +49,18 @@ Neun Werte werden direkt aus eegFaktura übernommen und sind in der Onboarding-O
 
 > **Hinweis:** Wenn das SEPA-Mandat aktiviert ist, aber Stammdaten fehlen, erscheint eine Warnung. Solange Felder fehlen, wird kein PDF generiert.
 
+### Genossenschaftsanteile (PROJ-37)
+
+Nur relevant für EEGs, deren Rechtsträger eine Genossenschaft ist:
+
+- **Genossenschaftsanteile erfassen**: Wenn aktiv, sehen neue Mitglieder im Registrierungsformular einen eigenen Block „Genossenschaftsanteile" mit Eingabefeld für die Anzahl gezeichneter Anteile und Live-Berechnung des Gesamtbetrags.
+- **Pflichtanteile je Standort**: Mindestanzahl, die ein Mitglied zeichnen muss (z.B. 1, 3). Das Eingabefeld im Formular ist mit diesem Wert vorbefüllt und akzeptiert keine kleineren Werte; das Mitglied kann freiwillig mehr zeichnen.
+- **Genossenschaftsanteilswert**: Preis pro Anteil in Euro (z.B. 100,00). Wird im Formular als Live-Multiplikator verwendet und in der Beitrittsbestätigung als eigene Sektion „GENOSSENSCHAFTSANTEILE" mit Anzahl × Wert = Gesamtbetrag ausgewiesen.
+
+Beide Wert-Felder sind nur sichtbar, wenn der Toggle aktiv ist. Änderungen wirken **prospektiv** — bestehende Anträge bleiben unverändert, auch wenn das Pflichtmaß später angehoben wird. Falls ein Antrag dadurch unter dem aktuellen Pflichtmaß liegt, zeigt das Antrags-Detail einen orangen Hinweis, der Antrag bleibt aber unverändert.
+
+Die Anteilsinformation wird **nicht** an eegFaktura übertragen — sie ist reine Onboarding-Erfassung als Buchhaltungs-Beleg.
+
 ### E-Mail-Adresse bestätigen
 
 - **E-Mail-Adresse bestätigen**: Wenn aktiv, erhält das neue Mitglied in der Bestätigungs-Mail einen Button „E-Mail-Adresse bestätigen". Erst nach dem Klick wechselt der Antrag in den Status **„E-Mail bestätigt"** und ist für Ihre Prüfung freigegeben. Solange die Bestätigung aussteht, sehen Sie den Antrag mit dem Status „Eingereicht" und einer Warnung in der Detail-Ansicht.

@@ -34,6 +34,13 @@ type RegistrationEntrypoint struct {
 	// LastSyncedFromCoreAt because the logo sync is best-effort: master-data
 	// sync can succeed while the logo sync skips or fails.
 	EEGLogoSyncedAt            *time.Time `json:"eegLogoSyncedAt,omitempty" db:"eeg_logo_synced_at"`
+	// PROJ-37: Genossenschaftsanteile. Three settings configure whether
+	// new members must subscribe cooperative shares, how many are
+	// mandatory, and the price per share. All three are NULL/false when
+	// the feature is off for this EEG.
+	CooperativeSharesEnabled       bool       `json:"cooperativeSharesEnabled"       db:"cooperative_shares_enabled"`
+	CooperativeRequiredShares      *int       `json:"cooperativeRequiredShares,omitempty"      db:"cooperative_required_shares"`
+	CooperativeShareAmountCents    *int64     `json:"cooperativeShareAmountCents,omitempty"    db:"cooperative_share_amount_cents"`
 	CreatedAt                  time.Time `json:"createdAt"                  db:"created_at"`
 	UpdatedAt          time.Time `json:"updatedAt"          db:"updated_at"`
 }
@@ -130,6 +137,10 @@ type Application struct {
 	ElectricVehicle         *bool      `json:"electricVehicle,omitempty" db:"electric_vehicle"`
 	ElectricHotWater        *bool      `json:"electricHotWater,omitempty" db:"electric_hot_water"`
 	MemberNumber            *string    `json:"memberNumber,omitempty" db:"member_number"`
+	// PROJ-37: Anzahl gezeichneter Genossenschaftsanteile. NULL bei
+	// EEGs ohne aktivierte Anteils-Erfassung; sonst > 0 (Submit-Validierung
+	// erzwingt >= entrypoint.cooperative_required_shares).
+	CooperativeSharesCount  *int       `json:"cooperativeSharesCount,omitempty" db:"cooperative_shares_count"`
 	// E-Mail-Bestätigung (PROJ-31). Token-Hash + Expiry sind interne Felder
 	// und werden nicht in API-Responses serialisiert (JSON-Tag "-").
 	EmailConfirmedAt                 *time.Time `json:"emailConfirmedAt,omitempty"      db:"email_confirmed_at"`

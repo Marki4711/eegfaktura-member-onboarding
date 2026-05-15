@@ -10,6 +10,19 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Neu — PROJ-37: Genossenschaftsanteile *(2026-05-15)*
+
+EEG-Admins können pro EEG aktivieren, ob Mitglieder bei der Registrierung Genossenschaftsanteile zeichnen müssen. Die Pflichtanzahl und der Wert je Anteil sind per EEG konfigurierbar; das Formular zeigt eine Live-Berechnung des Gesamtbetrags, die Beitrittsbestätigung weist die Anteile als eigene Sektion aus.
+
+- **DB**: Migration 000035 fügt `registration_entrypoint.cooperative_shares_enabled` + `cooperative_required_shares` + `cooperative_share_amount_cents` und `application.cooperative_shares_count` hinzu (Integer-Cents für Geld, keine Float-Drift)
+- **Admin-Settings**: neuer Abschnitt „Genossenschaftsanteile" mit Toggle + zwei conditional sichtbaren Inputs (Pflichtanteile + €-Wert). Validierung: enabled=true ⇒ beide Werte Pflicht, positiv
+- **Public-Form**: konditioneller Block „Genossenschaftsanteile" zwischen Zählpunkten und Bankverbindung mit Hinweistext „Pflichtanteil je Standort: N", Eingabe (min=N, prefilled=N), Live-Berechnung Wert × Anzahl = Gesamtbetrag
+- **Submit-Validierung**: `count >= required_shares` (Pflicht wenn EEG enabled). Konfig-Änderungen wirken **prospektiv** — bestehende Anträge bleiben unverändert
+- **Admin-Detail**: eigene Mini-Box „Genossenschaftsanteile: N × X € = N·X €" mit Orange-Hinweis falls Bestand unter aktuellem Pflichtmaß
+- **Beitrittsbestätigungs-PDF**: neue Sektion „GENOSSENSCHAFTSANTEILE" mit Anzahl × Wert = Gesamtbetrag
+- **Nicht in Excel-Export, nicht in Core-Payload** — rein im Onboarding (eegFaktura hat keine Spalte dafür)
+- **Bekannte V1-Lücke**: Admin-Edit-Form kennt das Feld noch nicht. Korrektur über needs_info-Flow möglich; Direkt-Edit folgt in V1.1 falls häufig benötigt
+
 ### Neu — PROJ-36: Optionale Rechtsdokumente als Info-Dokumente *(2026-05-15)*
 
 Beta-Feedback: optionale Checkboxen waren verwirrend (Mitglieder wussten nicht, ob ihr fehlendes Häkchen rechtlich relevant ist). Der Toggle pro Rechtsdokument ist jetzt binär — **Pflicht-Zustimmung** oder **Nur zur Information**.

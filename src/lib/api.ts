@@ -91,6 +91,11 @@ export interface RegistrationConfig {
   sepaMandateEnabled?: boolean;
   showCentralPolicy?: boolean;
   legalDocuments?: LegalDocumentItem[];
+  // PROJ-37: cooperative-shares config. The two value fields are only
+  // present when the feature is enabled for this EEG.
+  cooperativeSharesEnabled?: boolean;
+  cooperativeRequiredShares?: number;
+  cooperativeShareAmountCents?: number;
 }
 
 export type MemberType =
@@ -143,6 +148,8 @@ export interface CreateApplicationRequest {
   heatPump?: boolean | null;
   electricVehicle?: boolean | null;
   electricHotWater?: boolean | null;
+  // PROJ-37: Anzahl gezeichneter Genossenschaftsanteile
+  cooperativeSharesCount?: number;
   turnstileToken?: string;
 }
 
@@ -424,6 +431,13 @@ export interface AdminApplicationDetail {
   // AND import_finished_at is null. The admin UI renders the unstuck banner
   // only when this is true. Computed server-side; do not derive on the client.
   importStuck?: boolean;
+  // PROJ-37: Anzahl gezeichneter Anteile + die zugehörige EEG-Config
+  // (joined backend-side). Bei deaktiviertem Feature sind die zwei
+  // Config-Felder undefined.
+  cooperativeSharesCount?: number;
+  cooperativeSharesEnabled?: boolean;
+  cooperativeRequiredShares?: number;
+  cooperativeShareAmountCents?: number;
 }
 
 // PROJ-34: payload for POST /api/admin/applications/{id}/mark-imported-manually
@@ -470,6 +484,8 @@ export interface AdminUpdateApplicationRequest {
   birthDate?: string;
   companyName?: string;
   uidNumber?: string;
+  // PROJ-37: Anteils-Anzahl admin-seitig korrigierbar
+  cooperativeSharesCount?: number;
   registerNumber?: string;
   email: string;
   phone?: string;
@@ -758,6 +774,10 @@ export interface EEGSettings {
   showCentralPolicy?: boolean;
   memberNumberStart?: number;
   requireEmailConfirmation?: boolean;
+  // PROJ-37: Genossenschaftsanteile-Konfig pro EEG.
+  cooperativeSharesEnabled?: boolean;
+  cooperativeRequiredShares?: number;
+  cooperativeShareAmountCents?: number;
 }
 
 // Editable subset accepted by PUT /api/admin/settings/eeg. Everything
@@ -770,6 +790,10 @@ export interface EEGSettingsSavePayload {
   requireEmailConfirmation?: boolean;
   showCentralPolicy?: boolean;
   memberNumberStart?: number;
+  // PROJ-37: Toggle + Pflichtanteils-Anzahl + Anteilswert in Cents.
+  cooperativeSharesEnabled?: boolean;
+  cooperativeRequiredShares?: number;
+  cooperativeShareAmountCents?: number;
 }
 
 export interface ConfirmEmailResponse {

@@ -89,7 +89,7 @@ func (s *RegistrationService) GetRegistrationConfig(rcNumber string) (*shared.Re
 		legalDocuments = append(legalDocuments, s.centralPolicy)
 	}
 
-	return &shared.RegistrationConfig{
+	cfg := &shared.RegistrationConfig{
 		RCNumber:           ep.RCNumber,
 		Title:              "Mitglied werden",
 		Active:             ep.IsActive,
@@ -98,5 +98,12 @@ func (s *RegistrationService) GetRegistrationConfig(rcNumber string) (*shared.Re
 		SEPAMandateEnabled: ep.SEPAMandateEnabled,
 		ShowCentralPolicy:  ep.ShowCentralPolicy,
 		LegalDocuments:     legalDocuments,
-	}, nil
+		// PROJ-37: only ship the two value fields when the feature is on.
+		CooperativeSharesEnabled: ep.CooperativeSharesEnabled,
+	}
+	if ep.CooperativeSharesEnabled {
+		cfg.CooperativeRequiredShares = ep.CooperativeRequiredShares
+		cfg.CooperativeShareAmountCents = ep.CooperativeShareAmountCents
+	}
+	return cfg, nil
 }

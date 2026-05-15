@@ -45,6 +45,9 @@ Fields:
 - `show_central_policy` — boolean, default true; when false, the central operator privacy policy is not shown in the public registration form (for EEGs that configure their own policy as a legal document)
 - `member_number_start` — INT NOT NULL DEFAULT 1; starting value for the per-EEG member number auto-increment counter; the first member number assigned for this EEG will be this value
 - `require_email_confirmation` — boolean, default false (PROJ-31); when true, members must click the link in the confirmation mail before the application becomes reviewable; admin `/status` endpoint rejects `submitted → under_review|needs_info|approved` with 409 until confirmed
+- `cooperative_shares_enabled` *(PROJ-37)* — boolean, default false; aktiviert die Genossenschaftsanteile-Erfassung im Mitgliederformular. Wenn TRUE, müssen die beiden folgenden Felder gesetzt sein.
+- `cooperative_required_shares` *(PROJ-37)* — INT NULL, CHECK `> 0`; Pflichtanteils-Mindestmaß pro Mitglied. NULL wenn Feature deaktiviert.
+- `cooperative_share_amount_cents` *(PROJ-37)* — BIGINT NULL, CHECK `> 0`; Preis pro Anteil in Cent. NULL wenn Feature deaktiviert. Speicherung als Integer-Cents vermeidet Float-Drift.
 - `created_at`
 - `updated_at`
 
@@ -174,6 +177,7 @@ Fields:
 - `email_confirmation_token_expires_at` — nullable TIMESTAMPTZ; token validity window (30 days).
 - `email_confirmed_at` — nullable TIMESTAMPTZ; set when the member clicked the link.
 - `email_confirmation_used_at` — nullable TIMESTAMPTZ; first-click timestamp (separate from `email_confirmed_at` to detect re-clicks).
+- `cooperative_shares_count` *(PROJ-37)* — INT NULL, CHECK `> 0`; Anzahl der vom Mitglied gezeichneten Genossenschaftsanteile. NULL bei EEGs ohne aktiviertes Anteils-Feature; sonst Submit-validiert `>= registration_entrypoint.cooperative_required_shares`. Gesamtbetrag wird nicht gespeichert — `count × amount` ist Render-Berechnung.
 
 ### 3.3 `member_onboarding.metering_point`
 

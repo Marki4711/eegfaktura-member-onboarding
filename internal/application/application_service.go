@@ -186,6 +186,7 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 		HeatPump:                req.HeatPump,
 		ElectricVehicle:         req.ElectricVehicle,
 		ElectricHotWater:        req.ElectricHotWater,
+		CooperativeSharesCount:  req.CooperativeSharesCount,
 	}
 	applyAdminValues(app, fieldConfig)
 	clearMemberTypeFields(app)
@@ -454,6 +455,29 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID, consents []shared.C
 	entrypoint, epErr := s.entrypointRepo.GetByRCNumber(app.RCNumber)
 	if epErr != nil {
 		return nil, fmt.Errorf("failed to load entrypoint for submit: %w", epErr)
+	}
+
+	// PROJ-37: cooperative-shares validation. When the EEG has activated
+	// the feature, the application must carry a count >= required_shares.
+	// Members fill in the count when the form is configured to display
+	// the shares card; CreateApplication stores it on the row.
+	if entrypoint.CooperativeSharesEnabled {
+		minRequired := 1
+		if entrypoint.CooperativeRequiredShares != nil {
+			minRequired = *entrypoint.CooperativeRequiredShares
+		}
+		if app.CooperativeSharesCount == nil {
+			return nil, shared.NewValidationError("Validation failed", map[string]string{
+				"cooperativeSharesCount": "Anzahl der Genossenschaftsanteile ist erforderlich",
+			})
+		}
+		if *app.CooperativeSharesCount < minRequired {
+			return nil, shared.NewValidationError("Validation failed", map[string]string{
+				"cooperativeSharesCount": fmt.Sprintf(
+					"Mindestens %d Pflichtanteil(e) müssen gezeichnet werden", minRequired,
+				),
+			})
+		}
 	}
 
 	now := time.Now()

@@ -42,6 +42,8 @@ func (r *RegistrationEntrypointRepository) GetByRCNumber(rcNumber string) (*shar
 		       creditor_id, sepa_mandate_enabled, use_company_sepa_mandate,
 		       show_central_policy, member_number_start, require_email_confirmation,
 		       last_synced_from_core_at, eeg_logo_synced_at,
+		       cooperative_shares_enabled, cooperative_required_shares,
+		       cooperative_share_amount_cents,
 		       created_at, updated_at
 		FROM member_onboarding.registration_entrypoint
 		WHERE rc_number = $1`
@@ -53,6 +55,8 @@ func (r *RegistrationEntrypointRepository) GetByRCNumber(rcNumber string) (*shar
 		&ep.CreditorID, &ep.SEPAMandateEnabled, &ep.UseCompanySEPAMandate,
 		&ep.ShowCentralPolicy, &ep.MemberNumberStart, &ep.RequireEmailConfirmation,
 		&ep.LastSyncedFromCoreAt, &ep.EEGLogoSyncedAt,
+		&ep.CooperativeSharesEnabled, &ep.CooperativeRequiredShares,
+		&ep.CooperativeShareAmountCents,
 		&ep.CreatedAt, &ep.UpdatedAt,
 	)
 	if err != nil {
@@ -68,20 +72,34 @@ func (r *RegistrationEntrypointRepository) GetByRCNumber(rcNumber string) (*shar
 // number. Since PROJ-32 the EEG master data (eeg_id / community-id, name,
 // address, creditor-id, contact-email) is **not** written here anymore —
 // those fields are mastered by the eegFaktura core and only modified via
-// SyncFromCore. This function only writes the two SEPA toggles
-// (Onboarding-only).
+// SyncFromCore. This function writes the two SEPA toggles plus the three
+// PROJ-37 cooperative-shares settings (Onboarding-only).
+//
+// cooperativeRequiredShares / cooperativeShareAmountCents are written as-is.
+// The caller (admin service) is responsible for the cross-field
+// validation (enabled ⇒ both non-nil > 0). When the toggle is disabled,
+// pass nil for both — the existing values get cleared so a re-enable
+// later starts from a clean slate.
 func (r *RegistrationEntrypointRepository) SaveEEGSettings(
 	rcNumber string,
 	sepaMandateEnabled bool,
 	useCompanySEPAMandate bool,
+	cooperativeSharesEnabled bool,
+	cooperativeRequiredShares *int,
+	cooperativeShareAmountCents *int64,
 ) error {
 	result, err := r.db.Exec(`
 		UPDATE member_onboarding.registration_entrypoint
 		SET sepa_mandate_enabled = $1,
 		    use_company_sepa_mandate = $2,
+		    cooperative_shares_enabled = $3,
+		    cooperative_required_shares = $4,
+		    cooperative_share_amount_cents = $5,
 		    updated_at = NOW()
-		WHERE rc_number = $3`,
-		sepaMandateEnabled, useCompanySEPAMandate, rcNumber)
+		WHERE rc_number = $6`,
+		sepaMandateEnabled, useCompanySEPAMandate,
+		cooperativeSharesEnabled, cooperativeRequiredShares, cooperativeShareAmountCents,
+		rcNumber)
 	if err != nil {
 		return fmt.Errorf("failed to save EEG settings for %s: %w", rcNumber, err)
 	}

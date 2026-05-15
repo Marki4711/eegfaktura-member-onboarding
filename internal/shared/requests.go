@@ -42,6 +42,10 @@ type CreateApplicationRequest struct {
 	HeatPump                *bool    `json:"heatPump,omitempty"`
 	ElectricVehicle         *bool    `json:"electricVehicle,omitempty"`
 	ElectricHotWater        *bool    `json:"electricHotWater,omitempty"`
+	// PROJ-37: Anzahl der gezeichneten Genossenschaftsanteile. Pflicht bei
+	// EEGs mit aktivierter Anteils-Erfassung, sonst optional (wird dann
+	// serverseitig ignoriert).
+	CooperativeSharesCount *int `json:"cooperativeSharesCount,omitempty" validate:"omitempty,min=1"`
 	// Cloudflare Turnstile token (PROJ-16) — optional, verified server-side when TURNSTILE_SECRET_KEY is set
 	TurnstileToken *string `json:"turnstileToken,omitempty"`
 }
@@ -80,6 +84,9 @@ type UpdateApplicationRequest struct {
 	AccountHolder        *string                     `json:"accountHolder,omitempty" validate:"omitempty,min=1,max=150"`
 	SepaMandateAccepted  *bool                       `json:"sepaMandateAccepted,omitempty"`
 	MeteringPoints       []CreateMeteringPointRequest `json:"meteringPoints,omitempty" validate:"omitempty,min=1,max=10,dive"`
+	// PROJ-37: Admin/Member-Updates der gezeichneten Anteils-Anzahl. Bei
+	// EEGs ohne Anteils-Erfassung serverseitig ignoriert.
+	CooperativeSharesCount *int `json:"cooperativeSharesCount,omitempty" validate:"omitempty,min=1"`
 }
 
 // Response models
@@ -120,6 +127,11 @@ type RegistrationConfig struct {
 	SEPAMandateEnabled bool                `json:"sepaMandateEnabled"`
 	ShowCentralPolicy  bool                `json:"showCentralPolicy"`
 	LegalDocuments     []LegalDocumentItem `json:"legalDocuments"`
+	// PROJ-37: only set when CooperativeSharesEnabled=true on the EEG.
+	// Both inner values are then non-nil and > 0.
+	CooperativeSharesEnabled    bool   `json:"cooperativeSharesEnabled"`
+	CooperativeRequiredShares   *int   `json:"cooperativeRequiredShares,omitempty"`
+	CooperativeShareAmountCents *int64 `json:"cooperativeShareAmountCents,omitempty"`
 }
 
 // ApplicationResponse represents the response for application operations
@@ -327,6 +339,13 @@ type AdminApplicationDetailResponse struct {
 	// banner only when this flag is true. Computed by the handler from
 	// the underlying timestamps; not persisted.
 	ImportStuck bool `json:"importStuck"`
+	// CooperativeSharesEnabled (PROJ-37) mirrors the EEG-level toggle so
+	// the admin detail can render the shares block when relevant. The
+	// matching two value fields (required / amount-per-share) come from
+	// the entrypoint and are joined in at detail-build time.
+	CooperativeSharesEnabled    bool   `json:"cooperativeSharesEnabled,omitempty"`
+	CooperativeRequiredShares   *int   `json:"cooperativeRequiredShares,omitempty"`
+	CooperativeShareAmountCents *int64 `json:"cooperativeShareAmountCents,omitempty"`
 }
 
 // ImportStuckThreshold is the age past which an in-flight import is treated

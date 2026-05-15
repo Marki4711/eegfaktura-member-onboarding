@@ -59,6 +59,14 @@ type ApprovalPDFData struct {
 
 	MemberNumber *string
 
+	// CooperativeSharesCount (PROJ-37) is the number the member subscribed.
+	// CooperativeShareAmountCents is the price per share at PDF-render time
+	// (NOT a submit-time snapshot — that's documented as discussion-worthy
+	// in PROJ-37 spec § Out-of-Scope-for-V1). Both must be set together for
+	// the section to render; missing one collapses the block silently.
+	CooperativeSharesCount      *int
+	CooperativeShareAmountCents *int64
+
 	// LogoBytes is the EEG logo cached from the eegFaktura-billing service
 	// (PROJ-33). Empty = no logo embedded; the PDF renders without it.
 	LogoBytes []byte
@@ -325,6 +333,37 @@ func (g *FPDFApprovalGenerator) GenerateApproval(data ApprovalPDFData) ([]byte, 
 	sepaShown := (data.SEPAMandateEnabled && data.SepaMandateAccepted) || !data.SEPAMandateEnabled
 	if !data.PrivacyAccepted && !data.AccuracyConfirmed && !sepaShown && len(data.Consents) == 0 {
 		f.MultiCell(cw, 5, w1252("Keine Zustimmungen erfasst."), "0", "L", false)
+	}
+
+	// ── GENOSSENSCHAFTSANTEILE (PROJ-37) ─────────────────────────────────────
+	if data.CooperativeSharesCount != nil && data.CooperativeShareAmountCents != nil {
+		count := *data.CooperativeSharesCount
+		amount := *data.CooperativeShareAmountCents
+		total := int64(count) * amount
+		// Inline EUR formatter — Cents → "1.234,56 €" with de-AT thousand
+		// separator. Local to this section because no other PDF code
+		// renders currency yet.
+		formatEur := func(cents int64) string {
+			euros := cents / 100
+			rem := cents % 100
+			if rem < 0 {
+				rem = -rem
+			}
+			// thousand-separator on euro part
+			s := fmt.Sprintf("%d", euros)
+			var withDots []byte
+			for i, c := range []byte(s) {
+				if i > 0 && (len(s)-i)%3 == 0 {
+					withDots = append(withDots, '.')
+				}
+				withDots = append(withDots, c)
+			}
+			return fmt.Sprintf("%s,%02d €", string(withDots), rem)
+		}
+		sectionHeader("GENOSSENSCHAFTSANTEILE")
+		dataRow("Anzahl gezeichneter Anteile:", fmt.Sprintf("%d", count))
+		dataRow("Wert je Anteil:", formatEur(amount))
+		dataRow("Gesamtbetrag:", formatEur(total))
 	}
 
 	// ── STATUSVERLAUF ─────────────────────────────────────────────────────────

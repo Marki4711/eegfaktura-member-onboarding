@@ -35,6 +35,7 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 			membership_start_date, persons_in_household, consumption_previous_year,
 			consumption_forecast, feed_in_forecast, pv_power_kwp,
 			heat_pump, electric_vehicle, electric_hot_water,
+			cooperative_shares_count,
 			created_at, updated_at
 		) VALUES (
 			$1, $2, $3, $4,
@@ -47,7 +48,8 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 			$27, $28, $29,
 			$30, $31, $32,
 			$33, $34, $35,
-			$36, $37
+			$36,
+			$37, $38
 		) RETURNING id`
 
 	now := app.CreatedAt
@@ -62,6 +64,7 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 		app.MembershipStartDate, app.PersonsInHousehold, app.ConsumptionPreviousYear,
 		app.ConsumptionForecast, app.FeedInForecast, app.PvPowerKwp,
 		app.HeatPump, app.ElectricVehicle, app.ElectricHotWater,
+		app.CooperativeSharesCount,
 		app.CreatedAt, app.UpdatedAt,
 	}
 
@@ -90,6 +93,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		       heat_pump, electric_vehicle, electric_hot_water,
 		       einzugsart, bank_name, mandate_reference, mandate_date,
 		       member_number,
+		       cooperative_shares_count,
 		       email_confirmed_at, email_confirmation_used_at,
 		       email_confirmation_token_hash, email_confirmation_token_expires_at,
 		       created_at, updated_at
@@ -106,6 +110,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	var pvPowerKwp sql.NullFloat64
 	var heatPump, electricVehicle, electricHotWater sql.NullBool
 	var memberNumber sql.NullString
+	var cooperativeSharesCount sql.NullInt64
 	var emailConfirmedAt, emailConfirmationUsedAt, emailConfirmationTokenExpiresAt sql.NullTime
 	var emailConfirmationTokenHash sql.NullString
 
@@ -125,6 +130,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		&heatPump, &electricVehicle, &electricHotWater,
 		&app.Einzugsart, &bankName, &mandateReference, &mandateDate,
 		&memberNumber,
+		&cooperativeSharesCount,
 		&emailConfirmedAt, &emailConfirmationUsedAt,
 		&emailConfirmationTokenHash, &emailConfirmationTokenExpiresAt,
 		&app.CreatedAt, &app.UpdatedAt,
@@ -174,6 +180,10 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	}
 	if importErrorMessage.Valid {
 		app.ImportErrorMessage = &importErrorMessage.String
+	}
+	if cooperativeSharesCount.Valid {
+		v := int(cooperativeSharesCount.Int64)
+		app.CooperativeSharesCount = &v
 	}
 	if iban.Valid {
 		app.IBAN = &iban.String

@@ -528,6 +528,47 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
           </CardContent>
         </Card>
 
+        {/* PROJ-37: Genossenschaftsanteile — nur sichtbar wenn die EEG die
+            Erfassung aktiviert hat. Anzeige Anzahl × Anteilswert =
+            Gesamtbetrag, plus Hinweis falls Bestand unter dem aktuellen
+            Pflichtmaß liegt (kommt bei nachträglicher Konfig-Änderung vor). */}
+        {application.cooperativeSharesEnabled && application.cooperativeShareAmountCents != null && (() => {
+          const count = application.cooperativeSharesCount ?? 0;
+          const amount = application.cooperativeShareAmountCents ?? 0;
+          const required = application.cooperativeRequiredShares ?? 1;
+          const formatEur = (cents: number) =>
+            new Intl.NumberFormat("de-AT", { style: "currency", currency: "EUR" }).format(cents / 100);
+          const total = count * amount;
+          return (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Genossenschaftsanteile</CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm space-y-1">
+                <div className="flex justify-between">
+                  <span>Anzahl gezeichneter Anteile:</span>
+                  <span className="font-medium">{count}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Wert je Anteil:</span>
+                  <span>{formatEur(amount)}</span>
+                </div>
+                <div className="flex justify-between font-semibold border-t pt-2 mt-1">
+                  <span>Gesamtbetrag:</span>
+                  <span>{formatEur(total)}</span>
+                </div>
+                {count > 0 && count < required && (
+                  <p className="text-xs text-orange-700 pt-1">
+                    Liegt unter dem aktuell konfigurierten Pflichtmaß von {required} —
+                    Konfiguration wurde nach dem Antragseingang geändert; der Antrag
+                    bleibt unverändert.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })()}
+
         {/* Metadata */}
         <Card>
           <CardHeader>

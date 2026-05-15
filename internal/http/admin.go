@@ -1614,6 +1614,10 @@ func (h *AdminHandler) GetEEGSettings(w http.ResponseWriter, r *http.Request) {
 		"showCentralPolicy":       ep.ShowCentralPolicy,
 		"memberNumberStart":       ep.MemberNumberStart,
 		"requireEmailConfirmation": ep.RequireEmailConfirmation,
+		// PROJ-37 Genossenschaftsanteile
+		"cooperativeSharesEnabled":    ep.CooperativeSharesEnabled,
+		"cooperativeRequiredShares":   ep.CooperativeRequiredShares,
+		"cooperativeShareAmountCents": ep.CooperativeShareAmountCents,
 	})
 }
 
@@ -1625,12 +1629,16 @@ func (h *AdminHandler) SaveEEGSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body struct {
-		RegistrationActive       *bool `json:"registrationActive"`
-		SEPAMandateEnabled       bool  `json:"sepaMandateEnabled"`
-		UseCompanySEPAMandate    bool  `json:"useCompanySEPAMandate"`
-		ShowCentralPolicy        *bool `json:"showCentralPolicy"`
-		MemberNumberStart        *int  `json:"memberNumberStart"`
-		RequireEmailConfirmation *bool `json:"requireEmailConfirmation"`
+		RegistrationActive       *bool  `json:"registrationActive"`
+		SEPAMandateEnabled       bool   `json:"sepaMandateEnabled"`
+		UseCompanySEPAMandate    bool   `json:"useCompanySEPAMandate"`
+		ShowCentralPolicy        *bool  `json:"showCentralPolicy"`
+		MemberNumberStart        *int   `json:"memberNumberStart"`
+		RequireEmailConfirmation *bool  `json:"requireEmailConfirmation"`
+		// PROJ-37 Genossenschaftsanteile
+		CooperativeSharesEnabled    bool   `json:"cooperativeSharesEnabled"`
+		CooperativeRequiredShares   *int   `json:"cooperativeRequiredShares"`
+		CooperativeShareAmountCents *int64 `json:"cooperativeShareAmountCents"`
 		// Fields that are now Core-mastered (PROJ-32: eegId, eegName,
 		// address, creditorId, contactEmail) are deliberately NOT accepted
 		// here. A legacy admin client that still sends them won't 400 —
@@ -1641,10 +1649,36 @@ func (h *AdminHandler) SaveEEGSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// PROJ-37: cooperative-shares cross-field validation. When the toggle
+	// is on, both config values must be present and positive; when off,
+	// the two value fields are forcibly cleared so a re-enable later
+	// starts from a clean slate.
+	coopRequired := body.CooperativeRequiredShares
+	coopAmount := body.CooperativeShareAmountCents
+	if body.CooperativeSharesEnabled {
+		fields := map[string]string{}
+		if coopRequired == nil || *coopRequired <= 0 {
+			fields["cooperativeRequiredShares"] = "Pflichtanteile je Standort sind erforderlich (mindestens 1)"
+		}
+		if coopAmount == nil || *coopAmount <= 0 {
+			fields["cooperativeShareAmountCents"] = "Anteilswert ist erforderlich und muss größer 0 sein"
+		}
+		if len(fields) > 0 {
+			h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", fields)))
+			return
+		}
+	} else {
+		coopRequired = nil
+		coopAmount = nil
+	}
+
 	if err := h.entrypointRepo.SaveEEGSettings(
 		rcNumber,
 		body.SEPAMandateEnabled,
 		body.UseCompanySEPAMandate,
+		body.CooperativeSharesEnabled,
+		coopRequired,
+		coopAmount,
 	); err != nil {
 		h.handleServiceError(w, err)
 		return

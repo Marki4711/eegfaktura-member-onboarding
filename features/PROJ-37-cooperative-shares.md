@@ -1,8 +1,8 @@
 # PROJ-37: Genossenschaftsanteile (per-EEG-Konfiguration + Antragsfeld)
 
-## Status: Architected
+## Status: In Review
 **Created:** 2026-05-15
-**Last Updated:** 2026-05-15 (Konzept verfeinert: konfigurierbare Pflichtanteile statt fest 1; Form-Min und -Default = konfigurierter Pflichtwert; Konfig-Änderungen wirken nur prospektiv.)
+**Last Updated:** 2026-05-15 (Stages A–I implementiert. Bekannte V1-Lücke: Admin-Edit-Form-Integration nicht enthalten — Stage G beschränkt auf Read-Only-Anzeige im Detail-View. Admin kann Anteils-Korrekturen über den needs_info-Flow erzwingen, Direkt-Edit folgt in V1.1.)
 
 ## Dependencies
 - Berührt: PROJ-1 (Public Registration — neues Formular-Feld), PROJ-2 (Admin Review — Anzeige im Antrags-Detail), PROJ-19 (Manuelle Aktivierung — Settings-Seite), PROJ-21 (Beitrittsbestätigung-PDF — neue Sektion im Datenblock).

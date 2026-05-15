@@ -126,11 +126,20 @@ const baseSchema = z.object({
   heatPump: z.boolean().nullable().optional(),
   electricVehicle: z.boolean().nullable().optional(),
   electricHotWater: z.boolean().nullable().optional(),
+  // PROJ-37: Genossenschaftsanteile (nur Pflicht wenn EEG es aktiviert hat
+  // — Validierung gegen den configurierten Pflichtwert wird in
+  // buildFormSchema via superRefine ergänzt).
+  cooperativeSharesCount: z.number().int().min(1).optional(),
 });
 
 export type RegistrationFormValues = z.infer<typeof baseSchema>;
 
-function buildFormSchema(fieldConfig: FieldConfig | undefined, sepaMandateEnabled: boolean) {
+function buildFormSchema(
+  fieldConfig: FieldConfig | undefined,
+  sepaMandateEnabled: boolean,
+  cooperativeSharesEnabled: boolean,
+  cooperativeRequiredShares: number,
+) {
   const appFields = CONFIGURABLE_FIELDS.application;
   const resolve = (name: string): FieldState => {
     const f = appFields.find((x) => x.name === name);
@@ -199,6 +208,25 @@ function buildFormSchema(fieldConfig: FieldConfig | undefined, sepaMandateEnable
     requireNum("electric_vehicle", "electricVehicle", "E-Auto vorhanden");
     requireNum("electric_hot_water", "electricHotWater", "Warmwasser elektrisch");
 
+    // PROJ-37: Genossenschaftsanteile required when the EEG has enabled
+    // it. Count must be at least cooperativeRequiredShares; voluntary
+    // higher is fine.
+    if (cooperativeSharesEnabled) {
+      if (data.cooperativeSharesCount === undefined || data.cooperativeSharesCount === null) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["cooperativeSharesCount"],
+          message: "Anzahl der Anteile ist erforderlich",
+        });
+      } else if (data.cooperativeSharesCount < cooperativeRequiredShares) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["cooperativeSharesCount"],
+          message: `Mindestens ${cooperativeRequiredShares} Pflichtanteil(e) müssen gezeichnet werden`,
+        });
+      }
+    }
+
     // SEPA mandate acceptance only required when not sent by email
     if (!sepaMandateEnabled && !data.sepaMandateAccepted) {
       ctx.addIssue({
@@ -262,7 +290,12 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
   const req = (name: string) => fs(name) === "required" ? " *" : "";
 
   const form = useForm<RegistrationFormValues>({
-    resolver: zodResolver(buildFormSchema(fieldConfig, sepaMandateEnabled)),
+    resolver: zodResolver(buildFormSchema(
+      fieldConfig,
+      sepaMandateEnabled,
+      config.cooperativeSharesEnabled ?? false,
+      config.cooperativeRequiredShares ?? 1,
+    )),
     defaultValues: {
       memberType: "private",
       titel: "",
@@ -293,6 +326,12 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
       heatPump: undefined,
       electricVehicle: undefined,
       electricHotWater: undefined,
+      // PROJ-37: pre-fill with required-shares so the input starts at min.
+      // If the EEG hasn't enabled the feature, this value is silently
+      // ignored on submit (backend ignores when entrypoint disabled).
+      cooperativeSharesCount: config.cooperativeSharesEnabled
+        ? (config.cooperativeRequiredShares ?? 1)
+        : undefined,
     },
   });
 
@@ -409,6 +448,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
           heatPump: values.heatPump ?? null,
           electricVehicle: values.electricVehicle ?? null,
           electricHotWater: values.electricHotWater ?? null,
+          cooperativeSharesCount: values.cooperativeSharesCount,
           meteringPoints: values.meteringPoints.map((mp) => ({
             meteringPoint: mp.meteringPoint,
             direction: mp.direction,
@@ -799,6 +839,77 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
             </div>
           </CardContent>
         </Card>
+
+        {/* PROJ-37: Genossenschaftsanteile — only rendered when the EEG
+            has enabled the feature. Member sees the configured mandatory
+            minimum as hint, must input at least that many, can voluntarily
+            go higher. Live total is amount × count. */}
+        {config.cooperativeSharesEnabled && config.cooperativeShareAmountCents != null && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Genossenschaftsanteile</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Pflichtanteil je Standort: <strong>{config.cooperativeRequiredShares ?? 1}</strong>{" "}
+                {(config.cooperativeRequiredShares ?? 1) === 1 ? "Anteil" : "Anteile"}
+              </p>
+
+              <FormField
+                control={form.control}
+                name="cooperativeSharesCount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Anzahl Anteile gesamt *</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        min={config.cooperativeRequiredShares ?? 1}
+                        value={field.value ?? ""}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          field.onChange(v === "" ? undefined : parseInt(v, 10));
+                        }}
+                      />
+                    </FormControl>
+                    <p className="text-xs text-muted-foreground">
+                      min. {config.cooperativeRequiredShares ?? 1} (Pflichtanteile),
+                      freiwillig mehr möglich
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {(() => {
+                const amount = config.cooperativeShareAmountCents ?? 0;
+                const count = form.watch("cooperativeSharesCount") ?? 0;
+                const formatEur = (cents: number) =>
+                  new Intl.NumberFormat("de-AT", {
+                    style: "currency",
+                    currency: "EUR",
+                  }).format(cents / 100);
+                return (
+                  <div className="text-sm space-y-1 border-t pt-3">
+                    <div className="flex justify-between">
+                      <span>Genossenschaftsanteilswert:</span>
+                      <span>{formatEur(amount)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Gezeichnete Anteile:</span>
+                      <span>× {count}</span>
+                    </div>
+                    <div className="flex justify-between font-semibold border-t pt-2 mt-1">
+                      <span>Gesamtbetrag:</span>
+                      <span>{formatEur(amount * count)}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Bank account / SEPA */}
         <Card>
