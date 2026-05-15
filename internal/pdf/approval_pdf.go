@@ -138,9 +138,11 @@ func (g *FPDFApprovalGenerator) GenerateApproval(data ApprovalPDFData) ([]byte, 
 	f.SetMargins(15, 15, 15)
 	f.SetAutoPageBreak(true, 15)
 	f.AddPage()
-	embedLogoTopRight(f, data.LogoBytes, data.LogoMIME)
+	// PROJ-33 follow-up: the logo embed is deferred until after the title
+	// + 4 header lines + separator are drawn, so we can vertically center
+	// it in the resulting band. See call below.
 
-	lm, _, rm, _ := f.GetMargins()
+	lm, topMargin, rm, _ := f.GetMargins()
 	pageW, _ := f.GetPageSize()
 	cw := pageW - lm - rm
 
@@ -186,7 +188,14 @@ func (g *FPDFApprovalGenerator) GenerateApproval(data ApprovalPDFData) ([]byte, 
 	f.CellFormat(cw, 5, w1252("Datum: "+fmtDate(data.ApprovedAt)), "0", 1, "L", false, 0, "")
 	f.CellFormat(cw, 5, w1252("Antrag: "+data.ReferenceNumber), "0", 1, "L", false, 0, "")
 	f.Ln(2)
-	f.Line(lm, f.GetY(), lm+cw, f.GetY())
+	separatorY := f.GetY()
+	f.Line(lm, separatorY, lm+cw, separatorY)
+
+	// Drop the logo into the right side of the header band, vertically
+	// centered between the top margin and the separator line. Cursor is
+	// preserved by the helper; the next section (MITGLIEDSDATEN) renders
+	// in its natural position below.
+	embedLogoCenteredRight(f, data.LogoBytes, data.LogoMIME, topMargin, separatorY)
 
 	// ── MITGLIEDSDATEN ───────────────────────────────────────────────────────
 	sectionHeader("MITGLIEDSDATEN")

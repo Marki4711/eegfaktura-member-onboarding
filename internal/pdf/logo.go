@@ -36,6 +36,61 @@ func fpdfImageType(mime string) string {
 	}
 }
 
+// embedLogoCenteredRight draws the logo on the right edge of the page,
+// vertically centered between topY and bottomY. Does NOT touch the
+// cursor — callers render text first, capture the band's bottom Y
+// (e.g. the header separator line), then call this to drop the logo
+// into the empty right portion of that band. Used by the approval PDF.
+//
+// If the logo's height exceeds the band, it is anchored at topY (clipped
+// from the bottom rather than spilling above the page top).
+func embedLogoCenteredRight(f *fpdf.Fpdf, logoBytes []byte, mime string, topY, bottomY float64) {
+	if len(logoBytes) == 0 || mime == "" {
+		return
+	}
+	imgType := fpdfImageType(mime)
+	if imgType == "" {
+		slog.Warn("pdf: skipping logo embed — unsupported MIME", "mime", mime)
+		return
+	}
+	const imgName = "eeg_logo"
+	info := f.RegisterImageReader(imgName, imgType, bytes.NewReader(logoBytes))
+	if f.Error() != nil {
+		slog.Warn("pdf: logo registration failed; rendering without logo",
+			"mime", mime, "bytes", len(logoBytes), "error", f.Error())
+		f.ClearError()
+		return
+	}
+	if info == nil {
+		return
+	}
+
+	pageW, _ := f.GetPageSize()
+	_, _, rm, _ := f.GetMargins()
+	w := info.Width() * LogoHeightMM / info.Height()
+	h := LogoHeightMM
+	if w > LogoMaxWidthMM {
+		w = LogoMaxWidthMM
+		h = info.Height() * LogoMaxWidthMM / info.Width()
+	}
+	x := pageW - rm - w
+	y := topY + (bottomY-topY-h)/2
+	if y < topY {
+		y = topY
+	}
+
+	// Preserve the cursor — caller has already rendered the band's text.
+	cx, cy := f.GetX(), f.GetY()
+	f.ImageOptions(imgName, x, y, w, h, false, fpdf.ImageOptions{ImageType: imgType}, 0, "")
+	f.SetXY(cx, cy)
+
+	if f.Error() != nil {
+		slog.Warn("pdf: logo embed produced an fpdf error; clearing",
+			"error", f.Error())
+		f.ClearError()
+	}
+}
+
 // embedLogoTopRight registers `logoBytes` as a named image and draws it
 // in the top-right corner of the current page, preserving aspect ratio
 // at LogoHeightMM. Restores the cursor position to (lm, current Y) before
