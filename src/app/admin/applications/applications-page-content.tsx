@@ -70,7 +70,7 @@ export function ApplicationsPageContent() {
     try {
       const result = await listApplications({
         status: searchParams.get("status") ?? undefined,
-        lastname: searchParams.get("lastname") ?? undefined,
+        name: searchParams.get("name") ?? searchParams.get("lastname") ?? undefined,
         email: searchParams.get("email") ?? undefined,
         rc_number: searchParams.get("rc_number") ?? undefined,
         submitted_from: searchParams.get("submitted_from") ?? undefined,

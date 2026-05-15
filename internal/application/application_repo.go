@@ -373,9 +373,17 @@ func (r *ApplicationRepository) List(filters ApplicationListFilters, page, pageS
 		args = append(args, "%"+*filters.ReferenceNumber+"%")
 		n++
 	}
-	if filters.Lastname != nil {
-		conditions = append(conditions, fmt.Sprintf("a.lastname ILIKE $%d", n))
-		args = append(args, "%"+*filters.Lastname+"%")
+	if filters.Name != nil {
+		// Match the same projection the admin-list column shows: firstname
+		// OR lastname OR company_name. Without this OR a company entry
+		// (which has empty firstname/lastname) is never findable, and a
+		// person searched by firstname (e.g. "Twst" in "Twst Wurzinger")
+		// also misses.
+		conditions = append(conditions, fmt.Sprintf(
+			"(a.firstname ILIKE $%d OR a.lastname ILIKE $%d OR a.company_name ILIKE $%d)",
+			n, n, n,
+		))
+		args = append(args, "%"+*filters.Name+"%")
 		n++
 	}
 	if filters.Email != nil {

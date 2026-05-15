@@ -20,7 +20,11 @@ import (
 type ApplicationListFilters struct {
 	Status          *string
 	ReferenceNumber *string
-	Lastname        *string
+	// Name (PROJ-…) is a partial-match search across firstname, lastname and
+	// company_name. The admin list column is itself a coalesce of these three,
+	// so the filter has to match the same surface — otherwise typing the
+	// firstname or a company's name yields nothing.
+	Name            *string
 	Email           *string
 	MeteringPoint   *string
 	SubmittedFrom   *time.Time

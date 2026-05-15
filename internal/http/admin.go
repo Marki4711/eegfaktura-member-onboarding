@@ -241,7 +241,7 @@ func (h *AdminHandler) SyncEntrypoints(w http.ResponseWriter, r *http.Request) {
 // @Security     BearerAuth
 // @Param        status          query  string  false  "Filter by status (draft|submitted|under_review|needs_info|approved|rejected|imported|import_failed)"
 // @Param        reference_number query string false "Filter by reference number (partial match)"
-// @Param        lastname        query  string  false  "Filter by member lastname (partial match)"
+// @Param        name            query  string  false  "Filter by member name — partial match across firstname, lastname, and company_name"
 // @Param        email           query  string  false  "Filter by email (partial match)"
 // @Param        metering_point  query  string  false  "Filter by metering point ID"
 // @Param        rc_number       query  string  false  "Filter by RC number (superuser only)"
@@ -263,8 +263,12 @@ func (h *AdminHandler) ListApplications(w http.ResponseWriter, r *http.Request) 
 	if v := q.Get("reference_number"); v != "" {
 		filters.ReferenceNumber = &v
 	}
-	if v := q.Get("lastname"); v != "" {
-		filters.Lastname = &v
+	// `name` is the canonical filter name; `lastname` is accepted as a
+	// legacy synonym so bookmarked URLs from before the rename keep working.
+	if v := q.Get("name"); v != "" {
+		filters.Name = &v
+	} else if v := q.Get("lastname"); v != "" {
+		filters.Name = &v
 	}
 	if v := q.Get("email"); v != "" {
 		filters.Email = &v

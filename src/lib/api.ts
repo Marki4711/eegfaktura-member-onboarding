@@ -506,7 +506,11 @@ export type SortOrder = "asc" | "desc";
 export interface ListApplicationsParams {
   status?: string;
   reference_number?: string;
-  lastname?: string;
+  // Partial-match search across firstname, lastname and company_name.
+  // The admin list column is itself a coalesce of those three, so the
+  // filter has to too — otherwise typing a firstname or a company's
+  // name yields nothing.
+  name?: string;
   email?: string;
   rc_number?: string;
   submitted_from?: string;
@@ -528,7 +532,7 @@ export function listApplications(
   if (params.status) qs.set("status", params.status);
 
   if (params.reference_number) qs.set("reference_number", params.reference_number);
-  if (params.lastname) qs.set("lastname", params.lastname);
+  if (params.name) qs.set("name", params.name);
   if (params.email) qs.set("email", params.email);
   if (params.rc_number) qs.set("rc_number", params.rc_number);
   if (params.submitted_from) qs.set("submitted_from", `${params.submitted_from}T00:00:00Z`);

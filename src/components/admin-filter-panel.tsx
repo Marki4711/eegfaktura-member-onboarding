@@ -34,7 +34,7 @@ export function AdminFilterPanel({ rcNumbers = [] }: Props) {
   const searchParams = useSearchParams();
 
   const [status, setStatus] = useState(searchParams.get("status") ?? "all");
-  const [lastname, setLastname] = useState(searchParams.get("lastname") ?? "");
+  const [name, setLastname] = useState(searchParams.get("name") ?? "");
   const [email, setEmail] = useState(searchParams.get("email") ?? "");
   const [rcNumber, setRcNumber] = useState(searchParams.get("rc_number") ?? "all");
   const [submittedFrom, setSubmittedFrom] = useState(
@@ -46,7 +46,7 @@ export function AdminFilterPanel({ rcNumbers = [] }: Props) {
 
   useEffect(() => {
     setStatus(searchParams.get("status") ?? "all");
-    setLastname(searchParams.get("lastname") ?? "");
+    setLastname(searchParams.get("name") ?? "");
     setEmail(searchParams.get("email") ?? "");
     setRcNumber(searchParams.get("rc_number") ?? "all");
     setSubmittedFrom(searchParams.get("submitted_from") ?? "");
@@ -56,7 +56,7 @@ export function AdminFilterPanel({ rcNumbers = [] }: Props) {
   function applyFilters() {
     const params = new URLSearchParams();
     if (status && status !== "all") params.set("status", status);
-    if (lastname.trim()) params.set("lastname", lastname.trim());
+    if (name.trim()) params.set("name", name.trim());
     if (email.trim()) params.set("email", email.trim());
     if (rcNumber && rcNumber !== "all") params.set("rc_number", rcNumber);
     if (submittedFrom) params.set("submitted_from", submittedFrom);
@@ -106,10 +106,10 @@ export function AdminFilterPanel({ rcNumbers = [] }: Props) {
         </div>
 
         <div className="space-y-1">
-          <Label htmlFor="filter-lastname">Name</Label>
+          <Label htmlFor="filter-name">Name</Label>
           <Input
-            id="filter-lastname"
-            value={lastname}
+            id="filter-name"
+            value={name}
             onChange={(e) => setLastname(e.target.value)}
             onKeyDown={handleKeyDown}
           />
