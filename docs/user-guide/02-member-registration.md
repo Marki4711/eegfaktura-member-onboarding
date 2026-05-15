@@ -56,6 +56,16 @@ Geben Sie mindestens einen Zählpunkt an:
 
 Über **Zählpunkt hinzufügen** können Sie bis zu 10 Zählpunkte angeben.
 
+## Schritt 5a: Genossenschaftsanteile (nur bei aktivierten EEGs)
+
+Wenn Ihre EEG als Genossenschaft organisiert ist und in den Einstellungen die Anteils-Erfassung aktiviert hat, erscheint ein zusätzlicher Block **„Genossenschaftsanteile"** im Formular:
+
+- **Pflichtanteil je Standort** — der von der EEG festgelegte Mindestwert (z.B. „1 Anteil"). Reiner Hinweistext, kann nicht geändert werden.
+- **Anzahl Anteile gesamt** — Eingabefeld, vorbefüllt mit dem Pflichtwert. Sie können den Wert nach oben überschreiben (mehr Anteile freiwillig zeichnen), aber nicht darunter.
+- **Genossenschaftsanteilswert** und **Gesamtbetrag** werden live berechnet und unterhalb angezeigt (z.B. „€ 100,00 × 3 = € 300,00").
+
+Wenn Ihre EEG dieses Feature nicht aktiviert hat, ist der Block ausgeblendet und Sie können diesen Schritt überspringen.
+
 ## Schritt 6: Datenschutz und Einreichung
 
 - Stimmen Sie der **Datenschutzerklärung** zu

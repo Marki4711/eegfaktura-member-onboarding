@@ -117,7 +117,10 @@ No direct access to eegFaktura core tables takes place.
       "sortOrder": 9999,
       "isCentralPolicy": true
     }
-  ]
+  ],
+  "cooperativeSharesEnabled": true,
+  "cooperativeRequiredShares": 1,
+  "cooperativeShareAmountCents": 10000
 }
 ```
 
@@ -130,6 +133,8 @@ No direct access to eegFaktura core tables takes place.
 `showCentralPolicy` controls whether the central operator privacy policy is included in `legalDocuments`. Defaults to `true`. When `false`, the central policy entry is omitted from the list even if env vars are set — intended for EEGs that configure their own privacy policy as a custom document.
 
 `legalDocuments` contains the central privacy policy entry (`isCentralPolicy: true`) when `showCentralPolicy = true` and `CENTRAL_POLICY_URL` is set. EEG-specific documents precede it, ordered by `sortOrder`. The central policy is not stored in the database — it is configured via `CENTRAL_POLICY_TITLE` / `CENTRAL_POLICY_URL` env vars.
+
+`cooperativeSharesEnabled` (PROJ-37): when `true`, the public form renders a "Genossenschaftsanteile" block. `cooperativeRequiredShares` (positive integer) is then the minimum the member must subscribe; `cooperativeShareAmountCents` (positive integer) is the price per share in cents. The total is computed client-side as `count × cooperativeShareAmountCents`. When `cooperativeSharesEnabled` is `false`, the two value fields are omitted from the response and the form skips the block.
 
 ### Errors
 - `404` if `rc_number` is not found in `registration_entrypoint`
@@ -180,11 +185,14 @@ Creates a new application.
   "pvPowerKwp": 9.9,
   "heatPump": true,
   "electricVehicle": false,
-  "electricHotWater": null
+  "electricHotWater": null,
+  "cooperativeSharesCount": 1
 }
 ```
 
 All fields under `meteringPoints[].transformer/installationNumber/installationName` and the application-level energy/household fields are optional by default. Whether they are required is determined by the EEG's `fieldConfig` (see 5.1). Fields not relevant to the current `memberType` are ignored.
+
+`cooperativeSharesCount` (PROJ-37) is required on the **submit** path (see 5.4) when the EEG has `cooperativeSharesEnabled = true` and must be `>= cooperativeRequiredShares`. On create it is optional — the public form populates it server-side at submit. The server silently ignores the value when the EEG has the feature disabled.
 
 ### Rules
 - `rcNumber` required
@@ -313,6 +321,7 @@ Before submit, the following must be set:
 - `privacyVersion` set
 - `privacyAcceptedAt` is set server-side
 - `accuracyConfirmed = true`
+- when the EEG has `cooperativeSharesEnabled = true` (PROJ-37): `cooperativeSharesCount` set and `>= cooperativeRequiredShares`
 
 ### Response 200
 ```json
@@ -477,11 +486,17 @@ Returns the admin list.
       "isCentralPolicy": true,
       "consentedAt": "2026-04-18T12:35:00Z"
     }
-  ]
+  ],
+  "cooperativeSharesCount": 1,
+  "cooperativeSharesEnabled": true,
+  "cooperativeRequiredShares": 1,
+  "cooperativeShareAmountCents": 10000
 }
 ```
 
 `consents` contains the immutable snapshots of legal document consents recorded at submission time. Empty array when no consents were submitted.
+
+`cooperativeSharesCount` (PROJ-37) is the number of shares the member subscribed; null when the EEG hasn't enabled the feature or the application predates its activation. The three accompanying fields (`cooperativeSharesEnabled`, `cooperativeRequiredShares`, `cooperativeShareAmountCents`) mirror the **current** EEG-level settings and are joined in at detail-build time so the admin UI can compute `count × amountCents = total` without a parallel `/settings/eeg` round-trip. When the feature is disabled, `cooperativeSharesEnabled` is `false` and the two value fields are omitted.
 
 ### Errors
 - `404` not found
@@ -930,13 +945,18 @@ Returns the EEG settings — the eight Core-mastered fields (PROJ-32) plus the o
   "useCompanySEPAMandate": false,
   "showCentralPolicy": true,
   "memberNumberStart": 1,
-  "requireEmailConfirmation": false
+  "requireEmailConfirmation": false,
+  "cooperativeSharesEnabled": true,
+  "cooperativeRequiredShares": 1,
+  "cooperativeShareAmountCents": 10000
 }
 ```
 
 **Core-mastered fields** (PROJ-32, read-only — only modified via `/sync` below): `eegId`, `eegName`, `eegStreet`, `eegStreetNumber`, `eegZip`, `eegCity`, `creditorId`, `contactEmail`. `lastSyncedFromCoreAt` is `null` until the first successful sync.
 
 `registrationActive` is `false` by default. `sepaMandateEnabled` and `useCompanySEPAMandate` default to `false`. `showCentralPolicy` defaults to `true`. `memberNumberStart` defaults to `1`. `requireEmailConfirmation` (PROJ-31) defaults to `false`.
+
+`cooperativeSharesEnabled` (PROJ-37) defaults to `false`. When `true`, both `cooperativeRequiredShares` (positive integer, minimum mandatory shares per member) and `cooperativeShareAmountCents` (positive integer, price per share in cents) are returned. When `false`, those two value fields are omitted.
 
 ### Errors
 - `400` missing `rc_number`
@@ -958,7 +978,10 @@ Writes the onboarding-only editable fields. The Core-mastered fields (`eegId`, `
   "useCompanySEPAMandate": false,
   "showCentralPolicy": true,
   "memberNumberStart": 1,
-  "requireEmailConfirmation": false
+  "requireEmailConfirmation": false,
+  "cooperativeSharesEnabled": true,
+  "cooperativeRequiredShares": 1,
+  "cooperativeShareAmountCents": 10000
 }
 ```
 
@@ -971,6 +994,8 @@ Writes the onboarding-only editable fields. The Core-mastered fields (`eegId`, `
 `memberNumberStart`: starting value for the per-EEG member number auto-increment counter. Defaults to `1` when not explicitly set.
 
 `requireEmailConfirmation` (PROJ-31): when `true`, members must click the confirmation link in the welcome mail before the application becomes reviewable. While pending, the admin `/status` endpoint rejects `submitted → under_review|needs_info|approved` with 409.
+
+`cooperativeSharesEnabled` (PROJ-37): when `true`, the registration form renders a "Genossenschaftsanteile" block with a mandatory share count input; `cooperativeRequiredShares` (≥1) is the minimum, `cooperativeShareAmountCents` (>0) is the price per share. **Both must be present and positive when `cooperativeSharesEnabled=true`** — otherwise the request fails with a 400 carrying field-level error messages. When `false`, both value fields are server-side reset to `null` (cleanup). Config changes apply prospectively only — existing applications keep their stored count even if it now falls below the new minimum.
 
 ### Response
 - `204 No Content`
