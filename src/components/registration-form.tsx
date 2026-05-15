@@ -1145,7 +1145,9 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                 )}
               />
             )}
-            {/* PROJ-36: required documents — checkbox with confirmation */}
+            {/* PROJ-36: required EEG-specific document consents stay grouped
+                with the other required checkboxes (privacy, accuracy, sepa).
+                Informational documents are moved to a separate block below. */}
             {requiredEegDocs.map((doc) => (
               <div key={doc.id} className="flex flex-row items-start gap-3">
                 <Checkbox
@@ -1172,31 +1174,6 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                 </div>
               </div>
             ))}
-            {/* PROJ-36: informational documents — link only, no checkbox.
-                Submit-time the server records an `informational` consent
-                from the legal_document table. */}
-            {informationalEegDocs.length > 0 && (
-              <div className="rounded-md border bg-muted/40 px-3 py-2 space-y-1.5">
-                <p className="text-xs text-muted-foreground">
-                  Die folgenden Dokumente werden Ihnen zur Information bereitgestellt.
-                  Mit Absenden des Antrags bestätigen Sie, sie zur Kenntnis genommen zu haben:
-                </p>
-                <ul className="list-disc pl-5 text-sm space-y-1">
-                  {informationalEegDocs.map((doc) => (
-                    <li key={doc.id}>
-                      <a
-                        href={doc.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="underline hover:text-foreground"
-                      >
-                        {doc.title}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
             <FormField
               control={form.control}
               name="accuracyConfirmed"
@@ -1240,6 +1217,32 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                   </FormItem>
                 )}
               />
+            )}
+            {/* PROJ-36: informational documents are visually separated from
+                the required-confirmation checkboxes so the user clearly
+                sees these are kein „weiteres Häkchen zum Übersehen". */}
+            {informationalEegDocs.length > 0 && (
+              <div className="pt-2 mt-2 border-t space-y-2">
+                <p className="text-sm font-medium">Zur Information</p>
+                <p className="text-xs text-muted-foreground">
+                  Die folgenden Dokumente werden Ihnen zur Information bereitgestellt.
+                  Mit Absenden des Antrags bestätigen Sie, sie zur Kenntnis genommen zu haben:
+                </p>
+                <ul className="list-disc pl-5 text-sm space-y-1">
+                  {informationalEegDocs.map((doc) => (
+                    <li key={doc.id}>
+                      <a
+                        href={doc.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline hover:text-foreground"
+                      >
+                        {doc.title}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </CardContent>
         </Card>
