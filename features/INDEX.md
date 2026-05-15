@@ -51,5 +51,6 @@ Central tracking for all features.
 | PROJ-34 | Robuste Import-Recovery (Orphan-Fallback + Pre-Check + Unstuck-GUI) | In Review | `features/PROJ-34-import-recovery.md` | 2026-05-14 |
 | PROJ-35 | Per-EEG-Referenznummern (`<RC>-<Jahr>-<NNNN>`) | In Review | `features/PROJ-35-per-eeg-reference-numbers.md` | 2026-05-14 |
 | PROJ-36 | Optionale Rechtsdokumente als Info-Dokumente | In Review | `features/PROJ-36-optional-legal-documents-as-info.md` | 2026-05-14 |
+| PROJ-37 | Genossenschaftsanteile (per-EEG-Konfiguration + Antragsfeld) | Planned | `features/PROJ-37-cooperative-shares.md` | 2026-05-15 |
 
-## Next Available ID: PROJ-37
+## Next Available ID: PROJ-38
