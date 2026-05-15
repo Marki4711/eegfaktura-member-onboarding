@@ -375,7 +375,7 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
                 }}
               />
               <Label htmlFor="use-company-sepa-mandate" className="text-sm cursor-pointer">
-                Firmenlastschrift (B2B) für Unternehmen und Verbände verwenden
+                Firmenlastschrift (B2B) für Unternehmen und Vereine verwenden
               </Label>
             </div>
           )}

@@ -45,7 +45,7 @@ Neun Werte werden direkt aus eegFaktura übernommen und sind in der Onboarding-O
 ### SEPA-Lastschriftmandat
 
 - **SEPA-Lastschriftmandat dem Willkommensmail anhängen**: Wenn aktiv, wird beim Einreichen eines Mitgliedsantrags automatisch ein PDF-Mandat generiert und als Anhang im Willkommensmail verschickt.
-- **Firmenlastschrift (B2B)**: Erscheint nur wenn SEPA aktiv ist. Aktivieren Sie diese Option, wenn Unternehmen und Verbände das B2B-Mandat erhalten sollen.
+- **Firmenlastschrift (B2B)**: Erscheint nur wenn SEPA aktiv ist. Aktivieren Sie diese Option, wenn Unternehmen und Vereine das B2B-Mandat erhalten sollen. (Privatpersonen, Landwirte, Kleinunternehmer und Gemeinden bekommen weiterhin das Standard-CORE-Mandat — der B2B-Toggle ändert daran nichts.)
 
 > **Hinweis:** Wenn das SEPA-Mandat aktiviert ist, aber Stammdaten fehlen, erscheint eine Warnung. Solange Felder fehlen, wird kein PDF generiert.
 
