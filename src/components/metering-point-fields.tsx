@@ -83,11 +83,17 @@ export function MeteringPointFields({ form, fieldConfig }: MeteringPointFieldsPr
                         // 37 sichtbare Stellen (AT + 31 Ziffern + 4 Spaces) müssen
                         // in eine Zeile passen, ohne Richtung/Faktor zu verdrängen.
                         // Default-Sans ist ~25% schmaler als font-mono; mit
-                        // tabular-nums bleiben die Ziffern sauber ausgerichtet,
-                        // tracking-tighter (-0.05em) holt zusätzliche Breite raus.
-                        // px-2 reduziert das Input-Padding gegenüber dem Default
-                        // (px-3), damit auch auf engen Desktop-Spalten alles passt.
-                        className="text-xs tabular-nums tracking-tighter px-2"
+                        // tabular-nums bleiben die Ziffern sauber ausgerichtet.
+                        // 2026-05-15 Tester-Feedback (Apple-Geräte): Safari/macOS
+                        // rendert San-Francisco-Glyphen ~10% breiter als die
+                        // Windows/Android-Defaults — letzte 4-5 Zeichen wurden
+                        // abgeschnitten. Daher:
+                        //   - text-[11px] statt text-xs (12px → 11px = -8.3%)
+                        //   - tracking-[-0.06em] statt tracking-tighter
+                        //     (Tailwind-Default -0.05em → -0.06em, etwas enger)
+                        //   - px-2 reduziert das Input-Padding gegenüber dem
+                        //     Default (px-3) für zusätzliche Innenbreite.
+                        className="text-[11px] tabular-nums tracking-[-0.06em] px-2"
                       />
                     </FormControl>
                     <FormMessage />
