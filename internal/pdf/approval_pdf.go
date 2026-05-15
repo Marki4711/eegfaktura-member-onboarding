@@ -176,11 +176,15 @@ func (g *FPDFApprovalGenerator) GenerateApproval(data ApprovalPDFData) ([]byte, 
 	if eegName == "" {
 		eegName = data.RCNumber
 	}
+	// PROJ-33 follow-up: header info stacks vertically on the left so the
+	// top-right logo (max 50 mm wide) has clear space. Used to be two rows
+	// with right-aligned Datum/Antrag, which collided with the logo. Robust
+	// against long PROJ-35 reference numbers (`RC105720-2026-0001`).
 	setFont("", 9)
-	f.CellFormat(cw/3*2, 5, w1252("EEG: "+eegName), "0", 0, "L", false, 0, "")
-	f.CellFormat(cw/3, 5, w1252("Datum: "+fmtDate(data.ApprovedAt)), "0", 1, "R", false, 0, "")
-	f.CellFormat(cw/3*2, 5, w1252("RC-Nummer: "+data.RCNumber), "0", 0, "L", false, 0, "")
-	f.CellFormat(cw/3, 5, w1252("Antrag: "+data.ReferenceNumber), "0", 1, "R", false, 0, "")
+	f.CellFormat(cw, 5, w1252("EEG: "+eegName), "0", 1, "L", false, 0, "")
+	f.CellFormat(cw, 5, w1252("RC-Nummer: "+data.RCNumber), "0", 1, "L", false, 0, "")
+	f.CellFormat(cw, 5, w1252("Datum: "+fmtDate(data.ApprovedAt)), "0", 1, "L", false, 0, "")
+	f.CellFormat(cw, 5, w1252("Antrag: "+data.ReferenceNumber), "0", 1, "L", false, 0, "")
 	f.Ln(2)
 	f.Line(lm, f.GetY(), lm+cw, f.GetY())
 
