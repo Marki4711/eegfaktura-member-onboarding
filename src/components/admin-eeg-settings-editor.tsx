@@ -14,6 +14,7 @@ import {
   compareEEGSettingsWithCore,
   syncEEGSettingsFromCore,
   fetchEEGLogoBlob,
+  ApiResponseError,
   type EEGSettings,
   type EEGSettingsComparisonResponse,
 } from "@/lib/api";
@@ -46,6 +47,7 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
   const [settings, setSettings] = useState<EEGSettings | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveResult, setSaveResult] = useState<"ok" | "error" | null>(null);
+  const [saveErrorMsg, setSaveErrorMsg] = useState<string | null>(null);
 
   // PROJ-32 sync state
   const [comparison, setComparison] = useState<EEGSettingsComparisonResponse | null>(null);
@@ -165,8 +167,27 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
         session?.accessToken,
       );
       setSaveResult("ok");
-    } catch {
+      setSaveErrorMsg(null);
+    } catch (err) {
       setSaveResult("error");
+      // Surface the server-side message when available — especially for
+      // validation_error responses that carry field-level reasons like
+      // "Anteilswert ist erforderlich und muss größer 0 sein". The
+      // generic "Fehler beim Speichern" stays as a fallback.
+      if (err instanceof ApiResponseError) {
+        const fieldMsgs = err.apiError.fields
+          ? Object.values(err.apiError.fields).filter((v): v is string => !!v)
+          : [];
+        if (fieldMsgs.length > 0) {
+          setSaveErrorMsg(fieldMsgs.join(" · "));
+        } else if (err.apiError.message) {
+          setSaveErrorMsg(err.apiError.message);
+        } else {
+          setSaveErrorMsg(null);
+        }
+      } else {
+        setSaveErrorMsg(null);
+      }
     } finally {
       setSaving(false);
     }
@@ -448,7 +469,6 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
                   id="coop-share-amount"
                   type="text"
                   inputMode="decimal"
-                  placeholder="100,00"
                   value={shareAmountInput}
                   onChange={(e) => {
                     setShareAmountInput(e.target.value);
@@ -496,7 +516,9 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
               <span className="text-sm text-green-600">EEG-Einstellungen gespeichert</span>
             )}
             {saveResult === "error" && (
-              <span className="text-sm text-destructive">Fehler beim Speichern</span>
+              <span className="text-sm text-destructive">
+                {saveErrorMsg ?? "Fehler beim Speichern"}
+              </span>
             )}
           </div>
         </>
