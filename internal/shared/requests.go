@@ -95,6 +95,10 @@ type LegalDocumentItem struct {
 }
 
 // ConsentInput is one consent entry sent by the frontend at submit time.
+// All entries from the frontend represent an active checkbox tick by the
+// member and are treated as `explicit`. Informational consents for
+// non-required documents are written server-side from legal_document and
+// are not sent in this payload.
 type ConsentInput struct {
 	Title           string `json:"title"`
 	URL             string `json:"url"`
@@ -300,11 +304,14 @@ type ApplicationListResponse struct {
 
 // DocumentConsentView is one consent entry in the admin detail response.
 type DocumentConsentView struct {
-	ID              uuid.UUID `json:"id"`
-	Title           string    `json:"title"`
-	URL             string    `json:"url"`
-	IsCentralPolicy bool      `json:"isCentralPolicy"`
-	ConsentedAt     time.Time `json:"consentedAt"`
+	ID              uuid.UUID   `json:"id"`
+	Title           string      `json:"title"`
+	URL             string      `json:"url"`
+	IsCentralPolicy bool        `json:"isCentralPolicy"`
+	ConsentedAt     time.Time   `json:"consentedAt"`
+	// ConsentType distinguishes `explicit` (member ticked a checkbox)
+	// from `informational` (document was shown as info-only). PROJ-36.
+	ConsentType ConsentType `json:"consentType"`
 }
 
 // AdminApplicationDetailResponse is the full admin detail view: application

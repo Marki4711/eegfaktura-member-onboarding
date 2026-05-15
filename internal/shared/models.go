@@ -178,7 +178,21 @@ type DocumentConsent struct {
 	URL             string    `json:"url"             db:"url"`
 	IsCentralPolicy bool      `json:"isCentralPolicy" db:"is_central_policy"`
 	ConsentedAt     time.Time `json:"consentedAt"     db:"consented_at"`
+	// ConsentType (PROJ-36) is `explicit` for documents the member actively
+	// checked at submit, or `informational` for documents that were merely
+	// shown on the form as info-only (no checkbox). Pre-PROJ-36 entries are
+	// all `explicit` via the DB column default.
+	ConsentType ConsentType `json:"consentType" db:"consent_type"`
 }
+
+// ConsentType distinguishes active acceptance from informational
+// acknowledgement (PROJ-36).
+type ConsentType string
+
+const (
+	ConsentTypeExplicit      ConsentType = "explicit"
+	ConsentTypeInformational ConsentType = "informational"
+)
 
 // StatusLogEntry represents a status log entry
 type StatusLogEntry struct {

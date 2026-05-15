@@ -311,6 +311,17 @@ Full `AdminApplicationDetailResponse` with cleared import bookkeeping (status re
 
 ---
 
+## 5.3c Consent semantics (PROJ-36)
+
+Two kinds of consent are recorded per application:
+
+- **explicit** — member actively ticked a checkbox at submit. The frontend sends these in `consents[]` of the submit body. Stored with `consent_type='explicit'`.
+- **informational** — non-required legal documents that were shown as info-links on the form. The frontend does NOT send these; the backend writes them at submit time from `legal_document` entries with `required=false`. Stored with `consent_type='informational'`.
+
+Both types carry the same fields (`title`, `url`, `consentedAt`) and appear in `consents[]` of admin detail responses. The `consentType` field is the discriminator. Pre-PROJ-36 entries default to `explicit` via the DB column default.
+
+---
+
 ## 5.4 Submit application
 
 ### POST `/api/public/applications/{id}/submit`

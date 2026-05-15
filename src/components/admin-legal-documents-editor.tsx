@@ -206,8 +206,8 @@ export function AdminLegalDocumentsEditor({ rcNumber }: Props) {
                   <p className="text-sm font-medium truncate">{doc.title}</p>
                   <a href={doc.url} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:underline truncate block">{doc.url}</a>
                 </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${doc.required ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-600"}`}>
-                  {doc.required ? "Pflicht" : "Optional"}
+                <span className={`text-xs px-2 py-0.5 rounded-full ${doc.required ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"}`}>
+                  {doc.required ? "Pflicht-Zustimmung" : "Nur zur Information"}
                 </span>
                 <Button variant="ghost" size="sm" onClick={() => openEdit(doc)}>Bearbeiten</Button>
                 <AlertDialog>
@@ -278,15 +278,22 @@ export function AdminLegalDocumentsEditor({ rcNumber }: Props) {
                 type="url"
               />
             </div>
-            <div className="flex items-center gap-3">
-              <Switch
-                id="doc-required"
-                checked={form.required}
-                onCheckedChange={(v) => setForm({ ...form, required: v })}
-              />
-              <Label htmlFor="doc-required" className="cursor-pointer">
-                Zustimmung erforderlich
-              </Label>
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <Switch
+                  id="doc-required"
+                  checked={form.required}
+                  onCheckedChange={(v) => setForm({ ...form, required: v })}
+                />
+                <Label htmlFor="doc-required" className="cursor-pointer">
+                  {form.required ? "Mitglied muss zustimmen" : "Nur zur Information"}
+                </Label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {form.required
+                  ? "Im Formular erscheint eine Checkbox. Ohne aktive Zustimmung kann der Antrag nicht abgeschickt werden. Die Zustimmung wird mit Zeitstempel im Antrag gespeichert."
+                  : "Im Formular wird das Dokument als Link unter „Zur Information“ angezeigt — kein Häkchen. Mit dem Absenden des Antrags bestätigt das Mitglied automatisch die Kenntnisnahme; das wird mit Zeitstempel im Antrag protokolliert."}
+              </p>
             </div>
             {formError && <p className="text-sm text-destructive">{formError}</p>}
           </div>

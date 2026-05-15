@@ -20,16 +20,17 @@ import (
 
 // ApplicationService handles business logic for applications
 type ApplicationService struct {
-	db                  *sql.DB
-	appRepo             *ApplicationRepository
-	meteringRepo        *MeteringPointRepository
-	statusLogRepo       *StatusLogRepository
-	entrypointRepo      *RegistrationEntrypointRepository
-	fieldConfigRepo     *FieldConfigRepository
-	consentRepo         *DocumentConsentRepository
-	mailService         mail.MailService
-	pdfGenerator        pdf.SEPAMandateGenerator
-	publicBaseURL       string
+	db                *sql.DB
+	appRepo           *ApplicationRepository
+	meteringRepo      *MeteringPointRepository
+	statusLogRepo     *StatusLogRepository
+	entrypointRepo    *RegistrationEntrypointRepository
+	fieldConfigRepo   *FieldConfigRepository
+	consentRepo       *DocumentConsentRepository
+	legalDocumentRepo *LegalDocumentRepository
+	mailService       mail.MailService
+	pdfGenerator      pdf.SEPAMandateGenerator
+	publicBaseURL     string
 }
 
 // NewApplicationService creates a new application service
@@ -41,21 +42,23 @@ func NewApplicationService(
 	entrypointRepo *RegistrationEntrypointRepository,
 	fieldConfigRepo *FieldConfigRepository,
 	consentRepo *DocumentConsentRepository,
+	legalDocumentRepo *LegalDocumentRepository,
 	mailService mail.MailService,
 	pdfGenerator pdf.SEPAMandateGenerator,
 	publicBaseURL string,
 ) *ApplicationService {
 	return &ApplicationService{
-		db:              db,
-		appRepo:         appRepo,
-		meteringRepo:    meteringRepo,
-		statusLogRepo:   statusLogRepo,
-		entrypointRepo:  entrypointRepo,
-		fieldConfigRepo: fieldConfigRepo,
-		consentRepo:     consentRepo,
-		mailService:     mailService,
-		pdfGenerator:    pdfGenerator,
-		publicBaseURL:   publicBaseURL,
+		db:                db,
+		appRepo:           appRepo,
+		meteringRepo:      meteringRepo,
+		statusLogRepo:     statusLogRepo,
+		entrypointRepo:    entrypointRepo,
+		fieldConfigRepo:   fieldConfigRepo,
+		consentRepo:       consentRepo,
+		legalDocumentRepo: legalDocumentRepo,
+		mailService:       mailService,
+		pdfGenerator:      pdfGenerator,
+		publicBaseURL:     publicBaseURL,
 	}
 }
 
@@ -477,9 +480,17 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID, consents []shared.C
 
 	// All DB mutations (status, status log, consents, member number) run in one transaction
 	// so a partial failure cannot leave the application in an inconsistent state.
+	//
+	// PROJ-36: two-stage consent collection. Frontend-supplied entries (the
+	// boxes the member actively ticked) are written as `explicit`. We then
+	// load the EEG's legal_documents and write an `informational` entry for
+	// every non-required document the member did NOT also tick — those are
+	// the "displayed for information" docs that don't get a checkbox in the
+	// new UI but still need an audit-trail row.
 	var consentRows []shared.DocumentConsent
-	if len(consents) > 0 && s.consentRepo != nil {
+	if s.consentRepo != nil {
 		consentRows = make([]shared.DocumentConsent, 0, len(consents))
+		seenURLs := make(map[string]struct{}, len(consents))
 		for _, c := range consents {
 			consentRows = append(consentRows, shared.DocumentConsent{
 				ID:              uuid.New(),
@@ -488,7 +499,34 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID, consents []shared.C
 				URL:             c.URL,
 				IsCentralPolicy: c.IsCentralPolicy,
 				ConsentedAt:     now,
+				ConsentType:     shared.ConsentTypeExplicit,
 			})
+			seenURLs[c.URL] = struct{}{}
+		}
+		if s.legalDocumentRepo != nil {
+			docs, docErr := s.legalDocumentRepo.GetByRCNumber(app.RCNumber)
+			if docErr != nil {
+				slog.Warn("submit: failed to load legal documents for informational consents — skipping",
+					"application_id", id, "error", docErr)
+			} else {
+				for _, d := range docs {
+					if d.Required {
+						continue
+					}
+					if _, dup := seenURLs[d.URL]; dup {
+						continue
+					}
+					consentRows = append(consentRows, shared.DocumentConsent{
+						ID:              uuid.New(),
+						ApplicationID:   id,
+						Title:           d.Title,
+						URL:             d.URL,
+						IsCentralPolicy: false,
+						ConsentedAt:     now,
+						ConsentType:     shared.ConsentTypeInformational,
+					})
+				}
+			}
 		}
 	}
 

@@ -96,13 +96,20 @@ Klicken Sie auf **Konfiguration speichern**, um die Änderungen zu übernehmen.
 
 ![Rechtsdokumente](images/admin-settings-legal.png)
 
-Hier verwalten Sie EEG-spezifische Dokumente (z.B. Satzung, Nutzungsbedingungen), denen Mitglieder bei der Registrierung zustimmen müssen.
+Hier verwalten Sie EEG-spezifische Dokumente (z.B. Satzung, Nutzungsbedingungen). Jedes Dokument wird auf eine von zwei Arten behandelt:
+
+| Modus | Anzeige im Formular | Was wird protokolliert |
+|---|---|---|
+| **Mitglied muss zustimmen** | Checkbox direkt im Formular. Ohne Häkchen kann der Antrag nicht abgesendet werden. | „Zugestimmt am …" mit Zeitstempel im Antrag und im Beitrittsbestätigungs-PDF. |
+| **Nur zur Information** | Das Dokument erscheint als Link im Block „Zur Information", kein Häkchen. | „Kenntnis genommen am …" mit Zeitstempel — die Kenntnisnahme erfolgt implizit mit dem Absenden des Antrags. |
+
+Die Auswahl ist binär — ein „optional anhakbar" gibt es nicht mehr.
 
 ### Dokument hinzufügen
 
 1. Klicken Sie auf **Dokument hinzufügen**.
 2. Geben Sie einen Titel und die URL des Dokuments ein.
-3. Aktivieren Sie **Zustimmung erforderlich**, wenn das Mitglied dem Dokument aktiv zustimmen muss.
+3. Wählen Sie über den Schalter **„Mitglied muss zustimmen"** vs **„Nur zur Information"** — der Hinweistext unter dem Schalter erklärt das Verhalten.
 4. Klicken Sie auf **Hinzufügen**.
 
 ### Dokument bearbeiten oder löschen

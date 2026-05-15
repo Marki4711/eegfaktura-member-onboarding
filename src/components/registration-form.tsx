@@ -245,6 +245,13 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
     ? legalDocuments.find((d) => d.isCentralPolicy && d.url)
     : undefined;
   const eegSpecificDocs = legalDocuments.filter((d) => !d.isCentralPolicy);
+  // PROJ-36: split EEG-specific docs into "required" (member must tick a
+  // checkbox to confirm) and "informational" (link is shown but no
+  // checkbox — server records an `informational` consent at submit time
+  // from the legal_document table). The old "optional checkbox" mode is
+  // gone — users were confused whether a non-required tick mattered.
+  const requiredEegDocs = eegSpecificDocs.filter((d) => d.required);
+  const informationalEegDocs = eegSpecificDocs.filter((d) => !d.required);
 
   // returns the resolved FieldState for an application-level configurable field
   function fs(name: string): FieldState {
@@ -329,10 +336,12 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
   }
 
   async function onSubmit(values: RegistrationFormValues) {
-    // Validate required EEG-specific doc consents
+    // PROJ-36: only required documents have checkboxes. Non-required ones
+    // get an informational consent written server-side at submit time —
+    // they are not validated here.
     const errors: Record<string, string> = {};
-    for (const doc of eegSpecificDocs) {
-      if (doc.required && !docConsents[doc.id]) {
+    for (const doc of requiredEegDocs) {
+      if (!docConsents[doc.id]) {
         errors[doc.id] = "Zustimmung ist erforderlich";
       }
     }
@@ -344,12 +353,13 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
 
     const isPersonType = values.memberType === "private" || values.memberType === "farmer";
 
-    // Build consents array
+    // Build consents array. Frontend only sends explicit (required) ticks;
+    // backend writes informational entries for non-required docs.
     const consents: ConsentInput[] = [];
     if (centralPolicy && values.privacyAccepted) {
       consents.push({ title: centralPolicy.title, url: centralPolicy.url, isCentralPolicy: true });
     }
-    for (const doc of eegSpecificDocs) {
+    for (const doc of requiredEegDocs) {
       if (docConsents[doc.id]) {
         consents.push({ title: doc.title, url: doc.url, isCentralPolicy: false });
       }
@@ -1135,7 +1145,8 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                 )}
               />
             )}
-            {eegSpecificDocs.map((doc) => (
+            {/* PROJ-36: required documents — checkbox with confirmation */}
+            {requiredEegDocs.map((doc) => (
               <div key={doc.id} className="flex flex-row items-start gap-3">
                 <Checkbox
                   id={`doc-${doc.id}`}
@@ -1153,7 +1164,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                     <a href={doc.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
                       {doc.title}
                     </a>
-                    " gelesen und stimme zu.{doc.required ? " *" : ""}
+                    " gelesen und stimme zu. *
                   </label>
                   {docConsentErrors[doc.id] && (
                     <p className="text-sm font-medium text-destructive">{docConsentErrors[doc.id]}</p>
@@ -1161,6 +1172,31 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                 </div>
               </div>
             ))}
+            {/* PROJ-36: informational documents — link only, no checkbox.
+                Submit-time the server records an `informational` consent
+                from the legal_document table. */}
+            {informationalEegDocs.length > 0 && (
+              <div className="rounded-md border bg-muted/40 px-3 py-2 space-y-1.5">
+                <p className="text-xs text-muted-foreground">
+                  Die folgenden Dokumente werden Ihnen zur Information bereitgestellt.
+                  Mit Absenden des Antrags bestätigen Sie, sie zur Kenntnis genommen zu haben:
+                </p>
+                <ul className="list-disc pl-5 text-sm space-y-1">
+                  {informationalEegDocs.map((doc) => (
+                    <li key={doc.id}>
+                      <a
+                        href={doc.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline hover:text-foreground"
+                      >
+                        {doc.title}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <FormField
               control={form.control}
               name="accuracyConfirmed"

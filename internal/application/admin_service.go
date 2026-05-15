@@ -957,9 +957,10 @@ func buildApprovalPDFData(
 	consentPDFs := make([]pdf.ConsentPDF, len(consents))
 	for i, c := range consents {
 		consentPDFs[i] = pdf.ConsentPDF{
-			Title:       c.Title,
-			URL:         c.URL,
-			ConsentedAt: c.ConsentedAt,
+			Title:         c.Title,
+			URL:           c.URL,
+			ConsentedAt:   c.ConsentedAt,
+			Informational: c.ConsentType == shared.ConsentTypeInformational,
 		}
 	}
 

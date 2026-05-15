@@ -68,7 +68,17 @@ Rules:
 
 ---
 
-### 3.1a `member_onboarding.field_config`
+### 3.1a `member_onboarding.document_consent` (PROJ-36 note)
+
+Audit-Snapshot pro Antrag + Rechtsdokument. Spalten:
+- `id`, `application_id`, `title`, `url`, `is_central_policy`, `consented_at` (unverändert seit PROJ-9)
+- `consent_type` (PROJ-36) — `explicit` wenn das Mitglied aktiv eine Checkbox geklickt hat, `informational` wenn das Dokument als Info-Link angezeigt wurde (kein Häkchen, Kenntnisnahme implizit durch Antrags-Submit). Default `explicit` für Bestandseinträge.
+
+Eindeutigkeitsregeln: keine — eine Application kann mehrere Consents für unterschiedliche Dokumente haben.
+
+---
+
+### 3.1b `member_onboarding.field_config`
 
 Per-EEG configuration of optional form fields. Only explicitly configured values are stored (sparse table); missing entries fall back to system defaults.
 

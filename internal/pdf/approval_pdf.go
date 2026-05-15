@@ -80,6 +80,11 @@ type ConsentPDF struct {
 	Title       string
 	URL         string
 	ConsentedAt time.Time
+	// Informational (PROJ-36) is true when the consent was recorded as
+	// a passive acknowledgement of a non-required info document rather
+	// than as an active checkbox tick. Affects only the label text in
+	// the rendered PDF — the timestamp + URL are shown either way.
+	Informational bool
 }
 
 // StatusLogPDF holds one status log entry for the approval PDF.
@@ -268,13 +273,40 @@ func (g *FPDFApprovalGenerator) GenerateApproval(data ApprovalPDFData) ([]byte, 
 		}
 		f.MultiCell(cw, 5, w1252(line), "0", "L", false)
 	}
+	// PROJ-36: render the two consent kinds as separate blocks so the audit
+	// trail clearly distinguishes active acceptance from informational
+	// acknowledgement. Order matches the form order: explicit first.
 	for _, c := range data.Consents {
+		if c.Informational {
+			continue
+		}
 		line := fmt.Sprintf("- %s — Zugestimmt am %s", c.Title, fmtDateTime(c.ConsentedAt))
 		f.MultiCell(cw, 5, w1252(line), "0", "L", false)
 		if c.URL != "" {
 			setFont("", 8)
 			f.MultiCell(cw, 4, w1252("  "+c.URL), "0", "L", false)
 			setFont("", 9)
+		}
+	}
+	var informational []ConsentPDF
+	for _, c := range data.Consents {
+		if c.Informational {
+			informational = append(informational, c)
+		}
+	}
+	if len(informational) > 0 {
+		f.Ln(2)
+		setFont("B", 9)
+		f.MultiCell(cw, 5, w1252("Zur Kenntnis genommene Dokumente:"), "0", "L", false)
+		setFont("", 9)
+		for _, c := range informational {
+			line := fmt.Sprintf("- %s — Kenntnis genommen am %s", c.Title, fmtDateTime(c.ConsentedAt))
+			f.MultiCell(cw, 5, w1252(line), "0", "L", false)
+			if c.URL != "" {
+				setFont("", 8)
+				f.MultiCell(cw, 4, w1252("  "+c.URL), "0", "L", false)
+				setFont("", 9)
+			}
 		}
 	}
 	sepaShown := (data.SEPAMandateEnabled && data.SepaMandateAccepted) || !data.SEPAMandateEnabled

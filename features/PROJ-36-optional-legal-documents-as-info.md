@@ -1,8 +1,8 @@
 # PROJ-36: Optionale Rechtsdokumente als Info-Dokumente
 
-## Status: Planned
+## Status: In Review
 **Created:** 2026-05-14
-**Last Updated:** 2026-05-14
+**Last Updated:** 2026-05-15 (Stages 1–6 implementiert: Migration 34, Backend-Submit-Pfad mit auto-informational, Public-Form zweispaltig, Admin-Settings-Labels, Admin-Detail separate Anzeige, PDF separate Blöcke, Doku.)
 
 ## Dependencies
 - Berührt: PROJ-9 (EEG-spezifische Rechtsdokumente)

@@ -77,6 +77,9 @@ export interface DocumentConsentView {
   url: string;
   isCentralPolicy: boolean;
   consentedAt: string;
+  // PROJ-36: `explicit` for an actively checked confirmation, `informational`
+  // for a non-required document the member only acknowledged by submitting.
+  consentType?: "explicit" | "informational";
 }
 
 export interface RegistrationConfig {

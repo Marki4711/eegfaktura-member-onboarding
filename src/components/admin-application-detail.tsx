@@ -472,27 +472,59 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
               <Field label="Akzeptiert am" value={formatDateTime(application.privacyAcceptedAt)} />
               <BoolField label="Richtigkeit bestätigt" value={application.accuracyConfirmed} />
             </dl>
-            {application.consents && application.consents.length > 0 && (
-              <>
-                <Separator className="my-4" />
-                <p className="text-xs text-muted-foreground mb-3">Dokument-Einwilligungen</p>
-                <div className="space-y-2">
-                  {(application.consents as DocumentConsentView[]).map((c) => (
-                    <div key={c.id} className="flex items-start gap-3 text-sm">
-                      <div className="flex-1">
-                        <a href={c.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
-                          {c.title}
-                        </a>
-                        {c.isCentralPolicy && (
-                          <span className="ml-2 text-xs text-muted-foreground">(Zentrale Datenschutzerklärung)</span>
-                        )}
+            {application.consents && application.consents.length > 0 && (() => {
+              const all = application.consents as DocumentConsentView[];
+              // PROJ-36: split into actively-confirmed vs only-acknowledged.
+              const explicit = all.filter((c) => (c.consentType ?? "explicit") === "explicit");
+              const informational = all.filter((c) => c.consentType === "informational");
+              return (
+                <>
+                  <Separator className="my-4" />
+                  {explicit.length > 0 && (
+                    <>
+                      <p className="text-xs text-muted-foreground mb-3">Zugestimmte Dokumente</p>
+                      <div className="space-y-2">
+                        {explicit.map((c) => (
+                          <div key={c.id} className="flex items-start gap-3 text-sm">
+                            <div className="flex-1">
+                              <a href={c.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
+                                {c.title}
+                              </a>
+                              {c.isCentralPolicy && (
+                                <span className="ml-2 text-xs text-muted-foreground">(Zentrale Datenschutzerklärung)</span>
+                              )}
+                            </div>
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">
+                              Zugestimmt am {formatDateTime(c.consentedAt)}
+                            </span>
+                          </div>
+                        ))}
                       </div>
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">{formatDateTime(c.consentedAt)}</span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
+                    </>
+                  )}
+                  {informational.length > 0 && (
+                    <>
+                      {explicit.length > 0 && <Separator className="my-4" />}
+                      <p className="text-xs text-muted-foreground mb-3">Zur Kenntnis genommene Dokumente</p>
+                      <div className="space-y-2">
+                        {informational.map((c) => (
+                          <div key={c.id} className="flex items-start gap-3 text-sm">
+                            <div className="flex-1">
+                              <a href={c.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
+                                {c.title}
+                              </a>
+                            </div>
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">
+                              Kenntnis genommen am {formatDateTime(c.consentedAt)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </>
+              );
+            })()}
           </CardContent>
         </Card>
 

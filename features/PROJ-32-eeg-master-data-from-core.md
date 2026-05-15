@@ -2,7 +2,7 @@
 
 ## Status: Deployed
 **Created:** 2026-05-14
-**Last Updated:** 2026-05-14 (Phase 1 deployt nach Prod. URL-Architektur final: single Hostname-only env var. Phase 2 / Logo-Embed parked als Folge-Spec.)
+**Last Updated:** 2026-05-15 (Phase 1 deployt nach Prod. URL-Architektur final: single Hostname-only env var. Phase 2 / Logo-Embed wurde als Folge-Feature **PROJ-33** umgesetzt — siehe `features/PROJ-33-eeg-logo-from-core.md`.)
 
 > **Spec-Anmerkung:** Während der Implementierung wurde die ursprüngliche
 > Architektur (Live-Resolver mit In-Memory-Cache + Service-Account) zu einem
@@ -20,7 +20,7 @@
 > coreclient pro Aufruf hardcoded, weil der produktive Reverse-Proxy
 > mehrere Services unter demselben Host multiplext:
 > - `{base}/api/participant`, `{base}/api/eeg/tariff`, `{base}/api/query` — eegFaktura-backend
-> - `{base}/cash/api/billingConfigs/...` — eegfaktura-billing (Phase 2 Logo)
+> - `{base}/cash/api/billingConfigs/...` — eegfaktura-billing (Logo, umgesetzt in PROJ-33)
 >
 > Ein separates `CORE_GRAPHQL_URL` env existiert NICHT mehr. Deployments
 > müssen `CORE_BASE_URL` von `…/cash/api` auf den reinen Hostname umstellen.
@@ -312,9 +312,9 @@ Vorteil gegenüber der "passive cache, befüllt nur durch Admin-Action"-Variante
 
 - Dieses Feature schließt **Backlog-Item #1** aus dem 2026-05-14-Memo (EEG-Stammdaten aus Core).
 - Logo-Embedding im PDF schließt das Folge-Backlog-Item "Logo aus Core in PDF verwenden".
-- Realistische Implementations­dauer:
+- Realistische Implementations­dauer (Historie, beide Phasen am 2026-05-14 fertig):
   - **Phase 1 (Text-Stammdaten, ohne Logo):** 4–6 Stunden — Core-Client, Cache, Resolver, Renderer-Anbindung, Admin-UI Read-only.
-  - **Phase 2 (Logo):** 2–4 Stunden, nachdem Q1 verifiziert ist.
+  - **Phase 2 (Logo):** als eigenes Feature **PROJ-33** umgesetzt, siehe dort.
 - Keine neuen npm/Go-Pakete erforderlich. `image/jpeg` ist Standard Library.
 - Q8 ist der **Blocker** — ohne Service-Account-Token im Onboarding-Backend kann die Feature nicht laufen. Daher Empfehlung: vor Implementierungs­start im Core einen Service-Account-Login einrichten.
 
