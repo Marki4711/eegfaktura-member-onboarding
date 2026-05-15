@@ -100,6 +100,17 @@ Nach der Genehmigung kann der Antrag in eegFaktura importiert werden:
 
 > **Hinweis:** Der Import kann bei technischen Problemen mit eegFaktura fehlschlagen. In diesem Fall prüfen Sie den Fehlerhinweis und wiederholen Sie den Import, sobald das Problem behoben ist.
 
+## Hängengebliebener Import (PROJ-34)
+
+Wenn ein Import-Versuch nicht sauber abschließt — z.B. weil eine Datenbank-Eindeutigkeitsverletzung den Bookkeeping-Schritt nach dem Core-Aufruf scheitern lässt, oder weil das Onboarding-Backend mitten im Import abstürzt — bleibt der Antrag im Status `approved`, kann aber nicht erneut importiert werden (das System meldet 409 „Import läuft bereits").
+
+In diesem Fall erscheint im Antrags-Detail ein **oranger Banner** mit zwei Recovery-Aktionen:
+
+- **„Als importiert markieren"** — wenn der Teilnehmer im Core trotzdem angelegt wurde (im eegFaktura-Core nachschauen, Teilnehmer-UUID und vergebene Mitgliedsnummer notieren). Tragen Sie beides im Dialog ein; der Antrag wechselt sauber auf `imported`.
+- **„Import-Lock räumen (Retry)"** — wenn Sie sicher sind, dass im Core kein Teilnehmer angelegt wurde (oder Sie ihn vorher manuell gelöscht haben). Setzt den Lock zurück, der Antrag bleibt auf `approved`, ein erneuter Import wird möglich. **Achtung**: Bei vorhandenem Core-Teilnehmer entsteht beim Retry ein Duplikat.
+
+Der Banner erscheint automatisch, sobald der Import-Versuch älter als 2 Minuten ist und nicht sauber abgeschlossen wurde — Sie müssen nicht raten, ob „nochmal probieren" sicher ist.
+
 ## Import zurücksetzen (`imported → approved`)
 
 Wenn ein bereits importierter Teilnehmer im eegFaktura-Core gelöscht wurde (z. B. weil das Mitglied seine Teilnahme widerrufen hat oder der Import fehlerhaft war), kann der Antrag in den Status `approved` zurückgesetzt werden, um einen Neu-Import zu ermöglichen.

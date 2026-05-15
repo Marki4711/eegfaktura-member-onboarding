@@ -19,14 +19,14 @@ Standardmäßig erhalten alle Mitglieder das CORE-Mandat. EEGs, die das B2B-Verf
 
 ## User Stories
 
-- Als **EEG-Administrator** möchte ich festlegen können, ob Unternehmen und Verbände das SEPA-Firmenlastschriftmandat (B2B) erhalten statt des Standard-Mandats, damit das korrekte Mandat für das Einzugsverfahren meiner EEG versendet wird.
-- Als **neues Mitglied** (Unternehmen/Verband) möchte ich das für meine Rechtsform passende SEPA-Mandat als PDF-Anhang erhalten, damit ich das richtige Dokument unterschreibe und zurückschicke.
+- Als **EEG-Administrator** möchte ich festlegen können, ob Unternehmen und Vereine das SEPA-Firmenlastschriftmandat (B2B) erhalten statt des Standard-Mandats, damit das korrekte Mandat für das Einzugsverfahren meiner EEG versendet wird.
+- Als **neues Mitglied** (Unternehmen/Verein) möchte ich das für meine Rechtsform passende SEPA-Mandat als PDF-Anhang erhalten, damit ich das richtige Dokument unterschreibe und zurückschicke.
 - Als **EEG-Administrator** möchte ich, dass Privatmitglieder immer das CORE-Mandat erhalten, unabhängig von der B2B-Einstellung, damit kein falsches Mandat versendet wird.
 
 ## Acceptance Criteria
 
 ### Konfiguration im Admin-Backend
-- [ ] Auf der Einstellungsseite der EEG gibt es im SEPA-Abschnitt einen neuen Toggle: **„Firmenlastschrift (B2B) für Unternehmen und Verbände verwenden"**
+- [ ] Auf der Einstellungsseite der EEG gibt es im SEPA-Abschnitt einen neuen Toggle: **„Firmenlastschrift (B2B) für Unternehmen und Vereine verwenden"**
 - [ ] Der Toggle ist per EEG steuerbar; Standard: **deaktiviert**
 - [ ] Der Toggle ist nur sichtbar, wenn `sepa_mandate_enabled = true`
 - [ ] Die Einstellung wird als `use_company_sepa_mandate BOOLEAN` in `member_onboarding.registration_entrypoint` gespeichert

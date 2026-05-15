@@ -10,6 +10,77 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Neu — PROJ-36: Optionale Rechtsdokumente als Info-Dokumente *(2026-05-15)*
+
+Beta-Feedback: optionale Checkboxen waren verwirrend (Mitglieder wussten nicht, ob ihr fehlendes Häkchen rechtlich relevant ist). Der Toggle pro Rechtsdokument ist jetzt binär — **Pflicht-Zustimmung** oder **Nur zur Information**.
+
+- **DB**: Migration 000034 fügt `document_consent.consent_type` (`explicit` | `informational`) hinzu, Default `explicit` für Bestandsdaten
+- **Public-Form**: Pflicht-Dokumente bleiben Checkboxen; Info-Dokumente landen in einem eigenen „Zur Information"-Block mit Top-Border-Separator unterhalb aller Pflicht-Häkchen
+- **Backend** (`ApplicationService.SubmitApplication`): schreibt automatisch `informational`-Consent-Einträge für jedes nicht-required `legal_document` der EEG — Audit-Trail bleibt vollständig auch ohne Häkchen
+- **Admin-Detail + Beitrittsbestätigungs-PDF**: zwei separate Blöcke „Zugestimmte Dokumente · Zugestimmt am …" / „Zur Kenntnis genommene Dokumente · Kenntnis genommen am …"
+- **Admin-Settings**: Toggle-Label kontextsensitiv („Mitglied muss zustimmen" / „Nur zur Information"), erklärender Hilfetext darunter, Listen-Badge sagt „Pflicht-Zustimmung" bzw. „Nur zur Information"
+
+### Neu — PROJ-35: Per-EEG-Referenznummern *(2026-05-14)*
+
+Antrags-Referenznummer im Format **`<RC>-<Jahr>-<NNNN>`** (z.B. `RC105720-2026-0001`) statt der bisherigen globalen `MO-YYYY-NNNNNN`-Sequenz. Counter resettet pro EEG und pro Jahr.
+
+- Migration 000033 mit Counter-Tabelle `reference_number_counter (rc_number, year, last_value)`; atomare Increment via `INSERT … ON CONFLICT DO UPDATE … RETURNING`
+- Bestehende Anträge behalten ihre alten Refs (Links in bereits verschickten Mails bleiben gültig)
+- 4-stelliger Counter reicht für 9 999 Anträge/EEG/Jahr — Overflow gibt sprechenden Fehler statt Format zu erweitern
+
+### Neu — PROJ-34: Robuste Import-Recovery *(2026-05-14)*
+
+Behebt den „stuck-in-flight"-Fehlerklasse, die heute im Test-Cluster sichtbar wurde (Antrag bleibt nach DB-UNIQUE-Verletzung dauerhaft in `approved + in-flight`-Zustand).
+
+- **Orphan-Fallback**: Wenn das Bookkeeping nach erfolgreichem Core-Insert fehlschlägt (UNIQUE-Index aus Migration 28 etc.), wechselt der Antrag in einer zweiten Transaktion auf `import_failed` mit `target_participant_id` und sprechender Fehlermeldung. Der bestehende Reset-Import-Flow (PROJ-30) wird damit zur Recovery-Route.
+- **Lokaler Pre-Check** vor dem Core-Aufruf: `MemberNumberUsedLocally` blockiert duplikate `member_number` im selben EEG mit 409, bevor irgendetwas an den Core geht — kein Orphan-Teilnehmer mehr aus diesem Fehlerpfad
+- **Stuck-Detection**: `AdminApplicationDetailResponse.importStuck` (server-side berechnet: `approved + import_started_at > 2 min + finished_at NULL`)
+- **Zwei neue Admin-Endpoints**:
+  - `POST /api/admin/applications/{id}/mark-imported-manually` — Admin gibt Core-UUID + Mitgliedsnummer ein, sauberer Übergang nach `imported`
+  - `POST /api/admin/applications/{id}/clear-import-lock` — Lock raus, Status bleibt `approved` (Duplikatsrisiko, sprechender Warntext)
+- **Admin-UI**: oranger Banner über der Statusaktions-Card mit zwei Recovery-Buttons inkl. Bestätigungsdialogen
+
+### Neu — PROJ-33: EEG-Logo aus Core *(2026-05-14, Phase 2 von PROJ-32)*
+
+EEG-Logo aus eegfaktura-billing-Service ziehen und in die Beitrittsbestätigung + SEPA-Mandat einbetten.
+
+- **Endpoints**: `GET /cash/api/billingConfigs/tenant/{rc}` → `headerImageFileDataId` als Indikator, dann `GET /cash/api/billingConfigs/{billingConfigId}/logoImage` → Bytes
+- **DB**: Migration 000032 mit `eeg_logo_bytes BYTEA`, `eeg_logo_mime TEXT`, `eeg_logo_synced_at TIMESTAMPTZ`
+- **Caps**: 256 KB Hard-Limit via `io.LimitReader`, MIME-Whitelist `image/png|jpeg|gif` (gofpdf-kompatibel)
+- **Best-effort**: Logo-Fetch-Fehler bricht den Stammdaten-Sync nicht ab; `logoSyncWarning` landet in der Response (Frontend rendert orangen Hinweis unter der Logo-Vorschau)
+- **PDFs**: `embedLogoTopRight` rendert 30 mm hoch top-right, max 50 mm breit; korrupt-Bild oder fpdf-Fehler werden geloggt und übersprungen, PDF rendert weiter ohne Logo
+- **Admin-UI**: Logo-Vorschau als 9tes Synced-Field in der Stammdaten-Card; Object-URL über `fetchEEGLogoBlob` (Bearer-Header), Cache-Bust via `eegLogoSyncedAt`-Timestamp
+- **Neuer Endpoint**: `GET /api/admin/settings/eeg/logo?rc_number=…` liefert die Bytes mit korrektem `Content-Type` + 5-Min-Private-Cache
+
+### Neu — PROJ-32: EEG-Stammdaten-Sync aus Core *(2026-05-14)*
+
+Acht EEG-Stammdaten-Felder (Gemeinschafts-ID, Name, vier Adressfelder, Creditor-ID, Kontakt-E-Mail) werden direkt aus eegFaktura gespiegelt und sind im Onboarding **schreibgeschützt**.
+
+- **GraphQL-Endpoint**: `POST {base}/api/query` mit `query { eeg }` (scalar `Eeg` — kein Selection-Set, returnt vollständiges JSON)
+- **DB**: Migration 000031 mit `last_synced_from_core_at`; bestehende Stammdaten-Spalten werden vom Sync überschrieben
+- **Architektur**: Single source of truth = `registration_entrypoint`; Auth = User-Context-Bearer-Forwarding (kein Service-Account); Microcache 30s auf `CompareEEGSettingsWithCore`
+- **URL-Modell**: `CORE_BASE_URL` ist jetzt nur der Hostname (z.B. `https://eegfaktura.at`); Pfad-Prefixe (`/api/...`, `/cash/api/...`) sind im coreclient hardcoded — der frühere `CORE_GRAPHQL_URL`-env-var ist weg
+- **UI**: Drift-Banner (grün/orange/grau) mit per-Feld-Diff; „Aus eegFaktura aktualisieren"-Button verwendet das Admin-JWT
+- **Performance-Fix nebenbei**: `ListParticipants`-Body-Cap von 1 MiB auf 4 MiB hochgezogen (verhindert silent Truncation bei großen EEGs)
+
+### Neu — PROJ-31: E-Mail-Adresse-Bestätigung (Anti-Abuse) *(2026-05-14)*
+
+Pro EEG aktivierbar: Mitglieder müssen den Link in der Bestätigungs-Mail klicken, bevor der Antrag in den Admin-Review-Zustand wechselt.
+
+- **Status-Modell**: neuer `email_confirmed`-Zustand zwischen `submitted` und `under_review`
+- **DB**: Migration 000030 mit `email_confirmation_token_hash` (SHA-256), `email_confirmation_token_expires_at`, `email_confirmed_at`, `email_confirmation_used_at`, `registration_entrypoint.require_email_confirmation`
+- **Security**: Token im URL-Fragment (`#token`) statt im Pfad → bleibt aus Server-Logs raus; Referrer-Policy `no-referrer`; idempotente Re-Clicks („Bereits bestätigt"-Seite statt 400)
+- **Resend-Endpoint** für die Admin-Detail-Page; **30-Tage-Auto-Reject** via Background-Job
+- **Admin-Guards**: `/status`-Endpoint refuses `submitted → under_review|needs_info|approved` mit 409 solange die Bestätigung aussteht — `submitted → rejected` bleibt als Anti-Spam-Override verfügbar
+
+### Geändert — sonstige UX/Stabilität *(2026-05-15)*
+
+- **B2B-Toggle-Label**: „Firmenlastschrift (B2B) für Unternehmen und **Vereine** verwenden" (zuvor „Verbände" — die Antrags-Auswahl kennt nur `Verein`)
+- **Admin-Conflict-Messages**: Server-spezifische 409-Meldungen werden statt eines generischen „Aktion nicht mehr gültig"-Texts angezeigt (z.B. „E-Mail-Adresse des Bewerbers ist noch nicht bestätigt …")
+- **Core-HTTP-400-Hint**: Opake `core returned HTTP 400: {}` wird auf eine handlungsorientierte Meldung übersetzt („Wahrscheinlichste Ursache: einer der Zählpunkte ist im Core bereits einem aktiven Teilnehmer zugeordnet")
+- **Health-Probe-Spam**: K8s-Liveness/Readiness-Pings (`/livez`, `/readyz`) werden nicht mehr im Request-Log aufgezeichnet (Metric-Histogramm bekommt sie weiterhin)
+- **CI**: `update-helm`-Job führt Retry-with-Rebase aus, behebt Race wenn manuelle Pushes mit dem Auto-Tag-Bump kollidieren
+
 ### Neu — PROJ-27: Tarif-Auswahl beim Import
 
 Beim Klick auf „Importieren" öffnet sich ein Dialog, in dem Admin Tarif für Mitglied und je Zählpunkt wählt. Tarife werden zum Klick-Zeitpunkt live aus dem Core gelesen (`GET /eeg/tariff`), keine Persistierung im Onboarding.
