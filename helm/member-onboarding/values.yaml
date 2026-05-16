@@ -100,6 +100,9 @@ frontend:
   logLevel: "info"
   backendUrl: ""
   # NextAuth / Keycloak — via values-env.yaml setzen
+  # Wird auch vom Backend als PUBLIC_BASE_URL übernommen (Basis der
+  # E-Mail-Bestätigungs-Links, PROJ-31). Single source of truth für die
+  # öffentliche App-URL.
   nextauthUrl: "" # Öffentliche URL der App, z.B. https://member-onboarding.example.at
   keycloakIssuer: "" # z.B. https://keycloak.example.at/realms/EEGFaktura
   keycloakClientId: ""

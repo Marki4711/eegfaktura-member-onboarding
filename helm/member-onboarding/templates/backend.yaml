@@ -94,6 +94,12 @@ spec:
               value: {{ .Values.backend.coreTimeoutSeconds | default 30 | quote }}
             - name: TRUSTED_PROXY_CIDRS
               value: {{ .Values.backend.trustedProxyCIDRs | default "" | quote }}
+            # Öffentliche URL der App — wird vom Backend zum Bauen des
+            # E-Mail-Bestätigungs-Links (PROJ-31) verwendet. Bewusst aus
+            # frontend.nextauthUrl bezogen, damit es nur eine einzige
+            # "öffentliche URL" in den Values gibt.
+            - name: PUBLIC_BASE_URL
+              value: {{ .Values.frontend.nextauthUrl | quote }}
           resources:
             {{- toYaml .Values.backend.resources | nindent 12 }}
           readinessProbe:

@@ -22,11 +22,11 @@ Die Mitgliedsnummer ist nicht in der Liste, sondern erst in der Detailansicht ei
 
 | Filter | Beschreibung |
 |--------|-------------|
-| **Status** | Nur Anträge mit einem bestimmten Status anzeigen |
-| **Name** | Suche nach Familienname des Mitglieds |
-| **E-Mail** | Suche nach E-Mail-Adresse |
-| **EEG** | Nur Anträge einer bestimmten EEG anzeigen (erscheint bei mehreren EEGs) |
-| **Eingereicht von/bis** | Zeitraum der Einreichung |
+| **Status** | Nur Anträge mit einem bestimmten Status anzeigen (Entwurf, Eingereicht, In Prüfung, Info benötigt, Genehmigt, Abgelehnt, Importiert, Import fehlgeschlagen) |
+| **Name** | Teilsuche über Vorname, Nachname und Firmenname (z. B. findet „Must" sowohl „Max Mustermann" als auch eine Firma „Musterbetrieb GmbH") |
+| **E-Mail** | Teilsuche in der E-Mail-Adresse |
+| **EEG** | Nur Anträge einer bestimmten EEG anzeigen (erscheint nur bei Admins mit mehreren EEGs) |
+| **Eingereicht ab / bis** | Zeitraum der Einreichung (Datumsbereich) |
 
 ## Sortieren
 
