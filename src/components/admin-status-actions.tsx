@@ -129,11 +129,14 @@ export function AdminStatusActions({ applicationId, rcNumber, status, targetPart
       setImportDialogOpen(false);
       onRefresh();
     } catch (err: unknown) {
-      if (err instanceof ApiResponseError) {
-        setError(err.apiError.message || "Import fehlgeschlagen.");
-      } else {
-        setError(err instanceof Error ? err.message : "Import fehlgeschlagen.");
-      }
+      const msg = err instanceof ApiResponseError
+        ? (err.apiError.message || "Import fehlgeschlagen.")
+        : (err instanceof Error ? err.message : "Import fehlgeschlagen.");
+      setError(msg);
+      // Surface as toast too — the inline error inside the open dialog is
+      // the primary signal; the toast catches the case where the dialog
+      // gets dismissed before the admin reads the inline message.
+      toast.error(msg);
       onRefresh();
     } finally {
       setLoading(false);
@@ -374,6 +377,7 @@ export function AdminStatusActions({ applicationId, rcNumber, status, targetPart
         meteringPoints={meteringPoints}
         accessToken={session?.accessToken}
         loading={loading}
+        errorMessage={error}
         onCancel={() => setImportDialogOpen(false)}
         onConfirm={runImport}
       />

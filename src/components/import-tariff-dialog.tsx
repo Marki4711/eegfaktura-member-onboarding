@@ -27,6 +27,10 @@ interface Props {
   meteringPoints: MeteringPointDetail[];
   accessToken?: string;
   loading: boolean;
+  // Server-side error from the last import attempt (e.g. member-number
+  // already used). Surfaced inside the dialog so the admin sees what went
+  // wrong without having to close the dialog and scroll.
+  errorMessage?: string | null;
   onCancel: () => void;
   onConfirm: (selection: {
     memberNumber: string;
@@ -51,6 +55,7 @@ export function ImportTariffDialog({
   meteringPoints,
   accessToken,
   loading,
+  errorMessage,
   onCancel,
   onConfirm,
 }: Props) {
@@ -231,6 +236,12 @@ export function ImportTariffDialog({
                 })}
               </div>
             )}
+          </div>
+        )}
+
+        {errorMessage && (
+          <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+            {errorMessage}
           </div>
         )}
 
