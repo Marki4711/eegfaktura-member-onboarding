@@ -1056,9 +1056,15 @@ func (r *ApplicationRepository) UpdateAdminNote(id uuid.UUID, note string) error
 	return nil
 }
 
+// UpdateStatusAdminTx writes the new status with a guarded WHERE clause:
+// the row is only updated if the current status still matches expectedFrom.
+// This second line of defence catches code paths that forget to consult
+// the adminTransitions map (PROJ-38). All other Mark*Tx repo methods
+// follow the same pattern. Returns ErrConflict when no row matched.
 func (r *ApplicationRepository) UpdateStatusAdminTx(
 	tx *sql.Tx,
 	id uuid.UUID,
+	expectedFrom shared.ApplicationStatus,
 	toStatus shared.ApplicationStatus,
 	submittedAt, approvedAt, rejectedAt *time.Time,
 	needsInfoReason, reviewedByUserID *string,
@@ -1072,11 +1078,15 @@ func (r *ApplicationRepository) UpdateStatusAdminTx(
 			needs_info_reason   = COALESCE($5, needs_info_reason),
 			reviewed_by_user_id = COALESCE($6, reviewed_by_user_id),
 			updated_at          = NOW()
-		WHERE id = $7`
+		WHERE id = $7 AND status = $8`
 
-	_, err := tx.Exec(query, toStatus, submittedAt, approvedAt, rejectedAt, needsInfoReason, reviewedByUserID, id)
+	res, err := tx.Exec(query, toStatus, submittedAt, approvedAt, rejectedAt, needsInfoReason, reviewedByUserID, id, expectedFrom)
 	if err != nil {
 		return fmt.Errorf("failed to update application status: %w", err)
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return shared.ErrConflict
 	}
 	return nil
 }

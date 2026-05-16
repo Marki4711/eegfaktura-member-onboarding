@@ -52,5 +52,6 @@ Central tracking for all features.
 | PROJ-35 | Per-EEG-Referenznummern (`<RC>-<Jahr>-<NNNN>`) | In Review | `features/PROJ-35-per-eeg-reference-numbers.md` | 2026-05-14 |
 | PROJ-36 | Optionale Rechtsdokumente als Info-Dokumente | In Review | `features/PROJ-36-optional-legal-documents-as-info.md` | 2026-05-14 |
 | PROJ-37 | Genossenschaftsanteile (per-EEG-Konfiguration + Antragsfeld) | In Review | `features/PROJ-37-cooperative-shares.md` | 2026-05-15 |
+| PROJ-38 | Status-Modell-Hygiene & Audit-Fixes | In Review | `features/PROJ-38-status-hygiene.md` | 2026-05-16 |
 
-## Next Available ID: PROJ-38
+## Next Available ID: PROJ-39

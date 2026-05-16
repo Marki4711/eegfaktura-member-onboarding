@@ -2105,9 +2105,9 @@ func (h *AdminHandler) ReorderLegalDocuments(w http.ResponseWriter, r *http.Requ
 
 func isKnownStatus(s string) bool {
 	switch shared.ApplicationStatus(s) {
-	case shared.StatusDraft, shared.StatusSubmitted, shared.StatusUnderReview,
-		shared.StatusNeedsInfo, shared.StatusApproved, shared.StatusRejected,
-		shared.StatusImported, shared.StatusImportFailed:
+	case shared.StatusDraft, shared.StatusSubmitted, shared.StatusEmailConfirmed,
+		shared.StatusUnderReview, shared.StatusNeedsInfo, shared.StatusApproved,
+		shared.StatusRejected, shared.StatusImported, shared.StatusImportFailed:
 		return true
 	}
 	return false

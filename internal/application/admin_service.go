@@ -524,7 +524,7 @@ func (s *AdminApplicationService) ChangeStatus(id uuid.UUID, toStatus shared.App
 	}
 	defer tx.Rollback()
 
-	if err := s.appRepo.UpdateStatusAdminTx(tx, id, toStatus, submittedAt, approvedAt, rejectedAt, needsInfoReason, actorPtr); err != nil {
+	if err := s.appRepo.UpdateStatusAdminTx(tx, id, app.Status, toStatus, submittedAt, approvedAt, rejectedAt, needsInfoReason, actorPtr); err != nil {
 		return nil, fmt.Errorf("failed to update status: %w", err)
 	}
 
@@ -763,6 +763,13 @@ func (s *AdminApplicationService) ClearImportLock(id uuid.UUID, reason, actorID 
 // The previous target_participant_id is appended to the reason as
 // `[system] previous target_participant_id=<uuid>` so the audit trail
 // preserves the lost UUID (Q1).
+//
+// PROJ-38 note: the PROJ-31 e-mail-confirmation gate intentionally does
+// NOT apply here. The application already went through `approved →
+// imported`, which means it was once vetted (either pre-PROJ-31 or with
+// confirmation). Re-vetting the member's e-mail at reset time would only
+// matter if the EEG retroactively turned the toggle on, which equally
+// affects every historical `approved` row and is by design out of scope.
 func (s *AdminApplicationService) ResetImport(id uuid.UUID, reason, actorID string) (*shared.Application, error) {
 	app, err := s.appRepo.GetByID(id)
 	if err != nil {
