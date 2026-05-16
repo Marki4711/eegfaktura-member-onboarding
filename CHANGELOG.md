@@ -10,6 +10,21 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Behoben — PROJ-31 Constraint-Lücke + Helm-Fix *(2026-05-16)*
+
+- **DB**: Migration 000036 ergänzt `email_confirmed` im `application_status_check`-CHECK-Constraint. Davor lief jeder `confirm-email`-POST in einen Postgres-23514-Fehler → HTTP 500 „An internal error occurred". Ursache: PROJ-31 hatte die Status-Konstante + Transition-Map gepflegt, die DB-Constraint aber nie angepasst (Tests liefen gegen Go-Fake-Store, nicht gegen echtes Postgres)
+- **Helm**: Backend-Deployment bekommt `PUBLIC_BASE_URL` aus `frontend.nextauthUrl` (single source of truth für die öffentliche App-URL). Vorher war die Env-Var im Chart gar nicht definiert → der PROJ-31-Confirm-Link wurde nie generiert (silent fallback auf Legacy-Flow ohne Bestätigungs-Block in der Mail)
+- **Doku**: `docs/architecture.md` dokumentiert das Status-Set als 3-place-Invariant (Code-Konstanten + adminTransitions-Map + DB-CHECK-Constraint)
+
+### Neu — PROJ-38: Status-Modell-Hygiene & Audit-Fixes *(2026-05-16)*
+
+Code-Audit nach der PROJ-31-Constraint-Regression. Drei Findings umgesetzt, zwei als False-Positive verworfen.
+
+- **`UpdateStatusAdminTx`** mit guarded `WHERE status = $expected_from` — bei 0 betroffenen Rows kommt `ErrConflict` (HTTP 409). Damit ist der admin-seitige Status-Schreibpfad auf dem gleichen Schutz-Niveau wie alle anderen `Mark*Tx`-Methoden. Vergisst ein Caller die Transition-Map oder mutiert ein paralleler Prozess parallel den Status, schlägt die UPDATE jetzt sauber fehl statt still durchzulaufen
+- **`isKnownStatus`** deckt jetzt alle 9 Status-Werte ab (`email_confirmed` fehlte). Defensiv — der `adminTransitions`-Layer hatte die Konsequenz bereits korrekt abgefangen
+- **`ResetImport`** dokumentiert, warum der PROJ-31-Confirmation-Gate hier intentional fehlt (Antrag bereits einmal vetted via `approved → imported`)
+- Out of scope für separate Specs: Submit-Mail-Retry, Auto-Reject-Doppel-Metrik bei parallelen Pods
+
 ### Neu — PROJ-37: Genossenschaftsanteile *(2026-05-15)*
 
 EEG-Admins können pro EEG aktivieren, ob Mitglieder bei der Registrierung Genossenschaftsanteile zeichnen müssen. Die Pflichtanzahl und der Wert je Anteil sind per EEG konfigurierbar; das Formular zeigt eine Live-Berechnung des Gesamtbetrags, die Beitrittsbestätigung weist die Anteile als eigene Sektion aus.

@@ -273,6 +273,22 @@ Rules:
 - Revoking does not delete the row; generating a new key replaces the hash in the existing row
 - Burst rate limit (10 requests / 60 seconds) is enforced in-memory per pod; daily quota (200 submissions / day) is DB-backed via `daily_count` + `quota_date`
 
+### 3.8 `member_onboarding.reference_number_counter` *(PROJ-35)*
+
+Per-EEG, per-year counter for the new reference-number format `<RC>-<Jahr>-<NNNN>`.
+
+Fields:
+- `rc_number` — VARCHAR, FK to `registration_entrypoint(rc_number)`
+- `year` — INT
+- `last_value` — INT NOT NULL DEFAULT 0; last assigned counter value
+- PRIMARY KEY `(rc_number, year)`
+
+Rules:
+- Atomically incremented via `INSERT … ON CONFLICT DO UPDATE … RETURNING last_value + 1`
+- Per-EEG isolation: parallel submits across EEGs never block each other
+- Per-year reset: counter starts at `0001` each calendar year
+- Legacy applications created before PROJ-35 keep their `MO-YYYY-NNNNNN` reference numbers (uniqueness across both formats is guaranteed by the column-level UNIQUE on `application.reference_number`)
+
 ---
 
 ## 4. Status Model
@@ -280,6 +296,7 @@ Rules:
 Allowed status values:
 - `draft`
 - `submitted`
+- `email_confirmed` *(PROJ-31, only reached when the EEG opts in to e-mail confirmation)*
 - `under_review`
 - `needs_info`
 - `approved`
@@ -290,6 +307,12 @@ Allowed status values:
 Allowed transitions:
 - `draft -> submitted`
 - `submitted -> under_review`
+- `submitted -> email_confirmed` *(PROJ-31, only via member click on `POST /api/public/applications/confirm-email`. Not exposed on the admin `/status` endpoint.)*
+- `submitted -> rejected` *(PROJ-31, admin anti-spam override before confirmation)*
+- `email_confirmed -> under_review`
+- `email_confirmed -> needs_info`
+- `email_confirmed -> approved`
+- `email_confirmed -> rejected`
 - `under_review -> needs_info`
 - `under_review -> approved`
 - `under_review -> rejected`
@@ -297,6 +320,11 @@ Allowed transitions:
 - `approved -> imported`
 - `approved -> import_failed`
 - `import_failed -> approved`
+- `imported -> approved` *(PROJ-30, only via `POST /reset-import`, never via generic `/status`)*
+
+When `registration_entrypoint.require_email_confirmation = TRUE` (PROJ-31), the generic admin `/status` endpoint rejects `submitted -> under_review|needs_info|approved` with 409 until the member has clicked the confirmation link. `submitted -> rejected` remains available as the admin's anti-spam override.
+
+The set of allowed status values is enforced in **three places** (Go constants in `internal/shared/models.go`, `adminTransitions` map in `internal/application/admin_service.go`, and the `application_status_check` CHECK constraint — see migration `000036_application_status_check_email_confirmed.up.sql` for the DROP-and-re-ADD pattern). All three must be updated when introducing a new status.
 
 ## 5. Business Rules
 

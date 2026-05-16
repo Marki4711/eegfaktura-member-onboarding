@@ -155,11 +155,13 @@ Basic rules:
 
 ### Status values — keep three places in sync
 
+Current set: `draft`, `submitted`, `email_confirmed` *(PROJ-31)*, `under_review`, `needs_info`, `approved`, `rejected`, `imported`, `import_failed`.
+
 Adding or removing an application status requires updates in all three:
 
 1. `CLAUDE.md` → "Allowed status values" (canonical).
-2. `internal/shared` status constants + `adminTransitions` map in `internal/application/admin_service.go`.
-3. `application_status_check` constraint — new migration that DROPs and re-ADDs it (pattern: `000036_application_status_check_email_confirmed.up.sql`).
+2. `internal/shared/models.go` status constants + `adminTransitions` map in `internal/application/admin_service.go`.
+3. `application_status_check` CHECK constraint — new migration that DROPs and re-ADDs it. Reference pattern: `db/migrations/000036_application_status_check_email_confirmed.up.sql`.
 
 Go-only tests don't catch a stale constraint — verify with an end-to-end transition on a migrated Postgres before release.
 

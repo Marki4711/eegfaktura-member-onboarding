@@ -57,6 +57,7 @@ The business logic additionally validates the EEG authorization in the backend.
 Allowed values:
 - `draft`
 - `submitted`
+- `email_confirmed` *(PROJ-31, only when the EEG opts in to e-mail confirmation)*
 - `under_review`
 - `needs_info`
 - `approved`
@@ -217,7 +218,7 @@ All fields under `meteringPoints[].transformer/installationNumber/installationNa
 ```json
 {
   "id": "3f8c8c2d-....",
-  "referenceNumber": "MO-2026-000001",
+  "referenceNumber": "RC123456-2026-0001",
   "status": "draft",
   "createdAt": "2026-04-18T12:00:00Z",
   "updatedAt": "2026-04-18T12:00:00Z"
@@ -252,7 +253,7 @@ Same model as Create.
 ```json
 {
   "id": "3f8c8c2d-....",
-  "referenceNumber": "MO-2026-000001",
+  "referenceNumber": "RC123456-2026-0001",
   "status": "draft",
   "updatedAt": "2026-04-18T12:30:00Z"
 }
@@ -327,7 +328,7 @@ Before submit, the following must be set:
 ```json
 {
   "id": "3f8c8c2d-....",
-  "referenceNumber": "MO-2026-000001",
+  "referenceNumber": "RC123456-2026-0001",
   "status": "submitted",
   "submittedAt": "2026-04-18T12:35:00Z"
 }
@@ -405,7 +406,7 @@ Returns the admin list.
   "items": [
     {
       "id": "3f8c8c2d-....",
-      "referenceNumber": "MO-2026-000001",
+      "referenceNumber": "RC123456-2026-0001",
       "rcNumber": "RC123456",
       "status": "submitted",
       "firstname": "Josef",
@@ -436,7 +437,7 @@ Returns the admin list.
 ```json
 {
   "id": "3f8c8c2d-....",
-  "referenceNumber": "MO-2026-000001",
+  "referenceNumber": "RC123456-2026-0001",
   "rcNumber": "RC123456",
   "status": "submitted",
   "firstname": "Max",
@@ -558,6 +559,11 @@ Returns the admin list.
 
 ### Allowed transitions
 - `submitted -> under_review`
+- `submitted -> rejected` *(PROJ-31, admin override for obvious junk before e-mail confirmation)*
+- `email_confirmed -> under_review` *(PROJ-31)*
+- `email_confirmed -> needs_info`
+- `email_confirmed -> approved`
+- `email_confirmed -> rejected`
 - `under_review -> needs_info`
 - `under_review -> approved`
 - `under_review -> rejected`
@@ -565,6 +571,12 @@ Returns the admin list.
 - `approved -> imported`
 - `approved -> import_failed`
 - `import_failed -> approved`
+
+Reachable only via dedicated endpoints (NOT via this generic `/status` route):
+- `submitted -> email_confirmed` — via member click on `POST /api/public/applications/confirm-email`
+- `imported -> approved` — via `POST /api/admin/applications/{id}/reset-import` (PROJ-30, see 6.5.3)
+
+When `registration_entrypoint.require_email_confirmation = TRUE` (PROJ-31), this endpoint rejects `submitted -> under_review|needs_info|approved` with HTTP 409 until the member has clicked the confirmation link. `submitted -> rejected` remains available as the admin's anti-spam override.
 
 ### Side effects
 - on `approved`: set `approved_at`, set `reviewed_by_user_id`
@@ -800,6 +812,34 @@ Returns the full `AdminApplicationDetail` after the reset (status now
 - `400` reason missing / too short / too long
 - `403` tenant mismatch
 - `409` application not in `imported` status
+
+---
+
+## 6.5.4 Resend e-mail confirmation (PROJ-31)
+
+### POST `/api/admin/applications/{id}/resend-email-confirmation`
+
+Rotates the e-mail confirmation token (old token is invalidated) and resends the welcome mail to the member. Useful when the original mail was lost. Available only while the application is in status `submitted` with a still-pending confirmation; refused once the member has already confirmed.
+
+### Request
+No body.
+
+### Response 200
+```json
+{ "ok": true }
+```
+
+### Rules
+- application must be in `submitted` and not yet confirmed
+- EEG must have `require_email_confirmation = true` (otherwise no token is needed)
+- the new token's lifetime is reset to 30 days from now
+- the previous token is invalidated immediately (single-use guarantee)
+- a per-application throttle prevents resend abuse
+
+### Errors
+- `403` tenant mismatch
+- `404` application not found
+- `409` application already confirmed, or EEG does not require confirmation, or throttle hit
 
 ---
 

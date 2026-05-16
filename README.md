@@ -16,18 +16,25 @@ This repository contains the **eegfaktura Member Onboarding** component, enablin
 ## Features
 
 - Public self-service registration form with configurable fields per EEG
-- Member types: Privatperson, Landwirt, Gemeinde, Unternehmen, Verein
-- SEPA direct debit mandate (inline or email-based)
-- Admin review and approval workflow with status tracking
-- Keycloak-secured admin area with tenant isolation
-- Per-EEG field configuration, intro text, and legal documents
-- E-mail notifications for applicants and admins
+- Member types: Privatperson, Kleinunternehmer, Landwirt, Gemeinde, Unternehmen, Verein
+- SEPA direct debit mandate (inline or email-based, B2B variant for companies)
+- Per-EEG e-mail-address confirmation as anti-abuse opt-in (token in URL fragment, 30-day expiry, auto-reject for expired ones)
+- Per-EEG reference numbers in the format `<RC>-<Jahr>-<NNNN>`
+- Admin review and approval workflow with status tracking, bulk actions, full-text search across firstname/lastname/company name
+- Tariff selection at import time (admin picks from the core's tariff catalogue)
+- Genehmigungs-Mail with PDF Beitrittsbestätigung (logo embedded)
+- Robust import recovery (orphan-fallback, Unstuck-GUI, manual mark-imported, reset-import)
+- Keycloak-secured admin area with tenant isolation, superuser cross-tenant view
+- Per-EEG field configuration, intro text, legal documents (mandatory checkboxes and info-only links), and cooperative-share collection
+- EEG master-data + logo sync from the eegFaktura core (read-only mirror, user-context bearer forwarding)
+- E-mail notifications for applicants and admins (deliverability-hardened: SPF/DKIM-aligned From, Reply-To, plain-text alternative)
 - Excel export for manual import into eegFaktura core
 - External registration API (API key auth)
 - Cloudflare Turnstile spam protection
 - Datenschutzerklärung page with per-EEG toggle
+- Prometheus metrics endpoint (`/metrics`) for ops observability
 
-**Not in scope (V1):** document management, tariff/role management, direct writes to eegFaktura core tables
+**Not in scope (V1):** document management, role management, direct writes to eegFaktura core tables
 
 ## Tech Stack
 

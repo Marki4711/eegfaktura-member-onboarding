@@ -128,11 +128,39 @@ Folgende Bereiche erfordern bei Änderungen dediziertes `/security-review`:
 - `internal/http/admin.go` — Tenant-Zugriffskontrolle
 - `internal/http/middleware.go` — Rate Limiting, Security Headers
 - `internal/application/` — Status-Transitionen, Import-Logik
+- `internal/application/email_confirmation.go` — Token-Erzeugung und -Hashing (PROJ-31)
 - `db/migrations/` — Schema-Änderungen
 - `helm/` — Kubernetes-Deployment, Secrets
 - `Dockerfile*` — Container-Images
 - `.github/workflows/` — CI/CD-Pipelines
 - `cmd/server/main.go` — Route-Registrierung, Auth-Middleware-Konfiguration
+
+---
+
+## E-Mail-Bestätigung (PROJ-31)
+
+Anti-Abuse-Mechanismus gegen Junk-Anträge mit fremder E-Mail-Adresse. Aktivierbar per EEG-Setting `require_email_confirmation`.
+
+**Token-Handling:**
+- 32 Byte Zufall, base64url-codiert (≥256 Bit Entropie); Plaintext nur in der ausgehenden Mail
+- DB speichert ausschließlich den SHA-256-Hash (`application.email_confirmation_token_hash`)
+- Lieferung im URL-Fragment (`/confirm-email#<token>`) — Browser sendet Fragmente nie an Server, kein Server-Access-Log enthält den Token
+- Frontend strippt den Token nach Lesen aus der Adresszeile (`replaceState`) und postet ihn ins Backend
+- `Referrer-Policy: no-referrer` auf der Confirm-Seite blockt jegliches Token-Leak via Referer
+- Lebensdauer 30 Tage, single-use (idempotenter Re-Click zeigt „bereits bestätigt")
+- Token-Rotation bei Resend (alter Token wird sofort invalidiert)
+- Generic 400 für „ungültig oder abgelaufen", damit Angreifer „existiert nicht" nicht von „abgelaufen" unterscheiden können
+
+**Auto-Reject-Hintergrundjob:**
+- Läuft alle 6 Stunden in jedem Backend-Pod (`internal/application/auto_reject.go`)
+- Überträgt abgelaufene `submitted`-Anträge auf `rejected` mit System-Reason
+- Verhindert dauerhaft „hängende" Anträge, die nie bestätigt wurden
+- Idempotent über `WHERE status=$expected`-Guard — Daten-safe bei parallelen Pods (kosmetisch zählt nur die Telemetrie doppelt)
+
+**Rate Limiting:**
+- `POST /api/public/applications` ist auf 10 Requests / 10 Minuten pro IP begrenzt
+- `POST /api/public/applications/confirm-email` erbt die globale Public-Rate-Limit-Pipeline
+- Admin-`resend-email-confirmation` hat eine per-application-Throttle, damit ein Admin nicht in Schleife Mails versendet
 
 ---
 

@@ -70,15 +70,21 @@ Wenn Ihre EEG dieses Feature nicht aktiviert hat, ist der Block ausgeblendet und
 
 - Stimmen Sie der **Datenschutzerklärung** zu
 - Bestätigen Sie die **Richtigkeit Ihrer Angaben**
+- Falls Ihre EEG zusätzliche Pflicht-Dokumente hinterlegt hat (z. B. Satzung), bestätigen Sie diese ebenfalls per Häkchen
+- Falls Ihre EEG **Info-Dokumente** (PROJ-36) verlinkt hat (z. B. Mitgliederinfo, Hausordnung), werden diese nur zur Kenntnisnahme angezeigt — kein Häkchen, aber das Einreichen des Antrags gilt als Kenntnisnahme
 - Klicken Sie auf **Antrag einreichen**
 
-Nach der Einreichung erhalten Sie eine **Bestätigungs-E-Mail** mit Ihrer Antragsnummer. Die E-Mail enthält zusätzlich:
+Nach der Einreichung erhalten Sie eine **Bestätigungs-E-Mail** mit Ihrer Antragsnummer (Format `<RC>-<Jahr>-<NNNN>`, z. B. `RC123456-2026-0001`). Die E-Mail enthält zusätzlich:
 
 * eine PDF-Zusammenfassung Ihrer Angaben,
 * eine Identifikations-Fußzeile mit Ihrer EEG, damit Sie die Mail eindeutig zuordnen können,
 * eine **Reply-To**-Adresse, über die Sie direkt mit Ihrer EEG in Kontakt treten können (Antworten gehen nicht an einen „noreply"-Postfach).
 
-![Bestätigung](images/register-form-success.png)
+## Schritt 7: E-Mail-Adresse bestätigen (nur bei aktivierten EEGs)
+
+Wenn Ihre EEG das Feature **„E-Mail-Bestätigung erforderlich"** (PROJ-31) aktiviert hat, enthält Ihre Bestätigungs-Mail zusätzlich einen gelben Hinweisblock mit einem Button **„E-Mail-Adresse bestätigen"**. Der Link ist 30 Tage gültig. Erst nach dem Klick wird Ihr Antrag von der EEG bearbeitet.
+
+Ist das Feature in Ihrer EEG deaktiviert, entfällt dieser Schritt — der Antrag geht direkt in die Prüfung.
 
 ## Was passiert nach der Einreichung?
 

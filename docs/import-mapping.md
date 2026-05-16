@@ -104,6 +104,13 @@ These fields are not managed in Member Onboarding.
 
 These fields are added directly in eegFaktura after import or set by core default logic.
 
+Onboarding-only fields (intentionally **not** sent to core):
+- `application.cooperative_shares_count` *(PROJ-37)* — cooperative shares are bookkeeping inside the EEG and have no representation in the core's participant model.
+
+### Reverse integration: EEG master data sync (PROJ-32 / PROJ-33)
+
+The opposite direction — sync **from** the core **to** the onboarding tool — is documented separately. Fields synced into `registration_entrypoint` (EEG name, address, contact, IBAN, CreditorID, logo bytes) read the core via the GraphQL `query { eeg }` scalar in the **user context** (bearer-forwarding, no service account). These fields become read-only in the onboarding admin UI; only the sync endpoint can change them. Single source of truth lives in the core.
+
 ---
 
 ## 6. Example target payload for V1

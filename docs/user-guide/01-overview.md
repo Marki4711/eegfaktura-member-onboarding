@@ -34,22 +34,26 @@ Mitglied                    EEG-Betreiber              eegFaktura
 ## Antragsstatus im Überblick
 
 ```
-draft → submitted → under_review → approved → imported
-                         ↕             ↑          │
-                    needs_info         │     (Import zurücksetzen)
-                         ↕             │          │
-                      rejected         └──────────┘
-                                       │
-                                  import_failed
+draft → submitted ─┬─ (Standard) ──→ under_review → approved → imported
+                   │                       ↕            ↑          │
+                   │                  needs_info        │      (Reset)
+                   │                       ↕            │          │
+                   │                    rejected        └──────────┘
+                   │                                    │
+                   │                               import_failed
+                   │
+                   └─ (EEG mit E-Mail-Bestätigung) ─→ email_confirmed → under_review → …
 ```
 
+* `submitted → email_confirmed`: nur wenn die EEG **E-Mail-Bestätigung erforderlich** aktiviert hat — wird durch Klick des Mitglieds auf den Bestätigungs-Link in der Willkommens-Mail ausgelöst.
 * `import_failed → approved`: nach Fehlerbehebung kann der Import erneut versucht werden.
 * `imported → approved`: über die Aktion **Import zurücksetzen** in der Detailansicht.
 
 | Status | Bedeutung |
 |--------|-----------|
 | `draft` | Vom Mitglied begonnen, noch nicht eingereicht |
-| `submitted` | Vom Mitglied eingereicht, wartet auf Prüfung |
+| `submitted` | Vom Mitglied eingereicht, wartet auf Prüfung (oder auf E-Mail-Bestätigung, wenn aktiviert) |
+| `email_confirmed` | Mitglied hat den Bestätigungs-Link geklickt; Antrag wartet auf EEG-Prüfung |
 | `under_review` | EEG-Betreiber prüft den Antrag |
 | `needs_info` | EEG-Betreiber hat Rückfragen gestellt |
 | `approved` | Antrag genehmigt, bereit für Import |
