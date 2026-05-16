@@ -153,6 +153,31 @@ Basic rules:
 - differing metering point addresses are maintained later in eegFaktura
 - tariffs, roles, and account information are not managed in onboarding
 
+### Status values — three places, one source of truth
+
+The set of allowed application statuses is enforced in **three independent
+locations** that must be kept in sync. Forgetting any one of them ships a
+production bug that's silent until a real status transition is attempted:
+
+1. **`CLAUDE.md` → "Allowed status values"** — the canonical source. Update
+   here first when adding or removing a status; the values list and the
+   allowed-transition map are authoritative.
+2. **`internal/shared` status constants and `AllowedTransitions` map** —
+   server-side validation rejects any transition that's not listed here.
+3. **`application_status_check` CHECK constraint on `member_onboarding.application`**
+   — PostgreSQL rejects writes of unknown status strings with error 23514
+   (`violates check constraint`). The constraint was introduced in
+   `db/migrations/000001_initial_schema.up.sql`; every subsequent status
+   change needs a new migration that `DROP`s and re-`ADD`s the constraint
+   with the updated value set (see `000036_application_status_check_email_confirmed.up.sql`
+   for the canonical pattern).
+
+Tests that exercise transitions only against a Go-only fake store will pass
+even when the DB constraint is stale — only an end-to-end click on a real
+Postgres surfaces the mismatch. When introducing a new status, do one
+manual end-to-end run on a staging cluster that has migrate-up applied,
+before declaring the feature shippable.
+
 ## 6. Technology Decisions
 
 ### Frontend
