@@ -12,9 +12,10 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/lib/pq v1.12.3
 	github.com/microcosm-cc/bluemonday v1.0.27
+	github.com/prometheus/client_golang v1.23.2
 	github.com/swaggo/http-swagger/v2 v2.0.2
 	github.com/swaggo/swag v1.16.6
-	github.com/wneessen/go-mail v0.7.2
+	github.com/wneessen/go-mail v0.7.3
 	github.com/xuri/excelize/v2 v2.10.1
 	golang.org/x/text v0.37.0
 )
@@ -37,7 +38,6 @@ require (
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/mailru/easyjson v0.7.6 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/prometheus/client_golang v1.23.2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.66.1 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
