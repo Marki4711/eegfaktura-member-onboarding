@@ -218,6 +218,7 @@ func main() {
 			r.Get("/", adminHandler.ListApplications)
 			r.Delete("/drafts", adminHandler.DeleteDraftApplications)
 			r.Post("/bulk-action", adminHandler.BulkAction)
+			r.Post("/check-activation", adminHandler.CheckActivation)
 			r.Route("/{id}", func(r chi.Router) {
 				r.Get("/", adminHandler.GetApplicationDetail)
 				r.Put("/", adminHandler.UpdateApplication)

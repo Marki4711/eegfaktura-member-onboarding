@@ -750,6 +750,23 @@ export function importApplication(
   );
 }
 
+// PROJ-46 Stage D: batch activation-check. Asks the backend to query the
+// core for all `ready_for_activation`-Anträge of the admin's tenants and
+// transition those whose core participant is now ACTIVE to `activated`.
+export interface ActivationCheckResult {
+  checked: number;
+  activated: number;
+  errors?: string[];
+}
+
+export function checkActivations(token?: string): Promise<ActivationCheckResult> {
+  return adminRequest<ActivationCheckResult>(
+    `/api/admin/applications/check-activation`,
+    token,
+    { method: "POST" },
+  );
+}
+
 // Ask the backend for the next free member-number suggestion. The backend
 // derives this from the core's existing participantNumber values, detecting
 // the dominant pattern (prefix + padding) so "A001, A002" suggests "A003"

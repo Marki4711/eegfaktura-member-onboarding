@@ -1215,6 +1215,53 @@ func (h *AdminHandler) ImportApplication(w http.ResponseWriter, r *http.Request)
 	h.writeJSON(w, http.StatusOK, resp)
 }
 
+// CheckActivation (PROJ-46 Stage D) handles POST /api/admin/applications/check-activation
+// — a batch check that asks the core which of our ready_for_activation
+// applications are now actually ACTIVE there, and transitions those to
+// `activated`.
+//
+// @Summary      Check core for activation status of pending applications
+// @Description  Iterates over all applications in status `ready_for_activation` (filtered by the admin's tenant claim) and queries the eegFaktura core's GET /participant per tenant. Transitions matching applications to `activated` when the core participant status is ACTIVE. Returns a summary { checked, activated, errors }.
+// @Tags         Admin
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {object}  importing.ActivationCheckResult
+// @Failure      503  {object}  shared.ErrorResponse
+// @Router       /api/admin/applications/check-activation [post]
+func (h *AdminHandler) CheckActivation(w http.ResponseWriter, r *http.Request) {
+	if h.importService == nil {
+		h.writeJSON(w, http.StatusServiceUnavailable, shared.ErrorResponse{
+			Code:    "service_unavailable",
+			Message: "Activation check requires Core integration (CORE_BASE_URL is empty).",
+		})
+		return
+	}
+	bearerToken := extractBearerToken(r)
+	if bearerToken == "" {
+		h.writeJSON(w, http.StatusServiceUnavailable, shared.ErrorResponse{
+			Code:    "service_unavailable",
+			Message: "Activation check requires an authenticated admin session (Keycloak).",
+		})
+		return
+	}
+
+	var allowedTenants []string
+	if claims := ClaimsFromContext(r.Context()); claims != nil {
+		if !claims.IsSuperuser() {
+			allowedTenants = []string(claims.Tenant)
+		}
+	}
+
+	result, err := h.importService.CheckActivations(r.Context(), bearerToken, allowedTenants)
+	if err != nil {
+		slog.Error("activation-check: batch failed", "error", err)
+		h.writeError(w, shared.NewErrorResponse(shared.ErrInternal))
+		return
+	}
+	slog.Info("activation-check: batch ran", "checked", result.Checked, "activated", result.Activated, "errors", len(result.Errors))
+	h.writeJSON(w, http.StatusOK, result)
+}
+
 // ListTariffs handles GET /api/admin/tariffs?rcNumber=<RC>
 //
 // @Summary      List tariffs available for an EEG (PROJ-27)

@@ -43,6 +43,108 @@ func (s *ImportService) ListTariffs(ctx context.Context, bearerToken, tenant str
 	return s.coreClient.ListTariffs(ctx, bearerToken, tenant)
 }
 
+// ActivationCheckResult summarises one batch run of CheckActivations.
+type ActivationCheckResult struct {
+	Checked   int      `json:"checked"`
+	Activated int      `json:"activated"`
+	Errors    []string `json:"errors,omitempty"`
+}
+
+// CheckActivations (PROJ-46 Stage D) inspects every application in status
+// `ready_for_activation` (restricted to the admin's tenants when
+// allowedRCNumbers != nil) and transitions those whose linked core
+// participant is now `ACTIVE` to status `activated`.
+//
+// Per-tenant batch: groups the candidate apps by rc_number and calls the
+// core's GET /participant once per tenant — keeps the number of upstream
+// requests bounded by O(#tenants), not O(#apps). Failures for a single
+// tenant are recorded in Result.Errors but don't abort the whole batch.
+func (s *ImportService) CheckActivations(ctx context.Context, bearerToken string, allowedRCNumbers []string) (*ActivationCheckResult, error) {
+	rows, err := s.appRepo.ListReadyForActivation(allowedRCNumbers)
+	if err != nil {
+		return nil, fmt.Errorf("list ready-for-activation: %w", err)
+	}
+	if len(rows) == 0 {
+		return &ActivationCheckResult{}, nil
+	}
+
+	// Group by tenant.
+	byTenant := map[string][]application.ReadyForActivationRow{}
+	for _, row := range rows {
+		byTenant[row.RCNumber] = append(byTenant[row.RCNumber], row)
+	}
+
+	result := &ActivationCheckResult{Checked: len(rows)}
+
+	for tenant, tenantRows := range byTenant {
+		participants, err := s.coreClient.ListParticipants(ctx, bearerToken, tenant)
+		if err != nil {
+			result.Errors = append(result.Errors,
+				fmt.Sprintf("tenant %s: %s", tenant, normalizeError(err)))
+			continue
+		}
+
+		// Index by participant ID for O(1) lookup.
+		statusByID := map[string]string{}
+		for _, p := range participants {
+			statusByID[p.ID] = p.Status
+		}
+
+		for _, row := range tenantRows {
+			if row.TargetParticipantID == nil || *row.TargetParticipantID == "" {
+				result.Errors = append(result.Errors,
+					fmt.Sprintf("app %s: target_participant_id is empty", row.ID))
+				continue
+			}
+			coreStatus, ok := statusByID[*row.TargetParticipantID]
+			if !ok {
+				// Participant not found in core — could mean it was deleted.
+				// Skip silently; admin can reset/re-import if needed.
+				continue
+			}
+			if coreStatus != "ACTIVE" {
+				continue
+			}
+			if err := s.markActivated(row.ID); err != nil {
+				result.Errors = append(result.Errors,
+					fmt.Sprintf("app %s: mark activated failed: %s", row.ID, err))
+				continue
+			}
+			result.Activated++
+		}
+	}
+	return result, nil
+}
+
+// markActivated transitions an application from ready_for_activation to
+// activated, stamps activated_at, and writes the status_log entry.
+func (s *ImportService) markActivated(id uuid.UUID) error {
+	now := time.Now().UTC()
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin: %w", err)
+	}
+	defer tx.Rollback()
+	system := "system:activation-check"
+	if err := s.appRepo.UpdateStatusAdminTx(
+		tx, id, shared.StatusReadyForActivation, shared.StatusActivated,
+		nil, nil, nil, nil, &system, nil, &now,
+	); err != nil {
+		return err
+	}
+	from := string(shared.StatusReadyForActivation)
+	if err := s.statusLogRepo.CreateTx(tx, &shared.StatusLogEntry{
+		ApplicationID:   id,
+		FromStatus:      &from,
+		ToStatus:        string(shared.StatusActivated),
+		ChangedByUserID: &system,
+		CreatedAt:       now,
+	}); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
 // SuggestNextMemberNumber pre-fills the member-number input in the import
 // dialog with the next free value in the tenant's dominant numbering pattern.
 //

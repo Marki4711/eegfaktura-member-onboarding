@@ -59,9 +59,15 @@ type CoreClient interface {
 // member numbers. participantNumber is VARCHAR in the core schema, so we
 // keep it as a pointer-string and ignore non-numeric values when computing
 // the next free number.
+//
+// Status (PROJ-46 Stage D) is the participant's lifecycle state in the core:
+// `NEW` (just created), `PENDING` (waiting for confirmation), or `ACTIVE`
+// (live in the EEG). Only `ACTIVE` triggers an auto-transition to
+// `activated` in the onboarding's activation-check.
 type CoreParticipantSummary struct {
 	ID                string  `json:"id"`
 	ParticipantNumber *string `json:"participantNumber,omitempty"`
+	Status            string  `json:"status,omitempty"`
 }
 
 // CoreTariff is the subset of fields PROJ-27 needs from the eegFaktura core's

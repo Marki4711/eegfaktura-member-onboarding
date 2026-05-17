@@ -10,6 +10,31 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Neu — PROJ-46 Stage D: Activation-Check via Core *(2026-05-17)*
+
+Admin-getriggerter Batch-Check ersetzt das ursprünglich geplante Cron-
+Polling (User-Entscheidung B). Button „Aktivierung im Core prüfen" in
+der Antrags-Übersicht (`/admin/applications`) ruft einen neuen Endpoint
+auf, der alle `ready_for_activation`-Anträge der eigenen Tenants gegen
+den eegFaktura-Core abgleicht und ACTIVE-Mitglieder automatisch auf
+`activated` setzt.
+
+- Neuer Endpoint `POST /api/admin/applications/check-activation` (kein
+  ID, batch). Tenant-Scope kommt aus den JWT-Claims (Superuser ohne
+  Filter, sonst nur eigene RCs).
+- `coreclient.CoreParticipantSummary` um `Status string` erweitert
+  (Werte: `NEW`, `PENDING`, `ACTIVE`).
+- `ImportService.CheckActivations`: gruppiert Kandidaten per Tenant,
+  ruft Core `GET /participant` einmal pro Tenant, mappt per
+  `target_participant_id`, transitioniert bei `Status == "ACTIVE"`
+  via guarded UpdateStatusAdminTx + Status-Log-Eintrag mit Actor
+  `system:activation-check`.
+- `ApplicationRepository.ListReadyForActivation(allowedRCNumbers)`
+  liefert die minimalen Felder für den Cross-Reference.
+- Frontend-Button in `applications-page-content.tsx`: zeigt Toast mit
+  Ergebnis (`X von Y auf Aktiviert gesetzt`), refresht danach die Liste.
+  Bei 0 Treffern oder Fehlern entsprechende Info/Warning-Toasts.
+
 ### Neu — PROJ-46 Stage C: Admin-UI für Post-Import-Stati *(2026-05-17)*
 
 - `ApplicationStatus`-Typ um drei neue Werte erweitert

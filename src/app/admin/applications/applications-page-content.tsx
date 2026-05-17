@@ -5,7 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { AdminFilterPanel } from "@/components/admin-filter-panel";
 import { AdminApplicationTable } from "@/components/admin-application-table";
-import { listApplications, deleteDraftApplications, bulkAction } from "@/lib/api";
+import { listApplications, deleteDraftApplications, bulkAction, checkActivations } from "@/lib/api";
+import { toast } from "sonner";
 import type { ApplicationListItem, BulkAction as BulkActionType, SortColumn, SortOrder } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -154,11 +155,47 @@ export function ApplicationsPageContent() {
 
   const selectedCount = selectedIds.size;
 
+  // PROJ-46 Stage D: Activation-Check-Button. Admin-getriggert (kein
+  // Cron-Job) — prüft alle ready_for_activation-Anträge der eigenen
+  // Tenants im Core und setzt aktivierte auf 'activated'.
+  const [activationChecking, setActivationChecking] = useState(false);
+  const handleCheckActivations = async () => {
+    setActivationChecking(true);
+    try {
+      const result = await checkActivations(session?.accessToken);
+      if (result.checked === 0) {
+        toast.info("Keine aktivierungs-bereiten Anträge gefunden.");
+      } else if (result.activated === 0) {
+        toast.info(`${result.checked} Antrag/Anträge geprüft — noch keiner im Core aktiv.`);
+      } else {
+        toast.success(`${result.activated} von ${result.checked} Antrag/Anträgen auf „Aktiviert" gesetzt.`);
+        await fetchApplications();
+      }
+      if (result.errors && result.errors.length > 0) {
+        toast.warning(`Aktivierungs-Prüfung: ${result.errors.length} Warnung(en) — siehe Server-Log.`);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Aktivierungs-Prüfung fehlgeschlagen");
+    } finally {
+      setActivationChecking(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-foreground">Anträge</h1>
-        {draftCount !== null && draftCount > 0 && (
+        <div className="flex items-center gap-2">
+          {/* PROJ-46 Stage D: batch activation-check via Core. */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCheckActivations}
+            disabled={activationChecking}
+          >
+            {activationChecking ? "Prüfe…" : "Aktivierung im Core prüfen"}
+          </Button>
+          {draftCount !== null && draftCount > 0 && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="outline" size="sm" className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground">
@@ -185,7 +222,8 @@ export function ApplicationsPageContent() {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-        )}
+          )}
+        </div>
       </div>
 
       <AdminFilterPanel rcNumbers={rcNumbers} />

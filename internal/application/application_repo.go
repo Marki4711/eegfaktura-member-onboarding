@@ -1144,6 +1144,59 @@ func (r *ApplicationRepository) UpdateAdminNote(id uuid.UUID, note string) error
 // This second line of defence catches code paths that forget to consult
 // the adminTransitions map (PROJ-38). All other Mark*Tx repo methods
 // follow the same pattern. Returns ErrConflict when no row matched.
+// ListReadyForActivation returns minimal rows for applications in status
+// `ready_for_activation`, optionally restricted to the given tenants (nil
+// for superusers). Used by the activation-check (PROJ-46 Stage D) to know
+// which participants to look up in core.
+type ReadyForActivationRow struct {
+	ID                  uuid.UUID
+	RCNumber            string
+	TargetParticipantID *string
+}
+
+func (r *ApplicationRepository) ListReadyForActivation(allowedRCNumbers []string) ([]ReadyForActivationRow, error) {
+	query := `
+		SELECT id, rc_number, target_participant_id
+		FROM member_onboarding.application
+		WHERE status = 'ready_for_activation'`
+	args := []interface{}{}
+	if allowedRCNumbers != nil {
+		if len(allowedRCNumbers) == 0 {
+			return []ReadyForActivationRow{}, nil
+		}
+		placeholders := make([]string, len(allowedRCNumbers))
+		for i, rc := range allowedRCNumbers {
+			placeholders[i] = fmt.Sprintf("$%d", i+1)
+			args = append(args, rc)
+		}
+		query += " AND rc_number IN (" + strings.Join(placeholders, ", ") + ")"
+	}
+
+	rows, err := r.db.Query(query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list ready-for-activation rows: %w", err)
+	}
+	defer rows.Close()
+
+	var out []ReadyForActivationRow
+	for rows.Next() {
+		var row ReadyForActivationRow
+		var pid sql.NullString
+		if err := rows.Scan(&row.ID, &row.RCNumber, &pid); err != nil {
+			return nil, fmt.Errorf("failed to scan ready-for-activation row: %w", err)
+		}
+		if pid.Valid {
+			s := pid.String
+			row.TargetParticipantID = &s
+		}
+		out = append(out, row)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating ready-for-activation rows: %w", err)
+	}
+	return out, nil
+}
+
 func (r *ApplicationRepository) UpdateStatusAdminTx(
 	tx *sql.Tx,
 	id uuid.UUID,
