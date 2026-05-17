@@ -840,37 +840,52 @@ func (s *AdminApplicationService) SendPostImportNotification(appID uuid.UUID) {
 		slog.Error("imported mail: failed to generate PDF", "application_id", appID, "error", pdfErr)
 	}
 
-	// PROJ-47: B2B-SEPA-Firmenlastschrift-Mandat als zweiter Anhang, mit
-	// Mandatsreferenz=Mitgliedsnummer. Nur bei einzugsart=b2b — sonst leer,
-	// und die Mail enthält nur die Beitrittsbestätigung. Best-effort: ein
-	// Fehler hier blockiert die Hauptmail nicht (loggen + ohne 2. Anhang).
-	var b2bMandatePDF []byte
-	if reloadedApp.Einzugsart == "b2b" {
+	// PROJ-47 / PROJ-48: SEPA-Mandat als zweiter Anhang an die Import-Mail,
+	// mit ausgefüllter Mandatsreferenz = Mitgliedsnummer. Zwei Pfade:
+	//
+	//   - einzugsart=b2b → Firmenlastschrift-Mandat (PROJ-47, unverändert)
+	//   - einzugsart=core UND EEG-Setting sepa_mandate_at_import=TRUE →
+	//     Basis-Lastschriftmandat mit Mandatsreferenz (PROJ-48, neu)
+	//
+	// In allen anderen Fällen (kein_sepa, oder core ohne at-import-Setting)
+	// gibt es keinen zweiten Anhang — die Submit-Mail hat das Basis-Mandat
+	// dann bereits (ohne Mandatsreferenz) ausgeliefert.
+	//
+	// Best-effort: ein PDF-Fehler blockiert die Hauptmail nicht.
+	var mandatePDF []byte
+	wantsB2B := reloadedApp.Einzugsart == "b2b"
+	wantsCoreAtImport := reloadedApp.Einzugsart == "core" && entrypoint.SEPAMandateAtImport
+	if wantsB2B || wantsCoreAtImport {
 		if mandate := buildSEPAMandateData(reloadedApp, entrypoint); mandate != nil {
-			// Mandatsreferenz = Mitgliedsnummer (vom Import gesetzt).
 			if reloadedApp.MemberNumber != nil {
 				mandate.MandateReference = *reloadedApp.MemberNumber
 			}
-			// Für Firmenlastschrift: Debtor-Name muss der Firmenname sein.
-			if reloadedApp.CompanyName != nil && *reloadedApp.CompanyName != "" {
+			// Bei B2B: Debtor-Name muss der Firmenname sein.
+			if wantsB2B && reloadedApp.CompanyName != nil && *reloadedApp.CompanyName != "" {
 				mandate.MemberName = *reloadedApp.CompanyName
 			}
 			if logoBytes, logoMime, logoErr := s.entrypointRepo.GetLogo(reloadedApp.RCNumber); logoErr == nil && len(logoBytes) > 0 {
 				mandate.LogoBytes = logoBytes
 				mandate.LogoMIME = logoMime
 			}
-			b2bBytes, b2bErr := s.sepaMandateGenerator.GenerateCompany(*mandate)
-			if b2bErr != nil {
-				slog.Warn("imported mail: failed to generate B2B SEPA mandate", "application_id", appID, "error", b2bErr)
+			var mandateBytes []byte
+			var mandateErr error
+			if wantsB2B {
+				mandateBytes, mandateErr = s.sepaMandateGenerator.GenerateCompany(*mandate)
 			} else {
-				b2bMandatePDF = b2bBytes
+				mandateBytes, mandateErr = s.sepaMandateGenerator.Generate(*mandate)
+			}
+			if mandateErr != nil {
+				slog.Warn("imported mail: failed to generate SEPA mandate", "application_id", appID, "einzugsart", reloadedApp.Einzugsart, "error", mandateErr)
+			} else {
+				mandatePDF = mandateBytes
 			}
 		} else {
-			slog.Info("imported mail: skipping B2B SEPA mandate (EEG missing required fields)", "application_id", appID, "rc", reloadedApp.RCNumber)
+			slog.Info("imported mail: skipping SEPA mandate (EEG missing required fields)", "application_id", appID, "rc", reloadedApp.RCNumber)
 		}
 	}
 
-	if err := s.mailService.SendImportedNotification(reloadedApp, entrypoint, pdfBytes, pdfFailed, b2bMandatePDF); err != nil {
+	if err := s.mailService.SendImportedNotification(reloadedApp, entrypoint, pdfBytes, pdfFailed, mandatePDF); err != nil {
 		slog.Error("imported mail: send failed", "application_id", appID, "error", err)
 	}
 }

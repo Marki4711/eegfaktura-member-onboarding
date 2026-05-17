@@ -23,6 +23,12 @@ type RegistrationEntrypoint struct {
 	CreditorID         *string   `json:"creditorId"         db:"creditor_id"`
 	SEPAMandateEnabled         bool      `json:"sepaMandateEnabled"         db:"sepa_mandate_enabled"`
 	UseCompanySEPAMandate      bool      `json:"useCompanySEPAMandate"      db:"use_company_sepa_mandate"`
+	// PROJ-48: Wenn TRUE, wird das SEPA-Mandat-PDF NICHT beim Submit,
+	// sondern erst beim Import mit eingedruckter Mandatsreferenz
+	// (= Mitgliedsnummer) versendet. Gilt für beide Mandat-Varianten
+	// (Basis + B2B). Default FALSE = heutiges Verhalten (Mandat bei
+	// Submit ohne Mandatsreferenz).
+	SEPAMandateAtImport        bool      `json:"sepaMandateAtImport"        db:"sepa_mandate_at_import"`
 	ShowCentralPolicy          bool      `json:"showCentralPolicy"          db:"show_central_policy"`
 	MemberNumberStart          int       `json:"memberNumberStart"          db:"member_number_start"`
 	RequireEmailConfirmation   bool      `json:"requireEmailConfirmation"   db:"require_email_confirmation"`

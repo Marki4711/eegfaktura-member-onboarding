@@ -63,6 +63,9 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
   // Onboarding-only editable fields
   const [sepaMandateEnabled, setSepaMandateEnabled] = useState(false);
   const [useCompanySEPAMandate, setUseCompanySEPAMandate] = useState(false);
+  // PROJ-48: Mandat-Timing — wenn TRUE, wird das SEPA-Mandat erst beim Import
+  // mit eingedruckter Mandatsreferenz = Mitgliedsnummer versendet.
+  const [sepaMandateAtImport, setSepaMandateAtImport] = useState(false);
   const [registrationActive, setRegistrationActive] = useState(false);
   const [requireEmailConfirmation, setRequireEmailConfirmation] = useState(false);
   // PROJ-37 Genossenschaftsanteile. shareAmountInput is a string so the
@@ -79,6 +82,7 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
     setRegistrationActive(s.registrationActive ?? false);
     setSepaMandateEnabled(s.sepaMandateEnabled);
     setUseCompanySEPAMandate(s.useCompanySEPAMandate ?? false);
+    setSepaMandateAtImport(s.sepaMandateAtImport ?? false);
     setRequireEmailConfirmation(s.requireEmailConfirmation ?? false);
     setCooperativeSharesEnabled(s.cooperativeSharesEnabled ?? false);
     setCooperativeRequiredShares(s.cooperativeRequiredShares ?? 1);
@@ -159,6 +163,7 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
           registrationActive,
           sepaMandateEnabled,
           useCompanySEPAMandate,
+          sepaMandateAtImport,
           requireEmailConfirmation,
           cooperativeSharesEnabled,
           cooperativeRequiredShares: cooperativeSharesEnabled ? cooperativeRequiredShares : undefined,
@@ -425,6 +430,31 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
               <Label htmlFor="use-company-sepa-mandate" className="text-sm cursor-pointer">
                 Firmenlastschrift (B2B) für Unternehmen und Vereine verwenden
               </Label>
+            </div>
+          )}
+
+          {/* PROJ-48: Mandat-Timing — Submit vs. Import */}
+          {sepaMandateEnabled && (
+            <div className="flex items-start gap-3 pl-10">
+              <Switch
+                id="sepa-mandate-at-import"
+                checked={sepaMandateAtImport}
+                onCheckedChange={(v) => {
+                  setSepaMandateAtImport(v);
+                  setSaveResult(null);
+                }}
+              />
+              <div className="space-y-1">
+                <Label htmlFor="sepa-mandate-at-import" className="text-sm cursor-pointer">
+                  SEPA-Mandat erst beim Import senden (mit Mitgliedsnummer als Mandatsreferenz)
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Wenn aktiv: das Mandat wird nicht beim Antrags-Eingang versendet, sondern erst beim Import
+                  in eegFaktura — dann mit ausgefüllter Mandatsreferenz (= Mitgliedsnummer).
+                  Wichtig wenn die EEG digital signierte Mandate verwendet (eine spätere Modifikation
+                  würde die Signatur ungültig machen).
+                </p>
+              </div>
             </div>
           )}
 

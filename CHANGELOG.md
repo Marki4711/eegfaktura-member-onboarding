@@ -10,6 +10,46 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Neu — PROJ-48: SEPA-Default-Core + konfigurierbares Mandat-Timing + B2B-Hinweis *(2026-05-17)*
+
+Drei zusammenhängende Änderungen am SEPA-Workflow:
+
+1. **Default-Einzugsart immer `core`.** Die Auto-Logik „Firmenlastschrift
+   bei Mitgliedstyp company/association mit useCompanySEPAMandate=true"
+   im Submit-Pfad **entfällt ersatzlos**. Submit-Mail enthält jetzt
+   immer das Basis-Mandat (oder kein PDF, je nach Setting 3). Admin
+   kann die Einzugsart per Antrags-Edit weiterhin auf `b2b` umstellen.
+2. **B2B-Hinweis-Block in der Submit-Mail** bei Mitgliedstyp
+   `company` und `municipality` — kurzer Satz: „Falls statt der
+   Basislastschrift eine Firmenlastschrift (SEPA B2B) notwendig ist,
+   meldet sich {EEG-Name} mit den notwendigen Unterlagen bei Ihnen."
+   (Verein bewusst ausgenommen — User-Wunsch.)
+3. **Neues EEG-Setting `sepa_mandate_at_import`** (Default `FALSE` =
+   heutiges Verhalten). Bei `TRUE` wird das SEPA-Mandat-PDF NICHT
+   beim Submit, sondern erst beim Import mit eingedruckter
+   Mandatsreferenz = Mitgliedsnummer versendet — auch für `core`
+   (bislang nur PROJ-47-Pfad für `b2b`).
+
+Architektur-Hintergrund: PROJ-48-Setting löst den Konflikt „digital
+signiertes Dokument darf nicht mehr modifiziert werden". Wenn die EEG
+digitale Mandate verwendet und Mandatsreferenz im Dokument verlangt
+wird, ist der at-import-Pfad der einzige saubere Weg. Volltext zur
+Digital-Signatur-Diskussion: `docs/open-questions.md` OQ-6 (neu).
+
+- Migration `000042_sepa_mandate_at_import`
+- `RegistrationEntrypoint.SEPAMandateAtImport` + Repo + Settings-Endpoint
+- Submit-Mail-Logik: kein PDF bei `sepa_mandate_at_import=true`,
+  ansonsten immer Basis-Variante (Firmenlastschrift-Auto-Wahl entfernt)
+- Import-Mail-Logik: zusätzlicher Basis-Mandat-Anhang bei
+  `einzugsart=core` + `sepa_mandate_at_import=true` (PROJ-47-B2B-Pfad
+  unverändert)
+- Mail-Template (`application_submitted_member.html`): B2B-Hinweis-
+  Block conditional auf neuem `ShowB2BHint`-Flag
+- Frontend Admin-Settings-Editor: neuer Switch „SEPA-Mandat erst beim
+  Import senden" inkl. Tooltip-Hinweis auf Digital-Signatur-Use-Case
+- OQ-6 in `docs/open-questions.md` ergänzt: vollständige Behandlung der
+  Architektur-Implikationen einer digitalen Mandat-Signatur
+
 ### Neu — PROJ-47: B2B-SEPA-Firmenlastschrift-Mandat mit Mandatsreferenz beim Import *(2026-05-17)*
 
 Schließt die in PROJ-46 erkannte Lücke: ein B2B-Antragsteller bekam

@@ -39,6 +39,29 @@ Bei besser separater Mails — sollte die Architektur perspektivisch auf „zwei
 
 ---
 
+### OQ-6: Digital signiertes Mandat + Mandatsreferenz — Architektur-Konflikt
+
+**Kontext:**
+Ein digital signiertes PDF (z.B. qualifizierte e-Signatur via ID Austria, PAdES-LTA) **darf nach der Signatur nicht mehr modifiziert werden** — jede Änderung bricht den kryptographischen Hash und damit die Signatur. Das Ausdrucken eines digital signierten PDFs erzeugt eine Kopie ohne nachprüfbare Signatur; das digitale Original ist das einzige beweiskräftige Dokument und muss für die Aufbewahrungsfrist (in AT i.d.R. 7 Jahre, §132 BAO) digital aufbewahrt werden.
+
+Für das Onboarding heißt das:
+
+- **Wenn das Mandat zum Submit-Zeitpunkt signiert wird** (z.B. Member klickt einen E-Sign-Link in der Welcome-Mail), kann die Mandatsreferenz nicht nachträglich vom Onboarding-System eingedruckt werden — die Mitgliedsnummer existiert beim Submit noch nicht.
+- **Wenn das Mandat die Mandatsreferenz (= Mitgliedsnummer) enthalten soll**, muss das zu signierende Dokument **erst zum Import-Zeitpunkt** generiert und versendet werden — dann mit ausgefülltem Mandatsreferenz-Feld.
+
+**Auflösung (teilweise) durch PROJ-48:**
+- Neues EEG-Setting `sepa_mandate_at_import` (Default FALSE = heutiger Submit-Zeit-Pfad ohne Signatur-Annahmen). Bei TRUE wird das Mandat erst beim Import mit Mandatsreferenz versendet — passend für den Workflow „Member signiert nach Import digital, das signierte Original wird beim EEG/Member archiviert".
+- Der Admin entscheidet pro EEG, ob B2B (immer ab Import, da Mandatsreferenz Pflicht) oder Core mit Submit-Zeit-Pfad oder Core mit Import-Zeit-Pfad.
+
+**Was noch offen ist:**
+- **Aufbewahrungs-Architektur** für digital signierte Mandate (Tabelle, Storage-Strategie, Long-Term-Validation/PAdES-LTA-Format) — heute speichert das Onboarding KEINE signierten PDFs, nur die unsignierten Vorlagen werden on-demand generiert.
+- **E-Sign-Integration** (DocuSign / Adobe Sign / ID Austria App) — wenn der Schritt „Member signiert digital" automatisierbar sein soll, braucht es eine Integration und Member-UX-Strecke.
+- **Rechtliche Validierung** (siehe Disclaimer): muss der EEG-Fachverband / IT-rechtlich versierte Berater bestätigen, dass der Pfad (Member signiert nach Import → Mandat geht so an die Bank) compliance-konform ist, besonders bei B2B-Banken die Original-Erfordernisse stellen.
+
+**Status:** Architektur-Pfad mit PROJ-48 vorbereitet (Mandat-Timing umstellbar). Vollständige digitale Signatur-Pipeline ist eine separate Initiative, die rechtliche Klärung + Integrations-Aufwand voraussetzt.
+
+---
+
 ### OQ-5: Aktivierung im Core — Lese-Konflikt bei sehr großen EEGs?
 
 **Kontext:**

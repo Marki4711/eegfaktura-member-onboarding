@@ -907,6 +907,10 @@ export interface EEGSettings {
   eegLogoSyncedAt?: string | null;
   sepaMandateEnabled: boolean;
   useCompanySEPAMandate: boolean;
+  // PROJ-48: Mandat erst beim Import senden (mit Mandatsreferenz =
+  // Mitgliedsnummer). Default false = heutiges Verhalten (Mandat beim
+  // Submit ohne Mandatsreferenz).
+  sepaMandateAtImport?: boolean;
   showCentralPolicy?: boolean;
   memberNumberStart?: number;
   requireEmailConfirmation?: boolean;
@@ -923,6 +927,8 @@ export interface EEGSettingsSavePayload {
   registrationActive?: boolean;
   sepaMandateEnabled: boolean;
   useCompanySEPAMandate: boolean;
+  // PROJ-48
+  sepaMandateAtImport?: boolean;
   requireEmailConfirmation?: boolean;
   showCentralPolicy?: boolean;
   memberNumberStart?: number;

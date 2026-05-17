@@ -660,31 +660,27 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID, consents []shared.C
 		metrics.ApplicationsSubmittedTotal.Inc()
 		{
 			var attachment []byte
-			if mandate := buildSEPAMandateData(app, entrypoint); mandate != nil {
-				// PROJ-33: pull the cached EEG logo for the PDF embed. Logo
-				// is optional — a missing/failed read just means the PDF
-				// renders without a logo, never blocks the welcome mail.
-				if logoBytes, logoMime, logoErr := s.entrypointRepo.GetLogo(app.RCNumber); logoErr == nil && len(logoBytes) > 0 {
-					mandate.LogoBytes = logoBytes
-					mandate.LogoMIME = logoMime
-				}
-				useCompany := entrypoint.UseCompanySEPAMandate &&
-					(app.MemberType == shared.MemberTypeCompany || app.MemberType == shared.MemberTypeAssociation)
-				// For B2B mandates, the debtor name must be the company name, not the contact person.
-				if useCompany && app.CompanyName != nil && *app.CompanyName != "" {
-					mandate.MemberName = *app.CompanyName
-				}
-				var pdfBytes []byte
-				var pdfErr error
-				if useCompany {
-					pdfBytes, pdfErr = s.pdfGenerator.GenerateCompany(*mandate)
-				} else {
-					pdfBytes, pdfErr = s.pdfGenerator.Generate(*mandate)
-				}
-				if pdfErr != nil {
-					slog.Warn("pdf: failed to generate SEPA mandate", "rc", app.RCNumber, "error", pdfErr)
-				} else {
-					attachment = pdfBytes
+			// PROJ-48: bei sepa_mandate_at_import=TRUE wird das Mandat NICHT
+			// beim Submit angehängt — kommt erst beim Import mit ausgefüllter
+			// Mandatsreferenz = Mitgliedsnummer (siehe SendPostImportNotification).
+			//
+			// PROJ-48 außerdem: die alte Auto-Logik "Firmenlastschrift bei
+			// company/association" entfällt. Submit-Mail enthält IMMER die
+			// Basis-Variante (Submit setzt einzugsart=core; B2B kommt erst
+			// per Admin-Edit nach der Prüfung).
+			if !entrypoint.SEPAMandateAtImport {
+				if mandate := buildSEPAMandateData(app, entrypoint); mandate != nil {
+					// PROJ-33: pull the cached EEG logo for the PDF embed.
+					if logoBytes, logoMime, logoErr := s.entrypointRepo.GetLogo(app.RCNumber); logoErr == nil && len(logoBytes) > 0 {
+						mandate.LogoBytes = logoBytes
+						mandate.LogoMIME = logoMime
+					}
+					pdfBytes, pdfErr := s.pdfGenerator.Generate(*mandate)
+					if pdfErr != nil {
+						slog.Warn("pdf: failed to generate SEPA mandate", "rc", app.RCNumber, "error", pdfErr)
+					} else {
+						attachment = pdfBytes
+					}
 				}
 			}
 			var savedConsents []shared.DocumentConsent

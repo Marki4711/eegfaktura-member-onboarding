@@ -40,6 +40,7 @@ func (r *RegistrationEntrypointRepository) GetByRCNumber(rcNumber string) (*shar
 		SELECT id, rc_number, eeg_id, is_active, contact_email, intro_text,
 		       eeg_name, eeg_street, eeg_street_number, eeg_zip, eeg_city,
 		       creditor_id, sepa_mandate_enabled, use_company_sepa_mandate,
+		       sepa_mandate_at_import,
 		       show_central_policy, member_number_start, require_email_confirmation,
 		       last_synced_from_core_at, eeg_logo_synced_at,
 		       cooperative_shares_enabled, cooperative_required_shares,
@@ -53,6 +54,7 @@ func (r *RegistrationEntrypointRepository) GetByRCNumber(rcNumber string) (*shar
 		&ep.ID, &ep.RCNumber, &ep.EegID, &ep.IsActive, &ep.ContactEmail, &ep.IntroText,
 		&ep.EEGName, &ep.EEGStreet, &ep.EEGStreetNumber, &ep.EEGZip, &ep.EEGCity,
 		&ep.CreditorID, &ep.SEPAMandateEnabled, &ep.UseCompanySEPAMandate,
+		&ep.SEPAMandateAtImport,
 		&ep.ShowCentralPolicy, &ep.MemberNumberStart, &ep.RequireEmailConfirmation,
 		&ep.LastSyncedFromCoreAt, &ep.EEGLogoSyncedAt,
 		&ep.CooperativeSharesEnabled, &ep.CooperativeRequiredShares,
@@ -84,6 +86,7 @@ func (r *RegistrationEntrypointRepository) SaveEEGSettings(
 	rcNumber string,
 	sepaMandateEnabled bool,
 	useCompanySEPAMandate bool,
+	sepaMandateAtImport bool,
 	cooperativeSharesEnabled bool,
 	cooperativeRequiredShares *int,
 	cooperativeShareAmountCents *int64,
@@ -92,12 +95,13 @@ func (r *RegistrationEntrypointRepository) SaveEEGSettings(
 		UPDATE member_onboarding.registration_entrypoint
 		SET sepa_mandate_enabled = $1,
 		    use_company_sepa_mandate = $2,
-		    cooperative_shares_enabled = $3,
-		    cooperative_required_shares = $4,
-		    cooperative_share_amount_cents = $5,
+		    sepa_mandate_at_import = $3,
+		    cooperative_shares_enabled = $4,
+		    cooperative_required_shares = $5,
+		    cooperative_share_amount_cents = $6,
 		    updated_at = NOW()
-		WHERE rc_number = $6`,
-		sepaMandateEnabled, useCompanySEPAMandate,
+		WHERE rc_number = $7`,
+		sepaMandateEnabled, useCompanySEPAMandate, sepaMandateAtImport,
 		cooperativeSharesEnabled, cooperativeRequiredShares, cooperativeShareAmountCents,
 		rcNumber)
 	if err != nil {

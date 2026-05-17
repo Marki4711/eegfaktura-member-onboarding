@@ -161,6 +161,11 @@ type memberTemplateData struct {
 	Lastname        string
 	ReferenceNumber string
 	HasSEPAMandate  bool
+	// ShowB2BHint (PROJ-48): bei Mitgliedstyp company/municipality wird
+	// in der Submit-Mail ein Hinweis-Block eingeblendet, dass bei Bedarf
+	// auf Firmenlastschrift (B2B) umgestellt werden kann und die EEG
+	// sich diesbezüglich meldet.
+	ShowB2BHint     bool
 	// EEG-Daten (leer wenn nicht konfiguriert)
 	EEGName         string
 	EEGStreet       string
@@ -423,6 +428,7 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 		Lastname:        derefString(app.Lastname),
 		ReferenceNumber: app.ReferenceNumber,
 		HasSEPAMandate:  len(attachment) > 0,
+		ShowB2BHint:     app.MemberType == shared.MemberTypeCompany || app.MemberType == shared.MemberTypeMunicipality,
 		EEGName:         derefString(entrypoint.EEGName),
 		EEGStreet:       derefString(entrypoint.EEGStreet),
 		EEGStreetNumber: derefString(entrypoint.EEGStreetNumber),
@@ -596,6 +602,7 @@ func (s *SMTPMailService) SendMemberConfirmation(app *shared.Application, entryp
 		Firstname:       derefString(app.Firstname),
 		Lastname:        derefString(app.Lastname),
 		ReferenceNumber: app.ReferenceNumber,
+		ShowB2BHint:     app.MemberType == shared.MemberTypeCompany || app.MemberType == shared.MemberTypeMunicipality,
 		EEGName:         derefString(entrypoint.EEGName),
 		EEGStreet:       derefString(entrypoint.EEGStreet),
 		EEGStreetNumber: derefString(entrypoint.EEGStreetNumber),

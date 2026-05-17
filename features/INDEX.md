@@ -61,5 +61,6 @@ Central tracking for all features.
 | PROJ-45 | Erzeugungsform + Batterie-Felder + typabhängige Sichtbarkeit | In Review | `features/PROJ-45-generation-type-and-conditional-fields.md` | 2026-05-17 |
 | PROJ-46 | Stati für Import-Nachbereitung (B2B-Bank-Bestätigung + Aktivierung) | In Review | `features/PROJ-46-post-import-statuses.md` | 2026-05-17 |
 | PROJ-47 | B2B-SEPA-Firmenlastschrift-Mandat mit Mandatsreferenz beim Import | In Review | `features/PROJ-47-b2b-sepa-mandate-at-import.md` | 2026-05-17 |
+| PROJ-48 | SEPA-Default-Core + konfigurierbares Mandat-Timing + B2B-Hinweis | In Review | `features/PROJ-48-sepa-default-core-and-import-timing.md` | 2026-05-17 |
 
-## Next Available ID: PROJ-48
+## Next Available ID: PROJ-49

@@ -233,6 +233,14 @@
   </ol>
   {{end}}
 
+  {{if .ShowB2BHint}}
+  <p style="margin-top: 12px;">
+    Falls statt der Basislastschrift eine Firmenlastschrift (SEPA B2B) notwendig
+    ist, meldet sich {{if .EEGName}}{{.EEGName}}{{else}}Ihre Energiegemeinschaft{{end}}
+    mit den notwendigen Unterlagen bei Ihnen.
+  </p>
+  {{end}}
+
   {{if .EmailConfirmationURL}}
   <p>
     Sobald Sie auf den Bestätigungs-Button geklickt haben, prüft Ihre Energiegemeinschaft Ihren Antrag und meldet sich bei Ihnen.

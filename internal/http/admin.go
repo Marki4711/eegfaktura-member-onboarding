@@ -1664,6 +1664,7 @@ func (h *AdminHandler) GetEEGSettings(w http.ResponseWriter, r *http.Request) {
 		"eegLogoSyncedAt":         ep.EEGLogoSyncedAt,
 		"sepaMandateEnabled":      ep.SEPAMandateEnabled,
 		"useCompanySEPAMandate":   ep.UseCompanySEPAMandate,
+		"sepaMandateAtImport":     ep.SEPAMandateAtImport,
 		"showCentralPolicy":       ep.ShowCentralPolicy,
 		"memberNumberStart":       ep.MemberNumberStart,
 		"requireEmailConfirmation": ep.RequireEmailConfirmation,
@@ -1685,6 +1686,7 @@ func (h *AdminHandler) SaveEEGSettings(w http.ResponseWriter, r *http.Request) {
 		RegistrationActive       *bool  `json:"registrationActive"`
 		SEPAMandateEnabled       bool   `json:"sepaMandateEnabled"`
 		UseCompanySEPAMandate    bool   `json:"useCompanySEPAMandate"`
+		SEPAMandateAtImport      bool   `json:"sepaMandateAtImport"`
 		ShowCentralPolicy        *bool  `json:"showCentralPolicy"`
 		MemberNumberStart        *int   `json:"memberNumberStart"`
 		RequireEmailConfirmation *bool  `json:"requireEmailConfirmation"`
@@ -1729,6 +1731,7 @@ func (h *AdminHandler) SaveEEGSettings(w http.ResponseWriter, r *http.Request) {
 		rcNumber,
 		body.SEPAMandateEnabled,
 		body.UseCompanySEPAMandate,
+		body.SEPAMandateAtImport,
 		body.CooperativeSharesEnabled,
 		coopRequired,
 		coopAmount,
