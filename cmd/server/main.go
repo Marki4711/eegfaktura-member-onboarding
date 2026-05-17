@@ -124,7 +124,7 @@ func main() {
 	approvalPDFGenerator := pdf.NewFPDFApprovalGenerator()
 	registrationService := application.NewRegistrationService(entrypointRepo, fieldConfigRepo, legalDocumentRepo, cfg.CentralPolicy.Title, cfg.CentralPolicy.URL)
 	applicationService := application.NewApplicationService(db, appRepo, meteringRepo, statusLogRepo, entrypointRepo, fieldConfigRepo, consentRepo, legalDocumentRepo, mailService, pdfGenerator, cfg.PublicBaseURL)
-	adminService := application.NewAdminApplicationService(db, appRepo, meteringRepo, statusLogRepo, fieldConfigRepo, entrypointRepo, consentRepo, mailService, approvalPDFGenerator, cfg.PublicBaseURL)
+	adminService := application.NewAdminApplicationService(db, appRepo, meteringRepo, statusLogRepo, fieldConfigRepo, entrypointRepo, consentRepo, mailService, approvalPDFGenerator, pdfGenerator, cfg.PublicBaseURL)
 
 	// PROJ-4 (REST) + PROJ-32 (GraphQL) share one HTTPCoreClient. Both
 	// features are enabled together by setting CORE_BASE_URL — the

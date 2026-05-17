@@ -22,6 +22,12 @@ type SEPAMandateData struct {
 	MemberZip          string
 	MemberCity         string
 	IBAN               string
+	// MandateReference (PROJ-47) is the Mandatsreferenz printed below the
+	// title. Empty means "to be filled in by EEG" — used at submission time
+	// when the member number hasn't been assigned yet. Non-empty means the
+	// reference is already known (e.g. the Mitgliedsnummer after import for
+	// B2B-SEPA-Firmenlastschrift).
+	MandateReference string
 	// LogoBytes is the EEG logo cached from the eegFaktura-billing service
 	// (PROJ-33). Empty = no logo embedded; the PDF renders without it.
 	LogoBytes []byte
@@ -86,13 +92,24 @@ func (g *FPDFGenerator) Generate(data SEPAMandateData) ([]byte, error) {
 	f.Ln(2)
 
 	// ── Mandatsreferenz ────────────────────────────────────────────────────
+	// PROJ-47: when MandateReference is set, print it inline; otherwise
+	// fall back to the "wird von … ausgefüllt"-Platzhalter for the
+	// submission-time PDF where the Mitgliedsnummer is not yet known.
 	setFont("", 9)
-	mandatsRef := fmt.Sprintf("Mandatsreferenz (wird von %s ausgefüllt):", data.EEGName)
-	f.CellFormat(cw, 6, w1252(mandatsRef), "0", 1, "L", false, 0, "")
-	f.Ln(1)
-	f.CellFormat(cw, 0.3, "", "0", 1, "L", false, 0, "") // horizontal line placeholder
-	f.Line(lm, f.GetY(), lm+80, f.GetY())
-	f.Ln(4)
+	if data.MandateReference != "" {
+		setFont("B", 9)
+		f.CellFormat(35, 6, w1252("Mandatsreferenz:"), "0", 0, "L", false, 0, "")
+		setFont("", 9)
+		f.CellFormat(cw-35, 6, w1252(data.MandateReference), "B", 1, "L", false, 0, "")
+		f.Ln(4)
+	} else {
+		mandatsRef := fmt.Sprintf("Mandatsreferenz (wird von %s ausgefüllt):", data.EEGName)
+		f.CellFormat(cw, 6, w1252(mandatsRef), "0", 1, "L", false, 0, "")
+		f.Ln(1)
+		f.CellFormat(cw, 0.3, "", "0", 1, "L", false, 0, "") // horizontal line placeholder
+		f.Line(lm, f.GetY(), lm+80, f.GetY())
+		f.Ln(4)
+	}
 
 	// ── ZAHLUNGSEMPFÄNGER ──────────────────────────────────────────────────
 	// outer border start
@@ -238,12 +255,23 @@ func (g *FPDFGenerator) GenerateCompany(data SEPAMandateData) ([]byte, error) {
 	f.Ln(2)
 
 	// ── Mandatsreferenz ────────────────────────────────────────────────────────
+	// PROJ-47: print Mandatsreferenz inline when set (post-import B2B path
+	// passes the Mitgliedsnummer). Fallback to the "wird von … ausgefüllt"-
+	// Platzhalter for submission-time PDFs where the number isn't known yet.
 	setFont("", 9)
-	mandatsRef := fmt.Sprintf("Mandatsreferenz (wird von %s ausgefüllt):", data.EEGName)
-	f.CellFormat(cw, 6, w1252(mandatsRef), "0", 1, "L", false, 0, "")
-	f.Ln(1)
-	f.Line(lm, f.GetY(), lm+80, f.GetY())
-	f.Ln(4)
+	if data.MandateReference != "" {
+		setFont("B", 9)
+		f.CellFormat(35, 6, w1252("Mandatsreferenz:"), "0", 0, "L", false, 0, "")
+		setFont("", 9)
+		f.CellFormat(cw-35, 6, w1252(data.MandateReference), "B", 1, "L", false, 0, "")
+		f.Ln(4)
+	} else {
+		mandatsRef := fmt.Sprintf("Mandatsreferenz (wird von %s ausgefüllt):", data.EEGName)
+		f.CellFormat(cw, 6, w1252(mandatsRef), "0", 1, "L", false, 0, "")
+		f.Ln(1)
+		f.Line(lm, f.GetY(), lm+80, f.GetY())
+		f.Ln(4)
+	}
 
 	// ── ZAHLUNGSEMPFÄNGER ──────────────────────────────────────────────────────
 	boxTop := f.GetY()

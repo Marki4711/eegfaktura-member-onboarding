@@ -25,11 +25,25 @@ type Options struct {
 	Headers map[string]string
 }
 
+// Attachment is one file to attach to an outgoing message. Name is the
+// filename the recipient sees; Data are the raw bytes.
+type Attachment struct {
+	Name string
+	Data []byte
+}
+
 // Sender is the low-level mail delivery contract used by SMTPMailService.
 // Extracting it as an interface allows test doubles to be injected.
 type Sender interface {
 	Send(opts Options, to, subject, htmlBody, plainBody string) error
 	SendWithAttachment(opts Options, to, subject, htmlBody, plainBody, attachmentName string, attachmentData []byte) error
+	// SendWithAttachments (PROJ-47) delivers a multipart message with N
+	// attachments. Use for the post-import flow where a b2b member receives
+	// both the Beitrittsbestätigung PDF and a separate Firmenlastschrift-
+	// Mandat-PDF (with Mandatsreferenz = Mitgliedsnummer) to hand to their
+	// bank. Attachment list may be empty; an empty list is equivalent to
+	// Send().
+	SendWithAttachments(opts Options, to, subject, htmlBody, plainBody string, attachments []Attachment) error
 }
 
 // Mailer wraps SMTP credentials and implements Sender.
@@ -75,19 +89,32 @@ func (m *Mailer) Send(opts Options, to, subject, htmlBody, plainBody string) err
 
 // SendWithAttachment delivers a multipart/alternative email with a binary attachment.
 func (m *Mailer) SendWithAttachment(opts Options, to, subject, htmlBody, plainBody, attachmentName string, attachmentData []byte) error {
+	return m.SendWithAttachments(opts, to, subject, htmlBody, plainBody, []Attachment{
+		{Name: attachmentName, Data: attachmentData},
+	})
+}
+
+// SendWithAttachments delivers a multipart/alternative email with N binary
+// attachments (PROJ-47). An empty/nil slice is equivalent to Send().
+func (m *Mailer) SendWithAttachments(opts Options, to, subject, htmlBody, plainBody string, attachments []Attachment) error {
 	msg, err := m.buildMessage(opts, to, subject, htmlBody, plainBody)
 	if err != nil {
 		return err
 	}
-	if err := msg.AttachReader(attachmentName, bytes.NewReader(attachmentData)); err != nil {
-		return fmt.Errorf("failed to attach file: %w", err)
+	for _, a := range attachments {
+		if a.Name == "" || len(a.Data) == 0 {
+			continue
+		}
+		if err := msg.AttachReader(a.Name, bytes.NewReader(a.Data)); err != nil {
+			return fmt.Errorf("failed to attach file %q: %w", a.Name, err)
+		}
 	}
 	client, err := gomail.NewClient(m.host, m.clientOpts()...)
 	if err != nil {
 		return fmt.Errorf("failed to create mail client: %w", err)
 	}
 	if err := client.DialAndSend(msg); err != nil {
-		return fmt.Errorf("failed to send mail with attachment: %w", err)
+		return fmt.Errorf("failed to send mail with attachments: %w", err)
 	}
 	return nil
 }

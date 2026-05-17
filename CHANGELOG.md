@@ -10,6 +10,36 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Neu — PROJ-47: B2B-SEPA-Firmenlastschrift-Mandat mit Mandatsreferenz beim Import *(2026-05-17)*
+
+Schließt die in PROJ-46 erkannte Lücke: ein B2B-Antragsteller bekam
+zwar bei Submission ein Firmenlastschrift-PDF, aber ohne die später
+vergebene Mitgliedsnummer als Mandatsreferenz — die B2B-Bank verlangt
+diese aber ausdrücklich. Mit PROJ-47 wird beim Import ein **zweites
+Firmenlastschrift-Mandat-PDF mit eingedruckter Mandatsreferenz =
+Mitgliedsnummer** generiert und an die Member-Mail (+ EEG-Kopie)
+angehängt, das der Member ausdrucken und an seine Hausbank
+weiterreichen kann.
+
+- `pdf.SEPAMandateData`: neues optionales Feld `MandateReference`.
+  Beide PDF-Renderer (Generate / GenerateCompany) drucken den Wert
+  inline statt des Platzhalters „wird von … ausgefüllt".
+- `mail.Sender` erweitert um `Attachment`-Struct +
+  `SendWithAttachments(...)` für Multi-Anhang-Versand. Bestehende
+  Single-Attachment-API bleibt und delegiert intern.
+- `SendImportedNotification` nimmt zusätzlich `b2bMandatePDF []byte`;
+  bei non-empty wird das B2B-Mandat als zweiter PDF-Anhang verschickt
+  (Dateiname `sepa-firmenlastschrift-mandat-<Mitgliedsnr>.pdf`).
+- `AdminApplicationService` bekommt
+  `sepaMandateGenerator pdf.SEPAMandateGenerator` als Dependency.
+  Beim Post-Import-Notification wird bei `einzugsart=b2b` der B2B-
+  Mandat-Generator aufgerufen, Debtor-Name aus CompanyName,
+  Mandatsreferenz aus MemberNumber, Logo aus EEG-Cache.
+- Mail-Template `application_imported_member.html` ergänzt um Hinweis
+  auf den zweiten PDF-Anhang im b2b-Block.
+- Best-Effort bei B2B-PDF-Fehlern (Log + ohne 2. Anhang weiter); die
+  Hauptmail mit Beitrittsbestätigung geht in jedem Fall raus.
+
 ### Neu — PROJ-46 Stage D: Activation-Check via Core *(2026-05-17)*
 
 Admin-getriggerter Batch-Check ersetzt das ursprünglich geplante Cron-

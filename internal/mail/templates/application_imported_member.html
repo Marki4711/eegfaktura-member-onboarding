@@ -46,8 +46,13 @@
       {{if .EEGName}}{{.EEGName}}{{else}}Ihrer Energiegemeinschaft{{end}}.
       Erst nach Ihrer Rückmeldung schalten wir Ihre Mitgliedschaft endgültig frei.
     </p>
-    <p style="margin: 0;">
+    <p style="margin: 0 0 8px;">
       Mandatsreferenz: <strong>{{.MemberNumber}}</strong> (entspricht Ihrer Mitgliedsnummer)
+    </p>
+    <p style="margin: 0;">
+      <strong>Anhang dieser E-Mail:</strong> die druckbare Firmenlastschrift-Mandats-PDF
+      (Dateiname „sepa-firmenlastschrift-mandat-{{.MemberNumber}}.pdf") mit eingedruckter
+      Mandatsreferenz — bitte unterschreiben und Ihrer Hausbank vorlegen.
     </p>
   </div>
   {{else}}

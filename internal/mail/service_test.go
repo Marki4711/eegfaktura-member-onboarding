@@ -211,6 +211,11 @@ func (s *spySender) SendWithAttachment(_ Options, to, subject, htmlBody, _, _ st
 	return nil
 }
 
+func (s *spySender) SendWithAttachments(_ Options, to, subject, htmlBody, _ string, _ []Attachment) error {
+	s.calls = append(s.calls, spyCall{to: to, subject: subject, body: htmlBody})
+	return nil
+}
+
 func newTestService(t *testing.T, spy *spySender) *SMTPMailService {
 	t.Helper()
 	svc, err := NewSMTPMailService(spy, "")

@@ -48,7 +48,12 @@ type MailService interface {
 	// Member bekommt die Beitrittsbestätigungs-PDF; bei b2b ergänzt die Mail
 	// einen Bank-Hinweis. EEG-Contact bekommt eine Kopie der Mail/PDF und
 	// einen Status-Hinweis (warten auf Bank-Bestätigung vs. ready).
-	SendImportedNotification(app *shared.Application, entrypoint *shared.RegistrationEntrypoint, pdfBytes []byte, pdfFailed bool) error
+	//
+	// PROJ-47: b2bMandatePDF ist optional; wenn gesetzt (nur bei
+	// einzugsart=b2b), wird das B2B-Firmenlastschrift-Mandat mit eingedruckter
+	// Mandatsreferenz=Mitgliedsnummer als zweiter Anhang mitgeschickt, damit
+	// der Member es ausdrucken und an seine Bank weiterreichen kann.
+	SendImportedNotification(app *shared.Application, entrypoint *shared.RegistrationEntrypoint, pdfBytes []byte, pdfFailed bool, b2bMandatePDF []byte) error
 	// PROJ-46 Stage B: an Mitglied beim Übergang auf 'activated'.
 	SendActivatedNotification(app *shared.Application, entrypoint *shared.RegistrationEntrypoint) error
 }
@@ -72,7 +77,7 @@ func (n *NoOpMailService) SendRejectedNotification(_ *shared.Application, _ *sha
 func (n *NoOpMailService) SendNeedsInfoNotification(_ *shared.Application, _ *shared.RegistrationEntrypoint, _ string) error {
 	return nil
 }
-func (n *NoOpMailService) SendImportedNotification(_ *shared.Application, _ *shared.RegistrationEntrypoint, _ []byte, _ bool) error {
+func (n *NoOpMailService) SendImportedNotification(_ *shared.Application, _ *shared.RegistrationEntrypoint, _ []byte, _ bool, _ []byte) error {
 	return nil
 }
 func (n *NoOpMailService) SendActivatedNotification(_ *shared.Application, _ *shared.RegistrationEntrypoint) error {
@@ -762,16 +767,29 @@ func buildImportedData(app *shared.Application, ep *shared.RegistrationEntrypoin
 	}
 }
 
-// SendImportedNotification (PROJ-46 Stage B) sends two emails after a
-// successful import: the Beitrittsbestätigungs-PDF goes to the member
-// (with optional b2b-Bank-Hinweis), and a copy notification goes to the
-// EEG contact (with optional b2b "warte auf Bank-Bestätigung"-Hinweis).
-// Both sends are best-effort: failures are logged + counted but do not
-// roll back the import.
-func (s *SMTPMailService) SendImportedNotification(app *shared.Application, ep *shared.RegistrationEntrypoint, pdfBytes []byte, pdfFailed bool) error {
+// SendImportedNotification (PROJ-46 Stage B + PROJ-47) sends two emails
+// after a successful import: the Beitrittsbestätigungs-PDF goes to the
+// member (with optional b2b-Bank-Hinweis), and a copy notification goes
+// to the EEG contact (with optional b2b "warte auf Bank-Bestätigung"-
+// Hinweis). For b2b einzugsart, an additional Firmenlastschrift-Mandat-
+// PDF with eingedruckter Mandatsreferenz=Mitgliedsnummer is attached so
+// the member can hand it to their bank. Both sends are best-effort:
+// failures are logged + counted but do not roll back the import.
+func (s *SMTPMailService) SendImportedNotification(app *shared.Application, ep *shared.RegistrationEntrypoint, pdfBytes []byte, pdfFailed bool, b2bMandatePDF []byte) error {
 	data := buildImportedData(app, ep, pdfFailed)
 	subject := fmt.Sprintf("Ihre Beitrittsbestätigung – Mitgliedsnummer %s", data.MemberNumber)
 	filename := fmt.Sprintf("beitrittsbestaetigung-%s.pdf", app.ReferenceNumber)
+	b2bFilename := fmt.Sprintf("sepa-firmenlastschrift-mandat-%s.pdf", data.MemberNumber)
+
+	// Build the attachment list once; both member and EEG mail get the
+	// same files (Beitrittsbestätigung + optional B2B-Mandat).
+	attachments := []Attachment{}
+	if len(pdfBytes) > 0 {
+		attachments = append(attachments, Attachment{Name: filename, Data: pdfBytes})
+	}
+	if len(b2bMandatePDF) > 0 {
+		attachments = append(attachments, Attachment{Name: b2bFilename, Data: b2bMandatePDF})
+	}
 
 	// Member mail.
 	var memberBuf bytes.Buffer
@@ -782,8 +800,8 @@ func (s *SMTPMailService) SendImportedNotification(app *shared.Application, ep *
 	memberHTML := memberBuf.String()
 	memberOpts := transactionalOpts(derefString(ep.ContactEmail))
 	var memberSendErr error
-	if len(pdfBytes) > 0 {
-		memberSendErr = s.sender.SendWithAttachment(memberOpts, app.Email, subject, memberHTML, htmlToText(memberHTML), filename, pdfBytes)
+	if len(attachments) > 0 {
+		memberSendErr = s.sender.SendWithAttachments(memberOpts, app.Email, subject, memberHTML, htmlToText(memberHTML), attachments)
 	} else {
 		memberSendErr = s.sender.Send(memberOpts, app.Email, subject, memberHTML, htmlToText(memberHTML))
 	}
@@ -807,8 +825,8 @@ func (s *SMTPMailService) SendImportedNotification(app *shared.Application, ep *
 	eegSubject := fmt.Sprintf("Antrag importiert – %s (%s)", data.MemberName, app.ReferenceNumber)
 	eegOpts := transactionalOpts(app.Email)
 	var eegSendErr error
-	if len(pdfBytes) > 0 {
-		eegSendErr = s.sender.SendWithAttachment(eegOpts, *ep.ContactEmail, eegSubject, eegHTML, htmlToText(eegHTML), filename, pdfBytes)
+	if len(attachments) > 0 {
+		eegSendErr = s.sender.SendWithAttachments(eegOpts, *ep.ContactEmail, eegSubject, eegHTML, htmlToText(eegHTML), attachments)
 	} else {
 		eegSendErr = s.sender.Send(eegOpts, *ep.ContactEmail, eegSubject, eegHTML, htmlToText(eegHTML))
 	}
