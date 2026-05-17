@@ -610,65 +610,29 @@ func (s *AdminApplicationService) ChangeStatus(id uuid.UUID, toStatus shared.App
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	// Trigger approval notification asynchronously after a successful commit.
-	// Approval mail remains best-effort because of the heavier payload
-	// (PDF generation + multi-table read). If a hard-fail approach is
-	// also desired here, it can be added in a separate change.
-	if toStatus == shared.StatusApproved {
+	// PROJ-46 Stage B: the approval mail (with PDF) is no longer sent at
+	// `→ approved`. The PDF is now generated at import time when the
+	// member_number is set (required for B2B-SEPA mandate references) —
+	// see SendPostImportNotification, called from the import HTTP handler.
+
+	// PROJ-46 Stage B: welcome mail on activation.
+	if toStatus == shared.StatusActivated {
 		appID := id
 		go func() {
 			acquireMailSem()
 			defer releaseMailSem()
 			reloadedApp, err := s.appRepo.GetByID(appID)
 			if err != nil {
-				slog.Error("approval mail: failed to reload app", "application_id", appID, "error", err)
+				slog.Error("activated mail: failed to reload app", "application_id", appID, "error", err)
 				return
 			}
 			entrypoint, err := s.entrypointRepo.GetByRCNumber(reloadedApp.RCNumber)
 			if err != nil {
-				slog.Error("approval mail: failed to load entrypoint", "application_id", appID, "error", err)
+				slog.Error("activated mail: failed to load entrypoint", "application_id", appID, "error", err)
 				return
 			}
-			if entrypoint.ContactEmail == nil || *entrypoint.ContactEmail == "" {
-				return
-			}
-			mps, err := s.meteringRepo.GetByApplicationID(appID)
-			if err != nil {
-				slog.Error("approval mail: failed to load metering points", "application_id", appID, "error", err)
-				return
-			}
-			statusLog, err := s.statusLogRepo.GetByApplicationID(appID)
-			if err != nil {
-				slog.Error("approval mail: failed to load status log", "application_id", appID, "error", err)
-				return
-			}
-			consents, err := s.consentRepo.GetByApplicationID(appID)
-			if err != nil {
-				slog.Error("approval mail: failed to load consents", "application_id", appID, "error", err)
-				return
-			}
-			fieldConfig, fcErr := s.fieldConfigRepo.Get(reloadedApp.RCNumber)
-			if fcErr != nil {
-				slog.Warn("approval mail: failed to load field config", "application_id", appID, "error", fcErr)
-				fieldConfig = map[string]FieldConfigEntry{}
-			}
-
-			pdfData := buildApprovalPDFData(reloadedApp, mps, statusLog, consents, entrypoint, toStateMap(fieldConfig))
-			// PROJ-33: embed the cached EEG logo. Optional — if the read
-			// fails or the logo isn't synced yet, the PDF renders without
-			// it; we never block the approval mail on a logo issue.
-			if logoBytes, logoMime, logoErr := s.entrypointRepo.GetLogo(reloadedApp.RCNumber); logoErr == nil && len(logoBytes) > 0 {
-				pdfData.LogoBytes = logoBytes
-				pdfData.LogoMIME = logoMime
-			}
-			pdfBytes, pdfErr := s.approvalPDFGenerator.GenerateApproval(pdfData)
-			pdfFailed := pdfErr != nil
-			if pdfFailed {
-				slog.Error("approval mail: failed to generate PDF", "application_id", appID, "error", pdfErr)
-			}
-
-			if err := s.mailService.SendApprovalEmail(reloadedApp, entrypoint, pdfBytes, pdfFailed); err != nil {
-				slog.Error("approval mail: failed to send email", "application_id", appID, "error", err)
+			if err := s.mailService.SendActivatedNotification(reloadedApp, entrypoint); err != nil {
+				slog.Error("activated mail: send failed", "application_id", appID, "error", err)
 			}
 		}()
 	}
@@ -816,6 +780,64 @@ func (s *AdminApplicationService) ClearImportLock(id uuid.UUID, reason, actorID 
 		"previous_target_participant_id", derefStr(app.TargetParticipantID))
 
 	return s.appRepo.GetByID(id)
+}
+
+// SendPostImportNotification (PROJ-46 Stage B) loads everything needed to
+// render the Beitrittsbestätigungs-PDF, generates it (with member_number),
+// and sends the member welcome mail + EEG copy via MailService.
+//
+// Best-effort: errors are logged but never propagated — the import was
+// already persisted by the caller. Use this from the HTTP import handler
+// after a successful Import() returns.
+func (s *AdminApplicationService) SendPostImportNotification(appID uuid.UUID) {
+	acquireMailSem()
+	defer releaseMailSem()
+
+	reloadedApp, err := s.appRepo.GetByID(appID)
+	if err != nil {
+		slog.Error("imported mail: failed to reload app", "application_id", appID, "error", err)
+		return
+	}
+	entrypoint, err := s.entrypointRepo.GetByRCNumber(reloadedApp.RCNumber)
+	if err != nil {
+		slog.Error("imported mail: failed to load entrypoint", "application_id", appID, "error", err)
+		return
+	}
+	mps, err := s.meteringRepo.GetByApplicationID(appID)
+	if err != nil {
+		slog.Error("imported mail: failed to load metering points", "application_id", appID, "error", err)
+		return
+	}
+	statusLog, err := s.statusLogRepo.GetByApplicationID(appID)
+	if err != nil {
+		slog.Error("imported mail: failed to load status log", "application_id", appID, "error", err)
+		return
+	}
+	consents, err := s.consentRepo.GetByApplicationID(appID)
+	if err != nil {
+		slog.Error("imported mail: failed to load consents", "application_id", appID, "error", err)
+		return
+	}
+	fieldConfig, fcErr := s.fieldConfigRepo.Get(reloadedApp.RCNumber)
+	if fcErr != nil {
+		slog.Warn("imported mail: failed to load field config", "application_id", appID, "error", fcErr)
+		fieldConfig = map[string]FieldConfigEntry{}
+	}
+
+	pdfData := buildApprovalPDFData(reloadedApp, mps, statusLog, consents, entrypoint, toStateMap(fieldConfig))
+	if logoBytes, logoMime, logoErr := s.entrypointRepo.GetLogo(reloadedApp.RCNumber); logoErr == nil && len(logoBytes) > 0 {
+		pdfData.LogoBytes = logoBytes
+		pdfData.LogoMIME = logoMime
+	}
+	pdfBytes, pdfErr := s.approvalPDFGenerator.GenerateApproval(pdfData)
+	pdfFailed := pdfErr != nil
+	if pdfFailed {
+		slog.Error("imported mail: failed to generate PDF", "application_id", appID, "error", pdfErr)
+	}
+
+	if err := s.mailService.SendImportedNotification(reloadedApp, entrypoint, pdfBytes, pdfFailed); err != nil {
+		slog.Error("imported mail: send failed", "application_id", appID, "error", err)
+	}
 }
 
 // ResetImport returns an imported (or post-import) application to status

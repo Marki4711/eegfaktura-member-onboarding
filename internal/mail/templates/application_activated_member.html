@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Sie sind jetzt aktiv in der EEG</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 700px;">
+  <p>Guten Tag {{if .Firstname}}{{.Firstname}} {{end}}{{.Lastname}},</p>
+
+  <p>
+    Ihre Mitgliedschaft bei
+    {{if .EEGName}}<strong>{{.EEGName}}</strong>{{else}}der Energiegemeinschaft{{end}}
+    ist nun <strong>aktiv</strong>. Sie nehmen ab sofort am Energie-Sharing der
+    Gemeinschaft teil.
+  </p>
+
+  <table style="border-collapse: collapse; margin: 16px 0;">
+    <tr>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold;">Antragsnummer:</td>
+      <td style="padding: 4px 0;">{{.ReferenceNumber}}</td>
+    </tr>
+    <tr>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold;">Mitgliedsnummer:</td>
+      <td style="padding: 4px 0;">{{.MemberNumber}}</td>
+    </tr>
+  </table>
+
+  <p style="margin-top: 20px;">
+    Bei Fragen wenden Sie sich gerne direkt an
+    {{if .EEGName}}{{.EEGName}}{{else}}Ihre EEG{{end}}.
+  </p>
+
+  <p style="margin-top: 24px;">Mit freundlichen Grüßen<br>
+    {{if .EEGName}}Ihr Team von {{.EEGName}}{{else}}Ihre Energiegemeinschaft{{end}}
+  </p>
+
+  <hr style="border: none; border-top: 1px solid #ddd; margin: 32px 0 16px;">
+  <p style="font-size: 12px; color: #777; line-height: 1.5;">
+    Diese Nachricht wurde automatisch durch <strong>eegFaktura Mitglieder-Onboarding</strong> erzeugt
+    {{if .EEGName}} für {{.EEGName}}{{end}}.
+  </p>
+</body>
+</html>

@@ -33,6 +33,10 @@ type MailService interface {
 	SendSubmissionEmails(app *shared.Application, meteringPoints []shared.MeteringPoint, entrypoint *shared.RegistrationEntrypoint, fieldConfig map[string]string, attachment []byte, consents []shared.DocumentConsent, emailConfirmationURL string)
 	SendEEGNotification(app *shared.Application, meteringPoints []shared.MeteringPoint, entrypoint *shared.RegistrationEntrypoint, fieldConfig map[string]string)
 	SendMemberConfirmation(app *shared.Application, entrypoint *shared.RegistrationEntrypoint) error
+	// SendApprovalEmail is deprecated since PROJ-46: the welcome PDF is now
+	// delivered at import time (when the member_number is set) via
+	// SendImportedNotification. Kept on the interface for test compatibility;
+	// production code no longer calls this.
 	SendApprovalEmail(app *shared.Application, entrypoint *shared.RegistrationEntrypoint, pdfBytes []byte, pdfFailed bool) error
 	// PROJ-41: Mail an Mitglied bei Ablehnung. Reason wird 1:1 in den
 	// Mail-Body übernommen (von der Admin-Oberfläche eingegeben).
@@ -40,6 +44,13 @@ type MailService interface {
 	// PROJ-43: Mail an Mitglied bei Info-Anfrage. Reason ist die
 	// Rückfrage des EEG-Admins, geht 1:1 in den Mail-Body.
 	SendNeedsInfoNotification(app *shared.Application, entrypoint *shared.RegistrationEntrypoint, reason string) error
+	// PROJ-46 Stage B: nach erfolgreichem Import an Mitglied + EEG-Contact.
+	// Member bekommt die Beitrittsbestätigungs-PDF; bei b2b ergänzt die Mail
+	// einen Bank-Hinweis. EEG-Contact bekommt eine Kopie der Mail/PDF und
+	// einen Status-Hinweis (warten auf Bank-Bestätigung vs. ready).
+	SendImportedNotification(app *shared.Application, entrypoint *shared.RegistrationEntrypoint, pdfBytes []byte, pdfFailed bool) error
+	// PROJ-46 Stage B: an Mitglied beim Übergang auf 'activated'.
+	SendActivatedNotification(app *shared.Application, entrypoint *shared.RegistrationEntrypoint) error
 }
 
 // NoOpMailService silently drops all mail calls. Used when SMTP is not configured.
@@ -61,16 +72,25 @@ func (n *NoOpMailService) SendRejectedNotification(_ *shared.Application, _ *sha
 func (n *NoOpMailService) SendNeedsInfoNotification(_ *shared.Application, _ *shared.RegistrationEntrypoint, _ string) error {
 	return nil
 }
+func (n *NoOpMailService) SendImportedNotification(_ *shared.Application, _ *shared.RegistrationEntrypoint, _ []byte, _ bool) error {
+	return nil
+}
+func (n *NoOpMailService) SendActivatedNotification(_ *shared.Application, _ *shared.RegistrationEntrypoint) error {
+	return nil
+}
 
 // SMTPMailService sends HTML emails via SMTP.
 type SMTPMailService struct {
-	sender         Sender
-	memberTpl      *template.Template
-	eegTpl         *template.Template
-	approvalTpl    *template.Template
-	rejectedTpl    *template.Template
-	needsInfoTpl   *template.Template
-	adminBaseURL   string
+	sender             Sender
+	memberTpl          *template.Template
+	eegTpl             *template.Template
+	approvalTpl        *template.Template
+	rejectedTpl        *template.Template
+	needsInfoTpl       *template.Template
+	importedMemberTpl  *template.Template
+	importedEEGTpl     *template.Template
+	activatedTpl       *template.Template
+	adminBaseURL       string
 }
 
 // templateFuncs exposes display-timezone-aware formatters to every mail
@@ -102,14 +122,30 @@ func NewSMTPMailService(sender Sender, adminBaseURL string) (*SMTPMailService, e
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse needs-info template: %w", err)
 	}
+	// PROJ-46 Stage B templates.
+	importedMemberTpl, err := template.New("application_imported_member.html").Funcs(templateFuncs).ParseFS(templateFS, "templates/application_imported_member.html")
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse imported-member template: %w", err)
+	}
+	importedEEGTpl, err := template.New("application_imported_eeg.html").Funcs(templateFuncs).ParseFS(templateFS, "templates/application_imported_eeg.html")
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse imported-eeg template: %w", err)
+	}
+	activatedTpl, err := template.New("application_activated_member.html").Funcs(templateFuncs).ParseFS(templateFS, "templates/application_activated_member.html")
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse activated template: %w", err)
+	}
 	return &SMTPMailService{
-		sender:       sender,
-		memberTpl:    memberTpl,
-		eegTpl:       eegTpl,
-		approvalTpl:  approvalTpl,
-		rejectedTpl:  rejectedTpl,
-		needsInfoTpl: needsInfoTpl,
-		adminBaseURL: adminBaseURL,
+		sender:            sender,
+		memberTpl:         memberTpl,
+		eegTpl:            eegTpl,
+		approvalTpl:       approvalTpl,
+		rejectedTpl:       rejectedTpl,
+		needsInfoTpl:      needsInfoTpl,
+		importedMemberTpl: importedMemberTpl,
+		importedEEGTpl:    importedEEGTpl,
+		activatedTpl:      activatedTpl,
+		adminBaseURL:      adminBaseURL,
 	}, nil
 }
 
@@ -698,6 +734,138 @@ func derefString(s *string) string {
 		return ""
 	}
 	return *s
+}
+
+// importedTemplateData backs both PROJ-46 imported mails (member + EEG).
+// Symmetric on purpose so the templates stay parallel.
+type importedTemplateData struct {
+	Firstname       string
+	Lastname        string
+	MemberName      string // for the EEG-side header line
+	ReferenceNumber string
+	MemberNumber    string
+	EEGName         string
+	PDFFailed       bool
+	IsB2B           bool
+}
+
+func buildImportedData(app *shared.Application, ep *shared.RegistrationEntrypoint, pdfFailed bool) importedTemplateData {
+	return importedTemplateData{
+		Firstname:       derefString(app.Firstname),
+		Lastname:        derefString(app.Lastname),
+		MemberName:      memberDisplayName(app),
+		ReferenceNumber: app.ReferenceNumber,
+		MemberNumber:    derefString(app.MemberNumber),
+		EEGName:         derefString(ep.EEGName),
+		PDFFailed:       pdfFailed,
+		IsB2B:           app.Einzugsart == "b2b",
+	}
+}
+
+// SendImportedNotification (PROJ-46 Stage B) sends two emails after a
+// successful import: the Beitrittsbestätigungs-PDF goes to the member
+// (with optional b2b-Bank-Hinweis), and a copy notification goes to the
+// EEG contact (with optional b2b "warte auf Bank-Bestätigung"-Hinweis).
+// Both sends are best-effort: failures are logged + counted but do not
+// roll back the import.
+func (s *SMTPMailService) SendImportedNotification(app *shared.Application, ep *shared.RegistrationEntrypoint, pdfBytes []byte, pdfFailed bool) error {
+	data := buildImportedData(app, ep, pdfFailed)
+	subject := fmt.Sprintf("Ihre Beitrittsbestätigung – Mitgliedsnummer %s", data.MemberNumber)
+	filename := fmt.Sprintf("beitrittsbestaetigung-%s.pdf", app.ReferenceNumber)
+
+	// Member mail.
+	var memberBuf bytes.Buffer
+	if err := s.importedMemberTpl.Execute(&memberBuf, data); err != nil {
+		metrics.MailSentTotal.WithLabelValues("member_imported", "failed").Inc()
+		return fmt.Errorf("render imported-member template: %w", err)
+	}
+	memberHTML := memberBuf.String()
+	memberOpts := transactionalOpts(derefString(ep.ContactEmail))
+	var memberSendErr error
+	if len(pdfBytes) > 0 {
+		memberSendErr = s.sender.SendWithAttachment(memberOpts, app.Email, subject, memberHTML, htmlToText(memberHTML), filename, pdfBytes)
+	} else {
+		memberSendErr = s.sender.Send(memberOpts, app.Email, subject, memberHTML, htmlToText(memberHTML))
+	}
+	if memberSendErr != nil {
+		metrics.MailSentTotal.WithLabelValues("member_imported", "failed").Inc()
+		slog.Error("imported mail: member send failed", "application_id", app.ID, "error", memberSendErr)
+	} else {
+		metrics.MailSentTotal.WithLabelValues("member_imported", "success").Inc()
+	}
+
+	// EEG copy.
+	if ep.ContactEmail == nil || *ep.ContactEmail == "" {
+		return memberSendErr
+	}
+	var eegBuf bytes.Buffer
+	if err := s.importedEEGTpl.Execute(&eegBuf, data); err != nil {
+		metrics.MailSentTotal.WithLabelValues("eeg_imported", "failed").Inc()
+		return fmt.Errorf("render imported-eeg template: %w", err)
+	}
+	eegHTML := eegBuf.String()
+	eegSubject := fmt.Sprintf("Antrag importiert – %s (%s)", data.MemberName, app.ReferenceNumber)
+	eegOpts := transactionalOpts(app.Email)
+	var eegSendErr error
+	if len(pdfBytes) > 0 {
+		eegSendErr = s.sender.SendWithAttachment(eegOpts, *ep.ContactEmail, eegSubject, eegHTML, htmlToText(eegHTML), filename, pdfBytes)
+	} else {
+		eegSendErr = s.sender.Send(eegOpts, *ep.ContactEmail, eegSubject, eegHTML, htmlToText(eegHTML))
+	}
+	if eegSendErr != nil {
+		metrics.MailSentTotal.WithLabelValues("eeg_imported", "failed").Inc()
+		slog.Error("imported mail: EEG send failed", "application_id", app.ID, "error", eegSendErr)
+	} else {
+		metrics.MailSentTotal.WithLabelValues("eeg_imported", "success").Inc()
+	}
+	if memberSendErr != nil {
+		return memberSendErr
+	}
+	return eegSendErr
+}
+
+// activatedTemplateData is a minimal struct for the welcome-after-activation mail.
+type activatedTemplateData struct {
+	Firstname       string
+	Lastname        string
+	ReferenceNumber string
+	MemberNumber    string
+	EEGName         string
+}
+
+// SendActivatedNotification (PROJ-46 Stage B) sends a short welcome mail
+// to the member when the admin (or activation-check) moves the application
+// to 'activated'. Best-effort.
+func (s *SMTPMailService) SendActivatedNotification(app *shared.Application, ep *shared.RegistrationEntrypoint) error {
+	data := activatedTemplateData{
+		Firstname:       derefString(app.Firstname),
+		Lastname:        derefString(app.Lastname),
+		ReferenceNumber: app.ReferenceNumber,
+		MemberNumber:    derefString(app.MemberNumber),
+		EEGName:         derefString(ep.EEGName),
+	}
+	var buf bytes.Buffer
+	if err := s.activatedTpl.Execute(&buf, data); err != nil {
+		metrics.MailSentTotal.WithLabelValues("member_activated", "failed").Inc()
+		return fmt.Errorf("render activated template: %w", err)
+	}
+	subject := fmt.Sprintf("Willkommen bei %s – Ihre Mitgliedschaft ist aktiv",
+		ifEmpty(data.EEGName, "Ihrer Energiegemeinschaft"))
+	htmlBody := buf.String()
+	opts := transactionalOpts(derefString(ep.ContactEmail))
+	if err := s.sender.Send(opts, app.Email, subject, htmlBody, htmlToText(htmlBody)); err != nil {
+		metrics.MailSentTotal.WithLabelValues("member_activated", "failed").Inc()
+		return err
+	}
+	metrics.MailSentTotal.WithLabelValues("member_activated", "success").Inc()
+	return nil
+}
+
+func ifEmpty(s, fallback string) string {
+	if strings.TrimSpace(s) == "" {
+		return fallback
+	}
+	return s
 }
 
 // formatMeteringPointAddress returns "Straße Hausnummer, PLZ Ort" if the

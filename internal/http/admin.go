@@ -1197,6 +1197,12 @@ func (h *AdminHandler) ImportApplication(w http.ResponseWriter, r *http.Request)
 	}
 
 	slog.Info("admin: application imported", "application_id", id, "target_participant_id", result.TargetParticipantID, "user_id", actorID)
+
+	// PROJ-46 Stage B: kick off the post-import notification (member welcome
+	// mail with PDF + EEG copy) asynchronously. Best-effort — failures are
+	// logged inside the helper; we don't block the HTTP response on SMTP.
+	go h.adminService.SendPostImportNotification(id)
+
 	resp := map[string]interface{}{
 		"success":             true,
 		"applicationId":       result.ApplicationID,

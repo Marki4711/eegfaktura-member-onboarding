@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Ihre Beitrittsbestätigung</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 700px;">
+  <p>Guten Tag {{if .Firstname}}{{.Firstname}} {{end}}{{.Lastname}},</p>
+
+  <p>
+    Ihr Antrag auf Mitgliedschaft bei
+    {{if .EEGName}}<strong>{{.EEGName}}</strong>{{else}}der Energiegemeinschaft{{end}}
+    wurde aufgenommen und Sie haben die Mitgliedsnummer
+    <strong>{{.MemberNumber}}</strong> erhalten.
+  </p>
+
+  <table style="border-collapse: collapse; margin: 16px 0;">
+    <tr>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold;">Antragsnummer:</td>
+      <td style="padding: 4px 0;">{{.ReferenceNumber}}</td>
+    </tr>
+    <tr>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold;">Mitgliedsnummer:</td>
+      <td style="padding: 4px 0;">{{.MemberNumber}}</td>
+    </tr>
+  </table>
+
+  {{if .PDFFailed}}
+  <p><strong>Hinweis:</strong> Die Beitrittsbestätigung konnte nicht als PDF generiert werden. Wir melden uns mit dem Dokument auf einem anderen Weg.</p>
+  {{else}}
+  <p>Die Beitrittsbestätigung mit allen Details Ihres Antrags finden Sie als PDF-Anhang dieser E-Mail.</p>
+  {{end}}
+
+  {{if .IsB2B}}
+  <div style="margin-top: 20px; padding: 14px 16px; border-left: 4px solid #b58105; background-color: #fff8e6;">
+    <p style="margin: 0 0 8px; font-weight: bold;">Wichtiger Hinweis zu Ihrem B2B-SEPA-Lastschriftmandat</p>
+    <p style="margin: 0 0 8px;">
+      Sie haben das B2B-SEPA-Firmenlastschriftverfahren gewählt. Dieses Verfahren
+      verlangt, dass Sie Ihre Hausbank vorab über das Mandat informieren —
+      ohne diese Pre-Notification dürfen keine Lastschriften eingezogen werden.
+    </p>
+    <p style="margin: 0 0 8px;">
+      <strong>Was wir von Ihnen brauchen:</strong> Bitte hinterlegen Sie das beiliegende
+      Mandat bei Ihrer Bank (oder über das Online-Portal Ihrer Bank) und melden Sie
+      sich danach kurz bei
+      {{if .EEGName}}{{.EEGName}}{{else}}Ihrer Energiegemeinschaft{{end}}.
+      Erst nach Ihrer Rückmeldung schalten wir Ihre Mitgliedschaft endgültig frei.
+    </p>
+    <p style="margin: 0;">
+      Mandatsreferenz: <strong>{{.MemberNumber}}</strong> (entspricht Ihrer Mitgliedsnummer)
+    </p>
+  </div>
+  {{else}}
+  <p style="margin-top: 20px;">
+    Sie werden in Kürze automatisch in die Energiegemeinschaft aufgenommen.
+    Sobald Ihre Mitgliedschaft aktiv ist, erhalten Sie eine separate Bestätigung.
+  </p>
+  {{end}}
+
+  <p style="margin-top: 24px;">Mit freundlichen Grüßen<br>
+    {{if .EEGName}}Ihr Team von {{.EEGName}}{{else}}Ihre Energiegemeinschaft{{end}}
+  </p>
+
+  <hr style="border: none; border-top: 1px solid #ddd; margin: 32px 0 16px;">
+  <p style="font-size: 12px; color: #777; line-height: 1.5;">
+    Diese Nachricht wurde automatisch durch <strong>eegFaktura Mitglieder-Onboarding</strong> erzeugt
+    {{if .EEGName}} für {{.EEGName}}{{end}}.
+  </p>
+</body>
+</html>

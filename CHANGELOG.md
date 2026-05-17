@@ -10,6 +10,38 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Neu — PROJ-46 Stage B: PDF-Timing + Member-Mails nach Import + Aktivierung *(2026-05-17)*
+
+PDF-Generierung wandert von `→ approved` zum Import-Zeitpunkt (wenn die
+Mitgliedsnummer steht — Voraussetzung für die B2B-SEPA-Mandatsreferenz):
+
+- Drei neue Mail-Templates: `application_imported_member.html`,
+  `application_imported_eeg.html`, `application_activated_member.html`
+- Neue MailService-Methoden `SendImportedNotification` (Member + EEG)
+  und `SendActivatedNotification` (Member only). NoOpMailService und
+  Interface entsprechend erweitert.
+- `SendImportedNotification` schickt PDF-Anhang an Member und Kopie an
+  EEG-Contact. Beide Templates zeigen bei `einzugsart=b2b` einen
+  Zusatz-Hinweis: Member bekommt die Anleitung zur Hausbank-Pre-
+  Notification, EEG sieht den Hinweis „Auf Bank-Bestätigung warten —
+  bitte auf ready_for_activation weiterschalten".
+- Neue Service-Methode `AdminApplicationService.SendPostImportNotification(appID)`
+  bündelt die heavy-Loads (App, MPs, Status-Log, Consents, Entrypoint,
+  FieldConfig, Logo) + PDF-Build + Mail-Send. Aus dem HTTP-Import-
+  Handler nach `importService.Import()`-Erfolg in Goroutine aufgerufen
+  (best-effort, blockiert nicht die HTTP-Response).
+- `→ approved`-Trigger im `ChangeStatus` entfernt — die alte
+  Approval-Mail an EEG (ohne Mitgliedsnummer im B2B-Mandat) entfällt
+  komplett, ersetzt durch den Import-Trigger.
+- `→ activated`-Trigger ergänzt: schickt Welcome-Mail an Member über
+  `SendActivatedNotification` in Goroutine.
+- `SendApprovalEmail` bleibt auf dem MailService-Interface (für Test-
+  Kompatibilität), wird aus Produktiv-Code aber nicht mehr aufgerufen
+  (Deprecation-Kommentar gesetzt). `application_approved_eeg.html`
+  bleibt vorerst im Repo (kein aktiver Send-Pfad mehr).
+- Prometheus-Counter neu: `eeg_imported`, `member_imported`,
+  `member_activated` (success/failed-Labels wie bei bestehenden Mails).
+
 ### Neu — PROJ-46 Stage A: Stati für Import-Nachbereitung *(2026-05-17)*
 
 Erste Stage: DB + Backend-Übergänge + Reset-Erweiterung. Mails (Stage B),
