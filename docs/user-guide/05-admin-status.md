@@ -2,6 +2,12 @@
 
 ## Statusübergänge
 
+> **Visuell:** ein vollständiges, in GitHub gerendertes Mermaid-Diagramm
+> aller 12 Stati + Übergänge findest du in
+> [`docs/architecture-diagram.md` → „Status-Übergänge (vollständig)"](../architecture-diagram.md#status-übergänge-vollständig).
+> Die ASCII-Skizze unten ist die kompakte Übersicht für den
+> Bearbeitungsalltag.
+
 Der Status eines Antrags steuert den Bearbeitungsablauf. Folgende Übergänge sind möglich:
 
 ```

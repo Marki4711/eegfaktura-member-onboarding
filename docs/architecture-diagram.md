@@ -109,6 +109,85 @@ graph LR
 
 ---
 
+## Status-Übergänge (vollständig)
+
+Visuelle Darstellung aller 12 Status-Werte mit allen erlaubten Übergängen.
+Renderbar direkt in GitHub und IDEs (Mermaid `stateDiagram-v2`). Pendant
+zum kanonischen Modell in `CLAUDE.md` und `docs/domain-model.md`.
+
+```mermaid
+stateDiagram-v2
+    direction LR
+
+    [*] --> draft
+
+    draft --> submitted: Mitglied submit
+
+    state submitted_choice <<choice>>
+    submitted --> submitted_choice
+    submitted_choice --> email_confirmed: Mitglied klickt Link\n(PROJ-31)
+    submitted_choice --> under_review: Admin
+    submitted_choice --> rejected: Admin (Anti-Spam)
+
+    email_confirmed --> under_review: Admin
+    email_confirmed --> needs_info: Admin
+    email_confirmed --> approved: Admin
+    email_confirmed --> rejected: Admin
+
+    under_review --> needs_info: Admin (hard-fail mail)
+    under_review --> approved: Admin
+    under_review --> rejected: Admin (hard-fail mail)
+
+    needs_info --> submitted: Mitglied editiert + re-submit
+
+    approved --> imported: Import erfolgreich
+    approved --> import_failed: Import-Fehler
+
+    import_failed --> approved: Admin retry
+
+    state imported_branch <<choice>>
+    imported --> imported_branch: auto (Service)
+    imported_branch --> awaiting_bank_confirmation: einzugsart=b2b
+    imported_branch --> ready_for_activation: sonst
+
+    awaiting_bank_confirmation --> ready_for_activation: Admin\n(Bank-Bestätigung erhalten)
+    awaiting_bank_confirmation --> under_review: Admin (rückwärts)
+
+    ready_for_activation --> activated: Admin manuell\nODER Batch-Check
+    ready_for_activation --> under_review: Admin (rückwärts)
+
+    activated --> [*]
+
+    %% Reset-Pfade via POST /reset-import
+    imported --> approved: Reset-Import
+    awaiting_bank_confirmation --> approved: Reset-Import
+    ready_for_activation --> approved: Reset-Import
+
+    note right of activated
+      Strikter Endzustand
+      kein Reset
+      Deaktivierung im Core
+    end note
+
+    note right of imported
+      Transient (ms)
+      Auto-Branch sofort danach
+    end note
+```
+
+### Legende
+
+| Element | Bedeutung |
+|---|---|
+| **Auto-Übergang** | Vom Import-Service automatisch ausgeführt — `imported → awaiting_bank_confirmation` und `imported → ready_for_activation` |
+| **Admin-Aktion** | Manuell im Admin-Web ausgelöst — alle Übergänge mit „Admin"-Label |
+| **Mitglied-Aktion** | Vom Mitglied ausgelöst — `draft → submitted`, `submitted → email_confirmed` (Klick), `needs_info → submitted` (Re-Submit) |
+| **hard-fail mail** | Synchron-blockierender Mail-Versand (PROJ-41 + PROJ-43) — schlägt SMTP fehl, wird der Statuswechsel rückgängig gemacht |
+| **Reset-Import** | Dedizierte `POST /reset-import`-Route (PROJ-30 + PROJ-46 expansion); NICHT erreichbar aus `activated` |
+| **Batch-Check** | Optional via `POST /api/admin/applications/check-activation` (PROJ-46 Stage D); fragt Core ob Mitglied ACTIVE und setzt automatisch |
+
+---
+
 ## Gesamtübersicht: Systemgrenzen und Verantwortlichkeiten
 
 ```mermaid

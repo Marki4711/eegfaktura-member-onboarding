@@ -166,6 +166,9 @@ Go-only tests don't catch a stale constraint — verify with an end-to-end trans
 
 ### Post-Import lifecycle (PROJ-46)
 
+> Vollständiges Status-Diagramm aller 12 Werte + aller Übergänge:
+> siehe [`docs/architecture-diagram.md` → „Status-Übergänge (vollständig)"](architecture-diagram.md#status-übergänge-vollständig).
+
 After a successful import the Import-Service auto-routes the application
 out of the transient `imported` state, branched by `application.einzugsart`:
 
