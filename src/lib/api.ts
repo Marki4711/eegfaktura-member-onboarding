@@ -26,6 +26,10 @@ export interface ConfigurableField {
   name: string;
   label: string;
   defaultState: FieldState;
+  // PROJ-45: when set, rendered as an Info-Popover next to the label in the
+  // admin field-config editor so admins see at a glance that a field only
+  // takes effect under specific conditions (Zählpunkt-Typ, EV-Flag, …).
+  visibilityHint?: string;
 }
 
 export const CONFIGURABLE_FIELDS: {
@@ -36,16 +40,26 @@ export const CONFIGURABLE_FIELDS: {
     { name: "phone",                   label: "Telefonnummer",                   defaultState: "optional" },
     { name: "birth_date",              label: "Geburtsdatum",                    defaultState: "optional" },
     { name: "membership_start_date",   label: "Aktiv am (Beitrittsdatum)",       defaultState: "hidden"   },
-    { name: "persons_in_household",    label: "Anzahl Personen im Haushalt",     defaultState: "hidden"   },
-    { name: "consumption_previous_year", label: "Verbrauch Vorjahr (kWh)",       defaultState: "hidden"   },
-    { name: "consumption_forecast",    label: "Verbrauch Prognose (kWh)",        defaultState: "hidden"   },
-    { name: "feed_in_forecast",        label: "Einspeisung Prognose (kWh)",      defaultState: "hidden"   },
-    { name: "pv_power_kwp",            label: "PV-Leistung (kWp)",              defaultState: "hidden"   },
-    { name: "heat_pump",               label: "Wärmepumpe vorhanden",            defaultState: "hidden"   },
-    { name: "electric_vehicle",        label: "E-Auto vorhanden",               defaultState: "hidden"   },
-    { name: "electric_vehicle_count",  label: "Anzahl E-Fahrzeuge",             defaultState: "hidden"   },
-    { name: "electric_vehicle_annual_km", label: "Jahres-Kilometer (E-Fahrzeuge)", defaultState: "hidden" },
-    { name: "electric_hot_water",      label: "Warmwasser elektrisch (Boiler)",  defaultState: "hidden"   },
+    { name: "persons_in_household",    label: "Anzahl Personen im Haushalt",     defaultState: "hidden",
+      visibilityHint: "Wird nur angezeigt, wenn der Antrag mindestens einen Verbraucher-Zählpunkt enthält." },
+    { name: "consumption_previous_year", label: "Verbrauch Vorjahr (kWh)",       defaultState: "hidden",
+      visibilityHint: "Wird nur angezeigt, wenn der Antrag mindestens einen Verbraucher-Zählpunkt enthält." },
+    { name: "consumption_forecast",    label: "Verbrauch Prognose (kWh)",        defaultState: "hidden",
+      visibilityHint: "Wird nur angezeigt, wenn der Antrag mindestens einen Verbraucher-Zählpunkt enthält." },
+    { name: "feed_in_forecast",        label: "Einspeisung Prognose (kWh)",      defaultState: "hidden",
+      visibilityHint: "Wird nur angezeigt, wenn der Antrag mindestens einen Einspeise-Zählpunkt enthält." },
+    { name: "pv_power_kwp",            label: "PV-Leistung (kWp)",              defaultState: "hidden",
+      visibilityHint: "Wird nur angezeigt, wenn der Antrag mindestens einen Einspeise-Zählpunkt enthält." },
+    { name: "heat_pump",               label: "Wärmepumpe vorhanden",            defaultState: "hidden",
+      visibilityHint: "Wird nur angezeigt, wenn der Antrag mindestens einen Verbraucher-Zählpunkt enthält." },
+    { name: "electric_vehicle",        label: "E-Auto vorhanden",               defaultState: "hidden",
+      visibilityHint: "Wird nur angezeigt, wenn der Antrag mindestens einen Verbraucher-Zählpunkt enthält." },
+    { name: "electric_vehicle_count",  label: "Anzahl E-Fahrzeuge",             defaultState: "hidden",
+      visibilityHint: "Wird nur angezeigt, wenn ein Verbraucher-Zählpunkt vorhanden ist UND E-Auto vorhanden mit Ja beantwortet wurde." },
+    { name: "electric_vehicle_annual_km", label: "Jahres-Kilometer (E-Fahrzeuge)", defaultState: "hidden",
+      visibilityHint: "Wird nur angezeigt, wenn ein Verbraucher-Zählpunkt vorhanden ist UND E-Auto vorhanden mit Ja beantwortet wurde." },
+    { name: "electric_hot_water",      label: "Warmwasser elektrisch (Boiler)",  defaultState: "hidden",
+      visibilityHint: "Wird nur angezeigt, wenn der Antrag mindestens einen Verbraucher-Zählpunkt enthält." },
     // PROJ-44: Netzbetreiber-Vollmacht (siehe NETWORK_OPERATOR_AUTH_TEXT
     // in registration-form.tsx für den verbindlichen Wortlaut).
     { name: "network_operator_authorization", label: "Netzbetreiber-Vollmacht erteilen", defaultState: "hidden" },
@@ -55,8 +69,10 @@ export const CONFIGURABLE_FIELDS: {
     { name: "installation_number", label: "Anlagen-Nr.",  defaultState: "hidden" },
     { name: "installation_name",  label: "Anlagenname",  defaultState: "hidden" },
     // PROJ-45: Batterie + Wechselrichter (nur bei generation_type='pv' aktiv).
-    { name: "battery_size_kwh",      label: "Größe Batterie (kWh)",        defaultState: "hidden" },
-    { name: "inverter_manufacturer", label: "Hersteller Wechselrichter",  defaultState: "hidden" },
+    { name: "battery_size_kwh",      label: "Größe Batterie (kWh)",        defaultState: "hidden",
+      visibilityHint: "Wird nur bei Einspeise-Zählpunkten mit Erzeugungsform PV angezeigt." },
+    { name: "inverter_manufacturer", label: "Hersteller Wechselrichter",  defaultState: "hidden",
+      visibilityHint: "Wird nur bei Einspeise-Zählpunkten mit Erzeugungsform PV angezeigt." },
   ],
 };
 

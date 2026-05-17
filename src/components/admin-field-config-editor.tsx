@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
+import { Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   CONFIGURABLE_FIELDS,
   saveFieldConfig,
@@ -34,7 +36,19 @@ function FieldRow({
   return (
     <div className="py-2 space-y-1.5">
       <div className="flex items-center justify-between gap-4">
-        <span className="text-sm">{field.label}</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm">{field.label}</span>
+          {field.visibilityHint && (
+            <Popover>
+              <PopoverTrigger type="button" className="cursor-help" aria-label={`Hinweis zu ${field.label}`}>
+                <Info className="h-3.5 w-3.5 text-muted-foreground" />
+              </PopoverTrigger>
+              <PopoverContent className="max-w-80 text-sm">
+                {field.visibilityHint}
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
         <div className="flex rounded-md border border-border overflow-hidden shrink-0">
           {STATE_OPTIONS.map((opt) => (
             <button
