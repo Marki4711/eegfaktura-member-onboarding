@@ -794,7 +794,7 @@ No call to the core — the admin verifies the deletion manually.
 
 ### Response 200
 Returns the full `AdminApplicationDetail` after the reset (status now
-`approved`, `targetParticipantId` cleared).
+`approved`, `targetParticipantId` + `memberNumber` cleared).
 
 ### Side effects
 - `status = approved`
@@ -803,10 +803,13 @@ Returns the full `AdminApplicationDetail` after the reset (status now
 - `imported_at = NULL`
 - `target_participant_id = NULL`
 - `import_error_message = NULL`
+- `member_number = NULL` — assigned at import time (PROJ-27); cleared so the
+  next re-import gets a fresh suggestion from the core's max+1 and doesn't
+  show a stale assignment in the admin detail view
 - write `status_log` entry with `from='imported'`, `to='approved'`,
-  `reason = <user reason>\n[system] previous target_participant_id=<uuid>`
-  (the old participant UUID is archived in the log so the audit trail
-  preserves it after the column is cleared)
+  `reason = <user reason>\n[system] previous target_participant_id=<uuid>\n[system] previous member_number=<x>`
+  (the old participant UUID and member number are archived in the log so
+  the audit trail preserves them after the columns are cleared)
 
 ### Failure responses
 - `400` reason missing / too short / too long

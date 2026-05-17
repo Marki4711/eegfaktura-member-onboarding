@@ -10,6 +10,22 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Behoben — Reset-Import: Mitgliedsnummer wird gelöscht *(2026-05-17)*
+
+Beim Zurücksetzen eines Imports (`imported → approved`) blieb bisher die
+Mitgliedsnummer am Antrag stehen, obwohl die zugehörige Participant-Zeile
+in eegFaktura nicht mehr existiert. Resultat: stale Anzeige im Admin-Detail
++ Konflikt-Vorschlag beim nächsten Import-Versuch (selbe Mitgliedsnummer
+würde wieder vorgeschlagen).
+
+- **Backend** (`ResetImportTx`): zusätzlich `member_number = NULL`
+- **Audit-Trail** (`AdminApplicationService.ResetImport`): die vorherige
+  Mitgliedsnummer wird wie schon zuvor die `target_participant_id` an die
+  Begründung angehängt (`[system] previous member_number=<x>`), damit sie
+  nach dem Reset im Statusverlauf nachvollziehbar bleibt
+- **Doku**: `docs/api-spec.md` 6.5.3 ergänzt um die zusätzliche Spalte +
+  erweiterten Log-Reason
+
 ### Behoben — PROJ-31 Constraint-Lücke + Helm-Fix *(2026-05-16)*
 
 - **DB**: Migration 000036 ergänzt `email_confirmed` im `application_status_check`-CHECK-Constraint. Davor lief jeder `confirm-email`-POST in einen Postgres-23514-Fehler → HTTP 500 „An internal error occurred". Ursache: PROJ-31 hatte die Status-Konstante + Transition-Map gepflegt, die DB-Constraint aber nie angepasst (Tests liefen gegen Go-Fake-Store, nicht gegen echtes Postgres)

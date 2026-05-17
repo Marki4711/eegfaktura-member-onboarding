@@ -779,6 +779,12 @@ func (r *ApplicationRepository) ResetImportTx(tx *sql.Tx, id uuid.UUID) error {
 		return shared.NewConflictError("cannot reset while an import is in flight")
 	}
 
+	// member_number is also cleared: it was assigned at import time
+	// (PROJ-27) and a fresh re-import will pick a new value (the core's
+	// max+1 suggestion). Leaving the old number set would (a) display a
+	// stale assignment in the admin detail view and (b) collide with
+	// the next-member-number suggestion on retry. The previous value is
+	// preserved in the status_log reason by the caller (see admin_service.go).
 	query := `
 		UPDATE member_onboarding.application SET
 			status                = $1,
@@ -787,6 +793,7 @@ func (r *ApplicationRepository) ResetImportTx(tx *sql.Tx, id uuid.UUID) error {
 			imported_at           = NULL,
 			target_participant_id = NULL,
 			import_error_message  = NULL,
+			member_number         = NULL,
 			updated_at            = NOW()
 		WHERE id = $2`
 	_, err := tx.Exec(query, shared.StatusApproved, id)

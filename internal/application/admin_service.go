@@ -790,10 +790,15 @@ func (s *AdminApplicationService) ResetImport(id uuid.UUID, reason, actorID stri
 	}
 
 	previousParticipantID := ""
+	previousMemberNumber := ""
 	fullReason := reason
 	if app.TargetParticipantID != nil && *app.TargetParticipantID != "" {
 		previousParticipantID = *app.TargetParticipantID
-		fullReason = fmt.Sprintf("%s\n[system] previous target_participant_id=%s", reason, previousParticipantID)
+		fullReason = fmt.Sprintf("%s\n[system] previous target_participant_id=%s", fullReason, previousParticipantID)
+	}
+	if app.MemberNumber != nil && *app.MemberNumber != "" {
+		previousMemberNumber = *app.MemberNumber
+		fullReason = fmt.Sprintf("%s\n[system] previous member_number=%s", fullReason, previousMemberNumber)
 	}
 
 	now := time.Now().UTC()
@@ -834,6 +839,7 @@ func (s *AdminApplicationService) ResetImport(id uuid.UUID, reason, actorID stri
 		"application_id", id,
 		"actor", actorID,
 		"previous_target_participant_id", previousParticipantID,
+		"previous_member_number", previousMemberNumber,
 	)
 
 	return s.appRepo.GetByID(id)
