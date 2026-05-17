@@ -1,0 +1,127 @@
+# Recurring End-of-Life check for runtime components.
+#
+# Fragt monatlich endoflife.date für die hier deklarierten (tech, cycle)
+# ab und öffnet ein GitHub-Issue, sobald eine Komponente
+#   (a) bereits EOL ist (rote Warnung), oder
+#   (b) in <= 60 Tagen EOL erreicht (Vorlaufzeit für Upgrade-Planung).
+#
+# Wenn ein Upgrade durchgeführt wird, MUSS die hier deklarierte `cycle`
+# auf die neue Major-Version nachgezogen werden — sonst meldet der Check
+# weiter die alte Version. Quelle und Format der Cycle-IDs:
+#   https://endoflife.date/api/<tech>.json
+#
+# Idempotent: wird nicht jeden Monat ein neues Issue erzeugen — wenn
+# bereits ein offenes Issue mit demselben Titel + Label `eol-check`
+# existiert, wird übersprungen. Issue erst nach Schließen + Re-Check.
+name: EOL Check
+
+on:
+  schedule:
+    - cron: '0 6 1 * *' # 06:00 UTC am 1. jedes Monats
+  workflow_dispatch:    # manuell auslösbar via UI / `gh workflow run`
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - tech: nodejs
+            cycle: '22'
+            display: 'Node.js 22'
+          - tech: go
+            cycle: '1.26'
+            display: 'Go 1.26'
+          - tech: postgresql
+            cycle: '16'
+            display: 'PostgreSQL 16'
+    steps:
+      - name: Query endoflife.date and decide
+        id: eol
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          TECH: ${{ matrix.tech }}
+          CYCLE: ${{ matrix.cycle }}
+          DISPLAY: ${{ matrix.display }}
+        with:
+          script: |
+            const tech = process.env.TECH;
+            const cycle = process.env.CYCLE;
+            const display = process.env.DISPLAY;
+
+            // endoflife.date — per-cycle endpoint returns the row for that
+            // cycle directly; 404 means the cycle was retired before EOL
+            // recording started, treat as already-EOL.
+            const url = `https://endoflife.date/api/${tech}/${cycle}.json`;
+            const res = await fetch(url);
+            if (!res.ok) {
+              core.setFailed(`endoflife.date returned ${res.status} for ${tech}/${cycle}`);
+              return;
+            }
+            const data = await res.json();
+            const eol = data.eol; // string YYYY-MM-DD, or `false` (=evergreen)
+
+            const today = new Date().toISOString().slice(0, 10);
+            const warnUntil = new Date(Date.now() + 60 * 86400 * 1000)
+              .toISOString().slice(0, 10);
+
+            let result, body;
+            if (eol === false || eol === null || eol === 'false') {
+              result = 'ok-no-eol';
+            } else if (eol < today) {
+              result = 'expired';
+              body =
+                `**${display}** ist seit \`${eol}\` **End-of-Life**.\n\n` +
+                `Es werden ab sofort keine Security-Patches mehr veröffentlicht. ` +
+                `Bitte zeitnah auf eine unterstützte Version upgraden.\n\n` +
+                `Quelle: https://endoflife.date/${tech}\n\n` +
+                `Nach Upgrade: \`cycle\`-Eintrag in \`.github/workflows/eol-check.yml\` ` +
+                `auf die neue Major-Version setzen, sonst meldet dieser Check weiter ` +
+                `die alte Version.`;
+            } else if (eol < warnUntil) {
+              result = 'soon';
+              body =
+                `**${display}** erreicht am \`${eol}\` End-of-Life ` +
+                `(in weniger als 60 Tagen).\n\n` +
+                `Upgrade-Plan einleiten, bevor neue CVEs nicht mehr gepatcht werden.\n\n` +
+                `Quelle: https://endoflife.date/${tech}\n\n` +
+                `Nach Upgrade: \`cycle\`-Eintrag in \`.github/workflows/eol-check.yml\` ` +
+                `auf die neue Major-Version setzen.`;
+            } else {
+              result = 'ok';
+            }
+
+            core.info(`${display}: eol=${eol}, today=${today}, result=${result}`);
+
+            if (result !== 'expired' && result !== 'soon') return;
+
+            // De-dupe: skip if an open issue with the exact same title +
+            // label already exists.
+            const title = `EOL warning: ${display} (EOL ${eol})`;
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'eol-check',
+            });
+            if (existing.data.some(i => i.title === title)) {
+              core.info(`Issue already exists: ${title}`);
+              return;
+            }
+
+            const labels = ['eol-check', 'security'];
+            if (result === 'expired') labels.push('priority/high');
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels,
+            });
+            core.info(`Opened issue: ${title}`);

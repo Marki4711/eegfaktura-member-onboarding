@@ -10,6 +10,25 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Geändert — Node-Runtime auf Node 22 LTS gebumpt + automatischer EOL-Check *(2026-05-17)*
+
+Node 20 ist seit 30. April 2026 End-of-Life — keine neuen Security-Patches
+mehr. Aktualisiert auf Node 22 LTS (Support bis April 2027), minimaler
+Versions-Sprung mit geringstem Regressions-Risiko.
+
+- `Dockerfile.frontend`: 3× `node:20-alpine` → `node:22-alpine`
+- `.github/workflows/ci.yml` + `snyk.yml`: `node-version: '20'` → `'22'`
+- `package.json`: `@types/node ^20` → `^22` (npm install regeneriert das Lock)
+- `dependabot.yml`: Filter für `@types/node` Major-Bumps bleibt aktiv —
+  bei nächstem Runtime-Sprung manuell nachziehen
+- Neuer Workflow `.github/workflows/eol-check.yml`: läuft monatlich
+  (`cron: '0 6 1 * *'`), fragt endoflife.date für **Node**, **Go**,
+  **PostgreSQL** und öffnet GitHub-Issues sobald eine Komponente
+  innerhalb von 60 Tagen EOL erreicht oder bereits EOL ist. De-dupliziert
+  via offene `eol-check`-Issues, sodass kein monatliches Spamming
+- Nach jedem Upgrade muss der `cycle`-Eintrag im EOL-Workflow auf die
+  neue Major-Version nachgezogen werden (siehe Inline-Kommentar)
+
 ### Neu — PROJ-40: EEG-Umzuordnung eines Antrags im Review *(2026-05-17)*
 
 Wenn ein Mitglied über den falschen RC-Link der EEG A registriert hat,
