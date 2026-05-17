@@ -559,11 +559,41 @@ func (s *AdminApplicationService) ChangeStatus(id uuid.UUID, toStatus shared.App
 		return nil, fmt.Errorf("failed to write status log: %w", err)
 	}
 
+	// PROJ-41 + PROJ-43 hard-fail: notify the applicant on rejection /
+	// info-request **before** we commit the DB change. If SMTP is down or
+	// the template fails to render, defer tx.Rollback() reverts the
+	// status update and we return an error to the admin so they see the
+	// problem now rather than discovering it in logs later. Trade-off:
+	// the mail goes out before the row is committed; if commit then
+	// fails (very rare on a validated UPDATE), the applicant has a mail
+	// for a state that wasn't persisted. Admin would retry, applicant
+	// gets a second mail — annoying but not data-corrupting.
+	if toStatus == shared.StatusRejected || toStatus == shared.StatusNeedsInfo {
+		entrypoint, epErr := s.entrypointRepo.GetByRCNumber(app.RCNumber)
+		if epErr != nil {
+			return nil, fmt.Errorf("status-change mail: load entrypoint: %w", epErr)
+		}
+		acquireMailSem()
+		var sendErr error
+		if toStatus == shared.StatusRejected {
+			sendErr = s.mailService.SendRejectedNotification(app, entrypoint, reason)
+		} else {
+			sendErr = s.mailService.SendNeedsInfoNotification(app, entrypoint, reason)
+		}
+		releaseMailSem()
+		if sendErr != nil {
+			return nil, fmt.Errorf("status-change mail: send failed (status change not applied): %w", sendErr)
+		}
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	// Trigger approval notification asynchronously after a successful commit.
+	// Approval mail remains best-effort because of the heavier payload
+	// (PDF generation + multi-table read). If a hard-fail approach is
+	// also desired here, it can be added in a separate change.
 	if toStatus == shared.StatusApproved {
 		appID := id
 		go func() {
@@ -623,38 +653,7 @@ func (s *AdminApplicationService) ChangeStatus(id uuid.UUID, toStatus shared.App
 		}()
 	}
 
-	// PROJ-41 + PROJ-43: notify the applicant on rejection / info-request.
-	// Reason is mandatory for both transitions (requiresReason gate above),
-	// so we always have a body. Best-effort + async — failure logs but
-	// doesn't roll back the already-committed status change.
-	if toStatus == shared.StatusRejected || toStatus == shared.StatusNeedsInfo {
-		appID := id
-		notifyReason := reason
-		notifyStatus := toStatus
-		go func() {
-			acquireMailSem()
-			defer releaseMailSem()
-			reloadedApp, err := s.appRepo.GetByID(appID)
-			if err != nil {
-				slog.Error("status-change mail: failed to reload app", "application_id", appID, "to_status", notifyStatus, "error", err)
-				return
-			}
-			entrypoint, err := s.entrypointRepo.GetByRCNumber(reloadedApp.RCNumber)
-			if err != nil {
-				slog.Error("status-change mail: failed to load entrypoint", "application_id", appID, "to_status", notifyStatus, "error", err)
-				return
-			}
-			var sendErr error
-			if notifyStatus == shared.StatusRejected {
-				sendErr = s.mailService.SendRejectedNotification(reloadedApp, entrypoint, notifyReason)
-			} else {
-				sendErr = s.mailService.SendNeedsInfoNotification(reloadedApp, entrypoint, notifyReason)
-			}
-			if sendErr != nil {
-				slog.Error("status-change mail: failed to send", "application_id", appID, "to_status", notifyStatus, "error", sendErr)
-			}
-		}()
-	}
+	// (PROJ-41/43 member mails are sent synchronously pre-commit above.)
 
 	return &shared.ChangeStatusResponse{
 		ID:     id,

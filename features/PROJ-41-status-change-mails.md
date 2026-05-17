@@ -46,10 +46,11 @@ gleicher Admin-UI-Hinweis), darum als gemeinsame Spec.
   - `SendRejectedNotification(app, entrypoint, reason)`
   - `SendNeedsInfoNotification(app, entrypoint, reason)`
 - **`NoOpMailService`** implementiert beide als No-Op (für Dev ohne SMTP)
-- **`AdminApplicationService.ChangeStatus`** triggert nach erfolgreichem
-  Commit asynchron die passende Mail — gleiches Goroutine-Pattern wie
-  beim Approval-Mail (`acquireMailSem`/`releaseMailSem`, Best-Effort,
-  Fehler werden geloggt aber blocken die Statusänderung nicht)
+- **`AdminApplicationService.ChangeStatus`** rendert + versendet die Mail
+  **synchron VOR `tx.Commit()`** (hard-fail, siehe Update unten). Bei
+  Mail-Fehler greift `defer tx.Rollback()` — der Statuswechsel wird nicht
+  persistiert und der Admin sieht den Fehler in der UI. `acquireMailSem`/
+  `releaseMailSem` bleibt für Backpressure.
 - **Metric**: `mail_sent_total` mit neuen Labels `member_rejection` und
   `member_needs_info` (success/failed)
 
@@ -66,6 +67,26 @@ gleicher Admin-UI-Hinweis), darum als gemeinsame Spec.
 - Wenn SMTP nicht konfiguriert ist → NoOpMailService greift, kein Fehler
 - Wenn EEG keine `contact_email` hat → Reply-To bleibt leer
   (`transactionalOpts("")` ist tolerant)
+
+## Update (2026-05-17): Hard-Fail statt Best-Effort
+
+Initial wurde der Versand als Best-Effort + async Goroutine **nach** dem
+Commit implementiert. User-Feedback: „es soll einen harten Fehler geben,
+wenn die email nicht verschickt werden kann."
+
+Konsequenz:
+- Versand ist jetzt **synchron + pre-commit**. Bei Mail-Fehler greift
+  `defer tx.Rollback()` automatisch → Statuswechsel wird NICHT persistiert
+- Admin-API antwortet mit Fehler → Frontend zeigt die Meldung im Dialog
+- Edge-Case: Mail-Send OK, anschließender `tx.Commit()` schlägt fehl
+  (sehr selten bei validierter UPDATE) — der Bewerber hat dann eine Mail
+  bekommen für einen Status, der nicht persistiert wurde. Admin retry
+  versendet die Mail nochmal. Akzeptabel, keine Datenkorruption.
+- Pattern dokumentiert in Memory `feedback_mail_hard_fail.md` als
+  Default für neue Mail-Pfade.
+
+Nicht refaktoriert (vorerst): Approval-Mail (PDF-generation macht synchron
+teuer) und Submission-Mails (public-facing, würde Antrags-Submit blocken).
 
 ## Out of Scope
 

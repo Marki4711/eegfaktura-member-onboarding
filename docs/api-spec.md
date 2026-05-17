@@ -593,11 +593,11 @@ When `registration_entrypoint.require_email_confirmation = TRUE` (PROJ-31), this
 
 ### Side effects
 - on `approved`: set `approved_at`, set `reviewed_by_user_id`, asynchron Approval-PDF + Mail an EEG
-- on `rejected`: set `rejected_at`, set `reviewed_by_user_id`, **PROJ-41:** asynchron Mail an Mitglied mit `reason` 1:1 im Body
-- on `needs_info`: set `needs_info_reason`, **PROJ-43:** asynchron Mail an Mitglied mit `reason` 1:1 im Body
+- on `rejected`: set `rejected_at`, set `reviewed_by_user_id`, **PROJ-41:** synchroner Mail-Versand an Mitglied mit `reason` 1:1 im Body
+- on `needs_info`: set `needs_info_reason`, **PROJ-43:** synchroner Mail-Versand an Mitglied mit `reason` 1:1 im Body
 - always write entry in `status_log`
 
-Beide Mitglieds-Mails sind best-effort: scheitert der Versand, wird der Statuswechsel selbst nicht zurückgerollt (Logs zeigen den Fehler).
+Die Mitglieder-Mails bei `rejected` und `needs_info` werden **synchron vor dem Commit** versendet (hard-fail). Schlägt der SMTP-Versand fehl, wird die Statusänderung zurückgerollt und der Aufruf antwortet mit HTTP 500 + Mail-Fehlermeldung — der Admin sieht das Problem direkt in der UI.
 
 ### Response 200
 ```json

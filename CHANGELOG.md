@@ -10,6 +10,19 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Geändert — PROJ-41 + PROJ-43: Mail-Versand jetzt hard-fail *(2026-05-17)*
+
+Der initiale Best-Effort-Goroutine-Versand wurde umgestellt auf:
+
+- **Synchron + pre-commit**: rejected/needs_info-Mail wird gerendert und
+  versendet, BEVOR `tx.Commit()` läuft. Bei Fehler greift `defer tx.Rollback()`
+- **Hard-fail**: Mail-Fehler → Statuswechsel wird NICHT persistiert + API
+  antwortet 500 mit Fehlermeldung → Admin sieht das Problem sofort im Dialog
+  („Mail konnte nicht versendet werden"), kein stilles Scheitern im Log
+- Approval-Mail bleibt vorerst best-effort (PDF-generation macht Sync teurer)
+- Submission-Mails bleiben unverändert (public-facing, würde Antrags-Submit
+  blocken)
+
 ### Neu — PROJ-41 + PROJ-43: Status-Change-Mails an Mitglied *(2026-05-17)*
 
 Bisher erfuhr der Beitrittswerber nichts, wenn der EEG-Admin den Antrag
