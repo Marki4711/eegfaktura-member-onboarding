@@ -20,14 +20,17 @@ updates:
     # Wenn die Runtime auf einen neuen Major angehoben wird, hier den
     # ignore-Eintrag entsprechend nachziehen.
     #
-    # Ignore: tailwind-merge Major-Bumps. tailwind-merge v3 setzt
-    # Tailwind CSS v4 voraus, wir sind aber bewusst auf v3 (PROJ-22
-    # wurde reverted, siehe features/PROJ-22-tailwindcss-v4-upgrade.md).
-    # Erst nach erfolgreichem Tailwind-v4-Upgrade hier den Ignore entfernen.
+    # Ignore: tailwindcss + tailwind-merge Major-Bumps. tailwindcss v4
+    # wurde in PROJ-22 versucht und am 2026-04-26 wegen Regressions
+    # zurückgerollt (siehe features/PROJ-22-tailwindcss-v4-upgrade.md).
+    # tailwind-merge v3 setzt Tailwind v4 voraus, scheitert hier daher
+    # ebenfalls. Beide ignoriert bis PROJ-22 erfolgreich nachgeholt wird.
     ignore:
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
       - dependency-name: "tailwind-merge"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "tailwindcss"
         update-types: ["version-update:semver-major"]
 
   # Backend: Go modules
