@@ -261,7 +261,7 @@ This is the only code change that touches PROJ-2 scope within the PROJ-4 feature
 
 ### Implementation Scope
 
-Backend-only. This is Phase 5 of `docs/build-plan.md`.
+Backend-only.
 
 No database migrations are required — all columns used by this feature (`import_started_at`, `import_finished_at`, `imported_at`, `target_participant_id`, `import_error_message`) already exist in the schema from migration 000001.
 

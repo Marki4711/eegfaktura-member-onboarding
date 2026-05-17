@@ -228,7 +228,7 @@ All endpoints are implemented in PROJ-2 (Admin Review backend). No new backend e
 
 ### Implementation Scope
 
-Frontend-only. No new backend endpoints are introduced. All data comes from the four existing PROJ-2 admin API endpoints. This feature aligns with Phase 4 of `docs/build-plan.md` (frontend layer addition).
+Frontend-only. No new backend endpoints are introduced. All data comes from the four existing PROJ-2 admin API endpoints.
 
 No new shadcn/ui packages need to be installed — the following components are already available in `src/components/ui/` and cover every requirement: `Badge`, `Button`, `Table`, `Dialog`, `Input`, `Select`, `Textarea`, `Skeleton`, `Pagination`, `Card`, `Form`, `Separator`, `Sonner`.
 

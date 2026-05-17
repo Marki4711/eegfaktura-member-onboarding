@@ -117,7 +117,6 @@ Read these files before making changes:
 - `docs/domain-model.md`
 - `docs/api-spec.md`
 - `docs/import-mapping.md`
-- `docs/build-plan.md`
 - `docs/PRD.md` if present
 - `features/INDEX.md`
 - the specific feature file you are implementing
@@ -432,7 +431,7 @@ Work in small, clearly scoped steps.
 Before generating code:
 
 1. read the relevant docs
-2. check which phase in `docs/build-plan.md` is affected
+2. check `features/INDEX.md` for the current feature and its dependencies
 3. read the relevant feature file in `features/`
 4. implement only the requested scope
 5. do not introduce extra features
@@ -448,7 +447,6 @@ If conflicts occur, use this priority order:
 4. `docs/domain-model.md`
 5. `docs/import-mapping.md`
 6. `docs/architecture.md`
-7. `docs/build-plan.md`
 
 If something is unclear, do not invent a new architecture.  
 Stay close to the documented scope and make the smallest safe decision.

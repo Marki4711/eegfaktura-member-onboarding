@@ -55,7 +55,7 @@ eegfaktura-member-onboarding/
 ├── docs/                          # Project documentation
 │   ├── PRD.md                     # Product Requirements Document
 │   ├── architecture.md            # Technical architecture
-│   └── build-plan.md              # Implementation phases
+│   └── domain-model.md            # Tables + status model
 ├── features/                      # Feature specifications
 │   ├── INDEX.md                   # Feature tracking
 │   └── PROJ-X-*.md                # Individual feature specs
