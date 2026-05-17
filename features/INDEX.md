@@ -59,5 +59,6 @@ Central tracking for all features.
 | PROJ-42 | E-Fahrzeug-Detailerfassung (Anzahl + Jahres-km) | In Review | `features/PROJ-42-ev-details.md` | 2026-05-17 |
 | PROJ-44 | Netzbetreiber-Vollmacht (per-EEG konfigurierbar) | In Review | `features/PROJ-44-network-operator-authorization.md` | 2026-05-17 |
 | PROJ-45 | Erzeugungsform + Batterie-Felder + typabhängige Sichtbarkeit | In Review | `features/PROJ-45-generation-type-and-conditional-fields.md` | 2026-05-17 |
+| PROJ-46 | Stati für Import-Nachbereitung (B2B-Bank-Bestätigung + Aktivierung) | Planned (Konzept) | `features/PROJ-46-post-import-statuses.md` | 2026-05-17 |
 
-## Next Available ID: PROJ-46
+## Next Available ID: PROJ-47
