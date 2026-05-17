@@ -29,7 +29,7 @@ ALTER TABLE member_onboarding.registration_entrypoint
 
 - Beide optional. NULL = heutiges Verhalten (nur `AT` als fixer Bestandteil).
 - Validierung: muss mit `AT` beginnen, Länge 2–33, Stellen 3–13 nur Ziffern, Stellen 14+ alphanumerisch.
-- Empfohlene Länge: **27 Stellen** — dann bleibt dem Mitglied genau die letzten 6 Stellen zur Eingabe.
+- Die sinnvolle Länge hängt vom Netzbetreiber ab — je nachdem wie viele Stellen bei dessen Zählpunkten konstant sind und ab welcher Stelle die individuelle Kennung beginnt. Der Admin wählt selbst aus, was für seinen Bereich passt.
 
 ### 2. Automatische Anwendung je nach Richtung
 
@@ -52,7 +52,7 @@ Begründung: Richtung muss vor der Zählpunkt-Eingabe bestimmt sein, weil sie di
 - Wenn weniger Ziffern als erwartet → links mit `0` auffüllen bis volle Länge
 - Wert neu setzen
 
-**Beispiel** (Prefix 27 Stellen, 6 freie):
+**Beispiel** (Prefix mit z. B. 27 Stellen → 6 freie Stellen):
 - Mitglied tippt `123`, klickt weg
 - Beim Blur wird zu `[Prefix]000123` ergänzt
 
@@ -73,7 +73,7 @@ Validation-Anpassungen:
 Neuer Block **„Zählpunkt-Prefixes"** in der EEG-Einstellungen-Seite:
 - Zwei Inputs nebeneinander: „Verbraucher-Prefix" und „Einspeisungs-Prefix"
 - Beide optional, beide validiert (Format wie Datenmodell oben)
-- Helper-Text: „Empfohlen 27 Stellen — dann müssen Mitglieder nur die letzten 6 Stellen eintippen"
+- Helper-Text: „Je mehr Stellen Sie hier festlegen, desto weniger müssen Mitglieder selbst eintippen. Die sinnvolle Länge hängt davon ab, ab welcher Stelle die Zählpunkte Ihres Netzbetreibers individuell werden."
 - Vorschau: Mask-Darstellung wie sie das Mitglied im Formular sieht
 - Save via existierendem `PUT /api/admin/settings/eeg`
 
