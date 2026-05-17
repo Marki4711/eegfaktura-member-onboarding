@@ -1,5 +1,7 @@
 # eegfaktura Member Onboarding
 
+[![Sponsor](https://img.shields.io/github/sponsors/Marki4711?label=Sponsor&logo=GitHub&color=ea4aaa)](https://github.com/sponsors/Marki4711)
+
 > Self-service registration system for EEG members with admin review workflow.
 
 This repository contains the **eegfaktura Member Onboarding** component, enabling potential EEG members to register themselves through a web form. Submitted data is stored in a dedicated onboarding schema and reviewed by admins before import into the eegFaktura core system.
