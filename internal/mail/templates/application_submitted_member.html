@@ -76,6 +76,12 @@
       <td style="padding: 4px 10px;">{{.RegisterNumber}}</td>
     </tr>
     {{end}}
+    {{if .Titel}}
+    <tr>
+      <td style="padding: 4px 10px; color: #666;">Titel</td>
+      <td style="padding: 4px 10px;">{{.Titel}}</td>
+    </tr>
+    {{end}}
     {{if .Firstname}}
     <tr>
       <td style="padding: 4px 10px; color: #666;">Vorname</td>
@@ -86,6 +92,12 @@
     <tr>
       <td style="padding: 4px 10px; color: #666;">Nachname</td>
       <td style="padding: 4px 10px;">{{.Lastname}}</td>
+    </tr>
+    {{end}}
+    {{if .TitelNach}}
+    <tr>
+      <td style="padding: 4px 10px; color: #666;">Titel nach</td>
+      <td style="padding: 4px 10px;">{{.TitelNach}}</td>
     </tr>
     {{end}}
     {{if .BirthDate}}
@@ -129,6 +141,12 @@
       <td style="padding: 4px 10px;">{{.AccountHolder}}</td>
     </tr>
     {{end}}
+    {{if .BankName}}
+    <tr>
+      <td style="padding: 4px 10px; color: #666;">Bankname</td>
+      <td style="padding: 4px 10px;">{{.BankName}}</td>
+    </tr>
+    {{end}}
     {{end}}
     {{if .MeteringPoints}}
     <tr style="background-color: #f5f5f5;">
@@ -139,6 +157,12 @@
       <td style="padding: 4px 10px; color: #666;">{{.Direction}}</td>
       <td style="padding: 4px 10px;">{{.MeteringPoint}} ({{.ParticipationFactor}} %)</td>
     </tr>
+    {{if .AddressLine}}
+    <tr>
+      <td style="padding: 4px 10px 8px; color: #666;">Adresse</td>
+      <td style="padding: 4px 10px 8px;">{{.AddressLine}}</td>
+    </tr>
+    {{end}}
     {{end}}
     {{end}}
     <tr style="background-color: #f5f5f5;">

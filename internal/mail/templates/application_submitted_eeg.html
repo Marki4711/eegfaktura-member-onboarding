@@ -18,7 +18,7 @@
     {{if .Firstname}}
     <tr>
       <td style="padding: 4px 16px 4px 0; font-weight: bold;">Name:</td>
-      <td style="padding: 4px 0;">{{.Firstname}} {{.Lastname}}</td>
+      <td style="padding: 4px 0;">{{if .Titel}}{{.Titel}} {{end}}{{.Firstname}} {{.Lastname}}{{if .TitelNach}}, {{.TitelNach}}{{end}}</td>
     </tr>
     {{end}}
     {{if .CompanyName}}
@@ -75,6 +75,12 @@
       <td style="padding: 4px 0;">{{.AccountHolder}}</td>
     </tr>
     {{end}}
+    {{if .BankName}}
+    <tr>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold;">Bankname:</td>
+      <td style="padding: 4px 0;">{{.BankName}}</td>
+    </tr>
+    {{end}}
     <tr>
       <td style="padding: 4px 16px 4px 0; font-weight: bold;">SEPA-Ermächtigung:</td>
       <td style="padding: 4px 0;">{{.SepaMandateType}}</td>
@@ -90,6 +96,7 @@
         <th style="padding: 6px 12px; text-align: left; border-bottom: 1px solid #ddd;">Zählpunktnummer</th>
         <th style="padding: 6px 12px; text-align: left; border-bottom: 1px solid #ddd;">Richtung</th>
         <th style="padding: 6px 12px; text-align: right; border-bottom: 1px solid #ddd;">Teilnahmefaktor</th>
+        <th style="padding: 6px 12px; text-align: left; border-bottom: 1px solid #ddd;">Adresse (falls abweichend)</th>
       </tr>
     </thead>
     <tbody>
@@ -98,6 +105,7 @@
         <td style="padding: 6px 12px; border-bottom: 1px solid #eee;">{{.MeteringPoint}}</td>
         <td style="padding: 6px 12px; border-bottom: 1px solid #eee;">{{.Direction}}</td>
         <td style="padding: 6px 12px; border-bottom: 1px solid #eee; text-align: right;">{{.ParticipationFactor}} %</td>
+        <td style="padding: 6px 12px; border-bottom: 1px solid #eee;">{{if .AddressLine}}{{.AddressLine}}{{else}}<span style="color:#999;">—</span>{{end}}</td>
       </tr>
       {{end}}
     </tbody>

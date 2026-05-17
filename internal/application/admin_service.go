@@ -354,6 +354,9 @@ func (s *AdminApplicationService) AdminUpdateApplication(id uuid.UUID, req share
 	if req.Titel != nil {
 		app.Titel = trimStringPtr(req.Titel)
 	}
+	if req.TitelNach != nil {
+		app.TitelNach = trimStringPtr(req.TitelNach)
+	}
 	if req.Firstname != nil {
 		app.Firstname = trimStringPtr(req.Firstname)
 	}
@@ -438,9 +441,19 @@ func (s *AdminApplicationService) AdminUpdateApplication(id uuid.UUID, req share
 				MeteringPoint:       normalized,
 				Direction:           shared.MeterDirection(mp.Direction),
 				ParticipationFactor: mp.ParticipationFactor,
+				Transformer:         trimStringPtr(mp.Transformer),
+				InstallationNumber:  trimStringPtr(mp.InstallationNumber),
+				InstallationName:    trimStringPtr(mp.InstallationName),
+				AddressStreet:       trimStringPtr(mp.AddressStreet),
+				AddressStreetNumber: trimStringPtr(mp.AddressStreetNumber),
+				AddressZip:          trimStringPtr(mp.AddressZip),
+				AddressCity:         trimStringPtr(mp.AddressCity),
 				CreatedAt:           now,
 				UpdatedAt:           now,
 			}
+		}
+		if err := validateMeteringPointAddresses(points); err != nil {
+			return nil, err
 		}
 		if err := s.meteringRepo.CreateBulkTx(tx, id, points); err != nil {
 			return nil, fmt.Errorf("failed to update metering points: %w", err)
@@ -975,10 +988,19 @@ func buildApprovalPDFData(
 		if mp.Direction == shared.DirectionProduction {
 			dir = "Einspeisung"
 		}
+		addrLine := ""
+		if mp.HasDeviatingAddress() {
+			street := derefStr(mp.AddressStreet)
+			streetNumber := derefStr(mp.AddressStreetNumber)
+			zip := derefStr(mp.AddressZip)
+			city := derefStr(mp.AddressCity)
+			addrLine = strings.TrimSpace(street+" "+streetNumber) + ", " + strings.TrimSpace(zip+" "+city)
+		}
 		mpPDFs[i] = pdf.MeteringPointPDF{
 			MeteringPoint:       mp.MeteringPoint,
 			Direction:           dir,
 			ParticipationFactor: mp.ParticipationFactor,
+			AddressLine:         addrLine,
 		}
 	}
 
@@ -1019,6 +1041,7 @@ func buildApprovalPDFData(
 		ReferenceNumber:      app.ReferenceNumber,
 		MemberType:           memberTypeLabel,
 		Titel:                derefStr(app.Titel),
+		TitelNach:            derefStr(app.TitelNach),
 		Firstname:            derefStr(app.Firstname),
 		Lastname:             derefStr(app.Lastname),
 		BirthDate:            app.BirthDate,
@@ -1033,6 +1056,7 @@ func buildApprovalPDFData(
 		ResidentCity:         app.ResidentCity,
 		IBAN:                 derefStr(app.IBAN),
 		AccountHolder:        derefStr(app.AccountHolder),
+		BankName:             derefStr(app.BankName),
 		SepaMandateType:      approvalSepaMandateType(app, entrypoint),
 		MeteringPoints:       mpPDFs,
 		Consents:             consentPDFs,

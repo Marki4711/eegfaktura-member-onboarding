@@ -149,8 +149,7 @@ Basic rules:
 - the public entry point is identified by the EEG's RC number
 - the RC number is resolved exclusively via `member_onboarding.registration_entrypoint`; no direct access to eegFaktura core tables
 - one application can contain multiple metering points
-- in onboarding, all metering points use the same address as the member
-- differing metering point addresses are maintained later in eegFaktura
+- each metering point may either inherit the member's primary address (default) or carry its own deviating address (PROJ-39 — see `metering_point.address_*` columns; all-or-nothing rule enforced server-side)
 - tariffs, roles, and account information are not managed in onboarding
 
 ### Status values — keep three places in sync

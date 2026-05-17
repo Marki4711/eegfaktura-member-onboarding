@@ -113,12 +113,19 @@ export interface MeteringPointRequest {
   transformer?: string;
   installationNumber?: string;
   installationName?: string;
+  // PROJ-39: abweichende Adresse je Zählpunkt. Entweder alle vier
+  // gesetzt oder alle vier weggelassen.
+  addressStreet?: string;
+  addressStreetNumber?: string;
+  addressZip?: string;
+  addressCity?: string;
 }
 
 export interface CreateApplicationRequest {
   rcNumber: string;
   memberType: MemberType;
   titel?: string;
+  titelNach?: string;
   firstname?: string;
   lastname?: string;
   birthDate?: string;
@@ -136,6 +143,7 @@ export interface CreateApplicationRequest {
   accuracyConfirmed: boolean;
   iban: string;
   accountHolder: string;
+  bankName?: string;
   sepaMandateAccepted: boolean;
   meteringPoints: MeteringPointRequest[];
   // configurable application-level fields
@@ -367,6 +375,13 @@ export interface MeteringPointDetail {
   meteringPoint: string;
   direction: "CONSUMPTION" | "PRODUCTION";
   participationFactor: number;
+  transformer?: string | null;
+  installationNumber?: string | null;
+  installationName?: string | null;
+  addressStreet?: string | null;
+  addressStreetNumber?: string | null;
+  addressZip?: string | null;
+  addressCity?: string | null;
 }
 
 export interface StatusLogEntry {
@@ -389,6 +404,7 @@ export interface AdminApplicationDetail {
   importedAt: string | null;
   memberType: MemberType;
   titel?: string | null;
+  titelNach?: string | null;
   firstname?: string | null;
   lastname?: string | null;
   birthDate: string | null;
@@ -479,6 +495,7 @@ export function clearImportLock(
 export interface AdminUpdateApplicationRequest {
   memberType?: MemberType;
   titel?: string;
+  titelNach?: string;
   firstname?: string;
   lastname?: string;
   birthDate?: string;

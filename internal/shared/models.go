@@ -93,6 +93,7 @@ type Application struct {
 	ImportedAt           *time.Time        `json:"importedAt,omitempty" db:"imported_at"`
 	MemberType           MemberType        `json:"memberType" db:"member_type"`
 	Titel                *string           `json:"titel,omitempty" db:"titel"`
+	TitelNach            *string           `json:"titelNach,omitempty" db:"titel_nach"`
 	Firstname            *string           `json:"firstname,omitempty" db:"firstname"`
 	Lastname             *string           `json:"lastname,omitempty" db:"lastname"`
 	BirthDate            *time.Time        `json:"birthDate,omitempty" db:"birth_date"`
@@ -167,6 +168,20 @@ type MeteringPoint struct {
 	Transformer        *string `json:"transformer,omitempty" db:"transformer"`
 	InstallationNumber *string `json:"installationNumber,omitempty" db:"installation_number"`
 	InstallationName   *string `json:"installationName,omitempty" db:"installation_name"`
+	// Abweichende Adresse je Zählpunkt (PROJ-39). Wenn alle vier NULL,
+	// gilt die Mitgliederadresse. Wenn ≥1 gesetzt, müssen alle vier
+	// gesetzt sein (Validierung im Service-Layer).
+	AddressStreet       *string `json:"addressStreet,omitempty" db:"address_street"`
+	AddressStreetNumber *string `json:"addressStreetNumber,omitempty" db:"address_street_number"`
+	AddressZip          *string `json:"addressZip,omitempty" db:"address_zip"`
+	AddressCity         *string `json:"addressCity,omitempty" db:"address_city"`
+}
+
+// HasDeviatingAddress returns true if this metering point has a different
+// address from the member's primary residence. Helper used by mail/PDF
+// rendering to decide whether to print the address line.
+func (mp *MeteringPoint) HasDeviatingAddress() bool {
+	return mp.AddressStreet != nil && *mp.AddressStreet != ""
 }
 
 // LegalDocument is a legal document configured per EEG.

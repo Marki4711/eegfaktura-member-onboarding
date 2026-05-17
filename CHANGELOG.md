@@ -10,6 +10,16 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Neu — PROJ-39: Titel-Nach + Bankname im Public-Form + abweichende Adresse je Zählpunkt *(2026-05-17)*
+
+Drei unabhängige Erweiterungen am öffentlichen Antragsformular.
+
+- **„Titel nach"** als zusätzliches optionales Personenfeld (z.B. BSc, MSc, MBA). Bestehende `titel`-Spalte bleibt erhalten und repräsentiert implizit „Titel vor". Migration 000037 fügt `application.titel_nach` hinzu. Sichtbar in Mail, PDF und Excel-Export
+- **„Bankname"** ist jetzt direkt vom Mitglied eingebbar (war bisher admin-only). Spalte `application.bank_name` existierte schon, nur neue Frontend- und API-Pfade
+- **Abweichende Adresse je Zählpunkt** (Bricht V1-Architekturentscheidung!): Migration 000037 fügt 4 Adress-Spalten auf `metering_point` hinzu. UI zeigt eine Checkbox „Abweichende Adresse" pro Zählpunkt; bei Aktivierung werden Straße, Hausnummer, PLZ, Ort eingeblendet. Checkbox-State wird **nicht** persistiert — der Zustand ergibt sich beim Reload daraus, ob die vier Adressfelder gefüllt sind. Server enforciert die All-or-Nothing-Regel (entweder alle vier leer oder alle vier gesetzt)
+- Mail (Member + EEG), Approval-PDF, Excel-Export, Admin-Detail-View berücksichtigen alle drei neuen Felder
+- CLAUDE.md + docs/architecture.md aktualisiert: alte „all metering points use the same address as the member"-Klausel entfernt
+
 ### Behoben — Reset-Import: Mitgliedsnummer wird gelöscht *(2026-05-17)*
 
 Beim Zurücksetzen eines Imports (`imported → approved`) blieb bisher die

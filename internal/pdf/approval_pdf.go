@@ -24,6 +24,7 @@ type ApprovalPDFData struct {
 
 	MemberType      string
 	Titel           string
+	TitelNach       string
 	Firstname       string
 	Lastname        string
 	BirthDate       *time.Time
@@ -40,6 +41,7 @@ type ApprovalPDFData struct {
 
 	IBAN            string
 	AccountHolder   string
+	BankName        string
 	SepaMandateType string
 
 	MeteringPoints     []MeteringPointPDF
@@ -81,6 +83,9 @@ type MeteringPointPDF struct {
 	MeteringPoint       string
 	Direction           string
 	ParticipationFactor int
+	// PROJ-39: pre-formatted address line ("Straße Nr, PLZ Ort"). Empty
+	// when the metering point uses the member's primary address.
+	AddressLine string
 }
 
 // ConsentPDF holds a consent snapshot for the approval PDF.
@@ -213,6 +218,9 @@ func (g *FPDFApprovalGenerator) GenerateApproval(data ApprovalPDFData) ([]byte, 
 	dataRow("Mitgliedstyp:", data.MemberType)
 	if data.Firstname != "" || data.Lastname != "" {
 		name := strings.TrimSpace(data.Titel + " " + data.Firstname + " " + data.Lastname)
+		if data.TitelNach != "" {
+			name = strings.TrimSpace(name + ", " + data.TitelNach)
+		}
 		dataRow("Name:", name)
 	}
 	if data.CompanyName != "" {
@@ -242,6 +250,9 @@ func (g *FPDFApprovalGenerator) GenerateApproval(data ApprovalPDFData) ([]byte, 
 		if data.AccountHolder != "" {
 			dataRow("Kontoinhaber:", data.AccountHolder)
 		}
+		if data.BankName != "" {
+			dataRow("Bankname:", data.BankName)
+		}
 		dataRow("SEPA-Ermächtigung:", data.SepaMandateType)
 	}
 
@@ -259,6 +270,13 @@ func (g *FPDFApprovalGenerator) GenerateApproval(data ApprovalPDFData) ([]byte, 
 		f.CellFormat(col1, 5, w1252(mp.MeteringPoint), "0", 0, "L", false, 0, "")
 		f.CellFormat(col2, 5, w1252(mp.Direction), "0", 0, "L", false, 0, "")
 		f.CellFormat(col3, 5, w1252(fmt.Sprintf("%d %%", mp.ParticipationFactor)), "0", 1, "R", false, 0, "")
+		// PROJ-39: zusätzliche Zeile bei abweichender Adresse, eingerückt
+		// unter der Zählpunktnummer damit die Zuordnung visuell klar bleibt.
+		if mp.AddressLine != "" {
+			setFont("I", 8)
+			f.CellFormat(cw, 5, w1252("    Adresse: "+mp.AddressLine), "0", 1, "L", false, 0, "")
+			setFont("", 9)
+		}
 	}
 
 	// ── ERTEILTE ZUSTIMMUNGEN ─────────────────────────────────────────────────

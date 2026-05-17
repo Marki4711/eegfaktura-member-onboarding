@@ -13,6 +13,7 @@ type CreateApplicationRequest struct {
 	RCNumber             string                      `json:"rcNumber" validate:"required"`
 	MemberType           string                      `json:"memberType" validate:"required,oneof=private sole_proprietor farmer municipality company association"`
 	Titel                *string                     `json:"titel,omitempty" validate:"omitempty,max=50"`
+	TitelNach            *string                     `json:"titelNach,omitempty" validate:"omitempty,max=50"`
 	Firstname            *string                     `json:"firstname,omitempty" validate:"omitempty,min=1,max=100"`
 	Lastname             *string                     `json:"lastname,omitempty" validate:"omitempty,min=1,max=100"`
 	BirthDate            *string                     `json:"birthDate,omitempty"  validate:"omitempty,len=10"`
@@ -30,6 +31,7 @@ type CreateApplicationRequest struct {
 	AccuracyConfirmed    bool                        `json:"accuracyConfirmed" validate:"required"`
 	IBAN                 string                      `json:"iban" validate:"required,min=15,max=50"`
 	AccountHolder        string                      `json:"accountHolder" validate:"required,min=1,max=150"`
+	BankName             *string                     `json:"bankName,omitempty" validate:"omitempty,max=255"`
 	SepaMandateAccepted  bool                        `json:"sepaMandateAccepted" validate:"required"`
 	MeteringPoints       []CreateMeteringPointRequest `json:"meteringPoints" validate:"required,min=1,max=10,dive"`
 	// Configurable application-level fields (PROJ-8)
@@ -59,12 +61,20 @@ type CreateMeteringPointRequest struct {
 	Transformer        *string `json:"transformer,omitempty" validate:"omitempty,max=100"`
 	InstallationNumber *string `json:"installationNumber,omitempty" validate:"omitempty,max=50"`
 	InstallationName   *string `json:"installationName,omitempty" validate:"omitempty,max=100"`
+	// Abweichende Adresse je Zählpunkt (PROJ-39). Entweder alle vier
+	// leer/NULL → Mitgliederadresse gilt, oder alle vier gesetzt →
+	// abweichende Adresse. Service-Layer prüft die All-or-Nothing-Regel.
+	AddressStreet       *string `json:"addressStreet,omitempty" validate:"omitempty,max=255"`
+	AddressStreetNumber *string `json:"addressStreetNumber,omitempty" validate:"omitempty,max=50"`
+	AddressZip          *string `json:"addressZip,omitempty" validate:"omitempty,max=20"`
+	AddressCity         *string `json:"addressCity,omitempty" validate:"omitempty,max=255"`
 }
 
 // UpdateApplicationRequest represents the request to update an application
 type UpdateApplicationRequest struct {
 	MemberType           *string                     `json:"memberType,omitempty" validate:"omitempty,oneof=private sole_proprietor farmer municipality company association"`
 	Titel                *string                     `json:"titel,omitempty" validate:"omitempty,max=50"`
+	TitelNach            *string                     `json:"titelNach,omitempty" validate:"omitempty,max=50"`
 	Firstname            *string                     `json:"firstname,omitempty" validate:"omitempty,min=1,max=100"`
 	Lastname             *string                     `json:"lastname,omitempty" validate:"omitempty,min=1,max=100"`
 	BirthDate            *string                     `json:"birthDate,omitempty"  validate:"omitempty,len=10"`
@@ -82,6 +92,7 @@ type UpdateApplicationRequest struct {
 	AccuracyConfirmed    *bool                       `json:"accuracyConfirmed,omitempty"`
 	IBAN                 *string                     `json:"iban,omitempty" validate:"omitempty,min=15,max=50"`
 	AccountHolder        *string                     `json:"accountHolder,omitempty" validate:"omitempty,min=1,max=150"`
+	BankName             *string                     `json:"bankName,omitempty" validate:"omitempty,max=255"`
 	SepaMandateAccepted  *bool                       `json:"sepaMandateAccepted,omitempty"`
 	MeteringPoints       []CreateMeteringPointRequest `json:"meteringPoints,omitempty" validate:"omitempty,min=1,max=10,dive"`
 	// PROJ-37: Admin/Member-Updates der gezeichneten Anteils-Anzahl. Bei
@@ -212,6 +223,7 @@ type ConfirmEmailResponse struct {
 type AdminUpdateApplicationRequest struct {
 	MemberType           *string                      `json:"memberType,omitempty" validate:"omitempty,oneof=private sole_proprietor farmer municipality company association"`
 	Titel                *string                      `json:"titel,omitempty" validate:"omitempty,max=50"`
+	TitelNach            *string                      `json:"titelNach,omitempty" validate:"omitempty,max=50"`
 	Firstname            *string                      `json:"firstname,omitempty" validate:"omitempty,min=1,max=100"`
 	Lastname             *string                      `json:"lastname,omitempty" validate:"omitempty,min=1,max=100"`
 	BirthDate            *string                      `json:"birthDate,omitempty"  validate:"omitempty,len=10"`

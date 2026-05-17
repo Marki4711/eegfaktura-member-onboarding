@@ -181,20 +181,37 @@ func writeDataRow(f *excelize.File, rowNum int, app *shared.Application, mp *sha
 	if err := set("C", "LOKAL"); err != nil {
 		return err
 	}
+	// PROJ-39: per-Zählpunkt-Adresse überschreibt die Mitgliederadresse
+	// wenn auf dem MP eine abweichende Adresse hinterlegt ist.
+	zip, city, street, streetNumber := app.ResidentZip, app.ResidentCity, app.ResidentStreet, app.ResidentStreetNumber
+	if mp.HasDeviatingAddress() {
+		if mp.AddressZip != nil {
+			zip = *mp.AddressZip
+		}
+		if mp.AddressCity != nil {
+			city = *mp.AddressCity
+		}
+		if mp.AddressStreet != nil {
+			street = *mp.AddressStreet
+		}
+		if mp.AddressStreetNumber != nil {
+			streetNumber = *mp.AddressStreetNumber
+		}
+	}
 	// D: PLZ
-	if err := set("D", app.ResidentZip); err != nil {
+	if err := set("D", zip); err != nil {
 		return err
 	}
 	// E: Ort
-	if err := set("E", app.ResidentCity); err != nil {
+	if err := set("E", city); err != nil {
 		return err
 	}
 	// F: Straße
-	if err := set("F", app.ResidentStreet); err != nil {
+	if err := set("F", street); err != nil {
 		return err
 	}
 	// G: Hausnummer
-	if err := set("G", app.ResidentStreetNumber); err != nil {
+	if err := set("G", streetNumber); err != nil {
 		return err
 	}
 	// H–K: Stiege, Stock, Tür, Adresszusatz — empty
@@ -253,7 +270,12 @@ func writeDataRow(f *excelize.File, rowNum int, app *shared.Application, mp *sha
 	if err := set("V", name2); err != nil {
 		return err
 	}
-	// W: TitelNach — empty
+	// W: TitelNach
+	if app.TitelNach != nil {
+		if err := set("W", *app.TitelNach); err != nil {
+			return err
+		}
+	}
 	// X: BusinessRole
 	if err := set("X", mapBusinessRole(app.MemberType)); err != nil {
 		return err
@@ -276,7 +298,12 @@ func writeDataRow(f *excelize.File, rowNum int, app *shared.Application, mp *sha
 			return err
 		}
 	}
-	// AB: Bankname — empty
+	// AB: Bankname
+	if app.BankName != nil {
+		if err := set("AB", *app.BankName); err != nil {
+			return err
+		}
+	}
 	// AC: Email
 	if err := set("AC", app.Email); err != nil {
 		return err

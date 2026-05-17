@@ -110,9 +110,16 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 			Transformer:         trimStringPtr(mpReq.Transformer),
 			InstallationNumber:  trimStringPtr(mpReq.InstallationNumber),
 			InstallationName:    trimStringPtr(mpReq.InstallationName),
+			AddressStreet:       trimStringPtr(mpReq.AddressStreet),
+			AddressStreetNumber: trimStringPtr(mpReq.AddressStreetNumber),
+			AddressZip:          trimStringPtr(mpReq.AddressZip),
+			AddressCity:         trimStringPtr(mpReq.AddressCity),
 			CreatedAt:           time.Now(),
 			UpdatedAt:           time.Now(),
 		})
+	}
+	if err = validateMeteringPointAddresses(meteringPoints); err != nil {
+		return nil, err
 	}
 	if err = s.meteringRepo.ValidateUniqueMeteringPoints(uuid.Nil, meteringPoints); err != nil {
 		return nil, shared.NewValidationError("Validation failed", map[string]string{
@@ -154,6 +161,7 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 		StartedAt:               &now,
 		MemberType:              shared.MemberType(strings.TrimSpace(req.MemberType)),
 		Titel:                   trimStringPtr(req.Titel),
+		TitelNach:               trimStringPtr(req.TitelNach),
 		Firstname:               trimStringPtr(req.Firstname),
 		Lastname:                trimStringPtr(req.Lastname),
 		BirthDate:               birthDate,
@@ -172,6 +180,7 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 		AccuracyConfirmed:       req.AccuracyConfirmed,
 		IBAN:                    &iban,
 		AccountHolder:           func() *string { s := strings.TrimSpace(req.AccountHolder); return &s }(),
+		BankName:                trimStringPtr(req.BankName),
 		SepaMandateAccepted:     req.SepaMandateAccepted,
 		SepaMandateAcceptedAt:   sepaMandateAcceptedAt,
 		Einzugsart:              "core",
@@ -259,6 +268,9 @@ func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateAp
 	if req.Titel != nil {
 		app.Titel = trimStringPtr(req.Titel)
 	}
+	if req.TitelNach != nil {
+		app.TitelNach = trimStringPtr(req.TitelNach)
+	}
 	if req.Firstname != nil {
 		app.Firstname = trimStringPtr(req.Firstname)
 	}
@@ -322,6 +334,9 @@ func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateAp
 	if req.AccountHolder != nil {
 		app.AccountHolder = trimStringPtr(req.AccountHolder)
 	}
+	if req.BankName != nil {
+		app.BankName = trimStringPtr(req.BankName)
+	}
 	if req.SepaMandateAccepted != nil {
 		app.SepaMandateAccepted = *req.SepaMandateAccepted
 		if *req.SepaMandateAccepted && app.SepaMandateAcceptedAt == nil {
@@ -349,9 +364,19 @@ func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateAp
 				MeteringPoint:       normalized,
 				Direction:           shared.MeterDirection(mpReq.Direction),
 				ParticipationFactor: mpReq.ParticipationFactor,
+				Transformer:         trimStringPtr(mpReq.Transformer),
+				InstallationNumber:  trimStringPtr(mpReq.InstallationNumber),
+				InstallationName:    trimStringPtr(mpReq.InstallationName),
+				AddressStreet:       trimStringPtr(mpReq.AddressStreet),
+				AddressStreetNumber: trimStringPtr(mpReq.AddressStreetNumber),
+				AddressZip:          trimStringPtr(mpReq.AddressZip),
+				AddressCity:         trimStringPtr(mpReq.AddressCity),
 				CreatedAt:           time.Now(),
 				UpdatedAt:           time.Now(),
 			})
+		}
+		if err = validateMeteringPointAddresses(meteringPoints); err != nil {
+			return nil, err
 		}
 
 		// Only check for duplicates within the new set — CreateBulkTx replaces all existing points
@@ -976,6 +1001,37 @@ func validateConfigurableRequiredFields(app *shared.Application, fieldConfig map
 }
 
 // validateConfigurableMeteringPointFields checks metering-point-level fields configured as "required".
+// validateMeteringPointAddresses enforces PROJ-39's all-or-nothing rule:
+// per metering point either all four address fields are empty (the member's
+// primary address is used) or all four are set (deviating address).
+func validateMeteringPointAddresses(points []shared.MeteringPoint) error {
+	for i, mp := range points {
+		fields := map[string]*string{
+			"addressStreet":       mp.AddressStreet,
+			"addressStreetNumber": mp.AddressStreetNumber,
+			"addressZip":          mp.AddressZip,
+			"addressCity":         mp.AddressCity,
+		}
+		filled := 0
+		for _, v := range fields {
+			if v != nil && strings.TrimSpace(*v) != "" {
+				filled++
+			}
+		}
+		if filled == 0 || filled == 4 {
+			continue
+		}
+		errs := map[string]string{}
+		for name, v := range fields {
+			if v == nil || strings.TrimSpace(*v) == "" {
+				errs[fmt.Sprintf("meteringPoints.%d.%s", i, name)] = "Adressfeld ist erforderlich wenn abweichende Adresse aktiv"
+			}
+		}
+		return shared.NewValidationError("Validation failed", errs)
+	}
+	return nil
+}
+
 func validateConfigurableMeteringPointFields(points []shared.MeteringPoint, fieldConfig map[string]FieldConfigEntry) error {
 	for i, mp := range points {
 		errs := map[string]string{}

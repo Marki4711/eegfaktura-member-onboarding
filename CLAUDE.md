@@ -184,8 +184,7 @@ No JSON fields are used in the database.
 - One application is started through a public RC number link per EEG.
 - The RC number is resolved through `member_onboarding.registration_entrypoint` — never by reading eegFaktura core tables directly.
 - One application can contain multiple metering points.
-- In onboarding, all metering points use the same address as the member.
-- Different metering point addresses are maintained later in eegFaktura.
+- Each metering point may either inherit the member's primary address (default) or carry its own deviating address (PROJ-39). The four `address_*` columns on `metering_point` are all-or-nothing — either all four NULL or all four set; enforced server-side.
 - Only applications in status `approved` may be imported.
 
 ## Status Model

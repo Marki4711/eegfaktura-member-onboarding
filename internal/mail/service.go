@@ -89,6 +89,8 @@ func NewSMTPMailService(sender Sender, adminBaseURL string) (*SMTPMailService, e
 }
 
 type memberTemplateData struct {
+	Titel           string
+	TitelNach       string
 	Firstname       string
 	Lastname        string
 	ReferenceNumber string
@@ -114,6 +116,7 @@ type memberTemplateData struct {
 	City            string
 	IBAN            string
 	AccountHolder   string
+	BankName        string
 	MeteringPoints  []meteringPointView
 	// Zustimmungen
 	PrivacyAccepted     bool
@@ -132,6 +135,8 @@ type meteringPointView struct {
 	MeteringPoint       string
 	Direction           string
 	ParticipationFactor int
+	// PROJ-39: abweichende Adresse je Zählpunkt (leer wenn = Mitgliederadresse).
+	AddressLine string
 }
 
 // ConfigurableFieldDisplay is a resolved label-value entry for email and PDF templates.
@@ -150,6 +155,8 @@ type eegTemplateData struct {
 	MemberType string
 
 	// Person (nur bei private / farmer)
+	Titel     string
+	TitelNach string
 	Firstname string
 	Lastname  string
 	BirthDate string
@@ -172,6 +179,7 @@ type eegTemplateData struct {
 	// Bankverbindung
 	IBAN            string
 	AccountHolder   string
+	BankName        string
 	SepaMandateType string
 
 	// Zählpunkte
@@ -311,6 +319,7 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 			MeteringPoint:       mp.MeteringPoint,
 			Direction:           dir,
 			ParticipationFactor: mp.ParticipationFactor,
+			AddressLine:         formatMeteringPointAddress(&meteringPoints[i]),
 		}
 	}
 
@@ -325,6 +334,8 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 
 	var memberBuf bytes.Buffer
 	if err := s.memberTpl.Execute(&memberBuf, memberTemplateData{
+		Titel:           derefString(app.Titel),
+		TitelNach:       derefString(app.TitelNach),
 		Firstname:       derefString(app.Firstname),
 		Lastname:        derefString(app.Lastname),
 		ReferenceNumber: app.ReferenceNumber,
@@ -348,6 +359,7 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 		City:            app.ResidentCity,
 		IBAN:                derefString(app.IBAN),
 		AccountHolder:       derefString(app.AccountHolder),
+		BankName:            derefString(app.BankName),
 		MeteringPoints:      memberMpViews,
 		PrivacyAccepted:     app.PrivacyAccepted,
 		PrivacyVersion:      derefString(app.PrivacyVersion),
@@ -409,6 +421,7 @@ func (s *SMTPMailService) SendEEGNotification(app *shared.Application, meteringP
 			MeteringPoint:       mp.MeteringPoint,
 			Direction:           dir,
 			ParticipationFactor: mp.ParticipationFactor,
+			AddressLine:         formatMeteringPointAddress(&meteringPoints[i]),
 		}
 	}
 
@@ -448,6 +461,8 @@ func (s *SMTPMailService) SendEEGNotification(app *shared.Application, meteringP
 		SubmittedAt:          submittedAt,
 		RCNumber:             app.RCNumber,
 		MemberType:           memberTypeLabel,
+		Titel:                derefString(app.Titel),
+		TitelNach:            derefString(app.TitelNach),
 		Firstname:            derefString(app.Firstname),
 		Lastname:             derefString(app.Lastname),
 		BirthDate:            birthDate,
@@ -462,6 +477,7 @@ func (s *SMTPMailService) SendEEGNotification(app *shared.Application, meteringP
 		ResidentCity:         app.ResidentCity,
 		IBAN:                 iban,
 		AccountHolder:        accountHolder,
+		BankName:             derefString(app.BankName),
 		SepaMandateType:      resolveSepaMandateType(app, entrypoint),
 		MeteringPoints:       mpViews,
 		ConfigurableFields:   buildConfigurableFields(app, fieldConfig),
@@ -568,6 +584,20 @@ func derefString(s *string) string {
 		return ""
 	}
 	return *s
+}
+
+// formatMeteringPointAddress returns "Straße Hausnummer, PLZ Ort" if the
+// metering point has its own deviating address (PROJ-39), or "" if it uses
+// the member's primary address.
+func formatMeteringPointAddress(mp *shared.MeteringPoint) string {
+	if !mp.HasDeviatingAddress() {
+		return ""
+	}
+	street := derefString(mp.AddressStreet)
+	streetNumber := derefString(mp.AddressStreetNumber)
+	zip := derefString(mp.AddressZip)
+	city := derefString(mp.AddressCity)
+	return strings.TrimSpace(street+" "+streetNumber) + ", " + strings.TrimSpace(zip+" "+city)
 }
 
 // transactionalOpts returns the per-message options every outgoing mail uses:

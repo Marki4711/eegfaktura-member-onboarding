@@ -181,6 +181,22 @@ Fields:
 
 ### 3.3 `member_onboarding.metering_point`
 
+PROJ-39: vier optionale `address_*`-Spalten erfassen eine abweichende
+Standortadresse je Zählpunkt. Wenn alle vier NULL sind, gilt die
+Adresse des Mitglieds (`application.resident_*`); wenn mindestens eine
+gesetzt ist, müssen alle vier gesetzt sein (All-or-Nothing-Regel im
+Service-Layer, nicht via DB-Constraint — damit zukünftige Datenmigrationen
+ohne Constraint-Tricks auskommen).
+
+Felder:
+- `address_street` — VARCHAR(255), optional
+- `address_street_number` — VARCHAR(50), optional
+- `address_zip` — VARCHAR(20), optional
+- `address_city` — VARCHAR(255), optional
+
+Bricht die ursprüngliche V1-Architekturentscheidung „all metering points
+use the same address as the member" aus älteren Versionen dieser Doku.
+
 Stores the metering points of an application.
 
 Fields:

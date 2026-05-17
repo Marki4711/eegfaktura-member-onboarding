@@ -60,6 +60,7 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
   const { data: session } = useSession();
   const [memberType, setMemberType] = useState<MemberType>(application.memberType ?? "private");
   const [titel, setTitel] = useState(application.titel ?? "");
+  const [titelNach, setTitelNach] = useState(application.titelNach ?? "");
   const [firstname, setFirstname] = useState(application.firstname ?? "");
   const [lastname, setLastname] = useState(application.lastname ?? "");
   const [birthDate, setBirthDate] = useState(toDateInputValue(application.birthDate));
@@ -102,6 +103,7 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
     } else if (value === "sole_proprietor") {
       // PROJ-28: Kleinunternehmer captures only the company name.
       setTitel("");
+      setTitelNach("");
       setFirstname("");
       setLastname("");
       setBirthDate("");
@@ -109,6 +111,7 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
       setRegisterNumber("");
     } else {
       setTitel("");
+      setTitelNach("");
       setFirstname("");
       setLastname("");
       setBirthDate("");
@@ -191,6 +194,7 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
       await updateApplication(application.id, {
         memberType,
         titel: isPerson ? titel.trim() || undefined : undefined,
+        titelNach: isPerson ? titelNach.trim() || undefined : undefined,
         firstname: isPerson ? firstname.trim() || undefined : undefined,
         lastname: isPerson ? lastname.trim() || undefined : undefined,
         birthDate: isPerson ? birthDate || undefined : undefined,
@@ -282,6 +286,14 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
                     id="edit-lastname"
                     value={lastname}
                     onChange={(e) => setLastname(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1 col-span-2">
+                  <Label htmlFor="edit-titel-nach">Titel nach</Label>
+                  <Input
+                    id="edit-titel-nach"
+                    value={titelNach}
+                    onChange={(e) => setTitelNach(e.target.value)}
                   />
                 </div>
                 <div className="space-y-1">

@@ -1,8 +1,10 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useFieldArray, type UseFormReturn } from "react-hook-form";
 import { Info, PlusCircle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { MaskedInput } from "@/components/ui/masked-input";
 import {
@@ -185,6 +187,8 @@ export function MeteringPointFields({ form, fieldConfig }: MeteringPointFieldsPr
             </div>
           </div>
 
+          <DeviatingAddressBlock form={form} index={index} />
+
           {hasExtraMpFields && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
               {showTransformer && (
@@ -263,6 +267,111 @@ export function MeteringPointFields({ form, fieldConfig }: MeteringPointFieldsPr
           <PlusCircle className="h-4 w-4 mr-2" />
           Zählpunkt hinzufügen
         </Button>
+      )}
+    </div>
+  );
+}
+
+// DeviatingAddressBlock renders the "abweichende Adresse" checkbox + the
+// four address inputs for a single metering point. Checkbox state is
+// local-only (PROJ-39 — the spec says "Der Wert der checkbox muss nicht
+// gespeichert werden"); on mount it's derived from whether any address
+// field is already filled (which can happen when the user re-opens an
+// existing draft). Unchecking clears all four fields so a fresh submit
+// reverts to the member's primary address.
+function DeviatingAddressBlock({
+  form,
+  index,
+}: {
+  form: UseFormReturn<RegistrationFormValues>;
+  index: number;
+}) {
+  const street = form.watch(`meteringPoints.${index}.addressStreet`);
+  const streetNumber = form.watch(`meteringPoints.${index}.addressStreetNumber`);
+  const zip = form.watch(`meteringPoints.${index}.addressZip`);
+  const city = form.watch(`meteringPoints.${index}.addressCity`);
+  const anyFilled = !!(street || streetNumber || zip || city);
+  const [enabled, setEnabled] = useState<boolean>(anyFilled);
+
+  useEffect(() => {
+    if (anyFilled && !enabled) setEnabled(true);
+  }, [anyFilled, enabled]);
+
+  function toggle(next: boolean) {
+    setEnabled(next);
+    if (!next) {
+      form.setValue(`meteringPoints.${index}.addressStreet`, "", { shouldValidate: true });
+      form.setValue(`meteringPoints.${index}.addressStreetNumber`, "", { shouldValidate: true });
+      form.setValue(`meteringPoints.${index}.addressZip`, "", { shouldValidate: true });
+      form.setValue(`meteringPoints.${index}.addressCity`, "", { shouldValidate: true });
+    }
+  }
+
+  return (
+    <div className="pt-1 space-y-2">
+      <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+        <Checkbox
+          checked={enabled}
+          onCheckedChange={(v) => toggle(v === true)}
+          aria-label="Abweichende Adresse für diesen Zählpunkt"
+        />
+        <span>Abweichende Adresse für diesen Zählpunkt</span>
+      </label>
+      {enabled && (
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <FormField
+            control={form.control}
+            name={`meteringPoints.${index}.addressStreet`}
+            render={({ field }) => (
+              <FormItem className="sm:col-span-2">
+                <FormLabel>Straße *</FormLabel>
+                <FormControl>
+                  <Input {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name={`meteringPoints.${index}.addressStreetNumber`}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Hausnr. *</FormLabel>
+                <FormControl>
+                  <Input {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name={`meteringPoints.${index}.addressZip`}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>PLZ *</FormLabel>
+                <FormControl>
+                  <Input {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name={`meteringPoints.${index}.addressCity`}
+            render={({ field }) => (
+              <FormItem className="sm:col-span-3">
+                <FormLabel>Ort *</FormLabel>
+                <FormControl>
+                  <Input {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
       )}
     </div>
   );

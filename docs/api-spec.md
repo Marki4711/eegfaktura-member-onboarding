@@ -153,6 +153,8 @@ Creates a new application.
 ```json
 {
   "rcNumber": "RC123456",
+  "titel": "Dr.",
+  "titelNach": "BSc",
   "firstname": "Max",
   "lastname": "Muster",
   "birthDate": "1985-06-15",
@@ -167,6 +169,7 @@ Creates a new application.
   "accuracyConfirmed": true,
   "iban": "AT611904300234573201",
   "accountHolder": "Max Muster",
+  "bankName": "Musterbank Linz",
   "sepaMandateAccepted": true,
   "meteringPoints": [
     {
@@ -175,7 +178,11 @@ Creates a new application.
       "participationFactor": 1.0,
       "transformer": "T1",
       "installationNumber": "12345",
-      "installationName": "PV Dach"
+      "installationName": "PV Dach",
+      "addressStreet": "Werkstraße",
+      "addressStreetNumber": "12",
+      "addressZip": "4020",
+      "addressCity": "Linz"
     }
   ],
   "membershipStartDate": "2026-05-01",
@@ -192,6 +199,12 @@ Creates a new application.
 ```
 
 All fields under `meteringPoints[].transformer/installationNumber/installationName` and the application-level energy/household fields are optional by default. Whether they are required is determined by the EEG's `fieldConfig` (see 5.1). Fields not relevant to the current `memberType` are ignored.
+
+`titelNach` (PROJ-39) is the optional academic title after the name (e.g. `BSc`, `MSc`). The existing `titel` field represents the title **before** the name. Both are independent.
+
+`bankName` (PROJ-39) is the optional bank name. It used to be admin-only; with PROJ-39 the member can supply it directly on submit.
+
+`meteringPoints[].addressStreet/addressStreetNumber/addressZip/addressCity` (PROJ-39): per-metering-point deviating address. All four fields are all-or-nothing — either all four omitted (the member's primary address is used) or all four supplied. Mixing yields HTTP 400.
 
 `cooperativeSharesCount` (PROJ-37) is required on the **submit** path (see 5.4) when the EEG has `cooperativeSharesEnabled = true` and must be `>= cooperativeRequiredShares`. On create it is optional — the public form populates it server-side at submit. The server silently ignores the value when the EEG has the feature disabled.
 

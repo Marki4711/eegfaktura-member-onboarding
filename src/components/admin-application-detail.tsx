@@ -395,6 +395,7 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
                 {application.titel && <Field label="Titel" value={application.titel} />}
                 <Field label="Vorname" value={application.firstname} />
                 <Field label="Nachname" value={application.lastname} />
+                {application.titelNach && <Field label="Titel nach" value={application.titelNach} />}
                 <Field label="Geburtsdatum" value={formatDate(application.birthDate)} />
                 <Field label="E-Mail" value={application.email} />
                 <Field label="Telefon" value={application.phone} />

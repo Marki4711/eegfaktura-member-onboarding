@@ -26,12 +26,12 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 	query := `
 		INSERT INTO member_onboarding.application (
 			reference_number, rc_number, status, started_at,
-			member_type, titel, firstname, lastname, birth_date,
+			member_type, titel, titel_nach, firstname, lastname, birth_date,
 			company_name, uid_number, register_number,
 			email, phone,
 			resident_street, resident_street_number, resident_zip, resident_city,
 			privacy_accepted, privacy_version, privacy_accepted_at, accuracy_confirmed,
-			iban, account_holder, sepa_mandate_accepted, sepa_mandate_accepted_at,
+			iban, account_holder, bank_name, sepa_mandate_accepted, sepa_mandate_accepted_at,
 			membership_start_date, persons_in_household, consumption_previous_year,
 			consumption_forecast, feed_in_forecast, pv_power_kwp,
 			heat_pump, electric_vehicle, electric_hot_water,
@@ -39,28 +39,28 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 			created_at, updated_at
 		) VALUES (
 			$1, $2, $3, $4,
-			$5, $6, $7, $8, $9,
-			$10, $11, $12,
-			$13, $14,
-			$15, $16, $17, $18,
-			$19, $20, $21, $22,
-			$23, $24, $25, $26,
-			$27, $28, $29,
-			$30, $31, $32,
-			$33, $34, $35,
-			$36,
-			$37, $38
+			$5, $6, $7, $8, $9, $10,
+			$11, $12, $13,
+			$14, $15,
+			$16, $17, $18, $19,
+			$20, $21, $22, $23,
+			$24, $25, $26, $27, $28,
+			$29, $30, $31,
+			$32, $33, $34,
+			$35, $36, $37,
+			$38,
+			$39, $40
 		) RETURNING id`
 
 	now := app.CreatedAt
 	args := []interface{}{
 		app.ReferenceNumber, app.RCNumber, app.Status, app.StartedAt,
-		app.MemberType, app.Titel, app.Firstname, app.Lastname, app.BirthDate,
+		app.MemberType, app.Titel, app.TitelNach, app.Firstname, app.Lastname, app.BirthDate,
 		app.CompanyName, app.UIDNumber, app.RegisterNumber,
 		app.Email, app.Phone,
 		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity,
 		app.PrivacyAccepted, app.PrivacyVersion, &now, app.AccuracyConfirmed,
-		app.IBAN, app.AccountHolder, app.SepaMandateAccepted, app.SepaMandateAcceptedAt,
+		app.IBAN, app.AccountHolder, app.BankName, app.SepaMandateAccepted, app.SepaMandateAcceptedAt,
 		app.MembershipStartDate, app.PersonsInHousehold, app.ConsumptionPreviousYear,
 		app.ConsumptionForecast, app.FeedInForecast, app.PvPowerKwp,
 		app.HeatPump, app.ElectricVehicle, app.ElectricHotWater,
@@ -80,7 +80,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	query := `
 		SELECT id, reference_number, rc_number, status, started_at, submitted_at,
 		       approved_at, rejected_at, imported_at,
-		       member_type, titel, firstname, lastname, birth_date,
+		       member_type, titel, titel_nach, firstname, lastname, birth_date,
 		       company_name, uid_number, register_number,
 		       email, phone,
 		       resident_street, resident_street_number, resident_zip, resident_city,
@@ -102,7 +102,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 
 	app := &shared.Application{}
 	var phone, privacyVersion, iban, accountHolder, reviewedByUserID, adminNote, needsInfoReason, targetParticipantID, importErrorMessage sql.NullString
-	var titel, firstname, lastname, companyName, uidNumber, registerNumber sql.NullString
+	var titel, titelNach, firstname, lastname, companyName, uidNumber, registerNumber sql.NullString
 	var bankName, mandateReference sql.NullString
 	var birthDate, startedAt, submittedAt, approvedAt, rejectedAt, importedAt, privacyAcceptedAt, sepaMandateAcceptedAt, importStartedAt, importFinishedAt sql.NullTime
 	var membershipStartDate, mandateDate sql.NullTime
@@ -117,7 +117,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	err := r.db.QueryRow(query, id).Scan(
 		&app.ID, &app.ReferenceNumber, &app.RCNumber, &app.Status, &startedAt,
 		&submittedAt, &approvedAt, &rejectedAt, &importedAt,
-		&app.MemberType, &titel, &firstname, &lastname, &birthDate,
+		&app.MemberType, &titel, &titelNach, &firstname, &lastname, &birthDate,
 		&companyName, &uidNumber, &registerNumber,
 		&app.Email, &phone,
 		&app.ResidentStreet, &app.ResidentStreetNumber, &app.ResidentZip, &app.ResidentCity,
@@ -144,6 +144,9 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 
 	if titel.Valid {
 		app.Titel = &titel.String
+	}
+	if titelNach.Valid {
+		app.TitelNach = &titelNach.String
 	}
 	if firstname.Valid {
 		app.Firstname = &firstname.String
@@ -321,27 +324,29 @@ func (r *ApplicationRepository) UpdateTx(tx *sql.Tx, app *shared.Application) er
 	query := `
 		UPDATE member_onboarding.application SET
 			member_type = $1,
-			titel = $2, firstname = $3, lastname = $4, birth_date = $5,
-			company_name = $6, uid_number = $7, register_number = $8,
-			email = $9, phone = $10,
-			resident_street = $11, resident_street_number = $12, resident_zip = $13,
-			resident_city = $14, privacy_accepted = $15,
-			privacy_version = $16, accuracy_confirmed = $17,
-			iban = $18, account_holder = $19, sepa_mandate_accepted = $20, sepa_mandate_accepted_at = $21,
-			membership_start_date = $22, persons_in_household = $23, consumption_previous_year = $24,
-			consumption_forecast = $25, feed_in_forecast = $26, pv_power_kwp = $27,
-			heat_pump = $28, electric_vehicle = $29, electric_hot_water = $30,
+			titel = $2, titel_nach = $3, firstname = $4, lastname = $5, birth_date = $6,
+			company_name = $7, uid_number = $8, register_number = $9,
+			email = $10, phone = $11,
+			resident_street = $12, resident_street_number = $13, resident_zip = $14,
+			resident_city = $15, privacy_accepted = $16,
+			privacy_version = $17, accuracy_confirmed = $18,
+			iban = $19, account_holder = $20, bank_name = $21,
+			sepa_mandate_accepted = $22, sepa_mandate_accepted_at = $23,
+			membership_start_date = $24, persons_in_household = $25, consumption_previous_year = $26,
+			consumption_forecast = $27, feed_in_forecast = $28, pv_power_kwp = $29,
+			heat_pump = $30, electric_vehicle = $31, electric_hot_water = $32,
 			updated_at = NOW()
-		WHERE id = $31`
+		WHERE id = $33`
 
 	_, err := tx.Exec(query,
 		app.MemberType,
-		app.Titel, app.Firstname, app.Lastname, app.BirthDate,
+		app.Titel, app.TitelNach, app.Firstname, app.Lastname, app.BirthDate,
 		app.CompanyName, app.UIDNumber, app.RegisterNumber,
 		app.Email, app.Phone,
 		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity,
 		app.PrivacyAccepted, app.PrivacyVersion, app.AccuracyConfirmed,
-		app.IBAN, app.AccountHolder, app.SepaMandateAccepted, app.SepaMandateAcceptedAt,
+		app.IBAN, app.AccountHolder, app.BankName,
+		app.SepaMandateAccepted, app.SepaMandateAcceptedAt,
 		app.MembershipStartDate, app.PersonsInHousehold, app.ConsumptionPreviousYear,
 		app.ConsumptionForecast, app.FeedInForecast, app.PvPowerKwp,
 		app.HeatPump, app.ElectricVehicle, app.ElectricHotWater,
@@ -498,20 +503,20 @@ func (r *ApplicationRepository) UpdateAdminTx(tx *sql.Tx, app *shared.Applicatio
 	query := `
 		UPDATE member_onboarding.application SET
 			member_type = $1,
-			titel = $2, firstname = $3, lastname = $4, birth_date = $5,
-			company_name = $6, uid_number = $7, register_number = $8,
-			email = $9, phone = $10,
-			resident_street = $11, resident_street_number = $12, resident_zip = $13,
-			resident_city = $14, admin_note = $15,
-			iban = $16, account_holder = $17,
-			einzugsart = $18, bank_name = $19, mandate_reference = $20, mandate_date = $21,
-			member_number = $22,
+			titel = $2, titel_nach = $3, firstname = $4, lastname = $5, birth_date = $6,
+			company_name = $7, uid_number = $8, register_number = $9,
+			email = $10, phone = $11,
+			resident_street = $12, resident_street_number = $13, resident_zip = $14,
+			resident_city = $15, admin_note = $16,
+			iban = $17, account_holder = $18,
+			einzugsart = $19, bank_name = $20, mandate_reference = $21, mandate_date = $22,
+			member_number = $23,
 			updated_at = NOW()
-		WHERE id = $23`
+		WHERE id = $24`
 
 	_, err := tx.Exec(query,
 		app.MemberType,
-		app.Titel, app.Firstname, app.Lastname, app.BirthDate,
+		app.Titel, app.TitelNach, app.Firstname, app.Lastname, app.BirthDate,
 		app.CompanyName, app.UIDNumber, app.RegisterNumber,
 		app.Email, app.Phone,
 		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity,

@@ -31,8 +31,9 @@ func (r *MeteringPointRepository) CreateBulkTx(tx *sql.Tx, applicationID uuid.UU
 		INSERT INTO member_onboarding.metering_point (
 			application_id, metering_point, direction, participation_factor,
 			transformer, installation_number, installation_name,
+			address_street, address_street_number, address_zip, address_city,
 			created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`)
 	if err != nil {
 		return fmt.Errorf("failed to prepare statement: %w", err)
 	}
@@ -42,6 +43,7 @@ func (r *MeteringPointRepository) CreateBulkTx(tx *sql.Tx, applicationID uuid.UU
 		if _, err = stmt.Exec(
 			applicationID, point.MeteringPoint, point.Direction, point.ParticipationFactor,
 			point.Transformer, point.InstallationNumber, point.InstallationName,
+			point.AddressStreet, point.AddressStreetNumber, point.AddressZip, point.AddressCity,
 			point.CreatedAt, point.UpdatedAt,
 		); err != nil {
 			return fmt.Errorf("failed to insert metering point: %w", err)
@@ -55,6 +57,7 @@ func (r *MeteringPointRepository) GetByApplicationID(applicationID uuid.UUID) ([
 	query := `
 		SELECT id, application_id, metering_point, direction, participation_factor,
 		       transformer, installation_number, installation_name,
+		       address_street, address_street_number, address_zip, address_city,
 		       created_at, updated_at
 		FROM member_onboarding.metering_point
 		WHERE application_id = $1
@@ -70,9 +73,11 @@ func (r *MeteringPointRepository) GetByApplicationID(applicationID uuid.UUID) ([
 	for rows.Next() {
 		var point shared.MeteringPoint
 		var transformer, installationNumber, installationName sql.NullString
+		var addrStreet, addrStreetNumber, addrZip, addrCity sql.NullString
 		err := rows.Scan(
 			&point.ID, &point.ApplicationID, &point.MeteringPoint, &point.Direction, &point.ParticipationFactor,
 			&transformer, &installationNumber, &installationName,
+			&addrStreet, &addrStreetNumber, &addrZip, &addrCity,
 			&point.CreatedAt, &point.UpdatedAt,
 		)
 		if err != nil {
@@ -86,6 +91,18 @@ func (r *MeteringPointRepository) GetByApplicationID(applicationID uuid.UUID) ([
 		}
 		if installationName.Valid {
 			point.InstallationName = &installationName.String
+		}
+		if addrStreet.Valid {
+			point.AddressStreet = &addrStreet.String
+		}
+		if addrStreetNumber.Valid {
+			point.AddressStreetNumber = &addrStreetNumber.String
+		}
+		if addrZip.Valid {
+			point.AddressZip = &addrZip.String
+		}
+		if addrCity.Valid {
+			point.AddressCity = &addrCity.String
 		}
 		points = append(points, point)
 	}

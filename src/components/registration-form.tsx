@@ -66,24 +66,50 @@ const MEMBER_TYPE_OPTIONS: { value: MemberType; label: string; hint: string }[] 
 
 // ---------- Zod schema ----------
 
-const meteringPointSchema = z.object({
-  meteringPoint: z
-    .string()
-    .transform((v) => v.replace(/\s/g, "").toUpperCase())
-    .refine((v) => v.length >= 1, { message: "Zählpunkt ist erforderlich" })
-    .refine((v) => /^AT\d{31}$/.test(v), {
-      message: "Zählpunkt muss mit AT beginnen und 31 Ziffern enthalten (33 Zeichen gesamt)",
-    }),
-  direction: z.enum(["CONSUMPTION", "PRODUCTION"]),
-  participationFactor: z.number().int().min(1, "Mindestens 1%").max(100, "Maximal 100%"),
-  transformer: z.string().trim().max(100).optional(),
-  installationNumber: z.string().trim().max(50).optional(),
-  installationName: z.string().trim().max(100).optional(),
-});
+const meteringPointSchema = z
+  .object({
+    meteringPoint: z
+      .string()
+      .transform((v) => v.replace(/\s/g, "").toUpperCase())
+      .refine((v) => v.length >= 1, { message: "Zählpunkt ist erforderlich" })
+      .refine((v) => /^AT\d{31}$/.test(v), {
+        message: "Zählpunkt muss mit AT beginnen und 31 Ziffern enthalten (33 Zeichen gesamt)",
+      }),
+    direction: z.enum(["CONSUMPTION", "PRODUCTION"]),
+    participationFactor: z.number().int().min(1, "Mindestens 1%").max(100, "Maximal 100%"),
+    transformer: z.string().trim().max(100).optional(),
+    installationNumber: z.string().trim().max(50).optional(),
+    installationName: z.string().trim().max(100).optional(),
+    // PROJ-39: abweichende Adresse je Zählpunkt. UI-Checkbox-State wird
+    // nicht persistiert — der Server leitet ihn beim Reload aus dem
+    // Befülltsein der vier Felder ab. Hier optional auf Schema-Ebene;
+    // superRefine im baseSchema erzwingt das All-or-Nothing.
+    addressStreet: z.string().trim().max(255).optional(),
+    addressStreetNumber: z.string().trim().max(50).optional(),
+    addressZip: z.string().trim().max(20).optional(),
+    addressCity: z.string().trim().max(255).optional(),
+  })
+  .superRefine((mp, ctx) => {
+    const fields = [mp.addressStreet, mp.addressStreetNumber, mp.addressZip, mp.addressCity];
+    const filled = fields.filter((v) => v && v.trim().length > 0).length;
+    if (filled > 0 && filled < 4) {
+      const names = ["addressStreet", "addressStreetNumber", "addressZip", "addressCity"] as const;
+      names.forEach((name, i) => {
+        if (!fields[i] || fields[i]!.trim().length === 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [name],
+            message: "Bei abweichender Adresse sind alle Adressfelder Pflicht",
+          });
+        }
+      });
+    }
+  });
 
 const baseSchema = z.object({
   memberType: z.enum(["private", "sole_proprietor", "farmer", "municipality", "company", "association"] as const),
   titel: z.string().trim().max(50).optional(),
+  titelNach: z.string().trim().max(50).optional(),
   firstname: z.string().trim().max(255).optional(),
   lastname: z.string().trim().max(255).optional(),
   birthDate: z.string().optional(),
@@ -105,6 +131,7 @@ const baseSchema = z.object({
     .transform((v) => v.replace(/[^A-Za-z0-9]/g, "").toUpperCase())
     .refine((v) => isValidIBAN(v), { message: "Ungültige IBAN" }),
   accountHolder: z.string().trim().min(1, "Kontoinhaber:in ist erforderlich").max(255),
+  bankName: z.string().trim().max(255).optional(),
   privacyAccepted: z.boolean().refine((v) => v === true, {
     message: "Datenschutzerklärung muss akzeptiert werden",
   }),
@@ -299,6 +326,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
     defaultValues: {
       memberType: "private",
       titel: "",
+      titelNach: "",
       firstname: "",
       lastname: "",
       birthDate: "",
@@ -313,6 +341,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
       residentCity: "",
       iban: "",
       accountHolder: "",
+      bankName: "",
       privacyAccepted: !showCentralPolicy,
       accuracyConfirmed: false,
       sepaMandateAccepted: sepaMandateEnabled ? true : false,
@@ -421,6 +450,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
           rcNumber: config.rcNumber,
           memberType: values.memberType,
           titel: isPersonType ? values.titel || undefined : undefined,
+          titelNach: isPersonType ? values.titelNach || undefined : undefined,
           firstname: isPersonType ? values.firstname || undefined : undefined,
           lastname: isPersonType ? values.lastname || undefined : undefined,
           birthDate: isPersonType ? values.birthDate || undefined : undefined,
@@ -438,6 +468,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
           accuracyConfirmed: values.accuracyConfirmed,
           iban: values.iban,
           accountHolder: values.accountHolder,
+          bankName: values.bankName || undefined,
           sepaMandateAccepted: values.sepaMandateAccepted,
           membershipStartDate: values.membershipStartDate || undefined,
           personsInHousehold: values.personsInHousehold,
@@ -456,6 +487,10 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
             transformer: mp.transformer || undefined,
             installationNumber: mp.installationNumber || undefined,
             installationName: mp.installationName || undefined,
+            addressStreet: mp.addressStreet || undefined,
+            addressStreetNumber: mp.addressStreetNumber || undefined,
+            addressZip: mp.addressZip || undefined,
+            addressCity: mp.addressCity || undefined,
           })),
           turnstileToken: turnstileToken || undefined,
         });
@@ -655,6 +690,21 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                         <FormLabel>Nachname *</FormLabel>
                         <FormControl>
                           <Input autoComplete="family-name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="titelNach"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Titel nach</FormLabel>
+                        <FormControl>
+                          <Input autoComplete="honorific-suffix" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -955,6 +1005,19 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                     <FormLabel>Kontoinhaber:in *</FormLabel>
                     <FormControl>
                       <Input autoComplete="name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="bankName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Bankname</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
