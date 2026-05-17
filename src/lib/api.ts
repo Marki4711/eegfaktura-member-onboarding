@@ -416,7 +416,11 @@ export type ApplicationStatus =
   | "approved"
   | "rejected"
   | "imported"
-  | "import_failed";
+  | "import_failed"
+  // PROJ-46: post-import statuses
+  | "awaiting_bank_confirmation"
+  | "ready_for_activation"
+  | "activated";
 
 export interface ApplicationListItem {
   id: string;

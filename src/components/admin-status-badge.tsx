@@ -14,6 +14,11 @@ const STATUS_CONFIG: Record<
   rejected:        { label: "Abgelehnt",              className: "bg-red-100 text-red-700 hover:bg-red-100" },
   imported:        { label: "Importiert",             className: "bg-emerald-100 text-emerald-700 hover:bg-emerald-100" },
   import_failed:   { label: "Import fehlgeschlagen",  className: "bg-red-100 text-red-800 hover:bg-red-100" },
+  // PROJ-46: post-import statuses. Amber für die Wartezustand-Stati,
+  // tiefes Grün für den finalen aktiven Status.
+  awaiting_bank_confirmation: { label: "Warte auf Bank-Bestätigung", className: "bg-amber-100 text-amber-800 hover:bg-amber-100" },
+  ready_for_activation:       { label: "Bereit zur Aktivierung",     className: "bg-cyan-100 text-cyan-800 hover:bg-cyan-100" },
+  activated:                  { label: "Aktiviert",                  className: "bg-emerald-200 text-emerald-900 hover:bg-emerald-200" },
 };
 
 export function AdminStatusBadge({ status }: { status: string }) {

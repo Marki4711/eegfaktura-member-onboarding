@@ -23,6 +23,10 @@ const STATUS_OPTIONS = [
   { value: "rejected", label: "Abgelehnt" },
   { value: "imported", label: "Importiert" },
   { value: "import_failed", label: "Import fehlgeschlagen" },
+  // PROJ-46: post-import statuses
+  { value: "awaiting_bank_confirmation", label: "Warte auf Bank-Bestätigung" },
+  { value: "ready_for_activation", label: "Bereit zur Aktivierung" },
+  { value: "activated", label: "Aktiviert" },
 ];
 
 interface Props {

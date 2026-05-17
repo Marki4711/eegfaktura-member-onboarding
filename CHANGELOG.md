@@ -10,6 +10,25 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Neu — PROJ-46 Stage C: Admin-UI für Post-Import-Stati *(2026-05-17)*
+
+- `ApplicationStatus`-Typ um drei neue Werte erweitert
+  (`awaiting_bank_confirmation`, `ready_for_activation`, `activated`)
+- `AdminStatusBadge`: neue Farben — Amber für „Warte auf Bank-Bestätigung",
+  Cyan für „Bereit zur Aktivierung", tiefes Smaragd für „Aktiviert"
+- `admin-filter-panel`: die drei neuen Stati erscheinen als Filter-Option
+- `admin-status-actions`: drei neue Block-Layouts:
+  - `awaiting_bank_confirmation`: prominente Amber-Hinweisbox „Warte auf
+    Bank-Bestätigung" + Buttons „Bank-Bestätigung erhalten", „Zurück in
+    Prüfung", „Import zurücksetzen"
+  - `ready_for_activation`: Buttons „Als aktiv markieren" (grün),
+    „Zurück in Prüfung", „Import zurücksetzen"
+  - `activated`: rein informativer Text — keine weiteren Aktionen
+    (strikter Endzustand)
+- Reset-Import-Dialog-Warning erweitert: erwähnt jetzt explizit, dass
+  `activated`-Anträge nicht resetbar sind und dass Mitgliedsnummer +
+  Bank-Bestätigung mitgelöscht werden
+
 ### Neu — PROJ-46 Stage B: PDF-Timing + Member-Mails nach Import + Aktivierung *(2026-05-17)*
 
 PDF-Generierung wandert von `→ approved` zum Import-Zeitpunkt (wenn die

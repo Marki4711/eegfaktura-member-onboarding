@@ -53,8 +53,10 @@ const DIALOG_LABELS: Record<DialogTarget, { title: string; placeholder: string; 
     placeholder: "Warum wird der Import zurückgesetzt? (mind. 5 Zeichen)",
     confirm: "Zurücksetzen",
     warning:
-      "Diese Aktion setzt den Antrag zurück auf „Genehmigt\" und löscht die Verknüpfung zum Core-Teilnehmer. " +
-      "Verwende dies nur, wenn du den Teilnehmer vorher im eegFaktura-Core gelöscht hast — sonst werden beim Re-Import Dubletten erzeugt.",
+      "Diese Aktion setzt den Antrag zurück auf „Genehmigt\" und löscht die Verknüpfung zum Core-Teilnehmer " +
+      "(inkl. Mitgliedsnummer und ggf. Bank-Bestätigung). " +
+      "Verwende dies nur, wenn du den Teilnehmer vorher im eegFaktura-Core gelöscht hast — sonst werden beim Re-Import Dubletten erzeugt. " +
+      "Anträge im Status „Aktiviert\" können hier nicht mehr zurückgesetzt werden — dazu muss das Mitglied zuerst im Core deaktiviert werden.",
   },
 };
 
@@ -356,6 +358,90 @@ export function AdminStatusActions({ applicationId, rcNumber, status, targetPart
             Import zurücksetzen
           </Button>
         </div>
+      )}
+
+      {/* PROJ-46: Post-Import-Stati. */}
+      {status === "awaiting_bank_confirmation" && (
+        <div className="space-y-3">
+          <div className="rounded-md border border-amber-500/50 bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+            <p className="font-medium mb-1">Warte auf Bank-Bestätigung</p>
+            <p>
+              Das Mitglied wurde gebeten, das B2B-SEPA-Mandat bei seiner Hausbank zu hinterlegen.
+              Sobald die Rückmeldung kommt, hier auf <strong>„Bank-Bestätigung erhalten"</strong> klicken.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="default"
+              onClick={() => directAction("ready_for_activation")}
+              disabled={loading}
+            >
+              {loading ? "Bitte warten..." : "Bank-Bestätigung erhalten"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => directAction("under_review")}
+              disabled={loading}
+            >
+              Zurück in Prüfung
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openDialog("reset_import")}
+              disabled={loading}
+            >
+              Import zurücksetzen
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {status === "ready_for_activation" && (
+        <div className="space-y-3">
+          <div className="text-sm space-y-1">
+            <p className="text-muted-foreground italic">
+              Mitglied ist bereit zur Aktivierung in der EEG.
+            </p>
+            {targetParticipantId && (
+              <p>
+                <span className="text-muted-foreground">Participant-ID im Core: </span>
+                <code className="font-mono">{targetParticipantId}</code>
+              </p>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="default"
+              className="bg-green-600 hover:bg-green-700"
+              onClick={() => directAction("activated")}
+              disabled={loading}
+            >
+              {loading ? "Bitte warten..." : "Als aktiv markieren"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => directAction("under_review")}
+              disabled={loading}
+            >
+              Zurück in Prüfung
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openDialog("reset_import")}
+              disabled={loading}
+            >
+              Import zurücksetzen
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {status === "activated" && (
+        <p className="text-sm text-muted-foreground italic">
+          Mitglied ist aktiv in der EEG. Keine weiteren Aktionen verfügbar.
+        </p>
       )}
 
       {status === "import_failed" && importErrorMessage && (
