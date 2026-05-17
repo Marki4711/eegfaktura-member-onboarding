@@ -833,6 +833,53 @@ Returns the full `AdminApplicationDetail` after the reset (status now
 
 ---
 
+## 6.5.5 Reassign to a different EEG (PROJ-40)
+
+### POST `/api/admin/applications/{id}/reassign-eeg`
+
+Moves an application from its current EEG to a different EEG during admin review (e.g. member clicked the wrong RC link). Reference number is regenerated on the target EEG's per-year counter; the old `rc_number` + old `reference_number` are archived in the status_log audit trail.
+
+### Request
+
+```json
+{
+  "targetRcNumber": "RC123456",
+  "reason": "Adresse liegt im Versorgungsgebiet der Ziel-EEG"
+}
+```
+
+| Field | Required | Constraints |
+|---|---|---|
+| `targetRcNumber` | yes | 1–50 chars, normalized to uppercase |
+| `reason` | yes | 5–500 chars |
+
+### Rules
+
+- Application status must be one of `submitted`, `email_confirmed`, `under_review`, `needs_info`. Anything else → 409.
+- Admin must be authorized for **both** source RC and target RC (or be a superuser).
+- Target RC must exist in `registration_entrypoint` and have `is_active = true`.
+- Source = target → 409.
+- Cooperative-shares, field-config, email-confirmation settings are **not** re-validated on reassign — admin uses `needs_info` if anything needs to be sorted out post-move.
+
+### Response 200
+
+Returns the full `AdminApplicationDetail` with `rcNumber` set to the new EEG and `referenceNumber` regenerated on the target counter.
+
+### Side effects
+
+- `rc_number = <new>`, `reference_number = <new ref>` via the target's PROJ-35 counter
+- New `status_log` entry: `from_status == to_status` (status unchanged), reason = `<user reason>\n[system] previous rc_number=<old>\n[system] previous reference_number=<old>`
+- **No** member-facing mail (V1)
+
+### Failure responses
+
+- `400` validation (reason too short, targetRcNumber missing)
+- `403` admin not authorized for source or target
+- `404` application or targetRcNumber not found
+- `409` status not reassignable / source == target / target not active
+
+---
+
 ## 6.5.4 Resend e-mail confirmation (PROJ-31)
 
 ### POST `/api/admin/applications/{id}/resend-email-confirmation`

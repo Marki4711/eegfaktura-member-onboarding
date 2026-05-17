@@ -10,6 +10,30 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Neu — PROJ-40: EEG-Umzuordnung eines Antrags im Review *(2026-05-17)*
+
+Wenn ein Mitglied über den falschen RC-Link der EEG A registriert hat,
+aber eigentlich zur EEG B gehört, kann der Admin den Antrag direkt
+umordnen — ohne Re-Submit durch das Mitglied.
+
+- Neuer Endpoint `POST /api/admin/applications/{id}/reassign-eeg`
+- **Tenant-Check beidseitig:** Admin muss für Quelle UND Ziel autorisiert
+  sein (oder Superuser); sonst 403
+- **Reassignable nur in aktiver Review-Phase:** `submitted`,
+  `email_confirmed`, `under_review`, `needs_info`. Anything else → 409
+- **Neue Referenznummer** wird über den per-EEG-Counter (PROJ-35) der
+  Ziel-EEG vergeben, damit die Member-facing-ID zur neuen EEG passt
+- **Audit-Trail:** status_log-Entry mit Status unverändert + Reason +
+  `[system] previous rc_number=...` + `[system] previous reference_number=...`
+- **Repo-Guard** (defense-in-depth): `UpdateRCNumberTx` validiert
+  `WHERE id=$ AND rc_number=$expected AND status IN (...)` — bei 0 Rows
+  ErrConflict
+- **Frontend**: Button „EEG umzuordnen" im Statusaktionen-Block, sichtbar
+  nur wenn der Admin ≥ 2 EEGs verwaltet. Dialog mit Dropdown der Ziel-EEGs +
+  Begründung + Hinweis-Block auf die neue Referenznummer
+- **Out-of-Scope (V1):** Bulk-Reassign, Member-Mail, Re-Validierung von
+  Cooperative-Shares / Field-Config / Email-Confirmation-Setting
+
 ### Neu — PROJ-42: E-Fahrzeug-Detailerfassung *(2026-05-17)*
 
 Das bestehende `electric_vehicle`-Ja/Nein wird ergänzt um zwei optionale

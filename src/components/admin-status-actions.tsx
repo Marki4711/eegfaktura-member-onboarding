@@ -13,9 +13,16 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { changeApplicationStatus, importApplication, resetImportApplication, ApiResponseError } from "@/lib/api";
+import { changeApplicationStatus, importApplication, resetImportApplication, reassignApplicationToEEG, ApiResponseError } from "@/lib/api";
 import type { ApplicationStatus, MeteringPointDetail } from "@/lib/api";
 import { ImportTariffDialog } from "@/components/import-tariff-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Props {
   applicationId: string;
@@ -59,6 +66,19 @@ export function AdminStatusActions({ applicationId, rcNumber, status, targetPart
   const [error, setError] = useState<string | null>(null);
   const [isConflict, setIsConflict] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+
+  // PROJ-40: EEG-Umzuordnung. Admin sieht die Funktion nur, wenn er ≥ 2 EEGs
+  // verwaltet (oder Superuser ist). Die Liste der möglichen Ziel-EEGs kommt
+  // aus der Session und schließt die aktuelle EEG aus.
+  const sessionTenants = ((session as unknown as { tenant?: string[] })?.tenant ?? []) as string[];
+  const reassignableStatuses: ApplicationStatus[] = ["submitted", "email_confirmed", "under_review", "needs_info"];
+  const availableTargetRcs = sessionTenants.filter((rc) => rc !== rcNumber);
+  const canReassign = reassignableStatuses.includes(status) && availableTargetRcs.length > 0;
+  const [reassignDialogOpen, setReassignDialogOpen] = useState(false);
+  const [reassignTarget, setReassignTarget] = useState<string>("");
+  const [reassignReason, setReassignReason] = useState("");
+  const [reassignLoading, setReassignLoading] = useState(false);
+  const [reassignError, setReassignError] = useState<string | null>(null);
 
   const staticNote = STATIC_NOTES[status];
   if (staticNote) {
@@ -155,6 +175,42 @@ export function AdminStatusActions({ applicationId, rcNumber, status, targetPart
     setError(null);
   }
 
+  function openReassignDialog() {
+    setReassignTarget(availableTargetRcs[0] ?? "");
+    setReassignReason("");
+    setReassignError(null);
+    setReassignDialogOpen(true);
+  }
+
+  function closeReassignDialog() {
+    if (reassignLoading) return;
+    setReassignDialogOpen(false);
+    setReassignTarget("");
+    setReassignReason("");
+    setReassignError(null);
+  }
+
+  async function confirmReassign() {
+    if (!reassignTarget || reassignReason.trim().length < 5) return;
+    setReassignLoading(true);
+    setReassignError(null);
+    try {
+      await reassignApplicationToEEG(applicationId, reassignTarget, reassignReason.trim(), session?.accessToken);
+      toast.success(`Antrag wurde der EEG ${reassignTarget} zugeordnet.`);
+      setReassignDialogOpen(false);
+      setReassignTarget("");
+      setReassignReason("");
+      onRefresh();
+    } catch (err: unknown) {
+      const msg = err instanceof ApiResponseError
+        ? (err.apiError.message || "Umzuordnung fehlgeschlagen.")
+        : (err instanceof Error ? err.message : "Umzuordnung fehlgeschlagen.");
+      setReassignError(msg);
+    } finally {
+      setReassignLoading(false);
+    }
+  }
+
   async function confirmDialog() {
     if (!dialogTarget || !reason.trim()) return;
     setLoading(true);
@@ -245,6 +301,16 @@ export function AdminStatusActions({ applicationId, rcNumber, status, targetPart
             disabled={loading}
           >
             {loading ? "Bitte warten..." : "Erneut einreichen"}
+          </Button>
+        )}
+
+        {canReassign && (
+          <Button
+            variant="outline"
+            onClick={openReassignDialog}
+            disabled={loading}
+          >
+            EEG umzuordnen
           </Button>
         )}
 
@@ -372,6 +438,55 @@ export function AdminStatusActions({ applicationId, rcNumber, status, targetPart
                 : dialogTarget
                 ? DIALOG_LABELS[dialogTarget].confirm
                 : "Bestätigen"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={reassignDialogOpen} onOpenChange={(open) => { if (!open) closeReassignDialog(); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Antrag einer anderen EEG zuordnen</DialogTitle>
+          </DialogHeader>
+          <div className="rounded-md border border-amber-500/50 bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+            Beim Umzuordnen wird eine <strong>neue Referenznummer</strong> der Ziel-EEG vergeben.
+            Die alte Referenznummer und EEG werden im Statusverlauf archiviert.
+          </div>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="reassign-target">Ziel-EEG</Label>
+            <Select value={reassignTarget} onValueChange={setReassignTarget}>
+              <SelectTrigger id="reassign-target">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {availableTargetRcs.map((rc) => (
+                  <SelectItem key={rc} value={rc}>{rc}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="reassign-reason">Begründung *</Label>
+            <Textarea
+              id="reassign-reason"
+              value={reassignReason}
+              onChange={(e) => setReassignReason(e.target.value)}
+              rows={3}
+              className="resize-none"
+            />
+            {reassignError && (
+              <p className="text-sm text-destructive">{reassignError}</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeReassignDialog} disabled={reassignLoading}>
+              Abbrechen
+            </Button>
+            <Button
+              onClick={confirmReassign}
+              disabled={reassignLoading || !reassignTarget || reassignReason.trim().length < 5}
+            >
+              {reassignLoading ? "Wird umzuordnet..." : "Umzuordnen"}
             </Button>
           </DialogFooter>
         </DialogContent>

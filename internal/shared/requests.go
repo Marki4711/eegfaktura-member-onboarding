@@ -283,6 +283,14 @@ type ClearImportLockRequest struct {
 	Reason string `json:"reason" validate:"required,min=5,max=500"`
 }
 
+// ReassignEEGRequest is the admin EEG-reassign payload (PROJ-40).
+// targetRcNumber must be an existing, active EEG entrypoint; the admin
+// must be authorized for both source and target (or be a superuser).
+type ReassignEEGRequest struct {
+	TargetRCNumber string `json:"targetRcNumber" validate:"required,min=1,max=50"`
+	Reason         string `json:"reason"         validate:"required,min=5,max=500"`
+}
+
 // UpdateAdminNoteRequest is the body for PATCH /api/admin/applications/{id}/admin-note.
 // Replaces only the admin_note column — never touches any other field so the
 // editor cannot accidentally reset participation factors or membertype on save.

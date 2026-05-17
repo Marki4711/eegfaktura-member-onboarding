@@ -741,6 +741,26 @@ export function syncEntrypoints(token?: string): Promise<void> {
   return adminRequest<void>("/api/admin/sync", token, { method: "POST" });
 }
 
+// PROJ-40: reassign an application to a different EEG during admin review.
+// Admin must be authorized for both source and target (or be a superuser).
+// The reference number is regenerated on the target's per-year counter.
+export function reassignApplicationToEEG(
+  id: string,
+  targetRcNumber: string,
+  reason: string,
+  token?: string,
+): Promise<AdminApplicationDetail> {
+  return adminRequest<AdminApplicationDetail>(
+    `/api/admin/applications/${id}/reassign-eeg`,
+    token,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ targetRcNumber, reason }),
+    }
+  );
+}
+
 export function resendMemberConfirmation(id: string, token?: string): Promise<void> {
   return adminRequest<void>(`/api/admin/applications/${id}/resend-confirmation`, token, { method: "POST" });
 }

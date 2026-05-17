@@ -890,6 +890,140 @@ func (s *AdminApplicationService) ResetImport(id uuid.UUID, reason, actorID stri
 	return s.appRepo.GetByID(id)
 }
 
+// ReassignEEG moves an application from its current EEG to a different EEG
+// during admin review (PROJ-40). The admin must be authorized for both
+// source and target (or be a superuser → allowedRCNumbers == nil). The
+// reference number is regenerated from the target EEG's per-year counter
+// (PROJ-35), so the member-facing identifier matches the new EEG. Old
+// rc_number + old reference_number are archived in the status_log reason.
+//
+// Reassignable statuses (enforced both here and in UpdateRCNumberTx):
+// submitted, email_confirmed, under_review, needs_info. Anything past
+// approval — or `rejected`/`import_failed`/`draft` — is rejected with 409.
+//
+// No member notification in V1 (see PROJ-40 spec § Q5).
+func (s *AdminApplicationService) ReassignEEG(id uuid.UUID, targetRCNumber, reason, actorID string, allowedRCNumbers []string) (*shared.Application, error) {
+	app, err := s.appRepo.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	targetRCNumber = strings.ToUpper(strings.TrimSpace(targetRCNumber))
+	reason = strings.TrimSpace(reason)
+	if targetRCNumber == "" {
+		return nil, shared.NewValidationError("Validation failed", map[string]string{
+			"targetRcNumber": "Ziel-EEG ist erforderlich",
+		})
+	}
+	if reason == "" || len(reason) < 5 {
+		return nil, shared.NewValidationError("Validation failed", map[string]string{
+			"reason": "Begründung ist erforderlich (mindestens 5 Zeichen)",
+		})
+	}
+	if targetRCNumber == app.RCNumber {
+		return nil, shared.NewConflictError("Quelle und Ziel sind identisch")
+	}
+
+	reassignable := map[shared.ApplicationStatus]bool{
+		shared.StatusSubmitted:       true,
+		shared.StatusEmailConfirmed:  true,
+		shared.StatusUnderReview:     true,
+		shared.StatusNeedsInfo:       true,
+	}
+	if !reassignable[app.Status] {
+		return nil, shared.NewConflictError(
+			fmt.Sprintf("status %s kann nicht umzuordnet werden — nur submitted/email_confirmed/under_review/needs_info", app.Status))
+	}
+
+	// Tenant check on BOTH source and target. allowedRCNumbers == nil
+	// means superuser → unrestricted.
+	if allowedRCNumbers != nil {
+		hasSource, hasTarget := false, false
+		for _, rc := range allowedRCNumbers {
+			if rc == app.RCNumber {
+				hasSource = true
+			}
+			if rc == targetRCNumber {
+				hasTarget = true
+			}
+		}
+		if !hasSource || !hasTarget {
+			return nil, shared.ErrForbidden
+		}
+	}
+
+	targetEP, err := s.entrypointRepo.GetByRCNumber(targetRCNumber)
+	if err != nil {
+		if err == shared.ErrNotFound {
+			return nil, shared.NewValidationError("Validation failed", map[string]string{
+				"targetRcNumber": "Ziel-EEG existiert nicht",
+			})
+		}
+		return nil, fmt.Errorf("failed to load target entrypoint: %w", err)
+	}
+	if !targetEP.IsActive {
+		return nil, shared.NewConflictError("Ziel-EEG ist nicht aktiv")
+	}
+
+	// Mint the new reference number on the target's counter BEFORE the TX
+	// so a failure here doesn't dirty the application row. NextReferenceNumber
+	// already runs in its own atomic INSERT … ON CONFLICT — no race.
+	newRef, err := s.appRepo.NextReferenceNumber(targetRCNumber, time.Now().Year())
+	if err != nil {
+		return nil, fmt.Errorf("failed to mint new reference number: %w", err)
+	}
+
+	oldRC := app.RCNumber
+	oldRef := app.ReferenceNumber
+	fullReason := fmt.Sprintf("%s\n[system] previous rc_number=%s\n[system] previous reference_number=%s",
+		reason, oldRC, oldRef)
+	now := time.Now().UTC()
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin reassign transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	if err := s.appRepo.UpdateRCNumberTx(tx, id, oldRC, targetRCNumber, newRef); err != nil {
+		return nil, err
+	}
+
+	// Log entry: status unchanged (same on both sides) — the reassign
+	// itself isn't a status change, but the audit trail needs to record it.
+	currentStatus := string(app.Status)
+	var actorPtr *string
+	if actorID != "" {
+		actorPtr = &actorID
+	}
+	logEntry := &shared.StatusLogEntry{
+		ApplicationID:   id,
+		FromStatus:      &currentStatus,
+		ToStatus:        currentStatus,
+		ChangedByUserID: actorPtr,
+		Reason:          &fullReason,
+		CreatedAt:       now,
+	}
+	if err := s.statusLogRepo.CreateTx(tx, logEntry); err != nil {
+		return nil, fmt.Errorf("failed to write status log: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to commit reassign: %w", err)
+	}
+
+	slog.Info("application reassigned",
+		"application_id", id,
+		"actor", actorID,
+		"from_rc", oldRC,
+		"to_rc", targetRCNumber,
+		"old_reference_number", oldRef,
+		"new_reference_number", newRef,
+	)
+
+	return s.appRepo.GetByID(id)
+}
+
 // BulkChangeStatus applies a status transition to multiple applications.
 // Applications whose transition is not allowed (wrong current status, wrong tenant,
 // or not found) are added to skipped instead of returning an error.

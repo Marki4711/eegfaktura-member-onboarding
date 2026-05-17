@@ -2103,6 +2103,70 @@ func (h *AdminHandler) ReorderLegalDocuments(w http.ResponseWriter, r *http.Requ
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// ReassignEEG handles POST /api/admin/applications/{id}/reassign-eeg (PROJ-40).
+//
+// @Summary      Reassign application to a different EEG
+// @Description  Moves an application from its current EEG to a different EEG. The admin must be authorized for BOTH source and target (or be a superuser). The reference number is regenerated from the target EEG's per-year counter. Old rc_number + old reference_number are archived in the status_log. Only reassignable while status ∈ {submitted, email_confirmed, under_review, needs_info}.
+// @Tags         Admin
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id    path      string                       true  "Application ID"
+// @Param        body  body      shared.ReassignEEGRequest    true  "Target RC + reason"
+// @Success      200   {object}  shared.AdminApplicationDetailResponse
+// @Failure      400   {object}  shared.ErrorResponse  "Validation error"
+// @Failure      403   {object}  shared.ErrorResponse  "Tenant mismatch on source or target"
+// @Failure      404   {object}  shared.ErrorResponse  "Application or target RC not found"
+// @Failure      409   {object}  shared.ErrorResponse  "Status not reassignable, source==target, or target inactive"
+// @Router       /api/admin/applications/{id}/reassign-eeg [post]
+func (h *AdminHandler) ReassignEEG(w http.ResponseWriter, r *http.Request) {
+	id, err := h.parseID(w, r)
+	if err != nil {
+		return
+	}
+
+	// Source-side tenant check first — admin must own the application's
+	// current RC. Target-side check is done inside ReassignEEG using the
+	// passed allowedRCNumbers, so we don't need to look it up here.
+	if !h.checkTenantAccess(w, r, id) {
+		return
+	}
+
+	var req shared.ReassignEEGRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Invalid JSON", nil)))
+		return
+	}
+	if err := h.validate.Struct(req); err != nil {
+		h.writeValidationError(w, err)
+		return
+	}
+
+	actorID := ""
+	var allowedRCNumbers []string
+	if claims := ClaimsFromContext(r.Context()); claims != nil {
+		actorID = claims.Subject
+		if !claims.IsSuperuser() {
+			allowedRCNumbers = []string(claims.Tenant)
+		}
+	}
+
+	app, err := h.adminService.ReassignEEG(id, req.TargetRCNumber, req.Reason, actorID, allowedRCNumbers)
+	if err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+
+	detail, err := h.adminService.GetApplicationDetail(id)
+	if err != nil {
+		slog.Warn("admin: reassign-eeg succeeded but detail fetch failed",
+			"application_id", id, "error", err)
+		h.writeJSON(w, http.StatusOK, app)
+		return
+	}
+	h.writeJSON(w, http.StatusOK, detail)
+}
+
 func isKnownStatus(s string) bool {
 	switch shared.ApplicationStatus(s) {
 	case shared.StatusDraft, shared.StatusSubmitted, shared.StatusEmailConfirmed,

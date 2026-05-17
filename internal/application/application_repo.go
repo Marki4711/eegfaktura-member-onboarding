@@ -663,6 +663,37 @@ func (r *ApplicationRepository) NextReferenceNumber(rcNumber string, year int) (
 	return fmt.Sprintf("%s-%d-%04d", rcNumber, year, lastValue), nil
 }
 
+// UpdateRCNumberTx reassigns an application to a different EEG (PROJ-40).
+// Guards via `WHERE id=$1 AND rc_number=$2 AND status IN (…)` so a stale
+// `expectedFromRC` or a meanwhile-mutated status fails fast (0 rows →
+// ErrConflict) and the calling service can return a clear 409 to the admin.
+//
+// Reassignable statuses are restricted to the active-review window:
+// `submitted`, `email_confirmed`, `under_review`, `needs_info`. Approved /
+// imported / rejected / import_failed applications are NOT reassignable.
+//
+// The new reference_number must already be minted (via NextReferenceNumber
+// on the target rc) by the caller — keeps the counter logic in one place.
+func (r *ApplicationRepository) UpdateRCNumberTx(tx *sql.Tx, id uuid.UUID, expectedFromRC, newRC, newReferenceNumber string) error {
+	query := `
+		UPDATE member_onboarding.application SET
+			rc_number        = $1,
+			reference_number = $2,
+			updated_at       = NOW()
+		WHERE id = $3
+		  AND rc_number = $4
+		  AND status IN ('submitted', 'email_confirmed', 'under_review', 'needs_info')`
+	res, err := tx.Exec(query, newRC, newReferenceNumber, id, expectedFromRC)
+	if err != nil {
+		return fmt.Errorf("failed to reassign rc_number: %w", err)
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return shared.ErrConflict
+	}
+	return nil
+}
+
 // MemberNumberUsedLocally returns true when ANOTHER application in the same
 // EEG already has the given member_number assigned. Used by the import
 // service (PROJ-34) as a defense-in-depth check BEFORE calling the core:
