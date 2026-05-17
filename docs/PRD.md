@@ -112,8 +112,9 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 | PROJ-10 | Admin Notifications | Vertagung — niedrige Dringlichkeit |
 | PROJ-22 | Tailwind CSS v3 → v4 | Revertiert 2026-04-26 wegen Regressionen; Retry braucht Stabilisierung der v4-Ecosystem-Updates |
 | PROJ-23 | Stammdaten-Import aus eegFaktura-Excel | Ersetzt durch PROJ-32 (GraphQL-Sync) |
+| PROJ-51 | Anzeige offener Nutzungsgebühren im Admin-UI | Wartet auf Klärung des Abrechnungs- und Status-Pflege-Konzepts |
 
-> **Next available feature ID:** PROJ-51 (siehe `features/INDEX.md`).
+> **Next available feature ID:** PROJ-52 (siehe `features/INDEX.md`).
 
 ## 5. Success Metrics
 
