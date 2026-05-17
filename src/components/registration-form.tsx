@@ -104,6 +104,9 @@ const meteringPointSchema = z
     pvPowerKwp: z.number().min(0).optional(),
     feedInLimitPresent: z.boolean().optional(),
     feedInLimitKw: z.number().min(0).optional(),
+    // PROJ-49 follow-up: „Speichersteuerung im Sinne der EEG vorstellbar?"
+    // Nur sinnvoll bei PV + vorhandenem Speicher (Server cleart sonst).
+    batteryControlAcceptable: z.boolean().optional(),
   })
   .superRefine((mp, ctx) => {
     const fields = [mp.addressStreet, mp.addressStreetNumber, mp.addressZip, mp.addressCity];
@@ -544,6 +547,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
               generationType: isProduction ? (mp.generationType ?? "pv") : undefined,
               batterySizeKwh: isPv ? mp.batterySizeKwh : undefined,
               inverterManufacturer: isPv ? (mp.inverterManufacturer || undefined) : undefined,
+              batteryControlAcceptable: isPv ? mp.batteryControlAcceptable : undefined,
               // PROJ-49: Energie-Felder pro Zählpunkt.
               consumptionPreviousYear: isConsumption ? mp.consumptionPreviousYear : undefined,
               consumptionForecast: isConsumption ? mp.consumptionForecast : undefined,

@@ -916,6 +916,15 @@ func FormatGenerationLine(mp *shared.MeteringPoint) string {
 			parts = append(parts, "Einspeiselimit vorhanden")
 		}
 	}
+	// PROJ-49 follow-up: Speichersteuerung-Antwort nur rendern, wenn das
+	// Mitglied tatsächlich Stellung bezogen hat.
+	if mp.BatteryControlAcceptable != nil {
+		if *mp.BatteryControlAcceptable {
+			parts = append(parts, "Speichersteuerung im Sinne der EEG: Ja")
+		} else {
+			parts = append(parts, "Speichersteuerung im Sinne der EEG: Nein")
+		}
+	}
 	return strings.Join(parts, ", ")
 }
 

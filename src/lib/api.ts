@@ -97,10 +97,13 @@ export const CONFIGURABLE_FIELDS: {
     // PROJ-45: Batterie + Wechselrichter (nur bei generation_type='pv' aktiv).
     { name: "battery_size_kwh",      label: "Größe Batterie (kWh)",        defaultState: "hidden",
       visibilityTags: ["production", "pv"],
-      visibilityHint: "Wird nur bei Einspeise-Zählpunkten mit Erzeugungsform PV angezeigt." },
+      visibilityHint: "Wird nur bei Einspeise-Zählpunkten mit Erzeugungsform PV angezeigt — gemeinsam mit dem Master-Toggle Batteriespeicher vorhanden." },
     { name: "inverter_manufacturer", label: "Hersteller Wechselrichter",  defaultState: "hidden",
       visibilityTags: ["production", "pv"],
-      visibilityHint: "Wird nur bei Einspeise-Zählpunkten mit Erzeugungsform PV angezeigt." },
+      visibilityHint: "Wird nur bei Einspeise-Zählpunkten mit Erzeugungsform PV angezeigt — gemeinsam mit dem Master-Toggle Batteriespeicher vorhanden." },
+    { name: "battery_control_acceptable", label: "Speichersteuerung im Sinne der EEG vorstellbar?", defaultState: "hidden",
+      visibilityTags: ["production", "pv"],
+      visibilityHint: "Wird nur bei Einspeise-Zählpunkten mit Erzeugungsform PV UND aktivem Master-Toggle Batteriespeicher vorhanden angezeigt." },
   ],
 };
 
@@ -215,6 +218,9 @@ export interface MeteringPointRequest {
   pvPowerKwp?: number;
   feedInLimitPresent?: boolean;
   feedInLimitKw?: number;
+  // PROJ-49 follow-up: „Speichersteuerung im Sinne der EEG vorstellbar?".
+  // Nur sinnvoll bei PV + vorhandenem Speicher (Server cleart sonst).
+  batteryControlAcceptable?: boolean;
 }
 
 export interface CreateApplicationRequest {

@@ -124,6 +124,8 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 			PvPowerKwp:              mpReq.PvPowerKwp,
 			FeedInLimitPresent:      mpReq.FeedInLimitPresent,
 			FeedInLimitKw:           mpReq.FeedInLimitKw,
+			// PROJ-49 follow-up: Speichersteuerung-Frage.
+			BatteryControlAcceptable: mpReq.BatteryControlAcceptable,
 			CreatedAt:           time.Now(),
 			UpdatedAt:           time.Now(),
 		})
@@ -1138,6 +1140,14 @@ func validateConfigurableMeteringPointFields(points []shared.MeteringPoint, fiel
 				mp.FeedInLimitPresent != nil && *mp.FeedInLimitPresent && mp.FeedInLimitKw == nil {
 				errs[fmt.Sprintf("meteringPoints.%d.feedInLimitKw", i)] = "Einspeiselimit (kW) ist erforderlich"
 			}
+			// PROJ-49 follow-up: Speichersteuerung-Frage ist nur Pflicht,
+			// wenn der Zählpunkt PV ist UND Batterie-Daten gesetzt sind.
+			hasBattery := mp.BatterySizeKwh != nil ||
+				(mp.InverterManufacturer != nil && strings.TrimSpace(*mp.InverterManufacturer) != "")
+			if effectiveState(fieldConfig, "battery_control_acceptable") == "required" &&
+				hasBattery && mp.BatteryControlAcceptable == nil {
+				errs[fmt.Sprintf("meteringPoints.%d.batteryControlAcceptable", i)] = "Speichersteuerung im Sinne der EEG ist erforderlich"
+			}
 		}
 		if len(errs) > 0 {
 			return shared.NewValidationError("Validation failed", errs)
@@ -1227,6 +1237,7 @@ func clearMeteringPointEnergyByType(points []shared.MeteringPoint) {
 			mp.PvPowerKwp = nil
 			mp.FeedInLimitPresent = nil
 			mp.FeedInLimitKw = nil
+			mp.BatteryControlAcceptable = nil
 			continue
 		}
 		// PRODUCTION
@@ -1237,10 +1248,20 @@ func clearMeteringPointEnergyByType(points []shared.MeteringPoint) {
 			mp.PvPowerKwp = nil
 			mp.FeedInLimitPresent = nil
 			mp.FeedInLimitKw = nil
+			mp.BatteryControlAcceptable = nil
 			continue
 		}
 		if mp.FeedInLimitPresent == nil || !*mp.FeedInLimitPresent {
 			mp.FeedInLimitKw = nil
+		}
+		// PROJ-49 follow-up: Speichersteuerung-Frage ist nur sinnvoll, wenn
+		// das Mitglied einen Batteriespeicher angegeben hat (Größe oder
+		// Hersteller). Wenn beide leer sind, gibt es nichts zu steuern —
+		// Antwort wird genullt, damit kein "Phantom-Consent" persistiert.
+		hasBattery := mp.BatterySizeKwh != nil ||
+			(mp.InverterManufacturer != nil && *mp.InverterManufacturer != "")
+		if !hasBattery {
+			mp.BatteryControlAcceptable = nil
 		}
 	}
 }

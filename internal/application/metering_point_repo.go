@@ -35,9 +35,10 @@ func (r *MeteringPointRepository) CreateBulkTx(tx *sql.Tx, applicationID uuid.UU
 			generation_type, battery_size_kwh, inverter_manufacturer,
 			consumption_previous_year, consumption_forecast,
 			feed_in_forecast, pv_power_kwp, feed_in_limit_present, feed_in_limit_kw,
+			battery_control_acceptable,
 			created_at, updated_at
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
-		          $15, $16, $17, $18, $19, $20, $21, $22)`)
+		          $15, $16, $17, $18, $19, $20, $21, $22, $23)`)
 	if err != nil {
 		return fmt.Errorf("failed to prepare statement: %w", err)
 	}
@@ -51,6 +52,7 @@ func (r *MeteringPointRepository) CreateBulkTx(tx *sql.Tx, applicationID uuid.UU
 			point.GenerationType, point.BatterySizeKwh, point.InverterManufacturer,
 			point.ConsumptionPreviousYear, point.ConsumptionForecast,
 			point.FeedInForecast, point.PvPowerKwp, point.FeedInLimitPresent, point.FeedInLimitKw,
+			point.BatteryControlAcceptable,
 			point.CreatedAt, point.UpdatedAt,
 		); err != nil {
 			return fmt.Errorf("failed to insert metering point: %w", err)
@@ -68,6 +70,7 @@ func (r *MeteringPointRepository) GetByApplicationID(applicationID uuid.UUID) ([
 		       generation_type, battery_size_kwh, inverter_manufacturer,
 		       consumption_previous_year, consumption_forecast,
 		       feed_in_forecast, pv_power_kwp, feed_in_limit_present, feed_in_limit_kw,
+		       battery_control_acceptable,
 		       created_at, updated_at
 		FROM member_onboarding.metering_point
 		WHERE application_id = $1
@@ -88,7 +91,7 @@ func (r *MeteringPointRepository) GetByApplicationID(applicationID uuid.UUID) ([
 		var batterySizeKwh sql.NullFloat64
 		var consumptionPreviousYear, consumptionForecast, feedInForecast sql.NullInt64
 		var pvPowerKwp, feedInLimitKw sql.NullFloat64
-		var feedInLimitPresent sql.NullBool
+		var feedInLimitPresent, batteryControlAcceptable sql.NullBool
 		err := rows.Scan(
 			&point.ID, &point.ApplicationID, &point.MeteringPoint, &point.Direction, &point.ParticipationFactor,
 			&transformer, &installationNumber, &installationName,
@@ -96,6 +99,7 @@ func (r *MeteringPointRepository) GetByApplicationID(applicationID uuid.UUID) ([
 			&generationType, &batterySizeKwh, &inverterManufacturer,
 			&consumptionPreviousYear, &consumptionForecast,
 			&feedInForecast, &pvPowerKwp, &feedInLimitPresent, &feedInLimitKw,
+			&batteryControlAcceptable,
 			&point.CreatedAt, &point.UpdatedAt,
 		)
 		if err != nil {
@@ -151,6 +155,9 @@ func (r *MeteringPointRepository) GetByApplicationID(applicationID uuid.UUID) ([
 		}
 		if feedInLimitKw.Valid {
 			point.FeedInLimitKw = &feedInLimitKw.Float64
+		}
+		if batteryControlAcceptable.Valid {
+			point.BatteryControlAcceptable = &batteryControlAcceptable.Bool
 		}
 		points = append(points, point)
 	}

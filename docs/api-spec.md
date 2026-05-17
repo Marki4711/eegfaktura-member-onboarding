@@ -192,6 +192,7 @@ Creates a new application.
       "generationType": "pv",
       "batterySizeKwh": 10.5,
       "inverterManufacturer": "Fronius",
+      "batteryControlAcceptable": true,
       "feedInForecast": 6000,
       "pvPowerKwp": 9.9,
       "feedInLimitPresent": true,
@@ -228,6 +229,8 @@ All fields under `meteringPoints[].transformer/installationNumber/installationNa
 `meteringPoints[].feedInForecast` (PROJ-49) is the annual energy forecast in kWh/year for PRODUCTION rows (any `generationType`). The service nulls it on CONSUMPTION rows.
 
 `meteringPoints[].pvPowerKwp`, `meteringPoints[].feedInLimitPresent`, and `meteringPoints[].feedInLimitKw` (PROJ-49) are only meaningful for PRODUCTION rows with `generationType = "pv"`. `feedInLimitPresent` is the member's "Einspeiselimit vorhanden?" toggle (some grid connections cap the feed-in power below the PV nameplate); `feedInLimitKw` is the maximum allowed feed-in in kW and is only stored when `feedInLimitPresent = true`. The service nulls each unfitting combination.
+
+`meteringPoints[].batteryControlAcceptable` (PROJ-49 follow-up) is the member's "Speichersteuerung im Sinne der EEG vorstellbar?" answer. Only stored for PRODUCTION rows with `generationType = "pv"` AND when the member has provided at least one battery parameter (`batterySizeKwh` or `inverterManufacturer`). The service nulls the field in all other cases (including the unanswered "no battery" path).
 
 `networkOperatorAuthorization` (PROJ-44) is the member's authorisation for the EEG to coordinate with the grid operator on their behalf. The configurable-field `network_operator_authorization` controls visibility — when the EEG sets it to `required`, the boolean must be `true` on submit (otherwise 400). When `hidden`, the server nulls/false-sets it. The auth timestamp `network_operator_authorization_at` is stamped automatically on the FALSE→TRUE flip.
 

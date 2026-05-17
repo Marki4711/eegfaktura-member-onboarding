@@ -54,7 +54,10 @@ Geben Sie mindestens einen Zählpunkt an:
 - **Richtung** — Verbraucher (Strom wird bezogen) oder Erzeuger (Strom wird eingespeist)
 - **Teilnahmefaktor** — prozentualer Anteil der Teilnahme an der EEG (Standard: 100 %)
 - **Erzeugungsform** *(PROJ-45, nur bei Erzeuger-Zählpunkten)* — Auswahl PV / Wasser / Wind / Biomasse, Default PV
-- **Größe Batterie (kWh)** und **Hersteller Wechselrichter** *(PROJ-45, nur bei PV-Erzeugern, sofern die EEG diese Felder konfiguriert hat)*
+- **Batteriespeicher vorhanden** *(PROJ-49 follow-up, nur bei PV-Erzeugern)* — Master-Checkbox: nach dem Aktivieren erscheinen die drei Speicher-Felder gemeinsam:
+  - **Größe Batterie (kWh)** *(PROJ-45, sofern die EEG das Feld konfiguriert hat)*
+  - **Hersteller Wechselrichter** *(PROJ-45, sofern die EEG das Feld konfiguriert hat)*
+  - **Speichersteuerung im Sinne der EEG vorstellbar?** *(PROJ-49 follow-up, sofern die EEG das Feld konfiguriert hat)* — Ja-/Nein-Häkchen: die EEG könnte Ihren Heimspeicher gemeinsam mit anderen Speichern der Mitglieder so steuern, dass die Erzeugung innerhalb der Gemeinschaft optimal genutzt wird. Eine konkrete Steuerung wird separat abgestimmt; das Häkchen ist nur Ihre grundsätzliche Bereitschaft.
 - **Verbrauch Vorjahr / Verbrauch Prognose (kWh)** *(PROJ-49, nur bei Verbraucher-Zählpunkten)*
 - **Einspeisung Prognose (kWh/Jahr)** *(PROJ-49, nur bei Erzeuger-Zählpunkten)*
 - **PV-Leistung (kWp)** *(PROJ-49, nur bei Erzeuger-Zählpunkten mit Erzeugungsform PV)*

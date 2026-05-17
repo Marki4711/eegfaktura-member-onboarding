@@ -85,6 +85,9 @@ type CreateMeteringPointRequest struct {
 	PvPowerKwp              *float64 `json:"pvPowerKwp,omitempty"              validate:"omitempty,min=0"`
 	FeedInLimitPresent      *bool    `json:"feedInLimitPresent,omitempty"`
 	FeedInLimitKw           *float64 `json:"feedInLimitKw,omitempty"           validate:"omitempty,min=0"`
+	// PROJ-49 follow-up: „Speichersteuerung über die EEG vorstellbar?"
+	// Nur sinnvoll bei PV + vorhandenem Speicher (Service cleart sonst).
+	BatteryControlAcceptable *bool `json:"batteryControlAcceptable,omitempty"`
 }
 
 // UpdateApplicationRequest represents the request to update an application

@@ -218,6 +218,11 @@ type MeteringPoint struct {
 	PvPowerKwp              *float64 `json:"pvPowerKwp,omitempty" db:"pv_power_kwp"`
 	FeedInLimitPresent      *bool    `json:"feedInLimitPresent,omitempty" db:"feed_in_limit_present"`
 	FeedInLimitKw           *float64 `json:"feedInLimitKw,omitempty" db:"feed_in_limit_kw"`
+	// PROJ-49 follow-up: Mitglied-Antwort auf „Speichersteuerung über die
+	// EEG vorstellbar?". Nur sinnvoll bei PRODUCTION + generation_type='pv'
+	// UND wenn das Mitglied Batterie-Parameter angegeben hat (Service cleart
+	// in allen anderen Fällen).
+	BatteryControlAcceptable *bool `json:"batteryControlAcceptable,omitempty" db:"battery_control_acceptable"`
 }
 
 // HasDeviatingAddress returns true if this metering point has a different

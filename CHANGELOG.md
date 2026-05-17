@@ -10,6 +10,43 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Geändert — Speichersteuerung-Frage + Batterie-Gruppierung (PROJ-49 follow-up) *(2026-05-17)*
+
+Neue Mitglied-Frage „Speichersteuerung im Sinne der EEG vorstellbar?" auf
+PV-Erzeuger-Zählpunkten. Gleichzeitig UI-Refactoring: die bisher einzeln
+sichtbaren Speicher-Felder werden hinter einer Master-Checkbox gruppiert.
+
+**Datenmodell (Migration 000044):**
+- `metering_point.battery_control_acceptable` BOOLEAN NULL — Mitglied-Antwort
+  Ja/Nein. Service-Layer cleart das Feld, wenn kein PV-Zählpunkt oder wenn
+  das Mitglied keine Batterie-Parameter angegeben hat.
+
+**Sichtbarkeitsregeln:**
+- Nur bei `direction='PRODUCTION'` + `generation_type='pv'`
+- Nur wenn `battery_size_kwh` ODER `inverter_manufacturer` befüllt ist
+- PROJ-8-konfigurierbar via field_config (`battery_control_acceptable`,
+  Default `hidden`)
+
+**API:**
+- `meteringPoints[].batteryControlAcceptable` in Public-, Admin-,
+  Externe-API (Request + Response).
+- Required-Validierung greift nur, wenn das Mitglied tatsächlich Batterie-
+  Daten gesetzt hat — sonst entfällt die Frage komplett.
+
+**Frontend (UX-Verbesserung):**
+- Neuer `BatteryBlock` in `metering-point-fields.tsx` mit Master-Checkbox
+  „Batteriespeicher vorhanden". Nach Aktivieren erscheinen drei gruppierte
+  Felder darunter: Größe Batterie (kWh), Hersteller Wechselrichter,
+  Speichersteuerung im Sinne der EEG vorstellbar?.
+- Deaktivieren der Master-Checkbox cleart alle drei Felder.
+- Beim Reload wird der Toggle-Zustand aus dem Vorhandensein eines der drei
+  Werte abgeleitet (Pattern aus `DeviatingAddressBlock`).
+- `GenerationBlock` schlanker: Batterie-Felder dort entfernt, jetzt nur
+  noch generation_type + PV-Leistung + Einspeise-Forecast + Einspeiselimit.
+
+**Mail-Templates:** `FormatGenerationLine` rendert die Antwort wenn gesetzt
+als zusätzliches Segment, z. B. `…, Speichersteuerung im Sinne der EEG: Ja`.
+
 ### Geändert — Energie-Felder pro Zählpunkt (PROJ-49) *(2026-05-17)*
 
 Refactoring: 4 Energie-Felder wandern von `application` auf `metering_point`,

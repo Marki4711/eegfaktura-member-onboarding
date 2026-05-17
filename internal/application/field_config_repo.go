@@ -35,6 +35,10 @@ var knownConfigurableFields = map[string]string{
 	"feed_in_forecast":          "hidden",
 	"pv_power_kwp":              "hidden",
 	"feed_in_limit_kw":          "hidden",
+	// PROJ-49 follow-up: Mitglied-Einverständnis „Speichersteuerung im
+	// Sinne der EEG vorstellbar?". Nur sinnvoll, wenn Mitglied
+	// Batterie-Parameter angegeben hat — Service cleart sonst.
+	"battery_control_acceptable": "hidden",
 }
 
 var validFieldStates = map[string]bool{

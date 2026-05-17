@@ -58,6 +58,8 @@ export function MeteringPointFields({ form, fieldConfig }: MeteringPointFieldsPr
   const showFeedInForecast  = mpfs("feed_in_forecast") !== "hidden";
   const showPvPower         = mpfs("pv_power_kwp") !== "hidden";
   const showFeedInLimit     = mpfs("feed_in_limit_kw") !== "hidden";
+  // PROJ-49 follow-up: „Speichersteuerung im Sinne der EEG vorstellbar?"
+  const showBatteryControl  = mpfs("battery_control_acceptable") !== "hidden";
 
   return (
     <div className="space-y-4">
@@ -201,16 +203,23 @@ export function MeteringPointFields({ form, fieldConfig }: MeteringPointFieldsPr
           <GenerationBlock
             form={form}
             index={index}
-            showBatterySize={showBatterySize}
-            showInverter={showInverter}
-            batteryRequired={mpfs("battery_size_kwh") === "required"}
-            inverterRequired={mpfs("inverter_manufacturer") === "required"}
             showFeedInForecast={showFeedInForecast}
             feedInForecastRequired={mpfs("feed_in_forecast") === "required"}
             showPvPower={showPvPower}
             pvPowerRequired={mpfs("pv_power_kwp") === "required"}
             showFeedInLimit={showFeedInLimit}
             feedInLimitRequired={mpfs("feed_in_limit_kw") === "required"}
+          />
+
+          <BatteryBlock
+            form={form}
+            index={index}
+            showBatterySize={showBatterySize}
+            showInverter={showInverter}
+            showControl={showBatteryControl}
+            batteryRequired={mpfs("battery_size_kwh") === "required"}
+            inverterRequired={mpfs("inverter_manufacturer") === "required"}
+            controlRequired={mpfs("battery_control_acceptable") === "required"}
           />
 
           <ConsumptionDetailsBlock
@@ -307,15 +316,13 @@ export function MeteringPointFields({ form, fieldConfig }: MeteringPointFieldsPr
 
 // GenerationBlock renders the PROJ-45 fields per metering point:
 //   - generation_type Select (only for PRODUCTION; Pflicht, Default 'pv')
-//   - battery_size_kwh + inverter_manufacturer (only when generation_type='pv'
-//     AND the EEG has the corresponding configurable field enabled)
+//   - pv_power_kwp + feed_in_forecast inline (PROJ-49)
+//   - feed_in_limit toggle + kW input (PROJ-49)
+// Battery + Wechselrichter + Speichersteuerung leben im separaten
+// BatteryBlock (Master-Checkbox).
 function GenerationBlock({
   form,
   index,
-  showBatterySize,
-  showInverter,
-  batteryRequired,
-  inverterRequired,
   showFeedInForecast,
   feedInForecastRequired,
   showPvPower,
@@ -325,10 +332,6 @@ function GenerationBlock({
 }: {
   form: UseFormReturn<RegistrationFormValues>;
   index: number;
-  showBatterySize: boolean;
-  showInverter: boolean;
-  batteryRequired: boolean;
-  inverterRequired: boolean;
   showFeedInForecast: boolean;
   feedInForecastRequired: boolean;
   showPvPower: boolean;
@@ -424,52 +427,8 @@ function GenerationBlock({
             )}
           />
         )}
-        {isPv && showBatterySize && (
-          <FormField
-            control={form.control}
-            name={`meteringPoints.${index}.batterySizeKwh`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  Größe Batterie (kWh){batteryRequired ? " *" : ""}
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    min={0}
-                    step={0.1}
-                    value={field.value ?? ""}
-                    onChange={(e) => {
-                      const v = e.target.valueAsNumber;
-                      field.onChange(isNaN(v) ? undefined : v);
-                    }}
-                    onBlur={field.onBlur}
-                    name={field.name}
-                    ref={field.ref}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
-        {isPv && showInverter && (
-          <FormField
-            control={form.control}
-            name={`meteringPoints.${index}.inverterManufacturer`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  Hersteller Wechselrichter{inverterRequired ? " *" : ""}
-                </FormLabel>
-                <FormControl>
-                  <Input {...field} value={field.value ?? ""} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
+        {/* Batterie + Wechselrichter + Speichersteuerung wandern in den
+            BatteryBlock (Master-Checkbox) — siehe weiter unten. */}
       </div>
       {/* PROJ-49: Einspeiselimit — Mitglied gibt zuerst ja/nein an; bei ja
           erscheint das kW-Feld. Nur bei PV. */}
@@ -725,6 +684,158 @@ function DeviatingAddressBlock({
               </FormItem>
             )}
           />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// BatteryBlock — Master-Checkbox „Batteriespeicher vorhanden" mit drei
+// gruppierten Feldern darunter (Größe Batterie, Hersteller Wechselrichter,
+// Speichersteuerung im Sinne der EEG vorstellbar?). Analog zum
+// DeviatingAddressBlock-Pattern: Checkbox-State ist lokal, beim Mount aus
+// dem Vorhandensein einer der drei Werte abgeleitet; beim Deaktivieren
+// werden alle drei Felder gecleared. Nur bei PRODUCTION + PV sichtbar
+// UND die EEG hat mindestens eines der drei Felder konfiguriert.
+function BatteryBlock({
+  form,
+  index,
+  showBatterySize,
+  showInverter,
+  showControl,
+  batteryRequired,
+  inverterRequired,
+  controlRequired,
+}: {
+  form: UseFormReturn<RegistrationFormValues>;
+  index: number;
+  showBatterySize: boolean;
+  showInverter: boolean;
+  showControl: boolean;
+  batteryRequired: boolean;
+  inverterRequired: boolean;
+  controlRequired: boolean;
+}) {
+  const direction = form.watch(`meteringPoints.${index}.direction`);
+  const generationType = form.watch(`meteringPoints.${index}.generationType`);
+  const batterySizeKwh = form.watch(`meteringPoints.${index}.batterySizeKwh`);
+  const inverterManufacturer = form.watch(`meteringPoints.${index}.inverterManufacturer`);
+  const batteryControlAcceptable = form.watch(`meteringPoints.${index}.batteryControlAcceptable`);
+  const anyFilled =
+    batterySizeKwh !== undefined ||
+    !!(inverterManufacturer && inverterManufacturer.trim().length > 0) ||
+    batteryControlAcceptable !== undefined;
+  const [enabled, setEnabled] = useState<boolean>(anyFilled);
+
+  useEffect(() => {
+    if (anyFilled && !enabled) setEnabled(true);
+  }, [anyFilled, enabled]);
+
+  const isPv = direction === "PRODUCTION" && (generationType ?? "pv") === "pv";
+  if (!isPv) return null;
+  if (!showBatterySize && !showInverter && !showControl) return null;
+
+  function toggle(next: boolean) {
+    setEnabled(next);
+    if (!next) {
+      form.setValue(`meteringPoints.${index}.batterySizeKwh`, undefined, { shouldValidate: true });
+      form.setValue(`meteringPoints.${index}.inverterManufacturer`, "", { shouldValidate: true });
+      form.setValue(`meteringPoints.${index}.batteryControlAcceptable`, undefined, { shouldValidate: true });
+    }
+  }
+
+  return (
+    <div className="pt-1 space-y-2">
+      <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+        <Checkbox
+          checked={enabled}
+          onCheckedChange={(v) => toggle(v === true)}
+          aria-label="Batteriespeicher vorhanden"
+        />
+        <span>Batteriespeicher vorhanden</span>
+      </label>
+      {enabled && (
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {showBatterySize && (
+              <FormField
+                control={form.control}
+                name={`meteringPoints.${index}.batterySizeKwh`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Größe Batterie (kWh){batteryRequired ? " *" : ""}
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={0}
+                        step={0.1}
+                        value={field.value ?? ""}
+                        onChange={(e) => {
+                          const v = e.target.valueAsNumber;
+                          field.onChange(isNaN(v) ? undefined : v);
+                        }}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+            {showInverter && (
+              <FormField
+                control={form.control}
+                name={`meteringPoints.${index}.inverterManufacturer`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Hersteller Wechselrichter{inverterRequired ? " *" : ""}
+                    </FormLabel>
+                    <FormControl>
+                      <Input {...field} value={field.value ?? ""} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+          </div>
+          {showControl && (
+            <FormField
+              control={form.control}
+              name={`meteringPoints.${index}.batteryControlAcceptable`}
+              render={({ field }) => (
+                <FormItem className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                      <Checkbox
+                        checked={field.value === true}
+                        onCheckedChange={(v) => field.onChange(v === true)}
+                        aria-label="Speichersteuerung im Sinne der EEG vorstellbar"
+                      />
+                      <span>
+                        Speichersteuerung im Sinne der EEG vorstellbar?
+                        {controlRequired ? " *" : ""}
+                      </span>
+                    </label>
+                    <Popover>
+                      <PopoverTrigger type="button" className="cursor-help">
+                        <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                      </PopoverTrigger>
+                      <PopoverContent className="max-w-72 text-sm">
+                        Die EEG könnte Ihren Heimspeicher gemeinsam mit den Speichern anderer Mitglieder so steuern, dass die Erzeugung innerhalb der Gemeinschaft optimal genutzt wird. Das Häkchen ist nur Ihr Einverständnis im Sinne der EEG — eine konkrete Steuerung wird separat mit Ihnen abgestimmt.
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
         </div>
       )}
     </div>

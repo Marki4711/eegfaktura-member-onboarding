@@ -193,6 +193,7 @@ Fields:
 - `pv_power_kwp` NUMERIC(7,2) NULL — installierte PV-Leistung in kWp. Nur bei `direction='PRODUCTION'` mit `generation_type='pv'`; Service-Layer cleart sonst.
 - `feed_in_limit_present` BOOLEAN NULL — „Einspeiselimit vorhanden?" (manche Netzanschlüsse sind leistungstechnisch beschränkt). Nur bei `direction='PRODUCTION'` mit `generation_type='pv'`; Service-Layer cleart sonst.
 - `feed_in_limit_kw` NUMERIC(7,2) NULL — maximaler Einspeisewert in kW. Nur gefüllt wenn `feed_in_limit_present = TRUE`; Service-Layer cleart sonst.
+- `battery_control_acceptable` BOOLEAN NULL *(Migration 000044)* — Mitglied-Antwort auf „Speichersteuerung im Sinne der EEG vorstellbar?". Nur sinnvoll bei `direction='PRODUCTION'` + `generation_type='pv'` UND das Mitglied hat Batterie-Parameter (`battery_size_kwh` oder `inverter_manufacturer`) angegeben. Service-Layer cleart sonst.
 
 **PROJ-45-Constraint:**
 ```sql
@@ -242,6 +243,7 @@ Fields:
 - `pv_power_kwp` *(PROJ-49, nullable NUMERIC kWp, configurable, nur PRODUCTION + PV)*
 - `feed_in_limit_present` *(PROJ-49, nullable boolean, nur PRODUCTION + PV)*
 - `feed_in_limit_kw` *(PROJ-49, nullable NUMERIC kW, nur wenn feed_in_limit_present=TRUE)*
+- `battery_control_acceptable` *(PROJ-49 follow-up, nullable boolean, nur PRODUCTION + PV + vorhandener Batterie-Parameter)*
 - `created_at`
 - `updated_at`
 
