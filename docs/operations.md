@@ -128,7 +128,19 @@ Wenn der EEG fachlich eine lückenlose Nummerierung erwartet: Fall mit EEG-Admin
 
 **Symptom**: Mitglieder erhalten keine Bestätigungsmails. Backend-Log zeigt `mail: failed to send member confirmation`.
 
-**Was passiert**: Antrags-Submit ist trotzdem erfolgreich (Mails werden fire-and-forget abgesetzt). **Eingehende Mails ab Postal-Recovery werden NICHT nachgeholt** — sie sind verloren (siehe Open Issue „Mail-Outbox" im Architektur-Review).
+**Was passiert**: Verhalten unterscheidet sich je nach Mail-Typ:
+- **Antrags-Submit-Mails** (member-confirmation + EEG-notification) sind fire-and-forget → Submit klappt, Mail kann verloren gehen
+- **Approval-Mail an EEG** (mit Beitrittsbestätigungs-PDF) ebenfalls best-effort async
+- **Status-Change-Mails an Mitglied** (Ablehnung PROJ-41, Rückfrage PROJ-43) sind seit 2026-05-17 **hard-fail synchron**: scheitert der SMTP-Versand, bekommt der Admin im Dialog HTTP 500 mit Fehlermeldung, der Statuswechsel wird zurückgerollt — kein stilles Versagen
+
+> **Open Decision (Stand 2026-05-17):** ob alle Mail-Versand-Pfade einheitlich auf hard-fail umgestellt werden oder die aktuelle Mischstrategie (Submit + Approval = best-effort; Status-Change = hard-fail) bestehen bleibt, ist noch nicht entschieden. Für PROJ-41/43 wurde hard-fail bewusst gewählt, weil silent SMTP-Failures dort zu „schwarzem Loch" führten. Für die anderen Pfade gibt es Argumente für beide Seiten:
+>
+> - **Submit-Mails hard-fail** würde bedeuten: bei SMTP-Down kann sich kein Mitglied registrieren — schwerer Outage-Faktor für eine public-facing Form.
+> - **Approval-Mail hard-fail** ist machbar, aber die PDF-Generierung + Multi-Repo-Reads machen den synchronen Pfad teurer (Latenz beim Genehmigen).
+>
+> Entscheidung wird im nächsten Architektur-Review gefasst.
+
+**Eingehende Mails ab Postal-Recovery werden NICHT nachgeholt** — sie sind verloren (siehe Open Issue „Mail-Outbox" im Architektur-Review).
 
 **Sofort-Maßnahme**: 
 - Postal-Status checken: `https://atvipostal.vfeeg.org`
@@ -310,7 +322,7 @@ metrics:
 Aus dem Architektur-Review 2026-05-13 — diese Punkte sind dem Team bekannt und in der Backlog-Pipeline:
 
 - **`replicas: 1`** ist heute hart — kein HA während Rollouts. Multi-Replica-Vorarbeiten (DB-backed Rate-Limit, Mail-Outbox) sind PROJ-Items, noch nicht umgesetzt.
-- **Mail-Versand** ist fire-and-forget; bei Pod-Restart während SMTP-Send kann eine Mail verloren gehen. Wird mit Mail-Outbox geschlossen.
+- **Mail-Versand** für **Antrags-Submit + Approval** ist fire-and-forget; bei Pod-Restart während SMTP-Send kann eine Mail verloren gehen. Wird mit Mail-Outbox geschlossen. **Status-Change-Mails an Mitglied** (Ablehnung/Rückfrage, PROJ-41/43) sind seit 2026-05-17 hard-fail synchron — Mail-Fehler rollt den Statuswechsel zurück, kein stilles Verlieren.
 - **Keine NetworkPolicies** — Frontend-Pod könnte direkt auf Postgres zugreifen (architektonisch unerwünscht, technisch möglich).
 - **Keine Prometheus-Metrics** vom App-Service selbst — nur Logs. Counter wie `import_failed_total` sind heute nur durch Log-Aggregation sichtbar.
 

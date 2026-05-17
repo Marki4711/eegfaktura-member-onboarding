@@ -234,7 +234,6 @@ These topics are **not part of version 1** and must not be introduced implicitly
 - role management
 - account or payment information
 - tax data
-- separate metering point addresses
 - direct core database writes
 - custom admin user management
 - Supabase-specific backend architecture

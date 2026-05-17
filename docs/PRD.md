@@ -77,7 +77,6 @@ Version 1 does not include:
 - role selection
 - account or payment data
 - tax data
-- separate metering point addresses
 - public account/login management
 - direct writes into eegFaktura core tables
 - bidirectional sync between onboarding and core
@@ -89,7 +88,7 @@ Version 1 does not include:
 - the public registration entry point is identified by the EEG's RC number
 - the RC number is resolved through `member_onboarding.registration_entrypoint`; the onboarding backend never reads EEG data directly from eegFaktura core tables
 - one application can contain multiple metering points
-- all metering points use the same address as the member in onboarding
+- a metering point may inherit the member's primary address (default) or carry its own deviating address (PROJ-39)
 - only approved applications may be imported
 - imported participants are created in eegFaktura core, not directly in onboarding
 - tariff, role, and similar business details are completed later in eegFaktura

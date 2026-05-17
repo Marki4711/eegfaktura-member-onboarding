@@ -192,7 +192,9 @@ Creates a new application.
   "feedInForecast": 6000,
   "pvPowerKwp": 9.9,
   "heatPump": true,
-  "electricVehicle": false,
+  "electricVehicle": true,
+  "electricVehicleCount": 1,
+  "electricVehicleAnnualKm": 12000,
   "electricHotWater": null,
   "cooperativeSharesCount": 1
 }
@@ -205,6 +207,8 @@ All fields under `meteringPoints[].transformer/installationNumber/installationNa
 `bankName` (PROJ-39) is the optional bank name. It used to be admin-only; with PROJ-39 the member can supply it directly on submit.
 
 `meteringPoints[].addressStreet/addressStreetNumber/addressZip/addressCity` (PROJ-39): per-metering-point deviating address. All four fields are all-or-nothing — either all four omitted (the member's primary address is used) or all four supplied. Mixing yields HTTP 400.
+
+`electricVehicleCount` and `electricVehicleAnnualKm` (PROJ-42): integer detail fields for the EV section. Both are only meaningful when `electricVehicle = true`. If `electricVehicle` is not actively `true` the server silently nulls both on save. When the EEG has configured `electric_vehicle_count` / `electric_vehicle_annual_km` as `required`, the required-check **only** fires when `electricVehicle = true` — applicants who answered EV=No are never asked for a count.
 
 `cooperativeSharesCount` (PROJ-37) is required on the **submit** path (see 5.4) when the EEG has `cooperativeSharesEnabled = true` and must be `>= cooperativeRequiredShares`. On create it is optional — the public form populates it server-side at submit. The server silently ignores the value when the EEG has the feature disabled.
 

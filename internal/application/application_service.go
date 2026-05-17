@@ -1012,8 +1012,14 @@ func validateConfigurableRequiredFields(app *shared.Application, fieldConfig map
 	requiredIfMissing("pv_power_kwp", "pvPowerKwp", "PV-Leistung", app.PvPowerKwp == nil)
 	requiredIfMissing("heat_pump", "heatPump", "Wärmepumpe vorhanden", app.HeatPump == nil)
 	requiredIfMissing("electric_vehicle", "electricVehicle", "E-Auto vorhanden", app.ElectricVehicle == nil)
-	requiredIfMissing("electric_vehicle_count", "electricVehicleCount", "Anzahl E-Fahrzeuge", app.ElectricVehicleCount == nil)
-	requiredIfMissing("electric_vehicle_annual_km", "electricVehicleAnnualKm", "Jahres-Kilometer (E-Fahrzeuge)", app.ElectricVehicleAnnualKm == nil)
+	// PROJ-42: die Detail-Felder sind nur sinnvoll wenn EV=true. Wenn der
+	// Bewerber EV=Nein angegeben hat, gelten Count + Jahres-km als „nicht
+	// anwendbar" — auch wenn die EEG sie als required konfiguriert hat
+	// (sonst würde ein Nein-Bewerber an „Anzahl E-Fahrzeuge ist erforderlich"
+	// scheitern). Required greift also nur wenn EV=true UND count/km fehlt.
+	evIsTrue := app.ElectricVehicle != nil && *app.ElectricVehicle
+	requiredIfMissing("electric_vehicle_count", "electricVehicleCount", "Anzahl E-Fahrzeuge", evIsTrue && app.ElectricVehicleCount == nil)
+	requiredIfMissing("electric_vehicle_annual_km", "electricVehicleAnnualKm", "Jahres-Kilometer (E-Fahrzeuge)", evIsTrue && app.ElectricVehicleAnnualKm == nil)
 	requiredIfMissing("electric_hot_water", "electricHotWater", "Warmwasser elektrisch", app.ElectricHotWater == nil)
 
 	if len(errs) > 0 {

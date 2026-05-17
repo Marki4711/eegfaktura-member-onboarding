@@ -15,7 +15,6 @@ It supports:
 Not part of the model:
 - tariffs
 - role management
-- separate metering point addresses
 - JSON fields
 
 ## 2. Schema
@@ -214,7 +213,7 @@ Fields:
 Rules:
 - one application can have multiple metering points
 - `metering_point` is unique within an application
-- all metering points use the same address as the member in onboarding
+- a metering point may inherit the member's primary address (default) or carry its own deviating address (PROJ-39, see Section 3.3 above). The four `address_*` columns are all-or-nothing — either all four NULL or all four set; enforced server-side
 
 ### 3.4 `member_onboarding.status_log`
 
@@ -351,6 +350,6 @@ The set of allowed status values is enforced in **three places** (Go constants i
 - The field `rc_number` in `application` stores the RC number through which the application was started.
 - If `registration_entrypoint.is_active = false`, the registration is rejected (HTTP 410).
 - One application can contain multiple metering points.
-- All metering points use the same address as the member in onboarding.
+- A metering point may inherit the member's primary address (default) or carry its own deviating address (PROJ-39 — see Section 3.3 above). All four `address_*` columns are either NULL together or all set together; the all-or-nothing rule is enforced server-side.
 - Tariffs, roles, and account information are only maintained after import into eegFaktura.
 - Only applications in status `approved` may be imported.

@@ -39,6 +39,12 @@ Klicken Sie auf die gewünschte Aktion. Je nach aktuellem Status stehen untersch
 | `import_failed` | Import erneut starten |
 | `imported` | Import zurücksetzen |
 
+Zusätzlich verfügbar in allen Review-Stati (`submitted` / `email_confirmed` / `under_review` / `needs_info`) für Admins mit Zugriff auf ≥ 2 EEGs:
+
+| Aktion | Wirkung |
+|--------|---------|
+| **EEG umzuordnen** | Verschiebt den Antrag in eine andere EEG (siehe Abschnitt unten, PROJ-40) |
+
 ## E-Mail-Bestätigung (`email_confirmed`)
 
 Wenn in den EEG-Einstellungen **„E-Mail-Adresse bestätigen"** aktiviert ist, erscheinen neue Anträge zunächst im Status `submitted` mit dem Hinweis **„E-Mail-Adresse noch nicht bestätigt"**. Solange der Bewerber den Link in der Bestätigungs-Mail nicht angeklickt hat, ist der einzig verfügbare Status-Schritt **„Ablehnen"** (für offensichtlichen Spam).
@@ -62,8 +68,9 @@ Nehmen Sie einen eingereichten Antrag in Prüfung, um anzuzeigen, dass Sie ihn a
 Wenn Angaben fehlen oder unklar sind:
 
 1. Klicken Sie auf **Rückfragen stellen**
-2. Geben Sie den Grund / die Rückfrage ein
-3. Das Mitglied erhält eine E-Mail und kann seinen Antrag ergänzen
+2. Geben Sie den Grund / die Rückfrage ein — der blaue Hinweis im Dialog erinnert daran: **„Der hier eingegebene Text wird per E-Mail an den Beitrittswerber übermittelt"**
+3. Das Mitglied erhält eine E-Mail mit Ihrer Rückfrage 1:1 im Body und kann seinen Antrag ergänzen
+4. **Hard-Fail (PROJ-43, ab 2026-05-17):** scheitert der SMTP-Versand, wird der Statuswechsel zurückgerollt und Sie sehen die Fehlermeldung direkt im Dialog. Status bleibt unverändert, Sie können nach SMTP-Recovery erneut klicken
 
 Nach der Ergänzung durch das Mitglied wechselt der Status automatisch zurück auf `submitted`.
 
@@ -79,7 +86,9 @@ Wenn alle Angaben korrekt und vollständig sind:
 Wenn ein Antrag nicht genehmigt werden kann:
 
 1. Klicken Sie auf **Ablehnen**
-2. Geben Sie einen Ablehnungsgrund an (wird intern gespeichert)
+2. Geben Sie einen Ablehnungsgrund an — der blaue Hinweis im Dialog erinnert daran: **„Die hier eingegebene Begründung wird per E-Mail an den Beitrittswerber übermittelt"**
+3. Das Mitglied erhält eine E-Mail mit Ihrer Begründung 1:1 im Body (PROJ-41)
+4. **Hard-Fail:** gleiches Verhalten wie bei Rückfragen — Mail-Fehler rollt den Statuswechsel zurück
 
 ## Import in eegFaktura
 
@@ -121,6 +130,30 @@ Wenn ein bereits importierter Teilnehmer im eegFaktura-Core gelöscht wurde (z. 
 4. Der Antrag wechselt auf `approved`; die alte `target_participant_id` wird im Statusverlauf archiviert
 
 > **Wichtig:** Diese Aktion kontaktiert den eegFaktura-Core *nicht*. Bevor Sie sie nutzen, müssen Sie den Teilnehmer im Core manuell gelöscht haben.
+
+## EEG umzuordnen (PROJ-40)
+
+Wenn ein Mitglied über den falschen RC-Link der EEG A registriert hat, aber eigentlich zur EEG B gehört (z. B. weil das Versorgungsgebiet woanders hingehört), kann der Antrag direkt umzuordnen werden — ohne dass das Mitglied neu einreichen muss.
+
+**Verfügbarkeit**: der Button **„EEG umzuordnen"** erscheint im Status-Aktionen-Block nur, wenn:
+- der Status `submitted`, `email_confirmed`, `under_review` oder `needs_info` ist (nicht bei `approved` / `imported` / `rejected`)
+- Sie als Admin Zugriff auf mindestens 2 EEGs haben
+
+**Ablauf**:
+
+1. Klicken Sie auf **EEG umzuordnen**
+2. Wählen Sie die Ziel-EEG aus dem Dropdown (Ihre Tenants außer der aktuellen)
+3. Geben Sie eine Begründung an (Pflichtfeld, mindestens 5 Zeichen)
+4. Bestätigen mit **Umzuordnen**
+
+**Was passiert**:
+- Eine neue **Referenznummer** wird vom per-EEG-Counter der Ziel-EEG vergeben (Format `<neue-RC>-<Jahr>-<NNNN>`)
+- Die alte Referenznummer und alte RC werden im Statusverlauf als `[system] previous rc_number=…` und `[system] previous reference_number=…` archiviert
+- Der Status bleibt **unverändert** (kein Status-Wechsel)
+- Der Antrag erscheint ab sofort in der Liste der Ziel-EEG, nicht mehr unter der alten EEG
+- Es wird **keine E-Mail** an das Mitglied verschickt — die nächste Status-Mail (Rückfrage / Ablehnung / Zustimmung) kommt automatisch von der neuen EEG
+
+**Wichtig**: Cooperative-Shares, Konfigurierbare-Felder und die E-Mail-Bestätigungs-Pflicht werden **nicht** re-validiert. Wenn die Ziel-EEG andere Pflichtfelder hat, nutzen Sie nach dem Umzuordnen ggf. **Rückfragen stellen**, um fehlende Daten nachzufordern.
 
 ## Statusverlauf
 

@@ -84,3 +84,7 @@ Wenn ein Mitglied einen Antrag begonnen, aber nie eingereicht hat (Status `draft
 ## E-Mail erneut senden
 
 Falls ein Mitglied die Bestätigungs-E-Mail nicht erhalten hat, können Sie diese über den Button **E-Mail erneut senden** in der Detailansicht nochmals versenden.
+
+## EEG umzuordnen (PROJ-40)
+
+Falls ein Antrag fälschlich der falschen EEG zugeordnet wurde (Mitglied hat den falschen RC-Link verwendet), kann er als Admin direkt umzuordnen werden — ohne dass das Mitglied neu einreichen muss. Verfügbar nur für Admins mit Zugriff auf mehrere EEGs und nur solange der Antrag in der Review-Phase ist (`submitted` / `email_confirmed` / `under_review` / `needs_info`). Detail-Beschreibung siehe [Statusverwaltung → EEG umzuordnen](05-admin-status.md#eeg-umzuordnen-proj-40).

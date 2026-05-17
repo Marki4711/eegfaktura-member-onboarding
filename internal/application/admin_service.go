@@ -531,6 +531,34 @@ func (s *AdminApplicationService) ChangeStatus(id uuid.UUID, toStatus shared.App
 		actorPtr = &actorID
 	}
 
+	// PROJ-41 + PROJ-43 hard-fail: render + send the member mail BEFORE
+	// opening any DB transaction. SMTP latency or backpressure can be
+	// several hundred ms; doing this in-TX would hold row-locks on the
+	// `application` and `status_log` rows for the whole send and block
+	// concurrent admin reads/writes on the same application. If the mail
+	// fails the status change never happens (we return early — no TX yet).
+	// Trade-off: the mail goes out before the row is committed; if the
+	// subsequent commit fails (very rare on a validated UPDATE), the
+	// applicant has a mail for a state that wasn't persisted. Admin would
+	// retry, applicant gets a second mail — annoying but not data-corrupting.
+	if toStatus == shared.StatusRejected || toStatus == shared.StatusNeedsInfo {
+		entrypoint, epErr := s.entrypointRepo.GetByRCNumber(app.RCNumber)
+		if epErr != nil {
+			return nil, fmt.Errorf("status-change mail: load entrypoint: %w", epErr)
+		}
+		sendErr := func() error {
+			acquireMailSem()
+			defer releaseMailSem()
+			if toStatus == shared.StatusRejected {
+				return s.mailService.SendRejectedNotification(app, entrypoint, reason)
+			}
+			return s.mailService.SendNeedsInfoNotification(app, entrypoint, reason)
+		}()
+		if sendErr != nil {
+			return nil, fmt.Errorf("status-change mail: send failed (status change not applied): %w", sendErr)
+		}
+	}
+
 	tx, err := s.db.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
@@ -557,33 +585,6 @@ func (s *AdminApplicationService) ChangeStatus(id uuid.UUID, toStatus shared.App
 	}
 	if err := s.statusLogRepo.CreateTx(tx, logEntry); err != nil {
 		return nil, fmt.Errorf("failed to write status log: %w", err)
-	}
-
-	// PROJ-41 + PROJ-43 hard-fail: notify the applicant on rejection /
-	// info-request **before** we commit the DB change. If SMTP is down or
-	// the template fails to render, defer tx.Rollback() reverts the
-	// status update and we return an error to the admin so they see the
-	// problem now rather than discovering it in logs later. Trade-off:
-	// the mail goes out before the row is committed; if commit then
-	// fails (very rare on a validated UPDATE), the applicant has a mail
-	// for a state that wasn't persisted. Admin would retry, applicant
-	// gets a second mail — annoying but not data-corrupting.
-	if toStatus == shared.StatusRejected || toStatus == shared.StatusNeedsInfo {
-		entrypoint, epErr := s.entrypointRepo.GetByRCNumber(app.RCNumber)
-		if epErr != nil {
-			return nil, fmt.Errorf("status-change mail: load entrypoint: %w", epErr)
-		}
-		acquireMailSem()
-		var sendErr error
-		if toStatus == shared.StatusRejected {
-			sendErr = s.mailService.SendRejectedNotification(app, entrypoint, reason)
-		} else {
-			sendErr = s.mailService.SendNeedsInfoNotification(app, entrypoint, reason)
-		}
-		releaseMailSem()
-		if sendErr != nil {
-			return nil, fmt.Errorf("status-change mail: send failed (status change not applied): %w", sendErr)
-		}
 	}
 
 	if err := tx.Commit(); err != nil {
