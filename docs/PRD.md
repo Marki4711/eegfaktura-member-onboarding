@@ -103,6 +103,7 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 | ID | Feature | Anmerkung |
 |----|---------|-----------|
 | PROJ-26 | Eigener Mailserver pro EEG | Anstelle des zentralen Postal |
+| PROJ-50 | Zugang Online-Portal Netzbetreiber + bedingte Anleitungs-Mail | Praxis-Anforderung 2026-05-17, mehrere offene Fragen vor Umsetzung |
 
 ### On Hold
 
@@ -112,7 +113,7 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 | PROJ-22 | Tailwind CSS v3 → v4 | Revertiert 2026-04-26 wegen Regressionen; Retry braucht Stabilisierung der v4-Ecosystem-Updates |
 | PROJ-23 | Stammdaten-Import aus eegFaktura-Excel | Ersetzt durch PROJ-32 (GraphQL-Sync) |
 
-> **Next available feature ID:** PROJ-50 (siehe `features/INDEX.md`).
+> **Next available feature ID:** PROJ-51 (siehe `features/INDEX.md`).
 
 ## 5. Success Metrics
 
