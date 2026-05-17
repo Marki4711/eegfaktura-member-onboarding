@@ -38,6 +38,12 @@ const TAG_META: Record<VisibilityTag, { label: string; className: string }> = {
     label: "+E-Auto",
     className: "bg-purple-100 text-purple-900 dark:bg-purple-950/60 dark:text-purple-300",
   },
+  // PROJ-49 follow-up: Speicher-Gruppe (Master-Toggle „Batteriespeicher
+  // vorhanden" im Mitgliedsformular). "+" zeigt zusätzliche Abhängigkeit.
+  battery: {
+    label: "+Speicher",
+    className: "bg-emerald-100 text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300",
+  },
 };
 
 const STATE_OPTIONS: { value: FieldState; label: string }[] = [

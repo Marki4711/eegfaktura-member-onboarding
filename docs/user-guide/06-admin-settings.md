@@ -109,6 +109,7 @@ Neben einigen Feldern stehen farbige **Badges**, die Ihnen sofort zeigen, **unte
 - **`[Einspeisung]`** *(amber)* — wird nur bei Erzeuger-Zählpunkten angezeigt (PROJ-49). Felder: Einspeisung Prognose (alle Erzeugungsformen).
 - **`[PV]`** *(orange, zusätzlich)* — gilt zusätzlich zu `[Einspeisung]` für Felder, die nur bei Erzeugungsform „PV" sinnvoll sind. Felder: Größe Batterie (kWh), Hersteller Wechselrichter, PV-Leistung (kWp), Einspeiselimit (kW).
 - **`[+E-Auto]`** *(lila, zusätzlich)* — gilt zusätzlich zu `[Verbraucher]` für Felder, die nur greifen, wenn das Mitglied „E-Auto vorhanden" mit Ja beantwortet hat. Felder: Anzahl E-Fahrzeuge, Jahres-Kilometer.
+- **`[+Speicher]`** *(grün, zusätzlich)* — gilt zusätzlich zu `[Einspeisung] [PV]` für Felder, die im Mitgliedsformular hinter dem Master-Toggle „Batteriespeicher vorhanden" gruppiert sind. Felder: Größe Batterie (kWh), Hersteller Wechselrichter, Speichersteuerung im Sinne der EEG vorstellbar?. Hinweis: Die Pflicht-Validierung der Speichersteuerungs-Frage greift zusätzlich nur dann, wenn das Mitglied tatsächlich Batterie-Daten gesetzt hat.
 
 Neben jedem Feld mit Badge steht ein kleines **Info-Icon** — Klick/Hover zeigt die exakte Bedingung in Worten. Die Badges sind Single Source of Truth: ändert sich die Bedingung im Code, ändert sich auch die Badge ohne separate Pflege.
 

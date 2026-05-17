@@ -39,7 +39,7 @@ export interface ConfigurableField {
 // PROJ-45: visibility-condition tag taxonomy. Each value renders as a
 // coloured badge in the admin field-config editor. Keep the set small —
 // new tags require a label + colour mapping in admin-field-config-editor.
-export type VisibilityTag = "consumption" | "production" | "pv" | "ev";
+export type VisibilityTag = "consumption" | "production" | "pv" | "ev" | "battery";
 
 export const CONFIGURABLE_FIELDS: {
   application: ConfigurableField[];
@@ -94,16 +94,18 @@ export const CONFIGURABLE_FIELDS: {
     { name: "feed_in_limit_kw",          label: "Einspeiselimit (kW)", defaultState: "hidden",
       visibilityTags: ["production", "pv"],
       visibilityHint: "Wird nur bei Einspeise-Zählpunkten mit Erzeugungsform PV angezeigt — Mitglied gibt Ja/Nein an, bei Ja wird der kW-Wert abgefragt." },
-    // PROJ-45: Batterie + Wechselrichter (nur bei generation_type='pv' aktiv).
+    // PROJ-45 + PROJ-49 follow-up: Batterie-Block (Master-Toggle gruppiert
+    // alle drei Felder im Mitgliedsformular). Tag `battery` macht die
+    // zusätzliche Abhängigkeit im Admin-UI sichtbar.
     { name: "battery_size_kwh",      label: "Größe Batterie (kWh)",        defaultState: "hidden",
-      visibilityTags: ["production", "pv"],
-      visibilityHint: "Wird nur bei Einspeise-Zählpunkten mit Erzeugungsform PV angezeigt — gemeinsam mit dem Master-Toggle Batteriespeicher vorhanden." },
+      visibilityTags: ["production", "pv", "battery"],
+      visibilityHint: "Wird nur bei Einspeise-Zählpunkten mit Erzeugungsform PV angezeigt — gemeinsam mit dem Master-Toggle Batteriespeicher vorhanden im Mitgliedsformular." },
     { name: "inverter_manufacturer", label: "Hersteller Wechselrichter",  defaultState: "hidden",
-      visibilityTags: ["production", "pv"],
-      visibilityHint: "Wird nur bei Einspeise-Zählpunkten mit Erzeugungsform PV angezeigt — gemeinsam mit dem Master-Toggle Batteriespeicher vorhanden." },
+      visibilityTags: ["production", "pv", "battery"],
+      visibilityHint: "Wird nur bei Einspeise-Zählpunkten mit Erzeugungsform PV angezeigt — gemeinsam mit dem Master-Toggle Batteriespeicher vorhanden im Mitgliedsformular." },
     { name: "battery_control_acceptable", label: "Speichersteuerung im Sinne der EEG vorstellbar?", defaultState: "hidden",
-      visibilityTags: ["production", "pv"],
-      visibilityHint: "Wird nur bei Einspeise-Zählpunkten mit Erzeugungsform PV UND aktivem Master-Toggle Batteriespeicher vorhanden angezeigt." },
+      visibilityTags: ["production", "pv", "battery"],
+      visibilityHint: "Wird nur bei Einspeise-Zählpunkten mit Erzeugungsform PV UND aktivem Master-Toggle Batteriespeicher vorhanden angezeigt. Die Pflicht-Validierung greift zusätzlich nur, wenn das Mitglied Batterie-Daten (Größe oder Hersteller) tatsächlich gesetzt hat." },
   ],
 };
 
