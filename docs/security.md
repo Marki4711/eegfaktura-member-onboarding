@@ -127,10 +127,10 @@ Folgende Bereiche erfordern bei Änderungen dediziertes `/security-review`:
 - `internal/http/auth.go` — JWT-Parsing, `IsSuperuser()`
 - `internal/http/admin.go` — Tenant-Zugriffskontrolle
 - `internal/http/middleware.go` — Rate Limiting, Security Headers
-- `internal/application/` — Status-Transitionen, Import-Logik, Post-Import-Übergänge (PROJ-46), Reset-Import-Erweiterung
+- `internal/application/` — Status-Transitionen, Import-Logik, Post-Import-Übergänge (PROJ-46), Reset-Import-Erweiterung, SEPA-Mandat-Timing-Branch (PROJ-48)
 - `internal/application/email_confirmation.go` — Token-Erzeugung und -Hashing (PROJ-31)
 - `internal/importing/` — Core-Calls (POST /participant, GET /participant für Activation-Check), Auto-Branch nach Import
-- `internal/mail/` — Mail-Templates für PROJ-46 (`application_imported_*`, `application_activated_*`) und PROJ-47 (B2B-Mandat-Anhang)
+- `internal/mail/` — Mail-Templates für PROJ-46 (`application_imported_*`, `application_activated_*`), PROJ-47 (B2B-Mandat-Anhang) und PROJ-48 (CORE-Mandat-Anhang am Import-Zeitpunkt + B2B-Hinweis im Submit-Mail)
 - `db/migrations/` — Schema-Änderungen, insbes. CHECK-Constraint-Erweiterung bei neuen Status-Werten
 - `helm/` — Kubernetes-Deployment, Secrets
 - `Dockerfile*` — Container-Images

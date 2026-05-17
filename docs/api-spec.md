@@ -103,6 +103,7 @@ No direct access to eegFaktura core tables takes place.
   },
   "introText": "<p>Willkommen!</p>",
   "sepaMandateEnabled": true,
+  "sepaMandateAtImport": false,
   "showCentralPolicy": true,
   "legalDocuments": [
     {
@@ -133,6 +134,8 @@ No direct access to eegFaktura core tables takes place.
 `introText` is `null` when no text is configured.
 
 `sepaMandateEnabled` is `false` by default. When `true`, SEPA mandate checkboxes and PDF generation are activated.
+
+`sepaMandateAtImport` (PROJ-48) is `false` by default. When `true`, the registration form shows an explanatory hint that the SEPA mandate will be sent later (at import time) with the Mitgliedsnummer printed as Mandatsreferenz, instead of being attached to the welcome mail. Only meaningful when `sepaMandateEnabled = true`.
 
 `showCentralPolicy` controls whether the central operator privacy policy is included in `legalDocuments`. Defaults to `true`. When `false`, the central policy entry is omitted from the list even if env vars are set — intended for EEGs that configure their own privacy policy as a custom document.
 
@@ -551,6 +554,12 @@ Returns the admin list.
   "residentStreetNumber": "2",
   "residentZip": "4020",
   "residentCity": "Linz",
+  "iban": "AT611904300234573201",
+  "accountHolder": "Max Muster",
+  "bankName": "Musterbank Linz",
+  "einzugsart": "core",
+  "mandateReference": "RC123456-2026-0001",
+  "mandateDate": "2026-05-17",
   "adminNote": "Telefonnummer verifiziert",
   "meteringPoints": [
     {
@@ -564,6 +573,8 @@ Returns the admin list.
 ### Rules
 - editable in `submitted`, `under_review`, `needs_info`, `approved`, `import_failed`
 - metering points are fully replaced
+- `einzugsart` accepts `core` | `b2b` | `kein_sepa` (PROJ-48 — admin-controlled per application, no longer auto-derived from `memberType`)
+- additional editable fields mirror the public submit body: `memberType`, `titel`, `titelNach`, `companyName`, `uidNumber`, `registerNumber`, plus the configurable energy/household fields and PROJ-37 `cooperativeSharesCount`
 
 ### Response 200
 ```json
@@ -616,7 +627,7 @@ When `registration_entrypoint.require_email_confirmation = TRUE` (PROJ-31), this
 `activated` has **no transitions out** — deactivation must happen in the eegFaktura core directly (PROJ-46 Entscheidung A).
 
 ### Side effects
-- on `approved`: set `approved_at`, set `reviewed_by_user_id`. **Since PROJ-46 Stage B no PDF/mail is generated here** — Beitrittsbestätigungs-PDF + Member/EEG mails are now generated/sent at import time (see 6.5), when the member number exists. The legacy `SendApprovalEmail` method is deprecated.
+- on `approved`: set `approved_at`, set `reviewed_by_user_id`. **Since PROJ-46 Stage B no PDF/mail is generated here** — Beitrittsbestätigungs-PDF + Member/EEG mails are now generated/sent at import time (see 6.5), when the member number exists. The legacy `SendApprovalEmail` method and its template `application_approved_eeg.html` have been **removed** from the codebase.
 - on `rejected`: set `rejected_at`, set `reviewed_by_user_id`, **PROJ-41:** synchroner Mail-Versand an Mitglied mit `reason` 1:1 im Body
 - on `needs_info`: set `needs_info_reason`, **PROJ-43:** synchroner Mail-Versand an Mitglied mit `reason` 1:1 im Body
 - on `ready_for_activation` (when coming from `awaiting_bank_confirmation`): set `bank_confirmed_at` *(PROJ-46)*
@@ -1136,6 +1147,7 @@ Returns the EEG settings — the eight Core-mastered fields (PROJ-32) plus the o
   "registrationActive": true,
   "sepaMandateEnabled": true,
   "useCompanySEPAMandate": false,
+  "sepaMandateAtImport": false,
   "showCentralPolicy": true,
   "memberNumberStart": 1,
   "requireEmailConfirmation": false,
@@ -1147,7 +1159,7 @@ Returns the EEG settings — the eight Core-mastered fields (PROJ-32) plus the o
 
 **Core-mastered fields** (PROJ-32, read-only — only modified via `/sync` below): `eegId`, `eegName`, `eegStreet`, `eegStreetNumber`, `eegZip`, `eegCity`, `creditorId`, `contactEmail`. `lastSyncedFromCoreAt` is `null` until the first successful sync.
 
-`registrationActive` is `false` by default. `sepaMandateEnabled` and `useCompanySEPAMandate` default to `false`. `showCentralPolicy` defaults to `true`. `memberNumberStart` defaults to `1`. `requireEmailConfirmation` (PROJ-31) defaults to `false`.
+`registrationActive` is `false` by default. `sepaMandateEnabled`, `useCompanySEPAMandate`, and `sepaMandateAtImport` (PROJ-48) default to `false`. `showCentralPolicy` defaults to `true`. `memberNumberStart` defaults to `1`. `requireEmailConfirmation` (PROJ-31) defaults to `false`.
 
 `cooperativeSharesEnabled` (PROJ-37) defaults to `false`. When `true`, both `cooperativeRequiredShares` (positive integer, minimum mandatory shares per member) and `cooperativeShareAmountCents` (positive integer, price per share in cents) are returned. When `false`, those two value fields are omitted.
 
@@ -1169,6 +1181,7 @@ Writes the onboarding-only editable fields. The Core-mastered fields (`eegId`, `
   "registrationActive": true,
   "sepaMandateEnabled": true,
   "useCompanySEPAMandate": false,
+  "sepaMandateAtImport": false,
   "showCentralPolicy": true,
   "memberNumberStart": 1,
   "requireEmailConfirmation": false,
@@ -1182,7 +1195,9 @@ Writes the onboarding-only editable fields. The Core-mastered fields (`eegId`, `
 
 `showCentralPolicy`: when `false`, the central operator privacy policy is not shown in the public registration form. Intended for EEGs that have configured their own privacy policy as a custom document (see 6.16).
 
-`useCompanySEPAMandate`: when `true`, members of type `company` or `association` receive the SEPA B2B mandate PDF instead of the standard CORE mandate. Only evaluated when `sepaMandateEnabled = true`.
+`useCompanySEPAMandate`: when `true`, the EEG opts in to the SEPA B2B (Firmenlastschrift) mandate variant. The mandate variant per application is **not** auto-derived from `memberType` — it is set by the admin via the application's `einzugsart` field (`core` | `b2b` | `kein_sepa`, default `core`). Only evaluated when `sepaMandateEnabled = true`. (PROJ-48 removed the previous auto-mapping `company|association → b2b`.)
+
+`sepaMandateAtImport` (PROJ-48): when `true`, SEPA mandate PDFs are generated **at import time** (with the assigned Mitgliedsnummer printed as Mandatsreferenz) rather than at submit time (without reference). Use when the EEG runs a digital signature workflow on the mandate — a signed PDF cannot be modified afterwards, so the reference must be present before signing. When `false` (default), mandates are generated at submit time with a `<Mitgliedsnummer wird beim Import vergeben>` placeholder. Independent of `useCompanySEPAMandate`. Only evaluated when `sepaMandateEnabled = true`.
 
 `memberNumberStart`: starting value for the per-EEG member number auto-increment counter. Defaults to `1` when not explicitly set.
 

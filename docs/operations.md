@@ -130,7 +130,7 @@ Wenn der EEG fachlich eine lückenlose Nummerierung erwartet: Fall mit EEG-Admin
 
 **Was passiert**: Verhalten unterscheidet sich je nach Mail-Typ:
 - **Antrags-Submit-Mails** (member-confirmation + EEG-notification) sind fire-and-forget → Submit klappt, Mail kann verloren gehen
-- **Post-Import-Mails** (PROJ-46 Stage B + PROJ-47): Beitrittsbestätigungs-PDF an Member + EEG-Kopie + ggf. zweiter B2B-Mandat-Anhang ebenfalls best-effort async — schlagen Mails fehl, bleibt der Antrag korrekt importiert, Admin kann nachfassen
+- **Post-Import-Mails** (PROJ-46 Stage B + PROJ-47 + PROJ-48): Beitrittsbestätigungs-PDF an Member + EEG-Kopie + ggf. zweiter SEPA-Mandat-Anhang (B2B mit Mandatsreferenz oder bei `sepa_mandate_at_import=true` auch CORE) ebenfalls best-effort async — schlagen Mails fehl, bleibt der Antrag korrekt importiert, Admin kann nachfassen
 - **Activation-Mail** (PROJ-46, beim Übergang auf `activated`) best-effort async
 - **Status-Change-Mails an Mitglied** (Ablehnung PROJ-41, Rückfrage PROJ-43) sind seit 2026-05-17 **hard-fail synchron**: scheitert der SMTP-Versand, bekommt der Admin im Dialog HTTP 500 mit Fehlermeldung, der Statuswechsel wird zurückgerollt — kein stilles Versagen
 - **Approval-Mail an EEG (legacy)**: existiert seit PROJ-46 Stage B nicht mehr — der `→ approved`-Übergang sendet keine Mail mehr; die Beitrittsbestätigungs-PDF wird erst beim Import erzeugt (mit Mitgliedsnummer)

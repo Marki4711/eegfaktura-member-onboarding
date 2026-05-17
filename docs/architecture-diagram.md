@@ -234,10 +234,8 @@ graph TB
     BE -->|"E-Mail"| POSTAL
     EF_BE -->|"E-Mail"| POSTAL
 
-    BE -.->|"geplant:\nImport-API-Call"| EF_BE
+    BE -->|"Import-API-Call (PROJ-4)"| EF_BE
     EF_BE --> EF_DB
 ```
 
-> **Legende:**
-> - Durchgezogene Pfeile: bereits implementiert
-> - Gestrichelte Pfeile: geplant, noch nicht implementiert
+> **Legende:** Durchgezogene Pfeile = produktiv im Einsatz.

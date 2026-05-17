@@ -40,7 +40,8 @@ Fields:
 - `is_active` — boolean, default false; controls whether the public registration form is active; must be explicitly enabled by the admin via the settings page
 - `intro_text` — nullable, sanitized HTML string for the public registration form
 - `sepa_mandate_enabled` — boolean, default false; controls whether SEPA mandate PDF is attached to welcome email
-- `use_company_sepa_mandate` — boolean, default false; when true, members of type `company`/`association` receive the SEPA B2B mandate instead of the CORE mandate (only evaluated when `sepa_mandate_enabled = true`)
+- `use_company_sepa_mandate` — boolean, default false; opts the EEG in to the SEPA B2B (Firmenlastschrift) mandate variant. The per-application mandate type lives in `application.einzugsart` (`core` | `b2b` | `kein_sepa`) and is set by the admin, not auto-derived from `member_type` (PROJ-48 removed the previous auto-mapping). Only evaluated when `sepa_mandate_enabled = true`.
+- `sepa_mandate_at_import` *(PROJ-48)* — boolean, default false; when true, SEPA mandate PDFs are generated at import time (with assigned `member_number` printed as Mandatsreferenz) instead of submit time. Use for digital-signature workflows where the signed PDF cannot be modified afterwards.
 - `show_central_policy` — boolean, default true; when false, the central operator privacy policy is not shown in the public registration form (for EEGs that configure their own policy as a legal document)
 - `member_number_start` — INT NOT NULL DEFAULT 1; starting value for the per-EEG member number auto-increment counter; the first member number assigned for this EEG will be this value
 - `require_email_confirmation` — boolean, default false (PROJ-31); when true, members must click the link in the confirmation mail before the application becomes reviewable; admin `/status` endpoint rejects `submitted → under_review|needs_info|approved` with 409 until confirmed
@@ -149,7 +150,7 @@ Fields:
 - `account_holder`
 - `sepa_mandate_accepted`
 - `sepa_mandate_accepted_at`
-- `einzugsart` — VARCHAR(20) NOT NULL DEFAULT 'core'; SEPA mandate type: `core` = Basislastschrift, `b2b` = Firmenlastschrift, `email` = per E-Mail
+- `einzugsart` — VARCHAR(20) NOT NULL DEFAULT 'core'; SEPA mandate type: `core` = Basislastschrift, `b2b` = Firmenlastschrift, `kein_sepa` = kein SEPA-Mandat (admin trägt Zahlungsdaten manuell im Core nach)
 - `bank_name` — nullable; bank name used in SEPA mandate
 - `mandate_reference` — nullable; SEPA mandate reference number
 - `mandate_date` — nullable DATE; date of SEPA mandate signature
@@ -181,8 +182,6 @@ Fields:
 - `email_confirmed_at` — nullable TIMESTAMPTZ; set when the member clicked the link.
 - `email_confirmation_used_at` — nullable TIMESTAMPTZ; first-click timestamp (separate from `email_confirmed_at` to detect re-clicks).
 - `cooperative_shares_count` *(PROJ-37)* — INT NULL, CHECK `> 0`; Anzahl der vom Mitglied gezeichneten Genossenschaftsanteile. NULL bei EEGs ohne aktiviertes Anteils-Feature; sonst Submit-validiert `>= registration_entrypoint.cooperative_required_shares`. Gesamtbetrag wird nicht gespeichert — `count × amount` ist Render-Berechnung.
-- `network_operator_authorization` *(PROJ-44)* — BOOLEAN NOT NULL DEFAULT FALSE; vom Mitglied erteilte Vollmacht an die EEG, in dessen Namen mit dem Netzbetreiber zu agieren. Per-EEG via `field_config` aktivierbar (Standard `hidden`); Bestandsanträge bleiben auf FALSE.
-- `network_operator_authorization_at` *(PROJ-44)* — TIMESTAMPTZ NULL; Audit-Timestamp, vom Service auf NOW() gesetzt beim Wechsel von FALSE→TRUE.
 
 ### 3.3 `member_onboarding.metering_point`
 

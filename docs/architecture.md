@@ -264,19 +264,23 @@ Standalone build and standalone migrations in repository `eegfaktura-member-onbo
 - `(rc_number, member_number) WHERE member_number IS NOT NULL` — partial UNIQUE for duplicate-detection
 - Deep pagination is capped at `page = 10000` in the admin list handler so no OFFSET scan can run away.
 
-### Mail Flow (post-PROJ-46 / PROJ-47)
+### Mail Flow (post-PROJ-46 / PROJ-47 / PROJ-48)
 
 | Übergang | Member-Mail | Member-Anhänge | EEG-Mail | Modus |
 |---|---|---|---|---|
-| `→ submitted` | ✅ Eingangsbestätigung (+ Confirm-Link bei PROJ-31) | SEPA-Mandat-PDF (Basis/Firma, Mandatsref-Platzhalter) wenn `SEPAMandateEnabled=true` | ✅ Antrags-Notification | best-effort async |
+| `→ submitted` (default: `sepa_mandate_at_import=false`) | ✅ Eingangsbestätigung (+ Confirm-Link bei PROJ-31; + B2B-Hinweis bei `useCompanySEPAMandate=true`) | SEPA-Mandat-PDF (Basis/Firma, Mandatsref-Platzhalter) wenn `sepaMandateEnabled=true` | ✅ Antrags-Notification | best-effort async |
+| `→ submitted` (PROJ-48: `sepa_mandate_at_import=true`) | ✅ Eingangsbestätigung + Hinweis „Mandat wird beim Import versendet" | — (kein Mandat-Anhang beim Submit) | ✅ Antrags-Notification | best-effort async |
 | `submitted → email_confirmed` (PROJ-31) | ❌ | — | ✅ aufgeschobene Notification | best-effort async |
 | `→ needs_info` (PROJ-43) | ✅ Rückfrage 1:1 | — | ❌ | **hard-fail sync** |
 | `→ rejected` (PROJ-41) | ✅ Ablehnungs-Text 1:1 | — | ❌ | **hard-fail sync** |
-| `→ imported` (b2b auto → `awaiting_bank_confirmation`) | ✅ Beitrittsbestätigung + b2b-Bank-Hinweis | **PDF 1** Beitrittsbestätigung (Mitgliedsnummer) **PDF 2** Firmenlastschrift-Mandat mit Mandatsref = Mitgliedsnummer (PROJ-47) | ✅ Kopie + „warte auf Bank-Bestätigung" | best-effort async |
-| `→ imported` (non-b2b auto → `ready_for_activation`) | ✅ Beitrittsbestätigung | Beitrittsbestätigung | ✅ Kopie + „bereit zur Aktivierung" | best-effort async |
-| `→ activated` (PROJ-46) | ✅ „Willkommen — Sie sind nun aktiv in der EEG" | — | ❌ | best-effort async |
+| `→ imported` (`einzugsart=b2b` auto → `awaiting_bank_confirmation`) | ✅ Beitrittsbestätigung + b2b-Bank-Hinweis | **PDF 1** Beitrittsbestätigung (Mitgliedsnummer) **PDF 2** Firmenlastschrift-Mandat mit Mandatsref = Mitgliedsnummer (PROJ-47) | ✅ Kopie + „warte auf Bank-Bestätigung" | best-effort async |
+| `→ imported` (`einzugsart=core` + `sepa_mandate_at_import=true`, PROJ-48 → `ready_for_activation`) | ✅ Beitrittsbestätigung + Hinweis zur Mandat-Signatur | **PDF 1** Beitrittsbestätigung **PDF 2** Basislastschrift-Mandat mit Mandatsref = Mitgliedsnummer | ✅ Kopie + „bereit zur Aktivierung" | best-effort async |
+| `→ imported` (sonst → `ready_for_activation`) | ✅ Beitrittsbestätigung | Beitrittsbestätigung | ✅ Kopie + „bereit zur Aktivierung" | best-effort async |
+| `→ activated` (PROJ-46) | ✅ „Willkommen — formal aktiv in der EEG" | — | ❌ | best-effort async |
 
-**Wichtige Änderung seit PROJ-46 Stage B:** die Approval-PDF wird **nicht mehr** beim `→ approved`-Übergang generiert/versendet (`SendApprovalEmail` ist deprecated). Sie wird beim Import erzeugt (mit Mitgliedsnummer) und geht an Member + EEG-Kopie.
+**Wichtige Änderung seit PROJ-46 Stage B:** die Approval-PDF wird **nicht mehr** beim `→ approved`-Übergang generiert/versendet (`SendApprovalEmail` und das Template `application_approved_eeg.html` wurden im Mail-Audit-Cleanup **entfernt**). Sie wird beim Import erzeugt (mit Mitgliedsnummer) und geht an Member + EEG-Kopie.
+
+**PROJ-48 Mandat-Timing:** Standardmäßig wird das SEPA-Mandat beim Submit erzeugt (ohne Mandatsreferenz). EEGs mit digitalem Signatur-Workflow setzen `sepa_mandate_at_import=true`, dann entfällt der Mandat-Anhang beim Submit und das Mandat wird beim Import mit eingedruckter Mandatsreferenz = Mitgliedsnummer ausgegeben (gilt für `einzugsart=core` und `b2b`).
 
 **Hard-Fail vs. Best-Effort:** PROJ-41 (rejected) + PROJ-43 (needs_info) sind die einzigen synchron-hart-fehlschlagenden Mails — bei SMTP-Fehler wird der Statuswechsel rückgängig gemacht. Alle anderen Mails laufen best-effort in Goroutines. Durchgängige Hard-Fail-Umstellung bleibt offene Architektur-Entscheidung (siehe `docs/operations.md`).
 

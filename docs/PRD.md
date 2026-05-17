@@ -86,6 +86,7 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 | PROJ-45 | Erzeugungsform + Batterie + typabh. Sichtbarkeit | In Review |
 | PROJ-46 | Stati für Import-Nachbereitung (Stage A–D) | In Review |
 | PROJ-47 | B2B-SEPA-Mandat mit Mandatsreferenz beim Import | In Review |
+| PROJ-48 | SEPA-Default-Core + konfigurierbares Mandat-Timing + B2B-Hinweis | In Review |
 
 ### Approved (wartet auf Deployment-Bündelung)
 
@@ -110,7 +111,7 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 | PROJ-22 | Tailwind CSS v3 → v4 | Revertiert 2026-04-26 wegen Regressionen; Retry braucht Stabilisierung der v4-Ecosystem-Updates |
 | PROJ-23 | Stammdaten-Import aus eegFaktura-Excel | Ersetzt durch PROJ-32 (GraphQL-Sync) |
 
-> **Next available feature ID:** PROJ-48 (siehe `features/INDEX.md`).
+> **Next available feature ID:** PROJ-49 (siehe `features/INDEX.md`).
 
 ## 5. Success Metrics
 

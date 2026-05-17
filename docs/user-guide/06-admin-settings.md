@@ -44,8 +44,9 @@ Neun Werte werden direkt aus eegFaktura übernommen und sind in der Onboarding-O
 
 ### SEPA-Lastschriftmandat
 
-- **SEPA-Lastschriftmandat dem Willkommensmail anhängen**: Wenn aktiv, wird beim Einreichen eines Mitgliedsantrags automatisch ein PDF-Mandat generiert und als Anhang im Willkommensmail verschickt.
-- **Firmenlastschrift (B2B)**: Erscheint nur wenn SEPA aktiv ist. Aktivieren Sie diese Option, wenn Unternehmen und Vereine das B2B-Mandat erhalten sollen. (Privatpersonen, Landwirte, Kleinunternehmer und Gemeinden bekommen weiterhin das Standard-CORE-Mandat — der B2B-Toggle ändert daran nichts.)
+- **SEPA-Mandat von der EEG bereitstellen**: Wenn aktiv, generiert das Onboarding automatisch ein SEPA-Mandats-PDF.
+- **Firmenlastschrift (B2B) für Unternehmen und Gemeinden anbieten**: Erscheint nur wenn SEPA aktiv ist. Aktivieren Sie diese Option, wenn Unternehmen und Gemeinden ein B2B-Mandat erhalten sollen. Welche Mandats-Variante (Basislastschrift CORE oder Firmenlastschrift B2B) ein konkreter Antrag bekommt, wird **nicht** automatisch aus dem Mitgliedstyp abgeleitet — die Wahl trifft die Admin pro Antrag über das Feld „Einzugsart" (`core` / `b2b` / `kein_sepa`, Default `core`).
+- **SEPA-Mandat erst beim Import erzeugen** *(PROJ-48)*: Wenn aktiv, wird das Mandat **nicht** dem Willkommensmail beigelegt, sondern erst beim Import mit der zugewiesenen Mitgliedsnummer als Mandatsreferenz ausgegeben. Sinnvoll, wenn Sie digitale Signatur (z. B. ID Austria) einsetzen — ein signiertes PDF darf nicht mehr verändert werden, daher muss die Mandatsreferenz vor der Signatur eingedruckt sein. Im Registrierungsformular erscheint dann ein erklärender Hinweis, dass das Mandat später folgt.
 
 > **Hinweis:** Wenn das SEPA-Mandat aktiviert ist, aber Stammdaten fehlen, erscheint eine Warnung. Solange Felder fehlen, wird kein PDF generiert.
 
