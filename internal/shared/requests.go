@@ -34,13 +34,10 @@ type CreateApplicationRequest struct {
 	BankName             *string                     `json:"bankName,omitempty" validate:"omitempty,max=255"`
 	SepaMandateAccepted  bool                        `json:"sepaMandateAccepted" validate:"required"`
 	MeteringPoints       []CreateMeteringPointRequest `json:"meteringPoints" validate:"required,min=1,max=10,dive"`
-	// Configurable application-level fields (PROJ-8)
+	// Configurable application-level fields (PROJ-8). PROJ-49 moved
+	// consumption/feed_in/pv_power fields to MeteringPoint sub-struct.
 	MembershipStartDate     *string  `json:"membershipStartDate,omitempty" validate:"omitempty,len=10"`
 	PersonsInHousehold      *int     `json:"personsInHousehold,omitempty" validate:"omitempty,min=0"`
-	ConsumptionPreviousYear *int64   `json:"consumptionPreviousYear,omitempty" validate:"omitempty,min=0"`
-	ConsumptionForecast     *int64   `json:"consumptionForecast,omitempty" validate:"omitempty,min=0"`
-	FeedInForecast          *int64   `json:"feedInForecast,omitempty" validate:"omitempty,min=0"`
-	PvPowerKwp              *float64 `json:"pvPowerKwp,omitempty" validate:"omitempty,min=0"`
 	HeatPump                *bool    `json:"heatPump,omitempty"`
 	ElectricVehicle         *bool    `json:"electricVehicle,omitempty"`
 	// PROJ-42: Details zur E-Fahrzeug-Erfassung. Werden serverseitig
@@ -80,6 +77,14 @@ type CreateMeteringPointRequest struct {
 	GenerationType       *string  `json:"generationType,omitempty" validate:"omitempty,oneof=pv hydro wind biomass"`
 	BatterySizeKwh       *float64 `json:"batterySizeKwh,omitempty" validate:"omitempty,min=0"`
 	InverterManufacturer *string  `json:"inverterManufacturer,omitempty" validate:"omitempty,max=100"`
+	// PROJ-49: Energie-Felder pro Zählpunkt. Sichtbarkeit + Validierung
+	// per Direction/GenerationType im Service-Layer (siehe MeteringPoint).
+	ConsumptionPreviousYear *int64   `json:"consumptionPreviousYear,omitempty" validate:"omitempty,min=0"`
+	ConsumptionForecast     *int64   `json:"consumptionForecast,omitempty"     validate:"omitempty,min=0"`
+	FeedInForecast          *int64   `json:"feedInForecast,omitempty"          validate:"omitempty,min=0"`
+	PvPowerKwp              *float64 `json:"pvPowerKwp,omitempty"              validate:"omitempty,min=0"`
+	FeedInLimitPresent      *bool    `json:"feedInLimitPresent,omitempty"`
+	FeedInLimitKw           *float64 `json:"feedInLimitKw,omitempty"           validate:"omitempty,min=0"`
 }
 
 // UpdateApplicationRequest represents the request to update an application

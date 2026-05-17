@@ -1448,18 +1448,8 @@ func buildApprovalConfigurableFields(app *shared.Application, fieldConfig map[st
 	if app.PersonsInHousehold != nil {
 		add("persons_in_household", "Personen im Haushalt", fmt.Sprintf("%d", *app.PersonsInHousehold))
 	}
-	if app.ConsumptionPreviousYear != nil {
-		add("consumption_previous_year", "Verbrauch Vorjahr (kWh)", fmt.Sprintf("%d", *app.ConsumptionPreviousYear))
-	}
-	if app.ConsumptionForecast != nil {
-		add("consumption_forecast", "Verbrauch Prognose (kWh)", fmt.Sprintf("%d", *app.ConsumptionForecast))
-	}
-	if app.FeedInForecast != nil {
-		add("feed_in_forecast", "Einspeisung Prognose (kWh)", fmt.Sprintf("%d", *app.FeedInForecast))
-	}
-	if app.PvPowerKwp != nil {
-		add("pv_power_kwp", "PV-Leistung (kWp)", fmt.Sprintf("%.2f", *app.PvPowerKwp))
-	}
+	// PROJ-49: consumption_*, feed_in_forecast, pv_power_kwp wandern in
+	// die per-MP-Tabelle (siehe Beitrittsbestätigungs-PDF + Mail-Templates).
 	if app.MembershipStartDate != nil {
 		add("membership_start_date", "Beitrittsdatum", app.MembershipStartDate.Format("02.01.2006"))
 	}

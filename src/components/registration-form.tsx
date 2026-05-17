@@ -95,6 +95,15 @@ const meteringPointSchema = z
     generationType: z.enum(["pv", "hydro", "wind", "biomass"]).optional(),
     batterySizeKwh: z.number().min(0).optional(),
     inverterManufacturer: z.string().trim().max(100).optional(),
+    // PROJ-49: Energie-Felder pro Zählpunkt. Sichtbarkeit per direction +
+    // generationType — UI rendert nur die jeweils sinnvollen Felder, Server
+    // cleart unzutreffende Werte serverseitig.
+    consumptionPreviousYear: z.number().int().min(0).optional(),
+    consumptionForecast: z.number().int().min(0).optional(),
+    feedInForecast: z.number().int().min(0).optional(),
+    pvPowerKwp: z.number().min(0).optional(),
+    feedInLimitPresent: z.boolean().optional(),
+    feedInLimitKw: z.number().min(0).optional(),
   })
   .superRefine((mp, ctx) => {
     const fields = [mp.addressStreet, mp.addressStreetNumber, mp.addressZip, mp.addressCity];
@@ -152,13 +161,10 @@ const baseSchema = z.object({
     .array(meteringPointSchema)
     .min(1, "Mindestens ein Zählpunkt ist erforderlich")
     .max(10, "Maximal 10 Zählpunkte erlaubt"),
-  // configurable application-level fields
+  // configurable application-level fields. PROJ-49: consumption / feed_in /
+  // pv_power leben jetzt pro Zählpunkt — siehe meteringPointSchema.
   membershipStartDate: z.string().optional(),
   personsInHousehold: z.number().int().min(0).optional(),
-  consumptionPreviousYear: z.number().int().min(0).optional(),
-  consumptionForecast: z.number().int().min(0).optional(),
-  feedInForecast: z.number().int().min(0).optional(),
-  pvPowerKwp: z.number().min(0).optional(),
   heatPump: z.boolean().nullable().optional(),
   electricVehicle: z.boolean().nullable().optional(),
   // PROJ-42: nur sinnvoll wenn electricVehicle = true. Server cleart sonst.
@@ -240,10 +246,8 @@ function buildFormSchema(
     requireText("birth_date", "birthDate", "Geburtsdatum");
     requireText("membership_start_date", "membershipStartDate", "Beitrittsdatum");
     requireNum("persons_in_household", "personsInHousehold", "Anzahl Personen im Haushalt");
-    requireNum("consumption_previous_year", "consumptionPreviousYear", "Verbrauch Vorjahr");
-    requireNum("consumption_forecast", "consumptionForecast", "Verbrauch Prognose");
-    requireNum("feed_in_forecast", "feedInForecast", "Einspeisung Prognose");
-    requireNum("pv_power_kwp", "pvPowerKwp", "PV-Leistung");
+    // PROJ-49: consumption_*, feed_in_forecast, pv_power_kwp werden jetzt
+    // pro Zählpunkt validiert (Backend) — keine app-level Required-Checks mehr.
     requireNum("heat_pump", "heatPump", "Wärmepumpe vorhanden");
     requireNum("electric_vehicle", "electricVehicle", "E-Auto vorhanden");
     requireNum("electric_hot_water", "electricHotWater", "Warmwasser elektrisch");
@@ -372,10 +376,6 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
       meteringPoints: [{ meteringPoint: "", direction: "CONSUMPTION", participationFactor: 100, generationType: "pv" }],
       membershipStartDate: "",
       personsInHousehold: undefined,
-      consumptionPreviousYear: undefined,
-      consumptionForecast: undefined,
-      feedInForecast: undefined,
-      pvPowerKwp: undefined,
       heatPump: undefined,
       electricVehicle: undefined,
       electricVehicleCount: undefined,
@@ -396,28 +396,26 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
   const isPerson = memberType === "private" || memberType === "farmer";
 
   // PROJ-45: typabhängige Sichtbarkeit der App-level Felder. Wir leiten
-  // hasConsumption/hasProduction live aus den eingegebenen Zählpunkten ab.
+  // hasConsumption live aus den eingegebenen Zählpunkten ab. PROJ-49: die
+  // PRODUCTION-only Felder (PV-Leistung, Einspeisung Prognose) sind jetzt
+  // pro Zählpunkt — hasProduction wird hier nicht mehr benötigt.
   const watchedMps = form.watch("meteringPoints");
   const hasConsumption = (watchedMps ?? []).some((m) => m?.direction === "CONSUMPTION");
-  const hasProduction = (watchedMps ?? []).some((m) => m?.direction === "PRODUCTION");
 
   // Mapping: Feld → benötigter Zählpunkttyp.
   const consumptionFields = new Set([
-    "persons_in_household", "consumption_previous_year", "consumption_forecast",
+    "persons_in_household",
     "heat_pump", "electric_vehicle", "electric_hot_water",
   ]);
-  const productionFields = new Set(["feed_in_forecast", "pv_power_kwp"]);
   function shouldShow(name: string): boolean {
     if (fs(name) === "hidden") return false;
     if (consumptionFields.has(name) && !hasConsumption) return false;
-    if (productionFields.has(name) && !hasProduction) return false;
     return true;
   }
 
   // extra configurable fields that default to "hidden"
   const extraFieldNames = [
-    "membership_start_date", "persons_in_household", "consumption_previous_year",
-    "consumption_forecast", "feed_in_forecast", "pv_power_kwp",
+    "membership_start_date", "persons_in_household",
     "heat_pump", "electric_vehicle", "electric_hot_water",
   ];
   const hasExtraFields = extraFieldNames.some((n) => shouldShow(n));
@@ -519,10 +517,6 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
           sepaMandateAccepted: values.sepaMandateAccepted,
           membershipStartDate: values.membershipStartDate || undefined,
           personsInHousehold: values.personsInHousehold,
-          consumptionPreviousYear: values.consumptionPreviousYear,
-          consumptionForecast: values.consumptionForecast,
-          feedInForecast: values.feedInForecast,
-          pvPowerKwp: values.pvPowerKwp,
           heatPump: values.heatPump ?? null,
           electricVehicle: values.electricVehicle ?? null,
           electricVehicleCount: values.electricVehicle ? values.electricVehicleCount : undefined,
@@ -530,23 +524,35 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
           electricHotWater: values.electricHotWater ?? null,
           cooperativeSharesCount: values.cooperativeSharesCount,
           networkOperatorAuthorization: values.networkOperatorAuthorization || undefined,
-          meteringPoints: values.meteringPoints.map((mp) => ({
-            meteringPoint: mp.meteringPoint,
-            direction: mp.direction,
-            participationFactor: mp.participationFactor,
-            transformer: mp.transformer || undefined,
-            installationNumber: mp.installationNumber || undefined,
-            installationName: mp.installationName || undefined,
-            addressStreet: mp.addressStreet || undefined,
-            addressStreetNumber: mp.addressStreetNumber || undefined,
-            addressZip: mp.addressZip || undefined,
-            addressCity: mp.addressCity || undefined,
-            // PROJ-45: server normalisiert nochmal (CONSUMPTION ⇒ nil),
-            // aber wir senden bewusst nur was relevant ist.
-            generationType: mp.direction === "PRODUCTION" ? (mp.generationType ?? "pv") : undefined,
-            batterySizeKwh: mp.direction === "PRODUCTION" && mp.generationType === "pv" ? mp.batterySizeKwh : undefined,
-            inverterManufacturer: mp.direction === "PRODUCTION" && mp.generationType === "pv" ? (mp.inverterManufacturer || undefined) : undefined,
-          })),
+          meteringPoints: values.meteringPoints.map((mp) => {
+            const isProduction = mp.direction === "PRODUCTION";
+            const isPv = isProduction && (mp.generationType ?? "pv") === "pv";
+            const isConsumption = mp.direction === "CONSUMPTION";
+            return {
+              meteringPoint: mp.meteringPoint,
+              direction: mp.direction,
+              participationFactor: mp.participationFactor,
+              transformer: mp.transformer || undefined,
+              installationNumber: mp.installationNumber || undefined,
+              installationName: mp.installationName || undefined,
+              addressStreet: mp.addressStreet || undefined,
+              addressStreetNumber: mp.addressStreetNumber || undefined,
+              addressZip: mp.addressZip || undefined,
+              addressCity: mp.addressCity || undefined,
+              // PROJ-45: server normalisiert nochmal (CONSUMPTION ⇒ nil),
+              // aber wir senden bewusst nur was relevant ist.
+              generationType: isProduction ? (mp.generationType ?? "pv") : undefined,
+              batterySizeKwh: isPv ? mp.batterySizeKwh : undefined,
+              inverterManufacturer: isPv ? (mp.inverterManufacturer || undefined) : undefined,
+              // PROJ-49: Energie-Felder pro Zählpunkt.
+              consumptionPreviousYear: isConsumption ? mp.consumptionPreviousYear : undefined,
+              consumptionForecast: isConsumption ? mp.consumptionForecast : undefined,
+              feedInForecast: isProduction ? mp.feedInForecast : undefined,
+              pvPowerKwp: isPv ? mp.pvPowerKwp : undefined,
+              feedInLimitPresent: isPv ? mp.feedInLimitPresent : undefined,
+              feedInLimitKw: isPv && mp.feedInLimitPresent ? mp.feedInLimitKw : undefined,
+            };
+          }),
           turnstileToken: turnstileToken || undefined,
         });
         applicationId = app.id;
@@ -1168,103 +1174,8 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                     )}
                   />
                 )}
-                {shouldShow("consumption_previous_year") && (
-                  <FormField
-                    control={form.control}
-                    name="consumptionPreviousYear"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Verbrauch Vorjahr (kWh){req("consumption_previous_year")}</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min={0}
-
-                            value={field.value ?? ""}
-                            onChange={(e) => field.onChange(isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber)}
-                            onBlur={field.onBlur}
-                            name={field.name}
-                            ref={field.ref}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-                {shouldShow("consumption_forecast") && (
-                  <FormField
-                    control={form.control}
-                    name="consumptionForecast"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Verbrauch Prognose (kWh){req("consumption_forecast")}</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min={0}
-
-                            value={field.value ?? ""}
-                            onChange={(e) => field.onChange(isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber)}
-                            onBlur={field.onBlur}
-                            name={field.name}
-                            ref={field.ref}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-                {shouldShow("feed_in_forecast") && (
-                  <FormField
-                    control={form.control}
-                    name="feedInForecast"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Einspeisung Prognose (kWh){req("feed_in_forecast")}</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min={0}
-
-                            value={field.value ?? ""}
-                            onChange={(e) => field.onChange(isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber)}
-                            onBlur={field.onBlur}
-                            name={field.name}
-                            ref={field.ref}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-                {shouldShow("pv_power_kwp") && (
-                  <FormField
-                    control={form.control}
-                    name="pvPowerKwp"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>PV-Leistung (kWp){req("pv_power_kwp")}</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min={0}
-                            step={0.1}
-
-                            value={field.value ?? ""}
-                            onChange={(e) => field.onChange(isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber)}
-                            onBlur={field.onBlur}
-                            name={field.name}
-                            ref={field.ref}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
+                {/* PROJ-49: consumption_*, feed_in_forecast, pv_power_kwp
+                    sind jetzt pro Zählpunkt (siehe MeteringPointFields). */}
                 {shouldShow("heat_pump") && (
                   <FormField
                     control={form.control}

@@ -105,9 +105,9 @@ Für jedes Feld stehen vier Zustände zur Verfügung:
 
 Neben einigen Feldern stehen farbige **Badges**, die Ihnen sofort zeigen, **unter welcher Bedingung** das Feld im Formular wirklich greift — auch wenn Sie es hier auf **Verpflichtend** stellen:
 
-- **`[Verbraucher]`** *(blau)* — wird nur angezeigt, wenn der Antrag mindestens einen Verbraucher-Zählpunkt enthält. Felder: Wärmepumpe, E-Auto, Anzahl E-Fahrzeuge, Jahres-Kilometer, Warmwasser elektrisch, Personen im Haushalt, Verbrauch Vorjahr/Prognose.
-- **`[Einspeisung]`** *(amber)* — wird nur angezeigt, wenn der Antrag mindestens einen Einspeise-Zählpunkt enthält. Felder: PV-Leistung (kWp), Einspeisung Prognose.
-- **`[PV]`** *(orange, zusätzlich)* — gilt zusätzlich zu `[Einspeisung]` für Felder, die nur bei Erzeugungsform „PV" sinnvoll sind. Felder: Größe Batterie (kWh), Hersteller Wechselrichter.
+- **`[Verbraucher]`** *(blau)* — wird nur angezeigt, wenn der Zählpunkt CONSUMPTION ist (PROJ-49) bzw. der Antrag mindestens einen Verbraucher-Zählpunkt enthält (Application-Scope). Felder: Wärmepumpe, E-Auto, Anzahl E-Fahrzeuge, Jahres-Kilometer, Warmwasser elektrisch, Personen im Haushalt, Verbrauch Vorjahr, Verbrauch Prognose.
+- **`[Einspeisung]`** *(amber)* — wird nur bei Erzeuger-Zählpunkten angezeigt (PROJ-49). Felder: Einspeisung Prognose (alle Erzeugungsformen).
+- **`[PV]`** *(orange, zusätzlich)* — gilt zusätzlich zu `[Einspeisung]` für Felder, die nur bei Erzeugungsform „PV" sinnvoll sind. Felder: Größe Batterie (kWh), Hersteller Wechselrichter, PV-Leistung (kWp), Einspeiselimit (kW).
 - **`[+E-Auto]`** *(lila, zusätzlich)* — gilt zusätzlich zu `[Verbraucher]` für Felder, die nur greifen, wenn das Mitglied „E-Auto vorhanden" mit Ja beantwortet hat. Felder: Anzahl E-Fahrzeuge, Jahres-Kilometer.
 
 Neben jedem Feld mit Badge steht ein kleines **Info-Icon** — Klick/Hover zeigt die exakte Bedingung in Worten. Die Badges sind Single Source of Truth: ändert sich die Bedingung im Code, ändert sich auch die Badge ohne separate Pflege.
@@ -116,6 +116,10 @@ Neben jedem Feld mit Badge steht ein kleines **Info-Icon** — Klick/Hover zeigt
 
 - **Netzbetreiber-Vollmacht** *(PROJ-44, Application-Scope)* — das Mitglied erteilt der EEG die Vollmacht, in seinem Namen mit dem Netzbetreiber zu agieren (notwendig z. B. bei Netz OÖ). Der Volltext der Vollmacht ist **fest im Code** und kann hier nicht editiert werden — Sie steuern lediglich, ob die Checkbox überhaupt erscheinen soll. Default: `Ausgeblendet`. Bei `Verpflichtend` muss das Mitglied das Häkchen aktiv setzen, sonst wird der Antrag nicht submitted.
 - **Größe Batterie (kWh) / Hersteller Wechselrichter** *(PROJ-45, Zählpunkt-Scope)* — sammeln Speicher- und WR-Daten für PV-Erzeuger-Zählpunkte, um die EEG-Bewirtschaftung zu optimieren. Default: `Ausgeblendet`.
+- **Verbrauch Vorjahr / Verbrauch Prognose** *(PROJ-49, Zählpunkt-Scope)* — Energiewerte pro Verbraucher-Zählpunkt. Default: `Ausgeblendet`.
+- **Einspeisung Prognose** *(PROJ-49, Zählpunkt-Scope)* — jährliche Einspeise-Prognose pro Erzeuger-Zählpunkt (alle Erzeugungsformen). Default: `Ausgeblendet`.
+- **PV-Leistung (kWp)** *(PROJ-49, Zählpunkt-Scope, nur PV)* — installierte Spitzenleistung pro PV-Zählpunkt. Default: `Ausgeblendet`.
+- **Einspeiselimit (kW)** *(PROJ-49, Zählpunkt-Scope, nur PV)* — maximal zulässige Einspeiseleistung, wenn der Netzanschluss begrenzt ist. Mitglied wählt zuerst Ja/Nein und gibt bei Ja den Wert in kW ein. Default: `Ausgeblendet`.
 
 Klicken Sie auf **Konfiguration speichern**, um die Änderungen zu übernehmen.
 

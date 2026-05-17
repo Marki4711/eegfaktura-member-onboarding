@@ -10,6 +10,46 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Geändert — Energie-Felder pro Zählpunkt (PROJ-49) *(2026-05-17)*
+
+Refactoring: 4 Energie-Felder wandern von `application` auf `metering_point`,
+1 neues Feld kommt dazu.
+
+**Datenmodell (Migration 000043):**
+- `metering_point` bekommt 6 neue Spalten:
+  `consumption_previous_year`, `consumption_forecast`, `feed_in_forecast`,
+  `pv_power_kwp`, `feed_in_limit_present`, `feed_in_limit_kw`.
+- `application` verliert 4 Spalten:
+  `consumption_previous_year`, `consumption_forecast`, `feed_in_forecast`, `pv_power_kwp`.
+- Bestandswerte werden verworfen (Entscheidung Owner 2026-05-17: nur In-Review-Anträge betroffen).
+- Alte `field_config`-Einträge mit den 4 Namen werden gelöscht — EEGs reaktivieren bewusst.
+
+**Sichtbarkeit (Service-Layer enforced):**
+- `consumption_*` nur bei `direction='CONSUMPTION'`.
+- `feed_in_forecast` nur bei `direction='PRODUCTION'` (alle Erzeugungsformen).
+- `pv_power_kwp` / `feed_in_limit_*` nur bei `direction='PRODUCTION'` + `generation_type='pv'`.
+- `feed_in_limit_kw` nur wenn `feed_in_limit_present=TRUE`.
+
+**Neues Feld:** Einspeiselimit (Bool „vorhanden" + optional kW-Wert).
+Manche Netzanschlüsse sind leistungstechnisch beschränkt (z. B. „nur 70 % der PV einspeisbar"); EEG braucht diese Info für die Planung.
+
+**API:**
+- `POST /api/public/applications` Request: 4 Felder wandern von Top-Level in `meteringPoints[]`-Einträge; 2 neue `feedInLimitPresent` / `feedInLimitKw`.
+- `GET /api/admin/applications/{id}` Response: gleiche Bewegung in der Antwort.
+- `PUT /api/admin/applications/{id}` Body: 4 Top-Level-Felder werden ignoriert.
+- Externe API (`POST /api/external/v1/applications`) analog.
+
+**Mail-Templates + PDF:**
+- `FormatGenerationLine` rendert pro Zählpunkt jetzt:
+  - CONSUMPTION: `Verbrauch Vorjahr X kWh, Prognose Y kWh`
+  - PRODUCTION + pv: `PV 9,9 kWp, Prognose 6000 kWh/J, Speicher 10,5 kWh (Fronius), Einspeiselimit 7,0 kW`
+- Die 4 Application-Level-Felder erscheinen nicht mehr im „Zusätzliche Informationen"-Block.
+
+**Frontend:**
+- `metering-point-fields.tsx`: 6 neue Felder mit Sichtbarkeitsbedingungen + neuer `ConsumptionDetailsBlock`.
+- `registration-form.tsx`: 4 Application-Level-Felder + zugehörige Defaults/Validation/Payload entfernt; per-MP-Payload um die neuen Felder erweitert.
+- `admin-eeg-settings-editor.tsx`: Felder wandern automatisch in die „Zählpunkt-Felder"-Sektion (via `CONFIGURABLE_FIELDS.meteringPoint`).
+
 ### Geändert — Register-Dialog + Admin-Settings: Audit-Fixes *(2026-05-17)*
 
 Vollständiger Inhalts-Audit analog zum Mail-Template-Audit. 51 Findings

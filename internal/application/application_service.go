@@ -117,6 +117,13 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 			GenerationType:       trimStringPtr(mpReq.GenerationType),
 			BatterySizeKwh:       mpReq.BatterySizeKwh,
 			InverterManufacturer: trimStringPtr(mpReq.InverterManufacturer),
+			// PROJ-49: Energie-Felder pro Zählpunkt.
+			ConsumptionPreviousYear: mpReq.ConsumptionPreviousYear,
+			ConsumptionForecast:     mpReq.ConsumptionForecast,
+			FeedInForecast:          mpReq.FeedInForecast,
+			PvPowerKwp:              mpReq.PvPowerKwp,
+			FeedInLimitPresent:      mpReq.FeedInLimitPresent,
+			FeedInLimitKw:           mpReq.FeedInLimitKw,
 			CreatedAt:           time.Now(),
 			UpdatedAt:           time.Now(),
 		})
@@ -125,6 +132,7 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 		return nil, err
 	}
 	normalizeMeteringPointGeneration(meteringPoints)
+	clearMeteringPointEnergyByType(meteringPoints)
 	if err = s.meteringRepo.ValidateUniqueMeteringPoints(uuid.Nil, meteringPoints); err != nil {
 		return nil, shared.NewValidationError("Validation failed", map[string]string{
 			"meteringPoints": err.Error(),
@@ -192,10 +200,6 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 		UpdatedAt:               now,
 		MembershipStartDate:     membershipStartDate,
 		PersonsInHousehold:      req.PersonsInHousehold,
-		ConsumptionPreviousYear: req.ConsumptionPreviousYear,
-		ConsumptionForecast:     req.ConsumptionForecast,
-		FeedInForecast:          req.FeedInForecast,
-		PvPowerKwp:              req.PvPowerKwp,
 		HeatPump:                req.HeatPump,
 		ElectricVehicle:         req.ElectricVehicle,
 		ElectricVehicleCount:    req.ElectricVehicleCount,
@@ -411,6 +415,7 @@ func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateAp
 			return nil, err
 		}
 		normalizeMeteringPointGeneration(meteringPoints)
+	clearMeteringPointEnergyByType(meteringPoints)
 
 		// Only check for duplicates within the new set — CreateBulkTx replaces all existing points
 		if err = s.meteringRepo.ValidateUniqueMeteringPoints(uuid.Nil, meteringPoints); err != nil {
@@ -948,38 +953,9 @@ func applyAdminValues(app *shared.Application, fieldConfig map[string]FieldConfi
 			}
 		}
 	})
-	apply("consumption_previous_year", func(v string) {
-		if app.ConsumptionPreviousYear == nil {
-			var n int64
-			if _, err := fmt.Sscanf(v, "%d", &n); err == nil {
-				app.ConsumptionPreviousYear = &n
-			}
-		}
-	})
-	apply("consumption_forecast", func(v string) {
-		if app.ConsumptionForecast == nil {
-			var n int64
-			if _, err := fmt.Sscanf(v, "%d", &n); err == nil {
-				app.ConsumptionForecast = &n
-			}
-		}
-	})
-	apply("feed_in_forecast", func(v string) {
-		if app.FeedInForecast == nil {
-			var n int64
-			if _, err := fmt.Sscanf(v, "%d", &n); err == nil {
-				app.FeedInForecast = &n
-			}
-		}
-	})
-	apply("pv_power_kwp", func(v string) {
-		if app.PvPowerKwp == nil {
-			var f float64
-			if _, err := fmt.Sscanf(v, "%f", &f); err == nil {
-				app.PvPowerKwp = &f
-			}
-		}
-	})
+	// PROJ-49: consumption_previous_year, consumption_forecast,
+	// feed_in_forecast, pv_power_kwp leben jetzt pro Zählpunkt — siehe
+	// applyAdminValuesToMeteringPoint. Hier nichts mehr zu tun.
 	apply("heat_pump", func(v string) {
 		if app.HeatPump == nil {
 			b := v == "true"
@@ -1028,16 +1004,15 @@ func validateConfigurableRequiredFields(app *shared.Application, fieldConfig map
 
 	// PROJ-45: when mps is provided, gate type-specific required-checks
 	// on the presence of a matching meter direction. nil ⇒ no gating
-	// (legacy + test callers).
-	hasConsumption, hasProduction := true, true
+	// (legacy + test callers). PROJ-49 removed the production-only
+	// application-level fields (they live on the metering point now), so
+	// only the consumption gate remains here.
+	hasConsumption := true
 	if mps != nil {
-		hasConsumption, hasProduction = false, false
+		hasConsumption = false
 		for _, mp := range mps {
 			if mp.Direction == shared.DirectionConsumption {
 				hasConsumption = true
-			}
-			if mp.Direction == shared.DirectionProduction {
-				hasProduction = true
 			}
 		}
 	}
@@ -1060,10 +1035,9 @@ func validateConfigurableRequiredFields(app *shared.Application, fieldConfig map
 	requiredIfMissing("uid_number", "uidNumber", "UID-Nummer", missingStr(app.UIDNumber))
 	requiredIfMissing("membership_start_date", "membershipStartDate", "Beitrittsdatum", app.MembershipStartDate == nil)
 	requiredIfMissingTyped("persons_in_household", "personsInHousehold", "Anzahl Personen im Haushalt", app.PersonsInHousehold == nil, hasConsumption)
-	requiredIfMissingTyped("consumption_previous_year", "consumptionPreviousYear", "Verbrauch Vorjahr", app.ConsumptionPreviousYear == nil, hasConsumption)
-	requiredIfMissingTyped("consumption_forecast", "consumptionForecast", "Verbrauch Prognose", app.ConsumptionForecast == nil, hasConsumption)
-	requiredIfMissingTyped("feed_in_forecast", "feedInForecast", "Einspeisung Prognose", app.FeedInForecast == nil, hasProduction)
-	requiredIfMissingTyped("pv_power_kwp", "pvPowerKwp", "PV-Leistung", app.PvPowerKwp == nil, hasProduction)
+	// PROJ-49: consumption_previous_year, consumption_forecast,
+	// feed_in_forecast, pv_power_kwp werden jetzt pro Zählpunkt validiert
+	// (validateConfigurableMeteringPointFields), nicht mehr hier.
 	requiredIfMissingTyped("heat_pump", "heatPump", "Wärmepumpe vorhanden", app.HeatPump == nil, hasConsumption)
 	requiredIfMissingTyped("electric_vehicle", "electricVehicle", "E-Auto vorhanden", app.ElectricVehicle == nil, hasConsumption)
 	// PROJ-42: die Detail-Felder sind nur sinnvoll wenn EV=true. Wenn der
@@ -1130,10 +1104,24 @@ func validateConfigurableMeteringPointFields(points []shared.MeteringPoint, fiel
 		checkStr("transformer", "Transformator", mp.Transformer)
 		checkStr("installation_number", "Anlagen-Nr.", mp.InstallationNumber)
 		checkStr("installation_name", "Anlagenname", mp.InstallationName)
-		// PROJ-45: battery + inverter are PRODUCTION+pv-only (gated by isPv).
-		// required-Check feuert nur, wenn der Zählpunkt eine PV-Anlage ist.
+		// PROJ-49: Verbrauchs-Felder nur bei CONSUMPTION-Zählpunkten prüfen.
+		if mp.Direction == shared.DirectionConsumption {
+			if effectiveState(fieldConfig, "consumption_previous_year") == "required" && mp.ConsumptionPreviousYear == nil {
+				errs[fmt.Sprintf("meteringPoints.%d.consumptionPreviousYear", i)] = "Verbrauch Vorjahr ist erforderlich"
+			}
+			if effectiveState(fieldConfig, "consumption_forecast") == "required" && mp.ConsumptionForecast == nil {
+				errs[fmt.Sprintf("meteringPoints.%d.consumptionForecast", i)] = "Verbrauch Prognose ist erforderlich"
+			}
+		}
+		// PROJ-45 + PROJ-49: Einspeise-Felder nur bei PRODUCTION; PV-Leistung
+		// + Batterie/Wechselrichter + Einspeiselimit nur bei PRODUCTION + PV.
 		isPv := mp.Direction == shared.DirectionProduction &&
 			mp.GenerationType != nil && *mp.GenerationType == "pv"
+		if mp.Direction == shared.DirectionProduction {
+			if effectiveState(fieldConfig, "feed_in_forecast") == "required" && mp.FeedInForecast == nil {
+				errs[fmt.Sprintf("meteringPoints.%d.feedInForecast", i)] = "Einspeisung Prognose ist erforderlich"
+			}
+		}
 		if isPv {
 			if effectiveState(fieldConfig, "battery_size_kwh") == "required" && mp.BatterySizeKwh == nil {
 				errs[fmt.Sprintf("meteringPoints.%d.batterySizeKwh", i)] = "Größe Batterie ist erforderlich"
@@ -1141,6 +1129,14 @@ func validateConfigurableMeteringPointFields(points []shared.MeteringPoint, fiel
 			if effectiveState(fieldConfig, "inverter_manufacturer") == "required" &&
 				(mp.InverterManufacturer == nil || strings.TrimSpace(*mp.InverterManufacturer) == "") {
 				errs[fmt.Sprintf("meteringPoints.%d.inverterManufacturer", i)] = "Hersteller Wechselrichter ist erforderlich"
+			}
+			if effectiveState(fieldConfig, "pv_power_kwp") == "required" && mp.PvPowerKwp == nil {
+				errs[fmt.Sprintf("meteringPoints.%d.pvPowerKwp", i)] = "PV-Leistung ist erforderlich"
+			}
+			// feed_in_limit_kw ist nur Pflicht wenn FeedInLimitPresent=true.
+			if effectiveState(fieldConfig, "feed_in_limit_kw") == "required" &&
+				mp.FeedInLimitPresent != nil && *mp.FeedInLimitPresent && mp.FeedInLimitKw == nil {
+				errs[fmt.Sprintf("meteringPoints.%d.feedInLimitKw", i)] = "Einspeiselimit (kW) ist erforderlich"
 			}
 		}
 		if len(errs) > 0 {
@@ -1190,37 +1186,62 @@ func clearEVDetailsIfDisabled(app *shared.Application) {
 
 // clearAppFieldsByMpTypes implements PROJ-45 typabhängige Sichtbarkeit at the
 // service layer: when the application carries no CONSUMPTION meter, all
-// consumption-related application-level fields (Verbrauch, Wärmepumpe, E-Auto,
-// Warmwasser, Personen) are nilled. When no PRODUCTION meter exists, the two
-// production-related fields (PV-Leistung, Einspeisung Prognose) are nilled.
-// Run before validation + persist so forged clients can't smuggle data that
-// makes no sense for the meter mix.
+// consumption-related application-level fields (Wärmepumpe, E-Auto,
+// Warmwasser, Personen) are nilled. PROJ-49 moved the energy values
+// (Verbrauch, PV-Leistung, Einspeisung Prognose) to the metering point —
+// they are gated per-MP by clearMeteringPointEnergyByType.
 func clearAppFieldsByMpTypes(app *shared.Application, mps []shared.MeteringPoint) {
 	if mps == nil {
 		return
 	}
-	hasConsumption, hasProduction := false, false
+	hasConsumption := false
 	for _, mp := range mps {
 		if mp.Direction == shared.DirectionConsumption {
 			hasConsumption = true
 		}
-		if mp.Direction == shared.DirectionProduction {
-			hasProduction = true
-		}
 	}
 	if !hasConsumption {
 		app.PersonsInHousehold = nil
-		app.ConsumptionPreviousYear = nil
-		app.ConsumptionForecast = nil
 		app.HeatPump = nil
 		app.ElectricVehicle = nil
 		app.ElectricVehicleCount = nil
 		app.ElectricVehicleAnnualKm = nil
 		app.ElectricHotWater = nil
 	}
-	if !hasProduction {
-		app.FeedInForecast = nil
-		app.PvPowerKwp = nil
+}
+
+// clearMeteringPointEnergyByType enforces PROJ-49 invariants per metering
+// point:
+//   - CONSUMPTION ⇒ feed_in_*, pv_power_kwp, feed_in_limit_* NULL
+//   - PRODUCTION ⇒ consumption_* NULL
+//   - PRODUCTION + GenerationType != "pv" ⇒ pv_power_kwp + feed_in_limit_* NULL
+//   - FeedInLimitPresent != true ⇒ FeedInLimitKw NULL
+//
+// Run before persist so forged clients can't smuggle values that don't match
+// the meter's direction/generation type.
+func clearMeteringPointEnergyByType(points []shared.MeteringPoint) {
+	for i := range points {
+		mp := &points[i]
+		if mp.Direction == shared.DirectionConsumption {
+			mp.FeedInForecast = nil
+			mp.PvPowerKwp = nil
+			mp.FeedInLimitPresent = nil
+			mp.FeedInLimitKw = nil
+			continue
+		}
+		// PRODUCTION
+		mp.ConsumptionPreviousYear = nil
+		mp.ConsumptionForecast = nil
+		isPv := mp.GenerationType != nil && *mp.GenerationType == "pv"
+		if !isPv {
+			mp.PvPowerKwp = nil
+			mp.FeedInLimitPresent = nil
+			mp.FeedInLimitKw = nil
+			continue
+		}
+		if mp.FeedInLimitPresent == nil || !*mp.FeedInLimitPresent {
+			mp.FeedInLimitKw = nil
+		}
 	}
 }
 

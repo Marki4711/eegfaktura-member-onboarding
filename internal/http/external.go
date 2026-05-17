@@ -49,13 +49,10 @@ type externalApplicationRequest struct {
 	PrivacyAccepted      bool                         `json:"privacyAccepted"      validate:"required"`
 	SepaMandateAccepted  bool                         `json:"sepaMandateAccepted"  validate:"required"`
 	MeteringPoints       []shared.CreateMeteringPointRequest `json:"meteringPoints"  validate:"required,min=1,max=10,dive"`
-	// Configurable fields (PROJ-8)
+	// Configurable fields (PROJ-8). PROJ-49 moved consumption / feed_in /
+	// pv_power to MeteringPoints[] sub-entries.
 	MembershipStartDate     *string  `json:"membershipStartDate,omitempty" validate:"omitempty,len=10"`
 	PersonsInHousehold      *int     `json:"personsInHousehold,omitempty"      validate:"omitempty,min=0"`
-	ConsumptionPreviousYear *int64   `json:"consumptionPreviousYear,omitempty" validate:"omitempty,min=0"`
-	ConsumptionForecast     *int64   `json:"consumptionForecast,omitempty"     validate:"omitempty,min=0"`
-	FeedInForecast          *int64   `json:"feedInForecast,omitempty"          validate:"omitempty,min=0"`
-	PvPowerKwp              *float64 `json:"pvPowerKwp,omitempty"              validate:"omitempty,min=0"`
 	HeatPump                *bool    `json:"heatPump,omitempty"`
 	ElectricVehicle         *bool    `json:"electricVehicle,omitempty"`
 	ElectricHotWater        *bool    `json:"electricHotWater,omitempty"`
@@ -144,13 +141,10 @@ func (h *ExternalHandler) SubmitExternalApplication(w http.ResponseWriter, r *ht
 		AccuracyConfirmed:    accuracyConfirmed,
 		SepaMandateAccepted:  true,
 		MeteringPoints:       req.MeteringPoints,
-		// Configurable fields
+		// Configurable fields. PROJ-49: consumption/feed_in/pv_power leben
+		// jetzt pro MeteringPoint und werden über req.MeteringPoints weitergereicht.
 		MembershipStartDate:     req.MembershipStartDate,
 		PersonsInHousehold:      req.PersonsInHousehold,
-		ConsumptionPreviousYear: req.ConsumptionPreviousYear,
-		ConsumptionForecast:     req.ConsumptionForecast,
-		FeedInForecast:          req.FeedInForecast,
-		PvPowerKwp:              req.PvPowerKwp,
 		HeatPump:                req.HeatPump,
 		ElectricVehicle:         req.ElectricVehicle,
 		ElectricHotWater:        req.ElectricHotWater,

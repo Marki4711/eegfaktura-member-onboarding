@@ -52,18 +52,8 @@ export const CONFIGURABLE_FIELDS: {
     { name: "persons_in_household",    label: "Anzahl Personen im Haushalt",     defaultState: "hidden",
       visibilityTags: ["consumption"],
       visibilityHint: "Wird nur angezeigt, wenn der Antrag mindestens einen Verbraucher-Zählpunkt enthält." },
-    { name: "consumption_previous_year", label: "Verbrauch Vorjahr (kWh)",       defaultState: "hidden",
-      visibilityTags: ["consumption"],
-      visibilityHint: "Wird nur angezeigt, wenn der Antrag mindestens einen Verbraucher-Zählpunkt enthält." },
-    { name: "consumption_forecast",    label: "Verbrauch Prognose (kWh)",        defaultState: "hidden",
-      visibilityTags: ["consumption"],
-      visibilityHint: "Wird nur angezeigt, wenn der Antrag mindestens einen Verbraucher-Zählpunkt enthält." },
-    { name: "feed_in_forecast",        label: "Einspeisung Prognose (kWh)",      defaultState: "hidden",
-      visibilityTags: ["production"],
-      visibilityHint: "Wird nur angezeigt, wenn der Antrag mindestens einen Einspeise-Zählpunkt enthält." },
-    { name: "pv_power_kwp",            label: "PV-Leistung (kWp)",              defaultState: "hidden",
-      visibilityTags: ["production"],
-      visibilityHint: "Wird nur angezeigt, wenn der Antrag mindestens einen Einspeise-Zählpunkt enthält." },
+    // PROJ-49: consumption_*, feed_in_forecast, pv_power_kwp wandern in den
+    // meteringPoint-Block (siehe unten). Hier nichts mehr.
     { name: "heat_pump",               label: "Wärmepumpe vorhanden",            defaultState: "hidden",
       visibilityTags: ["consumption"],
       visibilityHint: "Wird nur angezeigt, wenn der Antrag mindestens einen Verbraucher-Zählpunkt enthält." },
@@ -88,6 +78,22 @@ export const CONFIGURABLE_FIELDS: {
     { name: "transformer",        label: "Transformator", defaultState: "hidden" },
     { name: "installation_number", label: "Anlagen-Nr.",  defaultState: "hidden" },
     { name: "installation_name",  label: "Anlagenname",  defaultState: "hidden" },
+    // PROJ-49: Energie-Felder pro Zählpunkt.
+    { name: "consumption_previous_year", label: "Verbrauch Vorjahr (kWh)", defaultState: "hidden",
+      visibilityTags: ["consumption"],
+      visibilityHint: "Wird nur bei Verbraucher-Zählpunkten angezeigt." },
+    { name: "consumption_forecast",      label: "Verbrauch Prognose (kWh)", defaultState: "hidden",
+      visibilityTags: ["consumption"],
+      visibilityHint: "Wird nur bei Verbraucher-Zählpunkten angezeigt." },
+    { name: "feed_in_forecast",          label: "Einspeisung Prognose (kWh)", defaultState: "hidden",
+      visibilityTags: ["production"],
+      visibilityHint: "Wird nur bei Einspeise-Zählpunkten angezeigt." },
+    { name: "pv_power_kwp",              label: "PV-Leistung (kWp)", defaultState: "hidden",
+      visibilityTags: ["production", "pv"],
+      visibilityHint: "Wird nur bei Einspeise-Zählpunkten mit Erzeugungsform PV angezeigt." },
+    { name: "feed_in_limit_kw",          label: "Einspeiselimit (kW)", defaultState: "hidden",
+      visibilityTags: ["production", "pv"],
+      visibilityHint: "Wird nur bei Einspeise-Zählpunkten mit Erzeugungsform PV angezeigt — Mitglied gibt Ja/Nein an, bei Ja wird der kW-Wert abgefragt." },
     // PROJ-45: Batterie + Wechselrichter (nur bei generation_type='pv' aktiv).
     { name: "battery_size_kwh",      label: "Größe Batterie (kWh)",        defaultState: "hidden",
       visibilityTags: ["production", "pv"],
@@ -197,6 +203,18 @@ export interface MeteringPointRequest {
   generationType?: GenerationType;
   batterySizeKwh?: number;
   inverterManufacturer?: string;
+  // PROJ-49: Energie-Felder pro Zählpunkt. Sichtbarkeit per direction +
+  // generationType — Backend cleart unzutreffende Felder serverseitig.
+  //   consumptionPreviousYear / consumptionForecast — nur CONSUMPTION
+  //   feedInForecast — nur PRODUCTION (alle Erzeugungsformen)
+  //   pvPowerKwp / feedInLimitPresent / feedInLimitKw — nur PRODUCTION + 'pv'
+  //   feedInLimitKw nur wenn feedInLimitPresent === true
+  consumptionPreviousYear?: number;
+  consumptionForecast?: number;
+  feedInForecast?: number;
+  pvPowerKwp?: number;
+  feedInLimitPresent?: boolean;
+  feedInLimitKw?: number;
 }
 
 export interface CreateApplicationRequest {
@@ -224,13 +242,10 @@ export interface CreateApplicationRequest {
   bankName?: string;
   sepaMandateAccepted: boolean;
   meteringPoints: MeteringPointRequest[];
-  // configurable application-level fields
+  // configurable application-level fields. PROJ-49: consumption / feed_in /
+  // pv_power leben jetzt pro Zählpunkt — siehe MeteringPointRequest.
   membershipStartDate?: string;
   personsInHousehold?: number;
-  consumptionPreviousYear?: number;
-  consumptionForecast?: number;
-  feedInForecast?: number;
-  pvPowerKwp?: number;
   heatPump?: boolean | null;
   electricVehicle?: boolean | null;
   // PROJ-42: nur sinnvoll wenn electricVehicle === true; Server cleart sonst.

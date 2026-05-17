@@ -191,15 +191,22 @@ Creates a new application.
       "addressCity": "Linz",
       "generationType": "pv",
       "batterySizeKwh": 10.5,
-      "inverterManufacturer": "Fronius"
+      "inverterManufacturer": "Fronius",
+      "feedInForecast": 6000,
+      "pvPowerKwp": 9.9,
+      "feedInLimitPresent": true,
+      "feedInLimitKw": 7.0
+    },
+    {
+      "meteringPoint": "AT0031000000000000000000990022106",
+      "direction": "CONSUMPTION",
+      "participationFactor": 1.0,
+      "consumptionPreviousYear": 4200,
+      "consumptionForecast": 4000
     }
   ],
   "membershipStartDate": "2026-05-01",
   "personsInHousehold": 3,
-  "consumptionPreviousYear": 4200,
-  "consumptionForecast": 4000,
-  "feedInForecast": 6000,
-  "pvPowerKwp": 9.9,
   "heatPump": true,
   "electricVehicle": true,
   "electricVehicleCount": 1,
@@ -210,11 +217,17 @@ Creates a new application.
 }
 ```
 
-All fields under `meteringPoints[].transformer/installationNumber/installationName/batterySizeKwh/inverterManufacturer` and the application-level energy/household fields are optional by default. Whether they are required is determined by the EEG's `fieldConfig` (see 5.1). Fields not relevant to the current `memberType` are ignored.
+All fields under `meteringPoints[].transformer/installationNumber/installationName/batterySizeKwh/inverterManufacturer/consumptionPreviousYear/consumptionForecast/feedInForecast/pvPowerKwp/feedInLimitPresent/feedInLimitKw` (PROJ-45 + PROJ-49) and the application-level household fields (`personsInHousehold`, `heatPump`, `electricVehicle`, `electricHotWater`, …) are optional by default. Whether they are required is determined by the EEG's `fieldConfig` (see 5.1). Fields not relevant to the current `memberType` are ignored.
 
 `meteringPoints[].generationType` (PROJ-45) is required when `direction = PRODUCTION` (DB-CHECK enforces it); allowed values `pv`/`hydro`/`wind`/`biomass`. Server defaults to `pv` when missing on a PRODUCTION row. NULL is enforced for CONSUMPTION rows — service nullifies any submitted value.
 
 `meteringPoints[].batterySizeKwh` and `meteringPoints[].inverterManufacturer` (PROJ-45) are only meaningful for PRODUCTION rows with `generationType = "pv"`. The service nulls them in all other cases.
+
+`meteringPoints[].consumptionPreviousYear` and `meteringPoints[].consumptionForecast` (PROJ-49) are integer kWh values for CONSUMPTION rows. The service nulls them on PRODUCTION rows.
+
+`meteringPoints[].feedInForecast` (PROJ-49) is the annual energy forecast in kWh/year for PRODUCTION rows (any `generationType`). The service nulls it on CONSUMPTION rows.
+
+`meteringPoints[].pvPowerKwp`, `meteringPoints[].feedInLimitPresent`, and `meteringPoints[].feedInLimitKw` (PROJ-49) are only meaningful for PRODUCTION rows with `generationType = "pv"`. `feedInLimitPresent` is the member's "Einspeiselimit vorhanden?" toggle (some grid connections cap the feed-in power below the PV nameplate); `feedInLimitKw` is the maximum allowed feed-in in kW and is only stored when `feedInLimitPresent = true`. The service nulls each unfitting combination.
 
 `networkOperatorAuthorization` (PROJ-44) is the member's authorisation for the EEG to coordinate with the grid operator on their behalf. The configurable-field `network_operator_authorization` controls visibility — when the EEG sets it to `required`, the boolean must be `true` on submit (otherwise 400). When `hidden`, the server nulls/false-sets it. The auth timestamp `network_operator_authorization_at` is stamped automatically on the FALSE→TRUE flip.
 

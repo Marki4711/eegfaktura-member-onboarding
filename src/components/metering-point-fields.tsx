@@ -52,6 +52,12 @@ export function MeteringPointFields({ form, fieldConfig }: MeteringPointFieldsPr
   // PROJ-45: Batterie + Wechselrichter sind PV-only und PROJ-8-konfigurierbar.
   const showBatterySize = mpfs("battery_size_kwh") !== "hidden";
   const showInverter = mpfs("inverter_manufacturer") !== "hidden";
+  // PROJ-49: Energie-Felder pro Zählpunkt.
+  const showConsumptionPrev = mpfs("consumption_previous_year") !== "hidden";
+  const showConsumptionFc   = mpfs("consumption_forecast") !== "hidden";
+  const showFeedInForecast  = mpfs("feed_in_forecast") !== "hidden";
+  const showPvPower         = mpfs("pv_power_kwp") !== "hidden";
+  const showFeedInLimit     = mpfs("feed_in_limit_kw") !== "hidden";
 
   return (
     <div className="space-y-4">
@@ -199,6 +205,21 @@ export function MeteringPointFields({ form, fieldConfig }: MeteringPointFieldsPr
             showInverter={showInverter}
             batteryRequired={mpfs("battery_size_kwh") === "required"}
             inverterRequired={mpfs("inverter_manufacturer") === "required"}
+            showFeedInForecast={showFeedInForecast}
+            feedInForecastRequired={mpfs("feed_in_forecast") === "required"}
+            showPvPower={showPvPower}
+            pvPowerRequired={mpfs("pv_power_kwp") === "required"}
+            showFeedInLimit={showFeedInLimit}
+            feedInLimitRequired={mpfs("feed_in_limit_kw") === "required"}
+          />
+
+          <ConsumptionDetailsBlock
+            form={form}
+            index={index}
+            showPrev={showConsumptionPrev}
+            showFc={showConsumptionFc}
+            prevRequired={mpfs("consumption_previous_year") === "required"}
+            fcRequired={mpfs("consumption_forecast") === "required"}
           />
 
           {hasExtraMpFields && (
@@ -295,6 +316,12 @@ function GenerationBlock({
   showInverter,
   batteryRequired,
   inverterRequired,
+  showFeedInForecast,
+  feedInForecastRequired,
+  showPvPower,
+  pvPowerRequired,
+  showFeedInLimit,
+  feedInLimitRequired,
 }: {
   form: UseFormReturn<RegistrationFormValues>;
   index: number;
@@ -302,9 +329,16 @@ function GenerationBlock({
   showInverter: boolean;
   batteryRequired: boolean;
   inverterRequired: boolean;
+  showFeedInForecast: boolean;
+  feedInForecastRequired: boolean;
+  showPvPower: boolean;
+  pvPowerRequired: boolean;
+  showFeedInLimit: boolean;
+  feedInLimitRequired: boolean;
 }) {
   const direction = form.watch(`meteringPoints.${index}.direction`);
   const generationType = form.watch(`meteringPoints.${index}.generationType`);
+  const feedInLimitPresent = form.watch(`meteringPoints.${index}.feedInLimitPresent`);
   if (direction !== "PRODUCTION") return null;
   const isPv = (generationType ?? "pv") === "pv";
   return (
@@ -335,6 +369,61 @@ function GenerationBlock({
             </FormItem>
           )}
         />
+        {isPv && showPvPower && (
+          <FormField
+            control={form.control}
+            name={`meteringPoints.${index}.pvPowerKwp`}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>PV-Leistung (kWp){pvPowerRequired ? " *" : ""}</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={0.1}
+                    value={field.value ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.valueAsNumber;
+                      field.onChange(isNaN(v) ? undefined : v);
+                    }}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    ref={field.ref}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+        {showFeedInForecast && (
+          <FormField
+            control={form.control}
+            name={`meteringPoints.${index}.feedInForecast`}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  Einspeisung Prognose (kWh){feedInForecastRequired ? " *" : ""}
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={field.value ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.valueAsNumber;
+                      field.onChange(isNaN(v) ? undefined : v);
+                    }}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    ref={field.ref}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
         {isPv && showBatterySize && (
           <FormField
             control={form.control}
@@ -382,6 +471,157 @@ function GenerationBlock({
           />
         )}
       </div>
+      {/* PROJ-49: Einspeiselimit — Mitglied gibt zuerst ja/nein an; bei ja
+          erscheint das kW-Feld. Nur bei PV. */}
+      {isPv && showFeedInLimit && (
+        <div className="space-y-2">
+          <FormField
+            control={form.control}
+            name={`meteringPoints.${index}.feedInLimitPresent`}
+            render={({ field }) => (
+              <FormItem className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                    <Checkbox
+                      checked={field.value === true}
+                      onCheckedChange={(v) => {
+                        const next = v === true;
+                        field.onChange(next);
+                        if (!next) {
+                          form.setValue(
+                            `meteringPoints.${index}.feedInLimitKw`,
+                            undefined,
+                            { shouldValidate: true },
+                          );
+                        }
+                      }}
+                      aria-label="Einspeiselimit vorhanden"
+                    />
+                    <span>Einspeiselimit vorhanden</span>
+                  </label>
+                  <Popover>
+                    <PopoverTrigger type="button" className="cursor-help">
+                      <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                    </PopoverTrigger>
+                    <PopoverContent className="max-w-72 text-sm">
+                      Manche Netzanschlüsse sind leistungstechnisch beschränkt — es darf nur ein Teil der erzeugten PV-Leistung in das Netz eingespeist werden. Bei Ja den maximal zulässigen Wert in kW eintragen.
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          {feedInLimitPresent === true && (
+            <FormField
+              control={form.control}
+              name={`meteringPoints.${index}.feedInLimitKw`}
+              render={({ field }) => (
+                <FormItem className="max-w-xs">
+                  <FormLabel>
+                    Einspeiselimit (kW){feedInLimitRequired ? " *" : ""}
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min={0}
+                      step={0.1}
+                      value={field.value ?? ""}
+                      onChange={(e) => {
+                        const v = e.target.valueAsNumber;
+                        field.onChange(isNaN(v) ? undefined : v);
+                      }}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ConsumptionDetailsBlock renders the PROJ-49 per-MP energy inputs for
+// CONSUMPTION rows (Verbrauch Vorjahr + Verbrauch Prognose). Hidden for
+// PRODUCTION and when the EEG has both fields configured as `hidden`.
+function ConsumptionDetailsBlock({
+  form,
+  index,
+  showPrev,
+  showFc,
+  prevRequired,
+  fcRequired,
+}: {
+  form: UseFormReturn<RegistrationFormValues>;
+  index: number;
+  showPrev: boolean;
+  showFc: boolean;
+  prevRequired: boolean;
+  fcRequired: boolean;
+}) {
+  const direction = form.watch(`meteringPoints.${index}.direction`);
+  if (direction !== "CONSUMPTION") return null;
+  if (!showPrev && !showFc) return null;
+  return (
+    <div className="pt-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {showPrev && (
+        <FormField
+          control={form.control}
+          name={`meteringPoints.${index}.consumptionPreviousYear`}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Verbrauch Vorjahr (kWh){prevRequired ? " *" : ""}</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  min={0}
+                  value={field.value ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.valueAsNumber;
+                    field.onChange(isNaN(v) ? undefined : v);
+                  }}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                  ref={field.ref}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
+      {showFc && (
+        <FormField
+          control={form.control}
+          name={`meteringPoints.${index}.consumptionForecast`}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Verbrauch Prognose (kWh){fcRequired ? " *" : ""}</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  min={0}
+                  value={field.value ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.valueAsNumber;
+                    field.onChange(isNaN(v) ? undefined : v);
+                  }}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                  ref={field.ref}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
     </div>
   );
 }

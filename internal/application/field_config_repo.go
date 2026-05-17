@@ -11,10 +11,6 @@ var knownConfigurableFields = map[string]string{
 	"birth_date":               "optional",
 	"membership_start_date":    "hidden",
 	"persons_in_household":     "hidden",
-	"consumption_previous_year": "hidden",
-	"consumption_forecast":     "hidden",
-	"feed_in_forecast":         "hidden",
-	"pv_power_kwp":             "hidden",
 	"heat_pump":                "hidden",
 	"electric_vehicle":         "hidden",
 	"electric_vehicle_count":   "hidden",
@@ -29,6 +25,16 @@ var knownConfigurableFields = map[string]string{
 	// generation_type='pv' rendern — Service cleart sonst).
 	"battery_size_kwh":      "hidden",
 	"inverter_manufacturer": "hidden",
+	// PROJ-49: Energie-Felder pro Zählpunkt. CONSUMPTION-only:
+	//   consumption_previous_year, consumption_forecast
+	// PRODUCTION-only (alle direction-gegated im Service-Layer):
+	//   feed_in_forecast (alle Erzeugungsformen)
+	//   pv_power_kwp, feed_in_limit_kw (nur generation_type='pv')
+	"consumption_previous_year": "hidden",
+	"consumption_forecast":      "hidden",
+	"feed_in_forecast":          "hidden",
+	"pv_power_kwp":              "hidden",
+	"feed_in_limit_kw":          "hidden",
 }
 
 var validFieldStates = map[string]bool{

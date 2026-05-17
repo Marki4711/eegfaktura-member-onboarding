@@ -259,10 +259,8 @@ type eegTemplateData struct {
 
 var configurableFieldLabels = map[string]string{
 	"persons_in_household":            "Personen im Haushalt",
-	"consumption_previous_year":       "Verbrauch Vorjahr (kWh)",
-	"consumption_forecast":            "Verbrauch Prognose (kWh)",
-	"feed_in_forecast":                "Einspeisung Prognose (kWh)",
-	"pv_power_kwp":                    "PV-Leistung (kWp)",
+	// PROJ-49: consumption_*, feed_in_forecast, pv_power_kwp wandern in die
+	// per-MP-Tabelle (siehe FormatGenerationLine), nicht mehr hier.
 	"heat_pump":                       "Wärmepumpe vorhanden",
 	"electric_vehicle":                "Elektrofahrzeug vorhanden",
 	"electric_vehicle_count":          "Anzahl E-Fahrzeuge",
@@ -329,18 +327,8 @@ func buildConfigurableFields(app *shared.Application, fieldConfig map[string]str
 	if app.PersonsInHousehold != nil {
 		add("persons_in_household", fmt.Sprintf("%d", *app.PersonsInHousehold))
 	}
-	if app.ConsumptionPreviousYear != nil {
-		add("consumption_previous_year", fmt.Sprintf("%d", *app.ConsumptionPreviousYear))
-	}
-	if app.ConsumptionForecast != nil {
-		add("consumption_forecast", fmt.Sprintf("%d", *app.ConsumptionForecast))
-	}
-	if app.FeedInForecast != nil {
-		add("feed_in_forecast", fmt.Sprintf("%d", *app.FeedInForecast))
-	}
-	if app.PvPowerKwp != nil {
-		add("pv_power_kwp", fmt.Sprintf("%.2f", *app.PvPowerKwp))
-	}
+	// PROJ-49: consumption_*, feed_in_forecast, pv_power_kwp werden über
+	// FormatGenerationLine pro Zählpunkt gerendert, nicht hier.
 	if app.MembershipStartDate != nil {
 		add("membership_start_date", app.MembershipStartDate.Format("02.01.2006"))
 	}
@@ -872,11 +860,28 @@ var generationTypeLabels = map[string]string{
 	"biomass": "Biomasse",
 }
 
-// FormatGenerationLine returns "PV", "PV, Speicher 10,5 kWh (Fronius)" or
-// similar based on the PRODUCTION metering point's generation_type +
-// optional battery/inverter fields. Returns "" for CONSUMPTION points or
-// when no generation_type is set.
+// FormatGenerationLine returns a human-readable detail line for one metering
+// point. Used as a sub-text under the Zählpunktnummer in mail templates and
+// the approval PDF.
+//
+// PROJ-49: the line now carries both the generation info (PROJ-45) and the
+// per-MP energy values (consumption / feed-in / PV-Leistung / Einspeiselimit).
+// Examples:
+//   PRODUCTION + pv: "PV 9,9 kWp, Prognose 6000 kWh/J, Speicher 10,5 kWh (Fronius), Einspeiselimit 7,0 kW"
+//   PRODUCTION + wind: "Wind, Prognose 6000 kWh/J"
+//   CONSUMPTION:    "Verbrauch Vorjahr 4200 kWh, Prognose 4000 kWh"
+// Returns "" when no details are available for the row.
 func FormatGenerationLine(mp *shared.MeteringPoint) string {
+	if mp.Direction == shared.DirectionConsumption {
+		var parts []string
+		if mp.ConsumptionPreviousYear != nil {
+			parts = append(parts, fmt.Sprintf("Verbrauch Vorjahr %d kWh", *mp.ConsumptionPreviousYear))
+		}
+		if mp.ConsumptionForecast != nil {
+			parts = append(parts, fmt.Sprintf("Prognose %d kWh", *mp.ConsumptionForecast))
+		}
+		return strings.Join(parts, ", ")
+	}
 	if mp.Direction != shared.DirectionProduction || mp.GenerationType == nil {
 		return ""
 	}
@@ -884,25 +889,34 @@ func FormatGenerationLine(mp *shared.MeteringPoint) string {
 	if !ok {
 		label = *mp.GenerationType
 	}
-	// Battery / Wechselrichter sind PV-only (normalizeMeteringPointGeneration
-	// im application package erzwingt das). Wir prüfen das hier nicht
-	// nochmal — wenn die Werte gefüllt sind, gehören sie zu PV.
-	var extras []string
-	if mp.BatterySizeKwh != nil {
-		extras = append(extras, "Speicher "+formatKwh(*mp.BatterySizeKwh)+" kWh")
+	var parts []string
+	head := label
+	if mp.PvPowerKwp != nil && *mp.GenerationType == "pv" {
+		head = label + " " + formatKwh(*mp.PvPowerKwp) + " kWp"
 	}
-	if mp.InverterManufacturer != nil && strings.TrimSpace(*mp.InverterManufacturer) != "" {
-		wrapper := "(" + strings.TrimSpace(*mp.InverterManufacturer) + ")"
-		if len(extras) > 0 {
-			extras[len(extras)-1] += " " + wrapper
+	parts = append(parts, head)
+	if mp.FeedInForecast != nil {
+		parts = append(parts, fmt.Sprintf("Prognose %d kWh/J", *mp.FeedInForecast))
+	}
+	// Battery / Wechselrichter sind PV-only (normalizeMeteringPointGeneration
+	// im application package erzwingt das).
+	if mp.BatterySizeKwh != nil {
+		entry := "Speicher " + formatKwh(*mp.BatterySizeKwh) + " kWh"
+		if mp.InverterManufacturer != nil && strings.TrimSpace(*mp.InverterManufacturer) != "" {
+			entry += " (" + strings.TrimSpace(*mp.InverterManufacturer) + ")"
+		}
+		parts = append(parts, entry)
+	} else if mp.InverterManufacturer != nil && strings.TrimSpace(*mp.InverterManufacturer) != "" {
+		parts = append(parts, "Wechselrichter "+strings.TrimSpace(*mp.InverterManufacturer))
+	}
+	if mp.FeedInLimitPresent != nil && *mp.FeedInLimitPresent {
+		if mp.FeedInLimitKw != nil {
+			parts = append(parts, "Einspeiselimit "+formatKwh(*mp.FeedInLimitKw)+" kW")
 		} else {
-			extras = append(extras, wrapper)
+			parts = append(parts, "Einspeiselimit vorhanden")
 		}
 	}
-	if len(extras) == 0 {
-		return label
-	}
-	return label + ", " + strings.Join(extras, ", ")
+	return strings.Join(parts, ", ")
 }
 
 // formatKwh rendert einen kWh-Wert mit deutschem Komma. 10.0 → "10", 10.5 → "10,5".

@@ -111,13 +111,8 @@ func TestValidateConfigurableRequiredFields_MembershipStartDateRequired_Missing(
 	}
 }
 
-func TestValidateConfigurableRequiredFields_PvPowerRequired_Missing(t *testing.T) {
-	app := baseAppWithAllOptional()
-	app.PvPowerKwp = nil
-	if err := validateConfigurableRequiredFields(app, mkCfg("pv_power_kwp", "required"), nil); err == nil {
-		t.Fatal("expected error for required pv_power_kwp that is nil")
-	}
-}
+// PROJ-49: pv_power_kwp moved to metering_point. Required-check now lives
+// in validateConfigurableMeteringPointFields (covered below).
 
 func TestValidateConfigurableRequiredFields_HeatPumpRequired_Missing(t *testing.T) {
 	app := baseAppWithAllOptional()
@@ -221,17 +216,8 @@ func TestApplyAdminValues_SetsBoolFieldFalse(t *testing.T) {
 	}
 }
 
-func TestApplyAdminValues_SetsFloatField(t *testing.T) {
-	app := baseAppWithAllOptional()
-	val := "10.5"
-	cfg := map[string]FieldConfigEntry{
-		"pv_power_kwp": {State: "admin_only", AdminValue: &val},
-	}
-	applyAdminValues(app, cfg)
-	if app.PvPowerKwp == nil || *app.PvPowerKwp != 10.5 {
-		t.Errorf("expected pv_power_kwp=10.5, got %v", app.PvPowerKwp)
-	}
-}
+// PROJ-49: SetsFloatField test removed — the only float-typed admin_only
+// field on application-scope was pv_power_kwp, which now lives on metering_point.
 
 func TestApplyAdminValues_InvalidIntValue_LeavesNil(t *testing.T) {
 	app := baseAppWithAllOptional()

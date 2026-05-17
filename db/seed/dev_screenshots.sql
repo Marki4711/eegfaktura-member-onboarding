@@ -151,8 +151,7 @@ INSERT INTO member_onboarding.application (
     resident_street, resident_street_number, resident_zip, resident_city,
     privacy_accepted, privacy_version, privacy_accepted_at, accuracy_confirmed,
     iban, account_holder, sepa_mandate_accepted, sepa_mandate_accepted_at,
-    member_type, einzugsart, membership_start_date, persons_in_household,
-    consumption_previous_year, consumption_forecast, pv_power_kwp
+    member_type, einzugsart, membership_start_date, persons_in_household
 ) VALUES (
     '22222222-0005-0000-0000-000000000005',
     'R-DEMO-0005', 'RC-DEMO', 'approved',
@@ -162,9 +161,10 @@ INSERT INTO member_onboarding.application (
     'Musterstraße', '5', '8010', 'Musterstadt',
     TRUE, 'v1', NOW() - INTERVAL '12 days', TRUE,
     'AT000000000000000005', 'Hans Musterperson', TRUE, NOW() - INTERVAL '12 days',
-    'private', 'core', '2026-06-15', 3,
-    4200, 3800, 5.5
+    'private', 'core', '2026-06-15', 3
 );
+-- PROJ-49: Verbrauchs- und PV-Werte wandern an die Zählpunkt-Zeile (siehe
+-- metering_point-INSERT weiter unten, falls hier eine Demo-MP angelegt wird).
 
 -- 6. rejected — declined
 INSERT INTO member_onboarding.application (

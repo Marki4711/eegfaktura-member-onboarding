@@ -143,13 +143,11 @@ type Application struct {
 	ImportErrorMessage   *string           `json:"importErrorMessage,omitempty" db:"import_error_message"`
 	CreatedAt            time.Time         `json:"createdAt" db:"created_at"`
 	UpdatedAt            time.Time         `json:"updatedAt" db:"updated_at"`
-	// Configurable application-level fields (PROJ-8)
+	// Configurable application-level fields (PROJ-8). Note: PROJ-49 moved
+	// consumption/feed_in/pv_power fields to metering_point — they now live
+	// on MeteringPoint, not here.
 	MembershipStartDate     *time.Time `json:"membershipStartDate,omitempty" db:"membership_start_date"`
 	PersonsInHousehold      *int       `json:"personsInHousehold,omitempty" db:"persons_in_household"`
-	ConsumptionPreviousYear *int64     `json:"consumptionPreviousYear,omitempty" db:"consumption_previous_year"`
-	ConsumptionForecast     *int64     `json:"consumptionForecast,omitempty" db:"consumption_forecast"`
-	FeedInForecast          *int64     `json:"feedInForecast,omitempty" db:"feed_in_forecast"`
-	PvPowerKwp              *float64   `json:"pvPowerKwp,omitempty" db:"pv_power_kwp"`
 	HeatPump                *bool      `json:"heatPump,omitempty" db:"heat_pump"`
 	ElectricVehicle         *bool      `json:"electricVehicle,omitempty" db:"electric_vehicle"`
 	// PROJ-42: Detail-Erfassung — nur relevant wenn ElectricVehicle == true.
@@ -207,6 +205,19 @@ type MeteringPoint struct {
 	GenerationType       *string  `json:"generationType,omitempty" db:"generation_type"`
 	BatterySizeKwh       *float64 `json:"batterySizeKwh,omitempty" db:"battery_size_kwh"`
 	InverterManufacturer *string  `json:"inverterManufacturer,omitempty" db:"inverter_manufacturer"`
+	// PROJ-49: Energie-Felder pro Zählpunkt. Service-Layer-Regeln:
+	//   - ConsumptionPreviousYear / ConsumptionForecast: nur CONSUMPTION,
+	//     sonst auf NULL gesetzt.
+	//   - FeedInForecast: nur PRODUCTION, sonst NULL.
+	//   - PvPowerKwp / FeedInLimitPresent / FeedInLimitKw: nur PRODUCTION
+	//     mit GenerationType='pv', sonst NULL.
+	//   - FeedInLimitKw nur wenn FeedInLimitPresent=true, sonst NULL.
+	ConsumptionPreviousYear *int64   `json:"consumptionPreviousYear,omitempty" db:"consumption_previous_year"`
+	ConsumptionForecast     *int64   `json:"consumptionForecast,omitempty" db:"consumption_forecast"`
+	FeedInForecast          *int64   `json:"feedInForecast,omitempty" db:"feed_in_forecast"`
+	PvPowerKwp              *float64 `json:"pvPowerKwp,omitempty" db:"pv_power_kwp"`
+	FeedInLimitPresent      *bool    `json:"feedInLimitPresent,omitempty" db:"feed_in_limit_present"`
+	FeedInLimitKw           *float64 `json:"feedInLimitKw,omitempty" db:"feed_in_limit_kw"`
 }
 
 // HasDeviatingAddress returns true if this metering point has a different

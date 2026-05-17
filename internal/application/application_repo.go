@@ -32,8 +32,7 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 			resident_street, resident_street_number, resident_zip, resident_city,
 			privacy_accepted, privacy_version, privacy_accepted_at, accuracy_confirmed,
 			iban, account_holder, bank_name, sepa_mandate_accepted, sepa_mandate_accepted_at,
-			membership_start_date, persons_in_household, consumption_previous_year,
-			consumption_forecast, feed_in_forecast, pv_power_kwp,
+			membership_start_date, persons_in_household,
 			heat_pump, electric_vehicle, electric_vehicle_count, electric_vehicle_annual_km, electric_hot_water,
 			cooperative_shares_count,
 			network_operator_authorization, network_operator_authorization_at,
@@ -46,12 +45,11 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 			$16, $17, $18, $19,
 			$20, $21, $22, $23,
 			$24, $25, $26, $27, $28,
-			$29, $30, $31,
-			$32, $33, $34,
-			$35, $36, $37, $38, $39,
-			$40,
-			$41, $42,
-			$43, $44
+			$29, $30,
+			$31, $32, $33, $34, $35,
+			$36,
+			$37, $38,
+			$39, $40
 		) RETURNING id`
 
 	now := app.CreatedAt
@@ -63,8 +61,7 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity,
 		app.PrivacyAccepted, app.PrivacyVersion, &now, app.AccuracyConfirmed,
 		app.IBAN, app.AccountHolder, app.BankName, app.SepaMandateAccepted, app.SepaMandateAcceptedAt,
-		app.MembershipStartDate, app.PersonsInHousehold, app.ConsumptionPreviousYear,
-		app.ConsumptionForecast, app.FeedInForecast, app.PvPowerKwp,
+		app.MembershipStartDate, app.PersonsInHousehold,
 		app.HeatPump, app.ElectricVehicle, app.ElectricVehicleCount, app.ElectricVehicleAnnualKm, app.ElectricHotWater,
 		app.CooperativeSharesCount,
 		app.NetworkOperatorAuthorization, app.NetworkOperatorAuthorizationAt,
@@ -92,8 +89,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		       iban, account_holder, sepa_mandate_accepted, sepa_mandate_accepted_at,
 		       reviewed_by_user_id, admin_note, needs_info_reason, target_participant_id,
 		       import_started_at, import_finished_at, import_error_message,
-		       membership_start_date, persons_in_household, consumption_previous_year,
-		       consumption_forecast, feed_in_forecast, pv_power_kwp,
+		       membership_start_date, persons_in_household,
 		       heat_pump, electric_vehicle, electric_vehicle_count, electric_vehicle_annual_km, electric_hot_water,
 		       einzugsart, bank_name, mandate_reference, mandate_date,
 		       member_number,
@@ -112,8 +108,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	var birthDate, startedAt, submittedAt, approvedAt, rejectedAt, importedAt, privacyAcceptedAt, sepaMandateAcceptedAt, importStartedAt, importFinishedAt sql.NullTime
 	var bankConfirmedAt, activatedAt sql.NullTime
 	var membershipStartDate, mandateDate sql.NullTime
-	var personsInHousehold, consumptionPreviousYear, consumptionForecast, feedInForecast sql.NullInt64
-	var pvPowerKwp sql.NullFloat64
+	var personsInHousehold sql.NullInt64
 	var heatPump, electricVehicle, electricHotWater sql.NullBool
 	var electricVehicleCount, electricVehicleAnnualKm sql.NullInt64
 	var memberNumber sql.NullString
@@ -134,8 +129,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		&iban, &accountHolder, &app.SepaMandateAccepted, &sepaMandateAcceptedAt,
 		&reviewedByUserID, &adminNote, &needsInfoReason, &targetParticipantID, &importStartedAt, &importFinishedAt,
 		&importErrorMessage,
-		&membershipStartDate, &personsInHousehold, &consumptionPreviousYear,
-		&consumptionForecast, &feedInForecast, &pvPowerKwp,
+		&membershipStartDate, &personsInHousehold,
 		&heatPump, &electricVehicle, &electricVehicleCount, &electricVehicleAnnualKm, &electricHotWater,
 		&app.Einzugsart, &bankName, &mandateReference, &mandateDate,
 		&memberNumber,
@@ -247,21 +241,6 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		v := int(personsInHousehold.Int64)
 		app.PersonsInHousehold = &v
 	}
-	if consumptionPreviousYear.Valid {
-		v := consumptionPreviousYear.Int64
-		app.ConsumptionPreviousYear = &v
-	}
-	if consumptionForecast.Valid {
-		v := consumptionForecast.Int64
-		app.ConsumptionForecast = &v
-	}
-	if feedInForecast.Valid {
-		v := feedInForecast.Int64
-		app.FeedInForecast = &v
-	}
-	if pvPowerKwp.Valid {
-		app.PvPowerKwp = &pvPowerKwp.Float64
-	}
 	if heatPump.Valid {
 		app.HeatPump = &heatPump.Bool
 	}
@@ -359,15 +338,14 @@ func (r *ApplicationRepository) UpdateTx(tx *sql.Tx, app *shared.Application) er
 			privacy_version = $17, accuracy_confirmed = $18,
 			iban = $19, account_holder = $20, bank_name = $21,
 			sepa_mandate_accepted = $22, sepa_mandate_accepted_at = $23,
-			membership_start_date = $24, persons_in_household = $25, consumption_previous_year = $26,
-			consumption_forecast = $27, feed_in_forecast = $28, pv_power_kwp = $29,
-			heat_pump = $30, electric_vehicle = $31,
-			electric_vehicle_count = $32, electric_vehicle_annual_km = $33,
-			electric_hot_water = $34,
-			network_operator_authorization = $35,
-			network_operator_authorization_at = $36,
+			membership_start_date = $24, persons_in_household = $25,
+			heat_pump = $26, electric_vehicle = $27,
+			electric_vehicle_count = $28, electric_vehicle_annual_km = $29,
+			electric_hot_water = $30,
+			network_operator_authorization = $31,
+			network_operator_authorization_at = $32,
 			updated_at = NOW()
-		WHERE id = $37`
+		WHERE id = $33`
 
 	_, err := tx.Exec(query,
 		app.MemberType,
@@ -378,8 +356,7 @@ func (r *ApplicationRepository) UpdateTx(tx *sql.Tx, app *shared.Application) er
 		app.PrivacyAccepted, app.PrivacyVersion, app.AccuracyConfirmed,
 		app.IBAN, app.AccountHolder, app.BankName,
 		app.SepaMandateAccepted, app.SepaMandateAcceptedAt,
-		app.MembershipStartDate, app.PersonsInHousehold, app.ConsumptionPreviousYear,
-		app.ConsumptionForecast, app.FeedInForecast, app.PvPowerKwp,
+		app.MembershipStartDate, app.PersonsInHousehold,
 		app.HeatPump, app.ElectricVehicle,
 		app.ElectricVehicleCount, app.ElectricVehicleAnnualKm,
 		app.ElectricHotWater,

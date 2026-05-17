@@ -165,10 +165,6 @@ Fields:
 - `updated_at`
 - `membership_start_date` *(nullable, configurable)*
 - `persons_in_household` *(nullable integer, configurable)*
-- `consumption_previous_year` *(nullable integer kWh, configurable)*
-- `consumption_forecast` *(nullable integer kWh, configurable)*
-- `feed_in_forecast` *(nullable integer kWh, configurable)*
-- `pv_power_kwp` *(nullable decimal kWp, configurable)*
 - `heat_pump` *(nullable boolean, configurable)*
 - `electric_vehicle` *(nullable boolean, configurable)*
 - `electric_hot_water` *(nullable boolean, configurable)*
@@ -189,6 +185,14 @@ Fields:
 - `generation_type` VARCHAR(20) NULL — `pv` | `hydro` | `wind` | `biomass`. NULL bei CONSUMPTION, Pflicht (CHECK) bei PRODUCTION. Default `pv` für neue Production-Zählpunkte; Bestandsdaten werden migrationsweise auf `pv` gesetzt.
 - `battery_size_kwh` NUMERIC(7,2) NULL — Kapazität des Heimspeichers in kWh. Nur sinnvoll wenn `generation_type='pv'` (Service-Layer cleart sonst); PROJ-8-konfigurierbar (Default `hidden`).
 - `inverter_manufacturer` VARCHAR(100) NULL — Freitext-Hersteller (Fronius/SMA/Huawei …). Gleiche Bedingungen wie `battery_size_kwh`.
+
+**PROJ-49-Spalten** (Energie-Felder pro Zählpunkt — Migration 000043 hat sie von der `application`-Tabelle hierher verschoben, Bestandswerte verworfen):
+- `consumption_previous_year` BIGINT NULL — Verbrauch Vorjahr in kWh. Nur sinnvoll bei `direction='CONSUMPTION'` (Service-Layer cleart sonst); PROJ-8-konfigurierbar (Default `hidden`).
+- `consumption_forecast` BIGINT NULL — Verbrauch Prognose in kWh. Gleiche Bedingungen wie `consumption_previous_year`.
+- `feed_in_forecast` BIGINT NULL — Einspeisung Prognose in kWh/Jahr. Nur bei `direction='PRODUCTION'` (alle Erzeugungsformen); Service-Layer cleart sonst.
+- `pv_power_kwp` NUMERIC(7,2) NULL — installierte PV-Leistung in kWp. Nur bei `direction='PRODUCTION'` mit `generation_type='pv'`; Service-Layer cleart sonst.
+- `feed_in_limit_present` BOOLEAN NULL — „Einspeiselimit vorhanden?" (manche Netzanschlüsse sind leistungstechnisch beschränkt). Nur bei `direction='PRODUCTION'` mit `generation_type='pv'`; Service-Layer cleart sonst.
+- `feed_in_limit_kw` NUMERIC(7,2) NULL — maximaler Einspeisewert in kW. Nur gefüllt wenn `feed_in_limit_present = TRUE`; Service-Layer cleart sonst.
 
 **PROJ-45-Constraint:**
 ```sql
@@ -232,6 +236,12 @@ Fields:
 - `generation_type` *(PROJ-45, Pflicht bei PRODUCTION via CHECK)*
 - `battery_size_kwh` *(PROJ-45, nullable, configurable, nur PV)*
 - `inverter_manufacturer` *(PROJ-45, nullable, configurable, nur PV)*
+- `consumption_previous_year` *(PROJ-49, nullable BIGINT kWh, configurable, nur CONSUMPTION)*
+- `consumption_forecast` *(PROJ-49, nullable BIGINT kWh, configurable, nur CONSUMPTION)*
+- `feed_in_forecast` *(PROJ-49, nullable BIGINT kWh/Jahr, configurable, nur PRODUCTION)*
+- `pv_power_kwp` *(PROJ-49, nullable NUMERIC kWp, configurable, nur PRODUCTION + PV)*
+- `feed_in_limit_present` *(PROJ-49, nullable boolean, nur PRODUCTION + PV)*
+- `feed_in_limit_kw` *(PROJ-49, nullable NUMERIC kW, nur wenn feed_in_limit_present=TRUE)*
 - `created_at`
 - `updated_at`
 

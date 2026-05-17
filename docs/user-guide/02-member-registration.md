@@ -55,6 +55,10 @@ Geben Sie mindestens einen Zählpunkt an:
 - **Teilnahmefaktor** — prozentualer Anteil der Teilnahme an der EEG (Standard: 100 %)
 - **Erzeugungsform** *(PROJ-45, nur bei Erzeuger-Zählpunkten)* — Auswahl PV / Wasser / Wind / Biomasse, Default PV
 - **Größe Batterie (kWh)** und **Hersteller Wechselrichter** *(PROJ-45, nur bei PV-Erzeugern, sofern die EEG diese Felder konfiguriert hat)*
+- **Verbrauch Vorjahr / Verbrauch Prognose (kWh)** *(PROJ-49, nur bei Verbraucher-Zählpunkten)*
+- **Einspeisung Prognose (kWh/Jahr)** *(PROJ-49, nur bei Erzeuger-Zählpunkten)*
+- **PV-Leistung (kWp)** *(PROJ-49, nur bei Erzeuger-Zählpunkten mit Erzeugungsform PV)*
+- **Einspeiselimit** *(PROJ-49, nur bei PV-Erzeugern)* — Checkbox „Einspeiselimit vorhanden". Bei Ja erscheint ein Eingabefeld für den maximalen Einspeisewert in kW. Hintergrund: manche Netzanschlüsse sind leistungstechnisch beschränkt, sodass nur ein Teil der erzeugten PV-Leistung tatsächlich ins Netz eingespeist werden darf.
 - **Abweichende Adresse** *(PROJ-39, optional)* — Checkbox einblendet vier Adressfelder, wenn der Zählpunkt nicht an Ihrer Wohnadresse liegt. Alle vier Felder müssen ausgefüllt werden, sobald die Checkbox aktiviert ist.
 
 Über **Zählpunkt hinzufügen** können Sie bis zu 10 Zählpunkte angeben.
@@ -63,9 +67,10 @@ Geben Sie mindestens einen Zählpunkt an:
 
 Nach der Zählpunkt-Eingabe erscheint — sofern Ihre EEG die zugehörigen Felder konfiguriert hat — der Block „Weitere Angaben". Welche Felder dort sichtbar sind, hängt vom Typ Ihrer Zählpunkte ab:
 
-- **Verbraucher-Zählpunkt vorhanden:** „Personen im Haushalt", „Verbrauch Vorjahr/Prognose", „Wärmepumpe", „E-Auto" (+ optional Anzahl/Jahres-km, falls E-Auto = Ja), „Warmwasser elektrisch"
-- **Erzeuger-Zählpunkt vorhanden:** „PV-Leistung (kWp)", „Einspeisung Prognose"
-- Bei reinen Verbraucher-Anträgen werden die Erzeuger-Felder ausgeblendet, bei reinen Erzeuger-Anträgen die Verbraucher-Felder.
+- **Verbraucher-Zählpunkt vorhanden:** „Personen im Haushalt", „Wärmepumpe", „E-Auto" (+ optional Anzahl/Jahres-km, falls E-Auto = Ja), „Warmwasser elektrisch"
+- Bei reinen Erzeuger-Anträgen werden diese Verbraucher-Felder ausgeblendet.
+
+> **Hinweis (seit PROJ-49):** Die früheren Application-Level-Felder „Verbrauch Vorjahr/Prognose", „Einspeisung Prognose" und „PV-Leistung (kWp)" werden jetzt **pro Zählpunkt** abgefragt — direkt im jeweiligen Zählpunkt-Block des Formulars, nicht mehr hier im allgemeinen Abschnitt. Bei mehreren Verbraucher- oder Erzeuger-Zählpunkten gibt es entsprechend mehrere Eingaben.
 
 ## Schritt 5a: Genossenschaftsanteile (nur bei aktivierten EEGs)
 
