@@ -499,6 +499,16 @@ export interface MeteringPointDetail {
   generationType?: GenerationType | null;
   batterySizeKwh?: number | null;
   inverterManufacturer?: string | null;
+  // PROJ-49: Energie-Felder pro Zählpunkt (Sichtbarkeit + Clear-Regeln
+  // siehe MeteringPointRequest oben).
+  consumptionPreviousYear?: number | null;
+  consumptionForecast?: number | null;
+  feedInForecast?: number | null;
+  pvPowerKwp?: number | null;
+  feedInLimitPresent?: boolean | null;
+  feedInLimitKw?: number | null;
+  // PROJ-49 follow-up: „Speichersteuerung im Sinne der EEG vorstellbar?"
+  batteryControlAcceptable?: boolean | null;
 }
 
 export interface StatusLogEntry {

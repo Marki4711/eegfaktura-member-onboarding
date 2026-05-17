@@ -47,6 +47,17 @@ interface FormMeteringPoint {
   generationType?: "pv" | "hydro" | "wind" | "biomass";
   batterySizeKwh?: number;
   inverterManufacturer?: string;
+  // PROJ-49: Energie-Felder pro Zählpunkt — durchgereicht beim Update,
+  // damit Member-Eingaben beim Admin-Edit nicht stillschweigend gelöscht
+  // werden (das Backend ersetzt die Zählpunkte vollständig).
+  consumptionPreviousYear?: number;
+  consumptionForecast?: number;
+  feedInForecast?: number;
+  pvPowerKwp?: number;
+  feedInLimitPresent?: boolean;
+  feedInLimitKw?: number;
+  // PROJ-49 follow-up: „Speichersteuerung im Sinne der EEG vorstellbar?"
+  batteryControlAcceptable?: boolean;
 }
 
 function validateEmail(email: string) {
@@ -93,6 +104,13 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
       generationType: (mp.generationType ?? undefined) as FormMeteringPoint["generationType"],
       batterySizeKwh: mp.batterySizeKwh ?? undefined,
       inverterManufacturer: mp.inverterManufacturer ?? undefined,
+      consumptionPreviousYear: mp.consumptionPreviousYear ?? undefined,
+      consumptionForecast: mp.consumptionForecast ?? undefined,
+      feedInForecast: mp.feedInForecast ?? undefined,
+      pvPowerKwp: mp.pvPowerKwp ?? undefined,
+      feedInLimitPresent: mp.feedInLimitPresent ?? undefined,
+      feedInLimitKw: mp.feedInLimitKw ?? undefined,
+      batteryControlAcceptable: mp.batteryControlAcceptable ?? undefined,
     }))
   );
   const [saving, setSaving] = useState(false);
@@ -195,16 +213,31 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
     setSaving(true);
     setError(null);
 
-    const payload: MeteringPointRequest[] = meteringPoints.map((mp) => ({
-      meteringPoint: mp.meteringPoint.trim(),
-      direction: mp.direction,
-      participationFactor: mp.participationFactor,
-      // PROJ-45: server normalisiert nochmal — CONSUMPTION ⇒ generation_type
-      // wird auf NULL gecleart, non-pv ⇒ battery/inverter NULL.
-      generationType: mp.direction === "PRODUCTION" ? (mp.generationType ?? "pv") : undefined,
-      batterySizeKwh: mp.direction === "PRODUCTION" && (mp.generationType ?? "pv") === "pv" ? mp.batterySizeKwh : undefined,
-      inverterManufacturer: mp.direction === "PRODUCTION" && (mp.generationType ?? "pv") === "pv" ? (mp.inverterManufacturer || undefined) : undefined,
-    }));
+    const payload: MeteringPointRequest[] = meteringPoints.map((mp) => {
+      const isProduction = mp.direction === "PRODUCTION";
+      const isPv = isProduction && (mp.generationType ?? "pv") === "pv";
+      const isConsumption = mp.direction === "CONSUMPTION";
+      return {
+        meteringPoint: mp.meteringPoint.trim(),
+        direction: mp.direction,
+        participationFactor: mp.participationFactor,
+        // PROJ-45: server normalisiert nochmal — CONSUMPTION ⇒ generation_type
+        // wird auf NULL gecleart, non-pv ⇒ battery/inverter NULL.
+        generationType: isProduction ? (mp.generationType ?? "pv") : undefined,
+        batterySizeKwh: isPv ? mp.batterySizeKwh : undefined,
+        inverterManufacturer: isPv ? (mp.inverterManufacturer || undefined) : undefined,
+        // PROJ-49: Energie-Felder durchreichen. Sichtbarkeit-Gates analog
+        // zum Public-Form, damit Admin-Update keine Member-Eingaben löscht
+        // (Backend ersetzt die MP-Reihen vollständig).
+        consumptionPreviousYear: isConsumption ? mp.consumptionPreviousYear : undefined,
+        consumptionForecast: isConsumption ? mp.consumptionForecast : undefined,
+        feedInForecast: isProduction ? mp.feedInForecast : undefined,
+        pvPowerKwp: isPv ? mp.pvPowerKwp : undefined,
+        feedInLimitPresent: isPv ? mp.feedInLimitPresent : undefined,
+        feedInLimitKw: isPv && mp.feedInLimitPresent ? mp.feedInLimitKw : undefined,
+        batteryControlAcceptable: isPv ? mp.batteryControlAcceptable : undefined,
+      };
+    });
 
     try {
       await updateApplication(application.id, {
