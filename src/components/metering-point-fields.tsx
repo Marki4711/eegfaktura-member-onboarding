@@ -121,7 +121,7 @@ export function MeteringPointFields({ form, fieldConfig }: MeteringPointFieldsPr
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Richtung" />
+                            <SelectValue />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>

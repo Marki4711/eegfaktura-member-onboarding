@@ -53,8 +53,8 @@ export default function SettingsPage() {
         <h1 className="text-2xl font-bold">Einstellungen</h1>
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground text-sm">
-            Als Superuser bitte RC-Nummer direkt in der URL angeben:<br />
-            <code className="text-xs mt-2 block">/admin/settings?rc=RC123456</code>
+            Als Superuser ohne zugewiesene EEGs: Bitte zuerst eine EEG in der
+            Antragsliste auswählen, dann kehren Sie hierher zurück.
           </CardContent>
         </Card>
       </div>
@@ -100,9 +100,10 @@ export default function SettingsPage() {
         <div>
           <h2 className="text-xl font-semibold mb-1">EEG-Stammdaten &amp; SEPA-Mandat</h2>
           <p className="text-sm text-muted-foreground mb-4">
-            Aktivieren oder deaktivieren Sie die öffentliche Registrierung. Hinterlegen Sie die
-            Stammdaten Ihrer Energiegemeinschaft für das SEPA-Lastschriftmandat — wenn aktiviert,
-            wird das Mandat als PDF-Anhang im Willkommensmail verschickt.
+            Aktivieren oder deaktivieren Sie die öffentliche Registrierung und konfigurieren Sie
+            das SEPA-Lastschriftmandat. Das Mandat wird je nach Einstellung als PDF-Anhang in
+            der Eingangsbestätigung oder erst nach erfolgreichem Import (mit Mitgliedsnummer
+            als Mandatsreferenz) versendet.
           </p>
           <AdminEEGSettingsEditor rcNumber={selectedRc} />
         </div>
@@ -159,9 +160,10 @@ export default function SettingsPage() {
         <div>
           <h2 className="text-xl font-semibold mb-1">Rechtsdokumente</h2>
           <p className="text-sm text-muted-foreground mb-4">
-            EEG-spezifische Dokumente (z.B. Satzung, Nutzungsbedingungen), denen Mitglieder bei der
-            Registrierung zustimmen müssen. Die zentrale Datenschutzerklärung wird über
-            Servereinstellungen konfiguriert.
+            EEG-spezifische Dokumente (z. B. Satzung, Nutzungsbedingungen), denen Mitglieder bei
+            der Registrierung zustimmen müssen. Die zentrale Datenschutzerklärung wird global
+            vom Betreiber konfiguriert; ob sie zusätzlich im Formular angezeigt wird, steuern
+            Sie unten per Toggle.
           </p>
           <AdminLegalDocumentsEditor rcNumber={selectedRc} />
         </div>

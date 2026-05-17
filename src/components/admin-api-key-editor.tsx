@@ -180,7 +180,7 @@ export function AdminApiKeyEditor({ rcNumber }: Props) {
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Speichern Sie den Key sicher ab (z.B. als Umgebungsvariable auf Ihrem Server).
+            Speichern Sie den Key sicher ab (z. B. als Umgebungsvariable auf Ihrem Server).
             Der Key darf niemals in Browser-seitigem Code verwendet werden.
           </p>
 

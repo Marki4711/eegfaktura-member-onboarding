@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { ChevronUp, ChevronDown, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -94,15 +95,22 @@ export function AdminLegalDocumentsEditor({ rcNumber }: Props) {
     setPolicyToggleSaving(true);
     setShowCentralPolicy(checked);
     try {
+      // Vollständiger Settings-Snapshot — sonst überschreibt der Toggle
+      // PROJ-37 (Genossenschaftsanteile) und PROJ-48 (sepaMandateAtImport)
+      // mit `undefined` und das Backend kann sie auf Default zurücksetzen.
       await saveEEGSettings(
         rcNumber,
         {
           registrationActive: eegSettings.registrationActive,
           sepaMandateEnabled: eegSettings.sepaMandateEnabled,
           useCompanySEPAMandate: eegSettings.useCompanySEPAMandate,
+          sepaMandateAtImport: eegSettings.sepaMandateAtImport,
           requireEmailConfirmation: eegSettings.requireEmailConfirmation,
           memberNumberStart: eegSettings.memberNumberStart,
           showCentralPolicy: checked,
+          cooperativeSharesEnabled: eegSettings.cooperativeSharesEnabled,
+          cooperativeRequiredShares: eegSettings.cooperativeRequiredShares,
+          cooperativeShareAmountCents: eegSettings.cooperativeShareAmountCents,
         },
         session?.accessToken,
       );
@@ -191,7 +199,7 @@ export function AdminLegalDocumentsEditor({ rcNumber }: Props) {
     <div className="space-y-4">
       {docs.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Noch keine EEG-spezifischen Dokumente konfiguriert. Die zentrale Datenschutzerklärung wird über Servereinstellungen konfiguriert.
+          Noch keine EEG-spezifischen Dokumente konfiguriert. Die zentrale Datenschutzerklärung wird unten per Toggle ein- oder ausgeblendet.
         </p>
       ) : (
         <div className="space-y-2">
@@ -199,8 +207,8 @@ export function AdminLegalDocumentsEditor({ rcNumber }: Props) {
             <Card key={doc.id}>
               <CardContent className="py-3 px-4 flex items-center gap-3">
                 <div className="flex flex-col gap-0.5">
-                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleReorder(doc.id, "up")} disabled={idx === 0} aria-label="Nach oben">▲</Button>
-                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleReorder(doc.id, "down")} disabled={idx === docs.length - 1} aria-label="Nach unten">▼</Button>
+                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleReorder(doc.id, "up")} disabled={idx === 0} aria-label="Nach oben"><ChevronUp className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleReorder(doc.id, "down")} disabled={idx === docs.length - 1} aria-label="Nach unten"><ChevronDown className="h-4 w-4" /></Button>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{doc.title}</p>
@@ -236,7 +244,10 @@ export function AdminLegalDocumentsEditor({ rcNumber }: Props) {
         </div>
       )}
 
-      <Button variant="outline" size="sm" onClick={openAdd}>+ Dokument hinzufügen</Button>
+      <Button variant="outline" size="sm" onClick={openAdd}>
+        <PlusCircle className="h-4 w-4 mr-2" />
+        Dokument hinzufügen
+      </Button>
 
       <div className="border-t border-border pt-4 mt-2">
         <div className="flex items-center gap-3">

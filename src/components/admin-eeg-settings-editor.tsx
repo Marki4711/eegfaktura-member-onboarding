@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle2, AlertCircle, RefreshCw, Lock } from "lucide-react";
+import { CheckCircle2, AlertCircle, RefreshCw, Lock, ChevronUp, ChevronDown } from "lucide-react";
 import {
   getEEGSettings,
   saveEEGSettings,
@@ -24,19 +24,28 @@ interface Props {
   rcNumber: string;
 }
 
-// SyncedField is a read-only display row for one of the seven Core-mastered
-// fields. Shows the (locked) value plus a small icon — looks like an input
-// but isn't.
+// SyncedField is a read-only display row for one of the Core-mastered
+// fields. Uses a disabled <Input> so screen readers see it as a form
+// control (not just decorative text). The Lock-Icon next to the label
+// signals visually + semantically (via aria-label on the icon's parent)
+// that the value is managed by the Core.
 function SyncedField({ label, value }: { label: string; value: string | null | undefined }) {
+  const display = value && value.length > 0 ? value : "—";
   return (
     <div className="space-y-1.5">
       <Label className="text-sm flex items-center gap-1.5 text-muted-foreground">
         {label}
-        <Lock className="h-3 w-3" />
+        <span aria-label="Wird aus eegFaktura-Core synchronisiert (schreibgeschützt)">
+          <Lock className="h-3 w-3" />
+        </span>
       </Label>
-      <div className="h-9 px-3 py-1.5 rounded-md border bg-muted/40 text-sm flex items-center">
-        {value && value.length > 0 ? value : <span className="text-muted-foreground italic">—</span>}
-      </div>
+      <Input
+        value={display}
+        readOnly
+        disabled
+        aria-readonly="true"
+        className="bg-muted/40"
+      />
     </div>
   );
 }
@@ -289,14 +298,18 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
                     <AlertDescription className="text-xs space-y-1">
                       <p>
                         <strong>Stammdaten weichen von eegFaktura ab.</strong>{" "}
-                        Klicke „Aus eegFaktura aktualisieren", um die Daten zu übernehmen.
+                        Klicken Sie „Aus eegFaktura aktualisieren", um die Daten zu übernehmen.
                       </p>
                       <button
                         type="button"
                         onClick={() => setDiffExpanded((v) => !v)}
                         className="underline text-orange-900 hover:text-orange-700"
                       >
-                        {diffExpanded ? "Details verbergen ▴" : "Details anzeigen ▾"}
+                        {diffExpanded ? (
+                          <span className="inline-flex items-center gap-1">Details verbergen <ChevronUp className="h-3.5 w-3.5" /></span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1">Details anzeigen <ChevronDown className="h-3.5 w-3.5" /></span>
+                        )}
                       </button>
                       {diffExpanded && comparison.differingFields && (
                         <table className="w-full mt-2 text-xs border-collapse">
@@ -337,7 +350,7 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
             {comparisonLoaded && comparison?.coreReachable && !comparison.lastSyncedAt && (
               <Alert className="py-2">
                 <AlertDescription className="text-xs">
-                  Stammdaten wurden noch nicht aus eegFaktura geladen. Klicke
+                  Stammdaten wurden noch nicht aus eegFaktura geladen. Klicken Sie
                   „Aus eegFaktura aktualisieren" oben rechts, um sie zu übernehmen.
                 </AlertDescription>
               </Alert>
@@ -413,7 +426,7 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
               }}
             />
             <Label htmlFor="sepa-mandate-enabled" className="text-sm cursor-pointer">
-              SEPA-Lastschriftmandat dem Willkommensmail anhängen
+              SEPA-Mandat von der EEG bereitstellen
             </Label>
           </div>
 
@@ -428,7 +441,7 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
                 }}
               />
               <Label htmlFor="use-company-sepa-mandate" className="text-sm cursor-pointer">
-                Firmenlastschrift (B2B) für Unternehmen und Vereine verwenden
+                Firmenlastschrift (B2B) für Unternehmen und Gemeinden zulassen
               </Label>
             </div>
           )}
@@ -449,10 +462,12 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
                   SEPA-Mandat erst beim Import senden (mit Mitgliedsnummer als Mandatsreferenz)
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Wenn aktiv: das Mandat wird nicht beim Antrags-Eingang versendet, sondern erst beim Import
-                  in eegFaktura — dann mit ausgefüllter Mandatsreferenz (= Mitgliedsnummer).
-                  Wichtig wenn die EEG digital signierte Mandate verwendet (eine spätere Modifikation
-                  würde die Signatur ungültig machen).
+                  Standard (aus): das Mandat wird der Eingangsbestätigung als PDF-Anhang
+                  beigelegt — ohne Mandatsreferenz, der Member trägt sie händisch ein.
+                  Aktiv: das Mandat kommt erst beim Import in eegFaktura mit eingedruckter
+                  Mandatsreferenz (= Mitgliedsnummer). Notwendig, wenn das Mandat digital
+                  signiert werden soll (eine spätere Modifikation würde die Signatur ungültig
+                  machen). Greift gleichermaßen für Basis- und Firmenlastschrift.
                 </p>
               </div>
             </div>
@@ -529,7 +544,7 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
                 E-Mail-Adresse bestätigen
               </Label>
               <p className="text-xs text-muted-foreground mt-1 max-w-xl">
-                Wenn aktiviert, erhält das neue Mitglied in der Bestätigungs-Mail einen Button
+                Wenn aktiviert, erhält das neue Mitglied in der Eingangsbestätigung einen Button
                 „E-Mail-Adresse bestätigen". Erst nach dem Klick wird der Antrag für Sie zur
                 Prüfung freigegeben. Empfohlen als Schutz vor Müll-Anträgen und Tippfehlern bei
                 der E-Mail-Adresse.

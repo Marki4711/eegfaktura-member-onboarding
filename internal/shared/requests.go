@@ -150,6 +150,12 @@ type RegistrationConfig struct {
 	FieldConfig        map[string]string   `json:"fieldConfig"`
 	IntroText          *string             `json:"introText"`
 	SEPAMandateEnabled bool                `json:"sepaMandateEnabled"`
+	// SEPAMandateAtImport (PROJ-48) wird an die Public-Form weitergereicht,
+	// damit der Hinweistext „Mandat kommt jetzt vs. nach Import" korrekt
+	// gerendert werden kann. False = heutiges Verhalten (Mandat als Anhang
+	// in der Eingangsbestätigung); True = Mandat kommt erst beim Import
+	// mit Mitgliedsnummer als Mandatsreferenz.
+	SEPAMandateAtImport bool               `json:"sepaMandateAtImport"`
 	ShowCentralPolicy  bool                `json:"showCentralPolicy"`
 	LegalDocuments     []LegalDocumentItem `json:"legalDocuments"`
 	// PROJ-37: only set when CooperativeSharesEnabled=true on the EEG.

@@ -79,8 +79,9 @@ export const CONFIGURABLE_FIELDS: {
     { name: "electric_hot_water",      label: "Warmwasser elektrisch (Boiler)",  defaultState: "hidden",
       visibilityTags: ["consumption"],
       visibilityHint: "Wird nur angezeigt, wenn der Antrag mindestens einen Verbraucher-Zählpunkt enthält." },
-    // PROJ-44: Netzbetreiber-Vollmacht (siehe NETWORK_OPERATOR_AUTH_TEXT
-    // in registration-form.tsx für den verbindlichen Wortlaut).
+    // PROJ-44: Netzbetreiber-Vollmacht. Verbindlicher Wortlaut der Checkbox
+    // liegt in NETWORK_OPERATOR_AUTH_TEXT (unten in dieser Datei) — Single
+    // Source of Truth, damit Spec und UI nicht driften können.
     { name: "network_operator_authorization", label: "Netzbetreiber-Vollmacht erteilen", defaultState: "hidden" },
   ],
   meteringPoint: [
@@ -96,6 +97,18 @@ export const CONFIGURABLE_FIELDS: {
       visibilityHint: "Wird nur bei Einspeise-Zählpunkten mit Erzeugungsform PV angezeigt." },
   ],
 };
+
+// PROJ-44: rechtsverbindlicher Wortlaut der Netzbetreiber-Vollmacht.
+// Single Source of Truth — der Public-Form-Checkbox-Label rendert genau
+// diesen String. Spec liegt in features/PROJ-44-network-operator-authorization.md.
+// Eine Änderung hier ist rechtlich relevant und muss mit dem EEG-Fachverband
+// abgestimmt werden.
+export const NETWORK_OPERATOR_AUTH_TEXT =
+  "Ich erteile der EEG für die Dauer der Mitgliedschaft zeitlich unbegrenzt " +
+  "die Vollmacht, in meinem Namen sämtliche Schritte und Abstimmungen mit " +
+  "dem zuständigen Netzbetreiber durchzuführen, die zur vollständigen " +
+  "(De-)Aktivierung der angeführten Zählpunkte in der EEG notwendig sind. " +
+  "Dies betrifft insbesondere auch die Nutzung des Online-Portals des Netzbetreibers.";
 
 // PROJ-45: Erzeugungsform pro PRODUCTION-Zählpunkt. Default 'pv' im Backend.
 export const GENERATION_TYPES = [
@@ -143,6 +156,10 @@ export interface RegistrationConfig {
   fieldConfig?: FieldConfig;
   introText?: string | null;
   sepaMandateEnabled?: boolean;
+  // PROJ-48: wenn true, kommt das Mandat erst beim Import. Steuert den
+  // Hinweistext in der Public-Form (Member soll wissen, dass das Mandat
+  // jetzt vs. später per Mail kommt).
+  sepaMandateAtImport?: boolean;
   showCentralPolicy?: boolean;
   legalDocuments?: LegalDocumentItem[];
   // PROJ-37: cooperative-shares config. The two value fields are only

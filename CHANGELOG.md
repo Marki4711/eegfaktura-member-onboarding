@@ -10,6 +10,69 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Geändert — Register-Dialog + Admin-Settings: Audit-Fixes *(2026-05-17)*
+
+Vollständiger Inhalts-Audit analog zum Mail-Template-Audit. 51 Findings
+in drei Wellen abgearbeitet.
+
+**Welle A (kritisch):**
+- `admin-legal-documents-editor.tsx` `handlePolicyToggle` Payload-Fix:
+  vollständiger Settings-Snapshot wird mitgesendet — vorher fehlten
+  `sepaMandateAtImport` (PROJ-48), `cooperativeSharesEnabled`,
+  `cooperativeRequiredShares`, `cooperativeShareAmountCents` (PROJ-37),
+  d.h. der Datenschutz-Toggle überschrieb diese Settings stillschweigend
+  mit Defaults. **Echter Datenverlust-Pfad behoben.**
+- `admin-eeg-settings-editor.tsx` B2B-Label-Korrektur: „für Unternehmen
+  und **Gemeinden**" (vorher „Unternehmen und Vereine" — fachlich falsch
+  nach PROJ-48; Vereine bekommen kein B2B-Auto-Mandat).
+- `admin-eeg-settings-editor.tsx` SEPA-Haupt-Toggle umformuliert auf
+  „SEPA-Mandat von der EEG bereitstellen" (vorher: „dem Willkommensmail
+  anhängen", was nach PROJ-48 nicht mehr stimmt). Beim
+  at-import-Sub-Toggle ausführlicher Hilfetext.
+- `registration-form.tsx`: Neuer Hinweistext bei
+  `sepaMandateEnabled=true` UND `sepaMandateAtImport=true` — Member
+  weiß nun, dass das Mandat erst mit der Beitrittsbestätigung kommt.
+  `RegistrationConfig` (Backend + Frontend-Type) um
+  `sepaMandateAtImport` erweitert.
+- Veraltete Texte „Die zentrale Datenschutzerklärung wird über
+  Servereinstellungen konfiguriert" in `app/admin/settings/page.tsx`
+  und `admin-legal-documents-editor.tsx` korrigiert — der per-EEG
+  Toggle existiert seit PROJ-18.
+- Superuser-URL-Hinweis (`/admin/settings?rc=…`) in `settings/page.tsx`
+  ersetzt — Code las den URL-Param nie aus, die Anleitung funktionierte
+  nicht.
+
+**Welle B (Konsistenz):**
+- **`NETWORK_OPERATOR_AUTH_TEXT`** als Konstante in `src/lib/api.ts`
+  extrahiert. Public-Form rendert nun aus der Konstante (Single Source
+  of Truth, Spec/UI-Drift verhindert).
+- `SyncedField` jetzt mit echtem disabled `<Input>` statt visuell
+  ähnlichem `<div>` — A11y-Fix für Screen Reader.
+- Genossenschaftsanteile-Sichtbarkeits-Bug: Block wird jetzt gerendert,
+  sobald `cooperativeSharesEnabled=true` (auch wenn `amountCents=null`).
+  Vorher wurde der ganze Block stillschweigend ausgeblendet — Member
+  scheiterte beim Submit am Backend-400.
+- Du→Sie im Admin-Editor (zwei Stellen in
+  `admin-eeg-settings-editor.tsx` mit „Klicke" → „Klicken Sie").
+- „Bestätigungs-Mail" → „Eingangsbestätigung" (PROJ-31-Erläuterung).
+- Mitglieds­typ-Label „Gemeinde / öffentl. Körperschaft" → ausgeschrieben.
+- `orgLabel` für Kleinunternehmer ergänzt („Firmenbezeichnung" statt
+  fallback „Firmenname").
+- `Aktiv am (Beitrittsdatum)`-Hilfetext: `<p>` → Popover (Frontend-
+  Regel-Compliance, Pattern aus `.claude/rules/frontend.md`).
+
+**Welle C (Kosmetik):**
+- Unicode-Pfeile `▲`/`▼`/`▴`/`▾` → lucide `ChevronUp`/`ChevronDown`
+  in `admin-legal-documents-editor.tsx` + `admin-eeg-settings-editor.tsx`.
+- „+ Dokument hinzufügen" → lucide `PlusCircle`-Icon-Pattern.
+- Placeholder `"Richtung"` aus `metering-point-fields.tsx` entfernt
+  (wurde nie sichtbar, Wert ist immer initial gesetzt).
+- `z.B.` → `z. B.` Typografie-Fix in `admin-api-key-editor.tsx`.
+- Doppelter Kommentar zur Metering-Points-Karte in `registration-form.tsx`
+  entfernt.
+
+Backend + Tests grün.
+
 ### Geändert — Mail-Templates: Audit-Fixes + Orphan-Cleanup *(2026-05-17)*
 
 Vollständiger Inhalts-Audit aller 8 Mail-Templates + Behebung der

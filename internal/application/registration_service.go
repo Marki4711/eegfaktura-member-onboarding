@@ -90,14 +90,15 @@ func (s *RegistrationService) GetRegistrationConfig(rcNumber string) (*shared.Re
 	}
 
 	cfg := &shared.RegistrationConfig{
-		RCNumber:           ep.RCNumber,
-		Title:              "Mitglied werden",
-		Active:             ep.IsActive,
-		FieldConfig:        fieldConfig,
-		IntroText:          ep.IntroText,
-		SEPAMandateEnabled: ep.SEPAMandateEnabled,
-		ShowCentralPolicy:  ep.ShowCentralPolicy,
-		LegalDocuments:     legalDocuments,
+		RCNumber:            ep.RCNumber,
+		Title:               "Mitglied werden",
+		Active:              ep.IsActive,
+		FieldConfig:         fieldConfig,
+		IntroText:           ep.IntroText,
+		SEPAMandateEnabled:  ep.SEPAMandateEnabled,
+		SEPAMandateAtImport: ep.SEPAMandateAtImport,
+		ShowCentralPolicy:   ep.ShowCentralPolicy,
+		LegalDocuments:      legalDocuments,
 		// PROJ-37: only ship the two value fields when the feature is on.
 		CooperativeSharesEnabled: ep.CooperativeSharesEnabled,
 	}

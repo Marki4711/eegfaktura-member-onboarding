@@ -5,7 +5,8 @@ import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Info } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Form,
   FormControl,
@@ -43,6 +44,7 @@ import {
   ApiResponseError,
   resolveFieldState,
   CONFIGURABLE_FIELDS,
+  NETWORK_OPERATOR_AUTH_TEXT,
   type RegistrationConfig,
   type MemberType,
   type FieldConfig,
@@ -59,7 +61,7 @@ const MEMBER_TYPE_OPTIONS: { value: MemberType; label: string; hint: string }[] 
   { value: "private",         label: "Privatperson",                    hint: "0 % USt." },
   { value: "sole_proprietor", label: "Kleinunternehmer",                hint: "0 % USt." },
   { value: "farmer",          label: "Pauschalierter Landwirt",         hint: "13 % USt." },
-  { value: "municipality",    label: "Gemeinde / öffentl. Körperschaft", hint: "variabel" },
+  { value: "municipality",    label: "Gemeinde / öffentliche Körperschaft", hint: "variabel" },
   { value: "company",         label: "Unternehmen",                     hint: "20 % USt." },
   { value: "association",     label: "Verein",                          hint: "variabel" },
 ];
@@ -197,6 +199,7 @@ function buildFormSchema(
     } else {
       const orgLabel = data.memberType === "municipality" ? "Organisationsname"
         : data.memberType === "association" ? "Vereinsname"
+        : data.memberType === "sole_proprietor" ? "Firmenbezeichnung"
         : "Firmenname";
       if (!data.companyName?.trim()) {
         ctx.addIssue({ code: "custom", path: ["companyName"], message: `${orgLabel} ist erforderlich` });
@@ -314,6 +317,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
 
   const fieldConfig = config.fieldConfig;
   const sepaMandateEnabled = config.sepaMandateEnabled ?? false;
+  const sepaMandateAtImport = config.sepaMandateAtImport ?? false;
   const showCentralPolicy = config.showCentralPolicy ?? true;
   const legalDocuments = config.legalDocuments ?? [];
   const centralPolicy = showCentralPolicy
@@ -941,11 +945,15 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
           </CardContent>
         </Card>
 
-        {/* PROJ-37: Genossenschaftsanteile — only rendered when the EEG
-            has enabled the feature. Member sees the configured mandatory
-            minimum as hint, must input at least that many, can voluntarily
-            go higher. Live total is amount × count. */}
-        {config.cooperativeSharesEnabled && config.cooperativeShareAmountCents != null && (
+        {/* PROJ-37: Genossenschaftsanteile — wird gerendert, sobald das EEG-
+            Feature aktiviert ist. Der Anteilswert (cooperativeShareAmountCents)
+            kann fehlen, wenn der Admin den Toggle umgelegt aber den Wert noch
+            nicht eingetragen hat — Backend lehnt den Submit dann ohne Wert
+            mit 400 ab; UI fällt nicht still aus dem Block raus (siehe
+            Sichtbarkeits-Bug-Fix). Der Anteilswert wird hier nur zur
+            Gesamtbetrags-Anzeige verwendet; ohne ihn rendern wir den Block
+            trotzdem mit einem Hinweis. */}
+        {config.cooperativeSharesEnabled && (
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Genossenschaftsanteile</CardTitle>
@@ -983,31 +991,38 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                 )}
               />
 
-              {(() => {
-                const amount = config.cooperativeShareAmountCents ?? 0;
-                const count = form.watch("cooperativeSharesCount") ?? 0;
-                const formatEur = (cents: number) =>
-                  new Intl.NumberFormat("de-AT", {
-                    style: "currency",
-                    currency: "EUR",
-                  }).format(cents / 100);
-                return (
-                  <div className="text-sm space-y-1 border-t pt-3">
-                    <div className="flex justify-between">
-                      <span>Genossenschaftsanteilswert:</span>
-                      <span>{formatEur(amount)}</span>
+              {config.cooperativeShareAmountCents != null ? (
+                (() => {
+                  const amount = config.cooperativeShareAmountCents ?? 0;
+                  const count = form.watch("cooperativeSharesCount") ?? 0;
+                  const formatEur = (cents: number) =>
+                    new Intl.NumberFormat("de-AT", {
+                      style: "currency",
+                      currency: "EUR",
+                    }).format(cents / 100);
+                  return (
+                    <div className="text-sm space-y-1 border-t pt-3">
+                      <div className="flex justify-between">
+                        <span>Genossenschaftsanteilswert:</span>
+                        <span>{formatEur(amount)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Gezeichnete Anteile:</span>
+                        <span>× {count}</span>
+                      </div>
+                      <div className="flex justify-between font-semibold border-t pt-2 mt-1">
+                        <span>Gesamtbetrag:</span>
+                        <span>{formatEur(amount * count)}</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Gezeichnete Anteile:</span>
-                      <span>× {count}</span>
-                    </div>
-                    <div className="flex justify-between font-semibold border-t pt-2 mt-1">
-                      <span>Gesamtbetrag:</span>
-                      <span>{formatEur(amount * count)}</span>
-                    </div>
-                  </div>
-                );
-              })()}
+                  );
+                })()
+              ) : (
+                <p className="text-xs text-muted-foreground border-t pt-3">
+                  Der Anteilswert wird Ihnen von Ihrer Energiegemeinschaft
+                  separat mitgeteilt.
+                </p>
+              )}
             </CardContent>
           </Card>
         )}
@@ -1110,14 +1125,21 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                     name="membershipStartDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Aktiv am (Beitrittsdatum){req("membership_start_date")}</FormLabel>
+                        <div className="flex items-center gap-1">
+                          <FormLabel>Aktiv am (Beitrittsdatum){req("membership_start_date")}</FormLabel>
+                          <Popover>
+                            <PopoverTrigger type="button" className="cursor-help">
+                              <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                            </PopoverTrigger>
+                            <PopoverContent className="max-w-72 text-sm">
+                              Datum, ab dem die Aktivierung der angegebenen Zählpunkte für die EEG erfolgen soll.
+                              Nützlich wenn die Aktivierung nicht sofort, sondern zu einem fest definierten Zeitpunkt stattfinden soll.
+                            </PopoverContent>
+                          </Popover>
+                        </div>
                         <FormControl>
                           <Input type="date" {...field} />
                         </FormControl>
-                        <p className="text-xs text-muted-foreground">
-                          Datum, ab dem die Aktivierung der angegebenen Zählpunkte für die EEG erfolgen soll.
-                          Nützlich wenn die Aktivierung nicht sofort, sondern zu einem fest definierten Zeitpunkt stattfinden soll.
-                        </p>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -1371,10 +1393,6 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
           </Card>
         )}
 
-        {/* Metering points — moved up so PROJ-45 typabhängige
-            Sichtbarkeit der Weitere-Angaben-Felder live nach
-            Zählpunkt-Eingabe greift. (Karte rendert oben.) */}
-
         {/* Consent */}
         <Card>
           <CardHeader>
@@ -1492,6 +1510,13 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                 )}
               />
             )}
+            {sepaMandateEnabled && sepaMandateAtImport && (
+              <p className="text-sm text-muted-foreground pl-1">
+                Das SEPA-Lastschriftmandat erhalten Sie nach der Freigabe Ihres
+                Antrags per E-Mail — mit eingetragener Mandatsreferenz (Ihrer
+                Mitgliedsnummer) zur Unterschrift.
+              </p>
+            )}
             {fs("network_operator_authorization") !== "hidden" && (
               <FormField
                 control={form.control}
@@ -1506,12 +1531,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                     </FormControl>
                     <div className="space-y-1 leading-none">
                       <FormLabel className="font-normal cursor-pointer">
-                        Ich erteile der EEG für die Dauer der Mitgliedschaft zeitlich
-                        unbegrenzt die Vollmacht, in meinem Namen sämtliche Schritte
-                        und Abstimmungen mit dem zuständigen Netzbetreiber durchzuführen,
-                        die zur vollständigen (De-)Aktivierung der angeführten Zählpunkte
-                        in der EEG notwendig sind. Dies betrifft insbesondere auch die
-                        Nutzung des Online-Portals des Netzbetreibers.
+                        {NETWORK_OPERATOR_AUTH_TEXT}
                         {fs("network_operator_authorization") === "required" && " *"}
                       </FormLabel>
                       <FormMessage />
