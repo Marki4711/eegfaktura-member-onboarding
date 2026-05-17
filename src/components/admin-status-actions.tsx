@@ -326,6 +326,13 @@ export function AdminStatusActions({ applicationId, rcNumber, status, targetPart
               {DIALOG_LABELS[dialogTarget].warning}
             </div>
           )}
+          {(dialogTarget === "rejected" || dialogTarget === "needs_info") && (
+            <div className="rounded-md border border-blue-500/40 bg-blue-50 p-3 text-sm text-blue-900 dark:bg-blue-950/30 dark:text-blue-200">
+              {dialogTarget === "rejected"
+                ? "Die hier eingegebene Begründung wird per E-Mail an den Beitrittswerber übermittelt."
+                : "Der hier eingegebene Text wird per E-Mail an den Beitrittswerber übermittelt."}
+            </div>
+          )}
           <div className="space-y-2 py-2">
             <Label htmlFor="reason-input">Begründung</Label>
             <Textarea

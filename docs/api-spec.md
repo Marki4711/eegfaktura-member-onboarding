@@ -592,10 +592,12 @@ Reachable only via dedicated endpoints (NOT via this generic `/status` route):
 When `registration_entrypoint.require_email_confirmation = TRUE` (PROJ-31), this endpoint rejects `submitted -> under_review|needs_info|approved` with HTTP 409 until the member has clicked the confirmation link. `submitted -> rejected` remains available as the admin's anti-spam override.
 
 ### Side effects
-- on `approved`: set `approved_at`, set `reviewed_by_user_id`
-- on `rejected`: set `rejected_at`, set `reviewed_by_user_id`
-- on `needs_info`: set `needs_info_reason`
+- on `approved`: set `approved_at`, set `reviewed_by_user_id`, asynchron Approval-PDF + Mail an EEG
+- on `rejected`: set `rejected_at`, set `reviewed_by_user_id`, **PROJ-41:** asynchron Mail an Mitglied mit `reason` 1:1 im Body
+- on `needs_info`: set `needs_info_reason`, **PROJ-43:** asynchron Mail an Mitglied mit `reason` 1:1 im Body
 - always write entry in `status_log`
+
+Beide Mitglieds-Mails sind best-effort: scheitert der Versand, wird der Statuswechsel selbst nicht zurückgerollt (Logs zeigen den Fehler).
 
 ### Response 200
 ```json

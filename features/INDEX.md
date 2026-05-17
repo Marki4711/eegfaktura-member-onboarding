@@ -54,5 +54,6 @@ Central tracking for all features.
 | PROJ-37 | Genossenschaftsanteile (per-EEG-Konfiguration + Antragsfeld) | In Review | `features/PROJ-37-cooperative-shares.md` | 2026-05-15 |
 | PROJ-38 | Status-Modell-Hygiene & Audit-Fixes | In Review | `features/PROJ-38-status-hygiene.md` | 2026-05-16 |
 | PROJ-39 | Titel-Nach + Bankname im Public-Form + abweichende Adresse je Zählpunkt | In Review | `features/PROJ-39-extra-fields.md` | 2026-05-17 |
+| PROJ-41 | Status-Change-Mails an Mitglied (Ablehnung + Info-Anfrage) | In Review | `features/PROJ-41-status-change-mails.md` | 2026-05-17 |
 
-## Next Available ID: PROJ-40
+## Next Available ID: PROJ-40 (übersprungen für PROJ-41+43, wird für EEG-Umzuordnung verwendet)

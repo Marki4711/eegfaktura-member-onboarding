@@ -33,6 +33,12 @@ type MailService interface {
 	SendEEGNotification(app *shared.Application, meteringPoints []shared.MeteringPoint, entrypoint *shared.RegistrationEntrypoint, fieldConfig map[string]string)
 	SendMemberConfirmation(app *shared.Application, entrypoint *shared.RegistrationEntrypoint) error
 	SendApprovalEmail(app *shared.Application, entrypoint *shared.RegistrationEntrypoint, pdfBytes []byte, pdfFailed bool) error
+	// PROJ-41: Mail an Mitglied bei Ablehnung. Reason wird 1:1 in den
+	// Mail-Body übernommen (von der Admin-Oberfläche eingegeben).
+	SendRejectedNotification(app *shared.Application, entrypoint *shared.RegistrationEntrypoint, reason string) error
+	// PROJ-43: Mail an Mitglied bei Info-Anfrage. Reason ist die
+	// Rückfrage des EEG-Admins, geht 1:1 in den Mail-Body.
+	SendNeedsInfoNotification(app *shared.Application, entrypoint *shared.RegistrationEntrypoint, reason string) error
 }
 
 // NoOpMailService silently drops all mail calls. Used when SMTP is not configured.
@@ -48,14 +54,22 @@ func (n *NoOpMailService) SendMemberConfirmation(_ *shared.Application, _ *share
 func (n *NoOpMailService) SendApprovalEmail(_ *shared.Application, _ *shared.RegistrationEntrypoint, _ []byte, _ bool) error {
 	return nil
 }
+func (n *NoOpMailService) SendRejectedNotification(_ *shared.Application, _ *shared.RegistrationEntrypoint, _ string) error {
+	return nil
+}
+func (n *NoOpMailService) SendNeedsInfoNotification(_ *shared.Application, _ *shared.RegistrationEntrypoint, _ string) error {
+	return nil
+}
 
 // SMTPMailService sends HTML emails via SMTP.
 type SMTPMailService struct {
-	sender       Sender
-	memberTpl    *template.Template
-	eegTpl       *template.Template
-	approvalTpl  *template.Template
-	adminBaseURL string
+	sender         Sender
+	memberTpl      *template.Template
+	eegTpl         *template.Template
+	approvalTpl    *template.Template
+	rejectedTpl    *template.Template
+	needsInfoTpl   *template.Template
+	adminBaseURL   string
 }
 
 // templateFuncs exposes display-timezone-aware formatters to every mail
@@ -79,11 +93,21 @@ func NewSMTPMailService(sender Sender, adminBaseURL string) (*SMTPMailService, e
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse approval template: %w", err)
 	}
+	rejectedTpl, err := template.New("application_rejected_member.html").Funcs(templateFuncs).ParseFS(templateFS, "templates/application_rejected_member.html")
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse rejected template: %w", err)
+	}
+	needsInfoTpl, err := template.New("application_needs_info_member.html").Funcs(templateFuncs).ParseFS(templateFS, "templates/application_needs_info_member.html")
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse needs-info template: %w", err)
+	}
 	return &SMTPMailService{
 		sender:       sender,
 		memberTpl:    memberTpl,
 		eegTpl:       eegTpl,
 		approvalTpl:  approvalTpl,
+		rejectedTpl:  rejectedTpl,
+		needsInfoTpl: needsInfoTpl,
 		adminBaseURL: adminBaseURL,
 	}, nil
 }
@@ -577,6 +601,77 @@ func (s *SMTPMailService) SendApprovalEmail(app *shared.Application, entrypoint 
 		metrics.MailSentTotal.WithLabelValues("eeg_approval", "success").Inc()
 	}
 	return err
+}
+
+// statusChangeTemplateData backs both the rejected and the needs-info
+// member-facing mail templates (PROJ-41 + PROJ-43). Symmetric on purpose
+// so the templates stay simple and the field shape obvious.
+type statusChangeTemplateData struct {
+	Firstname       string
+	Lastname        string
+	ReferenceNumber string
+	Reason          string
+	EEGName         string
+	EEGStreet       string
+	EEGStreetNumber string
+	EEGZip          string
+	EEGCity         string
+}
+
+func buildStatusChangeData(app *shared.Application, ep *shared.RegistrationEntrypoint, reason string) statusChangeTemplateData {
+	return statusChangeTemplateData{
+		Firstname:       derefString(app.Firstname),
+		Lastname:        derefString(app.Lastname),
+		ReferenceNumber: app.ReferenceNumber,
+		Reason:          reason,
+		EEGName:         derefString(ep.EEGName),
+		EEGStreet:       derefString(ep.EEGStreet),
+		EEGStreetNumber: derefString(ep.EEGStreetNumber),
+		EEGZip:          derefString(ep.EEGZip),
+		EEGCity:         derefString(ep.EEGCity),
+	}
+}
+
+// SendRejectedNotification sends the PROJ-41 mail to the applicant
+// after the admin rejected the application. Reason is the admin's
+// free-text rejection reason, rendered 1:1 into the mail body.
+func (s *SMTPMailService) SendRejectedNotification(app *shared.Application, entrypoint *shared.RegistrationEntrypoint, reason string) error {
+	var buf bytes.Buffer
+	if err := s.rejectedTpl.Execute(&buf, buildStatusChangeData(app, entrypoint, reason)); err != nil {
+		metrics.MailSentTotal.WithLabelValues("member_rejection", "failed").Inc()
+		return fmt.Errorf("render rejected template: %w", err)
+	}
+	subject := fmt.Sprintf("Ihr Beitrittsantrag wurde abgelehnt (%s)", app.ReferenceNumber)
+	htmlBody := buf.String()
+	// Reply-To = EEG contact so the member's "Reply" goes to the EEG, not
+	// to the noreply mailbox. Same pattern as the welcome mail.
+	opts := transactionalOpts(derefString(entrypoint.ContactEmail))
+	if err := s.sender.Send(opts, app.Email, subject, htmlBody, htmlToText(htmlBody)); err != nil {
+		metrics.MailSentTotal.WithLabelValues("member_rejection", "failed").Inc()
+		return err
+	}
+	metrics.MailSentTotal.WithLabelValues("member_rejection", "success").Inc()
+	return nil
+}
+
+// SendNeedsInfoNotification sends the PROJ-43 mail to the applicant
+// after the admin requested additional information. Reason is the
+// admin's free-text request, rendered 1:1 into the mail body.
+func (s *SMTPMailService) SendNeedsInfoNotification(app *shared.Application, entrypoint *shared.RegistrationEntrypoint, reason string) error {
+	var buf bytes.Buffer
+	if err := s.needsInfoTpl.Execute(&buf, buildStatusChangeData(app, entrypoint, reason)); err != nil {
+		metrics.MailSentTotal.WithLabelValues("member_needs_info", "failed").Inc()
+		return fmt.Errorf("render needs-info template: %w", err)
+	}
+	subject := fmt.Sprintf("Rückfragen zu Ihrem Beitrittsantrag (%s)", app.ReferenceNumber)
+	htmlBody := buf.String()
+	opts := transactionalOpts(derefString(entrypoint.ContactEmail))
+	if err := s.sender.Send(opts, app.Email, subject, htmlBody, htmlToText(htmlBody)); err != nil {
+		metrics.MailSentTotal.WithLabelValues("member_needs_info", "failed").Inc()
+		return err
+	}
+	metrics.MailSentTotal.WithLabelValues("member_needs_info", "success").Inc()
+	return nil
 }
 
 func derefString(s *string) string {

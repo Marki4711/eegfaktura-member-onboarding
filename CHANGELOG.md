@@ -10,6 +10,24 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Neu — PROJ-41 + PROJ-43: Status-Change-Mails an Mitglied *(2026-05-17)*
+
+Bisher erfuhr der Beitrittswerber nichts, wenn der EEG-Admin den Antrag
+ablehnte oder Rückfragen stellte — der Antrag stand einfach still. Jetzt
+löst jeder Wechsel auf `rejected` (PROJ-41) bzw. `needs_info` (PROJ-43)
+automatisch eine E-Mail an `application.email` aus.
+
+- Zwei neue Mail-Templates (`application_rejected_member.html`,
+  `application_needs_info_member.html`) übernehmen die vom Admin
+  eingegebene Begründung/Rückfrage **1:1** in den Mail-Body
+- Reply-To = EEG-Kontakt-E-Mail, damit Antworten direkt an die EEG gehen
+- Admin-Dialog zeigt einen blauen Hinweis-Block: „Der hier eingegebene
+  Text wird per E-Mail an den Beitrittswerber übermittelt"
+- Best-Effort + async: scheitert der Versand, wird der Statuswechsel nicht
+  zurückgerollt — Fehler landet im Log + Prometheus-Metric
+  `mail_sent_total{kind="member_rejection|member_needs_info"}`
+- Out of scope: BulkChangeStatus löst (vorerst) keine Mails aus
+
 ### Neu — PROJ-39: Titel-Nach + Bankname im Public-Form + abweichende Adresse je Zählpunkt *(2026-05-17)*
 
 Drei unabhängige Erweiterungen am öffentlichen Antragsformular.

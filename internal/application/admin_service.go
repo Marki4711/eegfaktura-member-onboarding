@@ -623,6 +623,39 @@ func (s *AdminApplicationService) ChangeStatus(id uuid.UUID, toStatus shared.App
 		}()
 	}
 
+	// PROJ-41 + PROJ-43: notify the applicant on rejection / info-request.
+	// Reason is mandatory for both transitions (requiresReason gate above),
+	// so we always have a body. Best-effort + async — failure logs but
+	// doesn't roll back the already-committed status change.
+	if toStatus == shared.StatusRejected || toStatus == shared.StatusNeedsInfo {
+		appID := id
+		notifyReason := reason
+		notifyStatus := toStatus
+		go func() {
+			acquireMailSem()
+			defer releaseMailSem()
+			reloadedApp, err := s.appRepo.GetByID(appID)
+			if err != nil {
+				slog.Error("status-change mail: failed to reload app", "application_id", appID, "to_status", notifyStatus, "error", err)
+				return
+			}
+			entrypoint, err := s.entrypointRepo.GetByRCNumber(reloadedApp.RCNumber)
+			if err != nil {
+				slog.Error("status-change mail: failed to load entrypoint", "application_id", appID, "to_status", notifyStatus, "error", err)
+				return
+			}
+			var sendErr error
+			if notifyStatus == shared.StatusRejected {
+				sendErr = s.mailService.SendRejectedNotification(reloadedApp, entrypoint, notifyReason)
+			} else {
+				sendErr = s.mailService.SendNeedsInfoNotification(reloadedApp, entrypoint, notifyReason)
+			}
+			if sendErr != nil {
+				slog.Error("status-change mail: failed to send", "application_id", appID, "to_status", notifyStatus, "error", sendErr)
+			}
+		}()
+	}
+
 	return &shared.ChangeStatusResponse{
 		ID:     id,
 		Status: string(toStatus),
