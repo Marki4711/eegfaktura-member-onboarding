@@ -10,6 +10,28 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Neu — PROJ-42: E-Fahrzeug-Detailerfassung *(2026-05-17)*
+
+Das bestehende `electric_vehicle`-Ja/Nein wird ergänzt um zwei optionale
+Detail-Felder, die für die EEG-Lastprofil-Optimierung relevant sind:
+
+- `electric_vehicle_count` (INT) — Anzahl der E-Fahrzeuge im Haushalt
+- `electric_vehicle_annual_km` (INT) — geschätzte Gesamt-Jahreskilometer
+
+Beide Felder folgen dem PROJ-8-Configurable-Fields-Pattern: pro EEG
+einstellbar (default `hidden`). Im Public-Form werden sie **nur**
+angezeigt, wenn (a) die EEG sie aktiviert hat UND (b) der Bewerber
+„Ja" beim E-Auto angekreuzt hat. Service-Layer cleart beide Werte
+serverseitig auf NULL falls `electric_vehicle != true` (kein DB-CHECK,
+sondern Service-Gate `clearEVDetailsIfDisabled`).
+
+Mail (Member + EEG), Approval-PDF, Excel-Export, Admin-Detail werden
+über die bestehende Configurable-Fields-Pipeline automatisch versorgt
+— sobald die Felder konfiguriert sind, erscheinen sie im
+„Zusätzliche Informationen"-Block.
+
+Migration: `db/migrations/000038_ev_details.up.sql`.
+
 ### Geändert — PROJ-41 + PROJ-43: Mail-Versand jetzt hard-fail *(2026-05-17)*
 
 Der initiale Best-Effort-Goroutine-Versand wurde umgestellt auf:

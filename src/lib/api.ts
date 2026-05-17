@@ -43,6 +43,8 @@ export const CONFIGURABLE_FIELDS: {
     { name: "pv_power_kwp",            label: "PV-Leistung (kWp)",              defaultState: "hidden"   },
     { name: "heat_pump",               label: "Wärmepumpe vorhanden",            defaultState: "hidden"   },
     { name: "electric_vehicle",        label: "E-Auto vorhanden",               defaultState: "hidden"   },
+    { name: "electric_vehicle_count",  label: "Anzahl E-Fahrzeuge",             defaultState: "hidden"   },
+    { name: "electric_vehicle_annual_km", label: "Jahres-Kilometer (E-Fahrzeuge)", defaultState: "hidden" },
     { name: "electric_hot_water",      label: "Warmwasser elektrisch (Boiler)",  defaultState: "hidden"   },
   ],
   meteringPoint: [
@@ -155,6 +157,9 @@ export interface CreateApplicationRequest {
   pvPowerKwp?: number;
   heatPump?: boolean | null;
   electricVehicle?: boolean | null;
+  // PROJ-42: nur sinnvoll wenn electricVehicle === true; Server cleart sonst.
+  electricVehicleCount?: number;
+  electricVehicleAnnualKm?: number;
   electricHotWater?: boolean | null;
   // PROJ-37: Anzahl gezeichneter Genossenschaftsanteile
   cooperativeSharesCount?: number;

@@ -34,7 +34,7 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 			iban, account_holder, bank_name, sepa_mandate_accepted, sepa_mandate_accepted_at,
 			membership_start_date, persons_in_household, consumption_previous_year,
 			consumption_forecast, feed_in_forecast, pv_power_kwp,
-			heat_pump, electric_vehicle, electric_hot_water,
+			heat_pump, electric_vehicle, electric_vehicle_count, electric_vehicle_annual_km, electric_hot_water,
 			cooperative_shares_count,
 			created_at, updated_at
 		) VALUES (
@@ -47,9 +47,9 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 			$24, $25, $26, $27, $28,
 			$29, $30, $31,
 			$32, $33, $34,
-			$35, $36, $37,
-			$38,
-			$39, $40
+			$35, $36, $37, $38, $39,
+			$40,
+			$41, $42
 		) RETURNING id`
 
 	now := app.CreatedAt
@@ -63,7 +63,7 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 		app.IBAN, app.AccountHolder, app.BankName, app.SepaMandateAccepted, app.SepaMandateAcceptedAt,
 		app.MembershipStartDate, app.PersonsInHousehold, app.ConsumptionPreviousYear,
 		app.ConsumptionForecast, app.FeedInForecast, app.PvPowerKwp,
-		app.HeatPump, app.ElectricVehicle, app.ElectricHotWater,
+		app.HeatPump, app.ElectricVehicle, app.ElectricVehicleCount, app.ElectricVehicleAnnualKm, app.ElectricHotWater,
 		app.CooperativeSharesCount,
 		app.CreatedAt, app.UpdatedAt,
 	}
@@ -90,7 +90,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		       import_started_at, import_finished_at, import_error_message,
 		       membership_start_date, persons_in_household, consumption_previous_year,
 		       consumption_forecast, feed_in_forecast, pv_power_kwp,
-		       heat_pump, electric_vehicle, electric_hot_water,
+		       heat_pump, electric_vehicle, electric_vehicle_count, electric_vehicle_annual_km, electric_hot_water,
 		       einzugsart, bank_name, mandate_reference, mandate_date,
 		       member_number,
 		       cooperative_shares_count,
@@ -109,6 +109,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	var personsInHousehold, consumptionPreviousYear, consumptionForecast, feedInForecast sql.NullInt64
 	var pvPowerKwp sql.NullFloat64
 	var heatPump, electricVehicle, electricHotWater sql.NullBool
+	var electricVehicleCount, electricVehicleAnnualKm sql.NullInt64
 	var memberNumber sql.NullString
 	var cooperativeSharesCount sql.NullInt64
 	var emailConfirmedAt, emailConfirmationUsedAt, emailConfirmationTokenExpiresAt sql.NullTime
@@ -127,7 +128,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		&importErrorMessage,
 		&membershipStartDate, &personsInHousehold, &consumptionPreviousYear,
 		&consumptionForecast, &feedInForecast, &pvPowerKwp,
-		&heatPump, &electricVehicle, &electricHotWater,
+		&heatPump, &electricVehicle, &electricVehicleCount, &electricVehicleAnnualKm, &electricHotWater,
 		&app.Einzugsart, &bankName, &mandateReference, &mandateDate,
 		&memberNumber,
 		&cooperativeSharesCount,
@@ -252,6 +253,14 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	if electricVehicle.Valid {
 		app.ElectricVehicle = &electricVehicle.Bool
 	}
+	if electricVehicleCount.Valid {
+		v := int(electricVehicleCount.Int64)
+		app.ElectricVehicleCount = &v
+	}
+	if electricVehicleAnnualKm.Valid {
+		v := int(electricVehicleAnnualKm.Int64)
+		app.ElectricVehicleAnnualKm = &v
+	}
 	if electricHotWater.Valid {
 		app.ElectricHotWater = &electricHotWater.Bool
 	}
@@ -334,9 +343,11 @@ func (r *ApplicationRepository) UpdateTx(tx *sql.Tx, app *shared.Application) er
 			sepa_mandate_accepted = $22, sepa_mandate_accepted_at = $23,
 			membership_start_date = $24, persons_in_household = $25, consumption_previous_year = $26,
 			consumption_forecast = $27, feed_in_forecast = $28, pv_power_kwp = $29,
-			heat_pump = $30, electric_vehicle = $31, electric_hot_water = $32,
+			heat_pump = $30, electric_vehicle = $31,
+			electric_vehicle_count = $32, electric_vehicle_annual_km = $33,
+			electric_hot_water = $34,
 			updated_at = NOW()
-		WHERE id = $33`
+		WHERE id = $35`
 
 	_, err := tx.Exec(query,
 		app.MemberType,
@@ -349,7 +360,9 @@ func (r *ApplicationRepository) UpdateTx(tx *sql.Tx, app *shared.Application) er
 		app.SepaMandateAccepted, app.SepaMandateAcceptedAt,
 		app.MembershipStartDate, app.PersonsInHousehold, app.ConsumptionPreviousYear,
 		app.ConsumptionForecast, app.FeedInForecast, app.PvPowerKwp,
-		app.HeatPump, app.ElectricVehicle, app.ElectricHotWater,
+		app.HeatPump, app.ElectricVehicle,
+		app.ElectricVehicleCount, app.ElectricVehicleAnnualKm,
+		app.ElectricHotWater,
 		app.ID,
 	)
 	if err != nil {

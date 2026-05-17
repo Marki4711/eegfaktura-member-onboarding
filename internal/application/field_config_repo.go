@@ -17,6 +17,8 @@ var knownConfigurableFields = map[string]string{
 	"pv_power_kwp":             "hidden",
 	"heat_pump":                "hidden",
 	"electric_vehicle":         "hidden",
+	"electric_vehicle_count":   "hidden",
+	"electric_vehicle_annual_km": "hidden",
 	"electric_hot_water":       "hidden",
 	"transformer":              "hidden",
 	"installation_number":      "hidden",

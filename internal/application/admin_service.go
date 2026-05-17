@@ -1188,6 +1188,12 @@ func buildApprovalConfigurableFields(app *shared.Application, fieldConfig map[st
 		}
 		add("electric_vehicle", "Elektrofahrzeug vorhanden", v)
 	}
+	if app.ElectricVehicleCount != nil {
+		add("electric_vehicle_count", "Anzahl E-Fahrzeuge", fmt.Sprintf("%d", *app.ElectricVehicleCount))
+	}
+	if app.ElectricVehicleAnnualKm != nil {
+		add("electric_vehicle_annual_km", "Jahres-Kilometer (E-Fahrzeuge)", fmt.Sprintf("%d km", *app.ElectricVehicleAnnualKm))
+	}
 	if app.ElectricHotWater != nil {
 		v := "Nein"
 		if *app.ElectricHotWater {

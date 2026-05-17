@@ -194,11 +194,14 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 		PvPowerKwp:              req.PvPowerKwp,
 		HeatPump:                req.HeatPump,
 		ElectricVehicle:         req.ElectricVehicle,
+		ElectricVehicleCount:    req.ElectricVehicleCount,
+		ElectricVehicleAnnualKm: req.ElectricVehicleAnnualKm,
 		ElectricHotWater:        req.ElectricHotWater,
 		CooperativeSharesCount:  req.CooperativeSharesCount,
 	}
 	applyAdminValues(app, fieldConfig)
 	clearMemberTypeFields(app)
+	clearEVDetailsIfDisabled(app)
 	if err = validateMemberTypeFields(app); err != nil {
 		return nil, err
 	}
@@ -346,6 +349,7 @@ func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateAp
 	}
 
 	clearMemberTypeFields(app)
+	clearEVDetailsIfDisabled(app)
 	if err = validateMemberTypeFields(app); err != nil {
 		return nil, err
 	}
@@ -962,6 +966,22 @@ func applyAdminValues(app *shared.Application, fieldConfig map[string]FieldConfi
 			app.ElectricVehicle = &b
 		}
 	})
+	apply("electric_vehicle_count", func(v string) {
+		if app.ElectricVehicleCount == nil {
+			var n int
+			if _, err := fmt.Sscanf(v, "%d", &n); err == nil {
+				app.ElectricVehicleCount = &n
+			}
+		}
+	})
+	apply("electric_vehicle_annual_km", func(v string) {
+		if app.ElectricVehicleAnnualKm == nil {
+			var n int
+			if _, err := fmt.Sscanf(v, "%d", &n); err == nil {
+				app.ElectricVehicleAnnualKm = &n
+			}
+		}
+	})
 	apply("electric_hot_water", func(v string) {
 		if app.ElectricHotWater == nil {
 			b := v == "true"
@@ -992,6 +1012,8 @@ func validateConfigurableRequiredFields(app *shared.Application, fieldConfig map
 	requiredIfMissing("pv_power_kwp", "pvPowerKwp", "PV-Leistung", app.PvPowerKwp == nil)
 	requiredIfMissing("heat_pump", "heatPump", "Wärmepumpe vorhanden", app.HeatPump == nil)
 	requiredIfMissing("electric_vehicle", "electricVehicle", "E-Auto vorhanden", app.ElectricVehicle == nil)
+	requiredIfMissing("electric_vehicle_count", "electricVehicleCount", "Anzahl E-Fahrzeuge", app.ElectricVehicleCount == nil)
+	requiredIfMissing("electric_vehicle_annual_km", "electricVehicleAnnualKm", "Jahres-Kilometer (E-Fahrzeuge)", app.ElectricVehicleAnnualKm == nil)
 	requiredIfMissing("electric_hot_water", "electricHotWater", "Warmwasser elektrisch", app.ElectricHotWater == nil)
 
 	if len(errs) > 0 {
@@ -1050,6 +1072,16 @@ func validateConfigurableMeteringPointFields(points []shared.MeteringPoint, fiel
 		}
 	}
 	return nil
+}
+
+// clearEVDetailsIfDisabled drops PROJ-42 details when ElectricVehicle is
+// not actively set to true. Service-level gate (no DB constraint) so the
+// row never carries Count/Km values that don't match the "ja/nein"-flag.
+func clearEVDetailsIfDisabled(app *shared.Application) {
+	if app.ElectricVehicle == nil || !*app.ElectricVehicle {
+		app.ElectricVehicleCount = nil
+		app.ElectricVehicleAnnualKm = nil
+	}
 }
 
 // clearMemberTypeFields nils out fields not applicable to the current member type.

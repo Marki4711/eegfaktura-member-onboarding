@@ -43,6 +43,10 @@ type CreateApplicationRequest struct {
 	PvPowerKwp              *float64 `json:"pvPowerKwp,omitempty" validate:"omitempty,min=0"`
 	HeatPump                *bool    `json:"heatPump,omitempty"`
 	ElectricVehicle         *bool    `json:"electricVehicle,omitempty"`
+	// PROJ-42: Details zur E-Fahrzeug-Erfassung. Werden serverseitig
+	// auf NULL gesetzt wenn electric_vehicle != true.
+	ElectricVehicleCount    *int     `json:"electricVehicleCount,omitempty" validate:"omitempty,min=1"`
+	ElectricVehicleAnnualKm *int     `json:"electricVehicleAnnualKm,omitempty" validate:"omitempty,min=0"`
 	ElectricHotWater        *bool    `json:"electricHotWater,omitempty"`
 	// PROJ-37: Anzahl der gezeichneten Genossenschaftsanteile. Pflicht bei
 	// EEGs mit aktivierter Anteils-Erfassung, sonst optional (wird dann

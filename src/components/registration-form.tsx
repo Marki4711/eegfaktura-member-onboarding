@@ -152,6 +152,9 @@ const baseSchema = z.object({
   pvPowerKwp: z.number().min(0).optional(),
   heatPump: z.boolean().nullable().optional(),
   electricVehicle: z.boolean().nullable().optional(),
+  // PROJ-42: nur sinnvoll wenn electricVehicle = true. Server cleart sonst.
+  electricVehicleCount: z.number().int().min(1).optional(),
+  electricVehicleAnnualKm: z.number().int().min(0).optional(),
   electricHotWater: z.boolean().nullable().optional(),
   // PROJ-37: Genossenschaftsanteile (nur Pflicht wenn EEG es aktiviert hat
   // — Validierung gegen den configurierten Pflichtwert wird in
@@ -354,6 +357,8 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
       pvPowerKwp: undefined,
       heatPump: undefined,
       electricVehicle: undefined,
+      electricVehicleCount: undefined,
+      electricVehicleAnnualKm: undefined,
       electricHotWater: undefined,
       // PROJ-37: pre-fill with required-shares so the input starts at min.
       // If the EEG hasn't enabled the feature, this value is silently
@@ -478,6 +483,8 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
           pvPowerKwp: values.pvPowerKwp,
           heatPump: values.heatPump ?? null,
           electricVehicle: values.electricVehicle ?? null,
+          electricVehicleCount: values.electricVehicle ? values.electricVehicleCount : undefined,
+          electricVehicleAnnualKm: values.electricVehicle ? values.electricVehicleAnnualKm : undefined,
           electricHotWater: values.electricHotWater ?? null,
           cooperativeSharesCount: values.cooperativeSharesCount,
           meteringPoints: values.meteringPoints.map((mp) => ({
@@ -1223,6 +1230,48 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                             <SelectItem value="false">Nein</SelectItem>
                           </SelectContent>
                         </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                {/* PROJ-42: EV-Details nur wenn EEG diese Felder aktiviert hat
+                    UND der Bewerber "Ja" beim E-Auto angekreuzt hat. */}
+                {fs("electric_vehicle_count") !== "hidden" && form.watch("electricVehicle") === true && (
+                  <FormField
+                    control={form.control}
+                    name="electricVehicleCount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Anzahl E-Fahrzeuge{req("electric_vehicle_count")}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={1}
+                            value={field.value ?? ""}
+                            onChange={(e) => field.onChange(e.target.value === "" ? undefined : parseInt(e.target.value, 10))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                {fs("electric_vehicle_annual_km") !== "hidden" && form.watch("electricVehicle") === true && (
+                  <FormField
+                    control={form.control}
+                    name="electricVehicleAnnualKm"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Jahres-Kilometer (E-Fahrzeuge){req("electric_vehicle_annual_km")}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={field.value ?? ""}
+                            onChange={(e) => field.onChange(e.target.value === "" ? undefined : parseInt(e.target.value, 10))}
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}

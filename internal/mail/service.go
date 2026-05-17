@@ -224,15 +224,17 @@ type approvedEEGTemplateData struct {
 }
 
 var configurableFieldLabels = map[string]string{
-	"persons_in_household":      "Personen im Haushalt",
-	"consumption_previous_year": "Verbrauch Vorjahr (kWh)",
-	"consumption_forecast":      "Verbrauch Prognose (kWh)",
-	"feed_in_forecast":          "Einspeisung Prognose (kWh)",
-	"pv_power_kwp":              "PV-Leistung (kWp)",
-	"heat_pump":                 "Wärmepumpe vorhanden",
-	"electric_vehicle":          "Elektrofahrzeug vorhanden",
-	"electric_hot_water":        "Warmwasser elektrisch",
-	"membership_start_date":     "Beitrittsdatum",
+	"persons_in_household":        "Personen im Haushalt",
+	"consumption_previous_year":   "Verbrauch Vorjahr (kWh)",
+	"consumption_forecast":        "Verbrauch Prognose (kWh)",
+	"feed_in_forecast":            "Einspeisung Prognose (kWh)",
+	"pv_power_kwp":                "PV-Leistung (kWp)",
+	"heat_pump":                   "Wärmepumpe vorhanden",
+	"electric_vehicle":            "Elektrofahrzeug vorhanden",
+	"electric_vehicle_count":      "Anzahl E-Fahrzeuge",
+	"electric_vehicle_annual_km":  "Jahres-Kilometer (E-Fahrzeuge)",
+	"electric_hot_water":          "Warmwasser elektrisch",
+	"membership_start_date":       "Beitrittsdatum",
 }
 
 var memberTypeLabels = map[string]string{
@@ -275,6 +277,12 @@ func buildConfigurableFields(app *shared.Application, fieldConfig map[string]str
 			v = "Ja"
 		}
 		add("electric_vehicle", v)
+	}
+	if app.ElectricVehicleCount != nil {
+		add("electric_vehicle_count", fmt.Sprintf("%d", *app.ElectricVehicleCount))
+	}
+	if app.ElectricVehicleAnnualKm != nil {
+		add("electric_vehicle_annual_km", fmt.Sprintf("%d km", *app.ElectricVehicleAnnualKm))
 	}
 	if app.ElectricHotWater != nil {
 		v := "Nein"

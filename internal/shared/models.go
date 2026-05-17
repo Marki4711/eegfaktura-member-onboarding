@@ -136,6 +136,10 @@ type Application struct {
 	PvPowerKwp              *float64   `json:"pvPowerKwp,omitempty" db:"pv_power_kwp"`
 	HeatPump                *bool      `json:"heatPump,omitempty" db:"heat_pump"`
 	ElectricVehicle         *bool      `json:"electricVehicle,omitempty" db:"electric_vehicle"`
+	// PROJ-42: Detail-Erfassung — nur relevant wenn ElectricVehicle == true.
+	// Service-Layer clearet beide auf NULL falls electric_vehicle nicht gesetzt.
+	ElectricVehicleCount    *int       `json:"electricVehicleCount,omitempty" db:"electric_vehicle_count"`
+	ElectricVehicleAnnualKm *int       `json:"electricVehicleAnnualKm,omitempty" db:"electric_vehicle_annual_km"`
 	ElectricHotWater        *bool      `json:"electricHotWater,omitempty" db:"electric_hot_water"`
 	MemberNumber            *string    `json:"memberNumber,omitempty" db:"member_number"`
 	// PROJ-37: Anzahl gezeichneter Genossenschaftsanteile. NULL bei
