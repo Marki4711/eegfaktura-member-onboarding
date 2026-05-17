@@ -1078,6 +1078,24 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
           </CardContent>
         </Card>
 
+        {/* Metering points — first so the typabhängige Sichtbarkeit
+            der "Weitere Angaben"-Felder (PROJ-45) erst nach der
+            Zählpunkt-Eingabe greift (Verbraucher- vs. Einspeise-
+            Felder werden dynamisch ein-/ausgeblendet). */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Zählpunkte</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MeteringPointFields form={form} fieldConfig={fieldConfig} />
+            {form.formState.errors.meteringPoints?.message && (
+              <p className="text-sm font-medium text-destructive mt-3">
+                {form.formState.errors.meteringPoints.message}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Extra configurable fields */}
         {hasExtraFields && (
           <Card>
@@ -1353,20 +1371,9 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
           </Card>
         )}
 
-        {/* Metering points */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Zählpunkte</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <MeteringPointFields form={form} fieldConfig={fieldConfig} />
-            {form.formState.errors.meteringPoints?.message && (
-              <p className="text-sm font-medium text-destructive mt-3">
-                {form.formState.errors.meteringPoints.message}
-              </p>
-            )}
-          </CardContent>
-        </Card>
+        {/* Metering points — moved up so PROJ-45 typabhängige
+            Sichtbarkeit der Weitere-Angaben-Felder live nach
+            Zählpunkt-Eingabe greift. (Karte rendert oben.) */}
 
         {/* Consent */}
         <Card>
