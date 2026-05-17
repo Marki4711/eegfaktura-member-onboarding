@@ -15,7 +15,30 @@ import {
   type AdminFieldConfigEntry,
   type FieldState,
   type ConfigurableField,
+  type VisibilityTag,
 } from "@/lib/api";
+
+// PROJ-45: tag display config. Distinct colours so admins can scan the
+// list quickly; dark-mode variants included so the editor stays legible
+// in both themes. "+" prefix on EV signals "additional condition".
+const TAG_META: Record<VisibilityTag, { label: string; className: string }> = {
+  consumption: {
+    label: "Verbraucher",
+    className: "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300",
+  },
+  production: {
+    label: "Einspeisung",
+    className: "bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300",
+  },
+  pv: {
+    label: "PV",
+    className: "bg-orange-100 text-orange-900 dark:bg-orange-950/60 dark:text-orange-300",
+  },
+  ev: {
+    label: "+E-Auto",
+    className: "bg-purple-100 text-purple-900 dark:bg-purple-950/60 dark:text-purple-300",
+  },
+};
 
 const STATE_OPTIONS: { value: FieldState; label: string }[] = [
   { value: "hidden",     label: "Ausblenden" },
@@ -36,8 +59,19 @@ function FieldRow({
   return (
     <div className="py-2 space-y-1.5">
       <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-sm">{field.label}</span>
+          {field.visibilityTags?.map((tag) => {
+            const meta = TAG_META[tag];
+            return (
+              <span
+                key={tag}
+                className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium leading-none ${meta.className}`}
+              >
+                {meta.label}
+              </span>
+            );
+          })}
           {field.visibilityHint && (
             <Popover>
               <PopoverTrigger type="button" className="cursor-help" aria-label={`Hinweis zu ${field.label}`}>

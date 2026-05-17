@@ -30,7 +30,16 @@ export interface ConfigurableField {
   // admin field-config editor so admins see at a glance that a field only
   // takes effect under specific conditions (Zählpunkt-Typ, EV-Flag, …).
   visibilityHint?: string;
+  // PROJ-45: small coloured badges shown next to the label in the admin
+  // editor. Order matters — primary condition first (e.g. ["consumption","ev"]
+  // means "needs CONSUMPTION-Zählpunkt and additionally E-Auto = Ja").
+  visibilityTags?: VisibilityTag[];
 }
+
+// PROJ-45: visibility-condition tag taxonomy. Each value renders as a
+// coloured badge in the admin field-config editor. Keep the set small —
+// new tags require a label + colour mapping in admin-field-config-editor.
+export type VisibilityTag = "consumption" | "production" | "pv" | "ev";
 
 export const CONFIGURABLE_FIELDS: {
   application: ConfigurableField[];
@@ -41,24 +50,34 @@ export const CONFIGURABLE_FIELDS: {
     { name: "birth_date",              label: "Geburtsdatum",                    defaultState: "optional" },
     { name: "membership_start_date",   label: "Aktiv am (Beitrittsdatum)",       defaultState: "hidden"   },
     { name: "persons_in_household",    label: "Anzahl Personen im Haushalt",     defaultState: "hidden",
+      visibilityTags: ["consumption"],
       visibilityHint: "Wird nur angezeigt, wenn der Antrag mindestens einen Verbraucher-Zählpunkt enthält." },
     { name: "consumption_previous_year", label: "Verbrauch Vorjahr (kWh)",       defaultState: "hidden",
+      visibilityTags: ["consumption"],
       visibilityHint: "Wird nur angezeigt, wenn der Antrag mindestens einen Verbraucher-Zählpunkt enthält." },
     { name: "consumption_forecast",    label: "Verbrauch Prognose (kWh)",        defaultState: "hidden",
+      visibilityTags: ["consumption"],
       visibilityHint: "Wird nur angezeigt, wenn der Antrag mindestens einen Verbraucher-Zählpunkt enthält." },
     { name: "feed_in_forecast",        label: "Einspeisung Prognose (kWh)",      defaultState: "hidden",
+      visibilityTags: ["production"],
       visibilityHint: "Wird nur angezeigt, wenn der Antrag mindestens einen Einspeise-Zählpunkt enthält." },
     { name: "pv_power_kwp",            label: "PV-Leistung (kWp)",              defaultState: "hidden",
+      visibilityTags: ["production"],
       visibilityHint: "Wird nur angezeigt, wenn der Antrag mindestens einen Einspeise-Zählpunkt enthält." },
     { name: "heat_pump",               label: "Wärmepumpe vorhanden",            defaultState: "hidden",
+      visibilityTags: ["consumption"],
       visibilityHint: "Wird nur angezeigt, wenn der Antrag mindestens einen Verbraucher-Zählpunkt enthält." },
     { name: "electric_vehicle",        label: "E-Auto vorhanden",               defaultState: "hidden",
+      visibilityTags: ["consumption"],
       visibilityHint: "Wird nur angezeigt, wenn der Antrag mindestens einen Verbraucher-Zählpunkt enthält." },
     { name: "electric_vehicle_count",  label: "Anzahl E-Fahrzeuge",             defaultState: "hidden",
+      visibilityTags: ["consumption", "ev"],
       visibilityHint: "Wird nur angezeigt, wenn ein Verbraucher-Zählpunkt vorhanden ist UND E-Auto vorhanden mit Ja beantwortet wurde." },
     { name: "electric_vehicle_annual_km", label: "Jahres-Kilometer (E-Fahrzeuge)", defaultState: "hidden",
+      visibilityTags: ["consumption", "ev"],
       visibilityHint: "Wird nur angezeigt, wenn ein Verbraucher-Zählpunkt vorhanden ist UND E-Auto vorhanden mit Ja beantwortet wurde." },
     { name: "electric_hot_water",      label: "Warmwasser elektrisch (Boiler)",  defaultState: "hidden",
+      visibilityTags: ["consumption"],
       visibilityHint: "Wird nur angezeigt, wenn der Antrag mindestens einen Verbraucher-Zählpunkt enthält." },
     // PROJ-44: Netzbetreiber-Vollmacht (siehe NETWORK_OPERATOR_AUTH_TEXT
     // in registration-form.tsx für den verbindlichen Wortlaut).
@@ -70,8 +89,10 @@ export const CONFIGURABLE_FIELDS: {
     { name: "installation_name",  label: "Anlagenname",  defaultState: "hidden" },
     // PROJ-45: Batterie + Wechselrichter (nur bei generation_type='pv' aktiv).
     { name: "battery_size_kwh",      label: "Größe Batterie (kWh)",        defaultState: "hidden",
+      visibilityTags: ["production", "pv"],
       visibilityHint: "Wird nur bei Einspeise-Zählpunkten mit Erzeugungsform PV angezeigt." },
     { name: "inverter_manufacturer", label: "Hersteller Wechselrichter",  defaultState: "hidden",
+      visibilityTags: ["production", "pv"],
       visibilityHint: "Wird nur bei Einspeise-Zählpunkten mit Erzeugungsform PV angezeigt." },
   ],
 };
