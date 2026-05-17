@@ -7,11 +7,18 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 5
     # Ignore: @types/node Major-Bumps. Die TypeScript-Typen müssen zur
-    # Node-Runtime im Dockerfile.frontend / CI passen (aktuell Node 20).
+    # Node-Runtime im Dockerfile.frontend / CI passen (aktuell Node 22).
     # Wenn die Runtime auf einen neuen Major angehoben wird, hier den
     # ignore-Eintrag entsprechend nachziehen.
+    #
+    # Ignore: tailwind-merge Major-Bumps. tailwind-merge v3 setzt
+    # Tailwind CSS v4 voraus, wir sind aber bewusst auf v3 (PROJ-22
+    # wurde reverted, siehe features/PROJ-22-tailwindcss-v4-upgrade.md).
+    # Erst nach erfolgreichem Tailwind-v4-Upgrade hier den Ignore entfernen.
     ignore:
       - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "tailwind-merge"
         update-types: ["version-update:semver-major"]
 
   # Backend: Go modules
