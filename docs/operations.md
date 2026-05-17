@@ -130,13 +130,15 @@ Wenn der EEG fachlich eine lückenlose Nummerierung erwartet: Fall mit EEG-Admin
 
 **Was passiert**: Verhalten unterscheidet sich je nach Mail-Typ:
 - **Antrags-Submit-Mails** (member-confirmation + EEG-notification) sind fire-and-forget → Submit klappt, Mail kann verloren gehen
-- **Approval-Mail an EEG** (mit Beitrittsbestätigungs-PDF) ebenfalls best-effort async
+- **Post-Import-Mails** (PROJ-46 Stage B + PROJ-47): Beitrittsbestätigungs-PDF an Member + EEG-Kopie + ggf. zweiter B2B-Mandat-Anhang ebenfalls best-effort async — schlagen Mails fehl, bleibt der Antrag korrekt importiert, Admin kann nachfassen
+- **Activation-Mail** (PROJ-46, beim Übergang auf `activated`) best-effort async
 - **Status-Change-Mails an Mitglied** (Ablehnung PROJ-41, Rückfrage PROJ-43) sind seit 2026-05-17 **hard-fail synchron**: scheitert der SMTP-Versand, bekommt der Admin im Dialog HTTP 500 mit Fehlermeldung, der Statuswechsel wird zurückgerollt — kein stilles Versagen
+- **Approval-Mail an EEG (legacy)**: existiert seit PROJ-46 Stage B nicht mehr — der `→ approved`-Übergang sendet keine Mail mehr; die Beitrittsbestätigungs-PDF wird erst beim Import erzeugt (mit Mitgliedsnummer)
 
-> **Open Decision (Stand 2026-05-17):** ob alle Mail-Versand-Pfade einheitlich auf hard-fail umgestellt werden oder die aktuelle Mischstrategie (Submit + Approval = best-effort; Status-Change = hard-fail) bestehen bleibt, ist noch nicht entschieden. Für PROJ-41/43 wurde hard-fail bewusst gewählt, weil silent SMTP-Failures dort zu „schwarzem Loch" führten. Für die anderen Pfade gibt es Argumente für beide Seiten:
+> **Open Decision (Stand 2026-05-17):** ob alle best-effort-Mail-Pfade einheitlich auf hard-fail umgestellt werden oder die aktuelle Mischstrategie (Submit + Post-Import + Activated = best-effort; Status-Change = hard-fail) bestehen bleibt, ist noch nicht entschieden. Für PROJ-41/43 wurde hard-fail bewusst gewählt, weil silent SMTP-Failures dort zu „schwarzem Loch" führten. Für die anderen Pfade gibt es Argumente für beide Seiten:
 >
 > - **Submit-Mails hard-fail** würde bedeuten: bei SMTP-Down kann sich kein Mitglied registrieren — schwerer Outage-Faktor für eine public-facing Form.
-> - **Approval-Mail hard-fail** ist machbar, aber die PDF-Generierung + Multi-Repo-Reads machen den synchronen Pfad teurer (Latenz beim Genehmigen).
+> - **Post-Import-Mails hard-fail** ist machbar, aber die PDF-Generierung + Multi-Repo-Reads machen den synchronen Pfad teurer (Latenz beim Import-Klick).
 >
 > Entscheidung wird im nächsten Architektur-Review gefasst.
 
@@ -217,6 +219,31 @@ WHERE import_started_at IS NOT NULL
   AND import_finished_at IS NULL
   AND status = 'approved';
 ```
+
+**PROJ-46 Stuck-Fall:** Wenn der Auto-Branch nach Import (auf
+`awaiting_bank_confirmation` oder `ready_for_activation`) scheitert,
+bleibt der Antrag im Status `imported` (sonst extrem kurzlebig). Symptom:
+SQL `WHERE status='imported'`. Recovery: Admin klickt „Import zurücksetzen"
+im Detail — die Reset-Logik (PROJ-30 + PROJ-46) räumt member_number +
+Audit-Timestamps. Danach kann der Admin re-importieren.
+
+### Activation-Check-Button (PROJ-46 Stage D)
+
+`POST /api/admin/applications/check-activation` — Admin-Button in der
+Antragsliste. Iteriert alle eigenen `ready_for_activation`-Anträge, fragt
+pro Tenant einmal `GET /participant` im Core, transitioniert Anträge mit
+Core-Status `ACTIVE` automatisch auf `activated` (Audit-Actor:
+`system:activation-check`). Best-effort — Per-Tenant-Fehler werden im
+Response gesammelt zurückgemeldet, abortet aber den Batch nicht.
+
+Operativ:
+- **Wann ausführen?** Nach jedem Aktivierungs-Schub seitens des EEG-Cores
+  (typischerweise wenn die EEG eine Charge frisch zugeschaltet hat).
+  Es ist kein Cron-Job — der Admin entscheidet bewusst.
+- **Cost-Sanity:** ein Run pro Tenant = ein Core-GET (max ~4 MiB Body /
+  ~2000 Teilnehmer). Idempotent; mehrfache Aufrufe machen nichts kaputt.
+- **Beobachtung:** Toast im UI zeigt `X von Y aktiviert` + Anzahl Warnungen;
+  Details in den Backend-Logs (`activation-check: batch ran`).
 
 ---
 

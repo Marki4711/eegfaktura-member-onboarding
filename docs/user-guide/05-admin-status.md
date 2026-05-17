@@ -5,8 +5,8 @@
 Der Status eines Antrags steuert den Bearbeitungsablauf. Folgende Übergänge sind möglich:
 
 ```
-submitted ──→ under_review ──→ approved ──→ imported
-                   │                 │           │
+submitted ──→ under_review ──→ approved ──→ imported (Millisek.)
+                   │                 │             │
                    │                 └──→ import_failed
                    │                              │
                    │              ┌───────────────┘
@@ -16,10 +16,22 @@ submitted ──→ under_review ──→ approved ──→ imported
                    ├──→ needs_info
                    │       └──→ submitted (nach Ergänzung durch Mitglied)
                    └──→ rejected
+
+Nach erfolgreichem Import (PROJ-46, automatisch):
+  imported  ──→  awaiting_bank_confirmation  (bei einzugsart=b2b)
+                       ↓ (Admin: „Bank-Bestätigung erhalten")
+                ready_for_activation
+                       ↓ (Admin manuell ODER „Aktivierung im Core prüfen")
+                  activated  (Endzustand)
+
+  imported  ──→  ready_for_activation  (bei nicht-b2b, Auto-Skip)
+                       ↓
+                  activated
 ```
 
 * `import_failed → approved`: nach Fehlerbehebung kann der Import erneut versucht werden.
-* `imported → approved`: über die Aktion **Import zurücksetzen** (siehe unten) — z. B. wenn der Teilnehmer im eegFaktura-Core manuell gelöscht und neu importiert werden soll.
+* `imported` ist **transient** — der Server transitioniert sofort weiter (siehe PROJ-46-Diagramm oben). Wenn ein Antrag in `imported` „hängen" bleibt, ist der Auto-Branch fehlgeschlagen → über **Import zurücksetzen** lösen.
+* `imported / awaiting_bank_confirmation / ready_for_activation → approved`: über die Aktion **Import zurücksetzen** (siehe unten). NICHT aus `activated` — aktive Mitglieder müssen zuerst im Core deaktiviert werden.
 
 ## Status ändern
 
@@ -37,7 +49,10 @@ Klicken Sie auf die gewünschte Aktion. Je nach aktuellem Status stehen untersch
 | `needs_info` | — (wartet auf Ergänzung durch das Mitglied) |
 | `approved` | Import starten |
 | `import_failed` | Import erneut starten |
-| `imported` | Import zurücksetzen |
+| `imported` | Import zurücksetzen *(nur sichtbar wenn Auto-Branch fehlgeschlagen)* |
+| `awaiting_bank_confirmation` | **Bank-Bestätigung erhalten**, Zurück in Prüfung, Import zurücksetzen |
+| `ready_for_activation` | **Als aktiv markieren**, Zurück in Prüfung, Import zurücksetzen *(oder via Batch-Button „Aktivierung im Core prüfen" in der Liste)* |
+| `activated` | — (Endzustand, keine Aktionen möglich) |
 
 Zusätzlich verfügbar in allen Review-Stati (`submitted` / `email_confirmed` / `under_review` / `needs_info`) für Admins mit Zugriff auf ≥ 2 EEGs:
 
@@ -120,16 +135,42 @@ In diesem Fall erscheint im Antrags-Detail ein **oranger Banner** mit zwei Recov
 
 Der Banner erscheint automatisch, sobald der Import-Versuch älter als 2 Minuten ist und nicht sauber abgeschlossen wurde — Sie müssen nicht raten, ob „nochmal probieren" sicher ist.
 
-## Import zurücksetzen (`imported → approved`)
+## Import zurücksetzen (`imported / awaiting_bank_confirmation / ready_for_activation → approved`)
 
 Wenn ein bereits importierter Teilnehmer im eegFaktura-Core gelöscht wurde (z. B. weil das Mitglied seine Teilnahme widerrufen hat oder der Import fehlerhaft war), kann der Antrag in den Status `approved` zurückgesetzt werden, um einen Neu-Import zu ermöglichen.
 
-1. Öffnen Sie den importierten Antrag
+1. Öffnen Sie den Antrag (Status `imported`, `awaiting_bank_confirmation` oder `ready_for_activation`)
 2. Klicken Sie auf **Import zurücksetzen**
 3. Geben Sie eine Begründung an (Pflichtfeld, wird im Statusverlauf protokolliert)
-4. Der Antrag wechselt auf `approved`; die alte `target_participant_id` wird im Statusverlauf archiviert
+4. Der Antrag wechselt auf `approved`; die alte `target_participant_id`, die Mitgliedsnummer und alle Audit-Timestamps (`bank_confirmed_at`, `activated_at`) werden geleert und im Statusverlauf archiviert
 
 > **Wichtig:** Diese Aktion kontaktiert den eegFaktura-Core *nicht*. Bevor Sie sie nutzen, müssen Sie den Teilnehmer im Core manuell gelöscht haben.
+>
+> **Endzustand `activated` nicht resetbar:** ein aktives Mitglied muss zuerst im eegFaktura-Core deaktiviert werden — das Onboarding entfernt es nicht still.
+
+## Post-Import-Stati (PROJ-46)
+
+Nach erfolgreichem Import läuft der Antrag automatisch in einen der beiden Wartezustände, abhängig von der gewählten Einzugsart:
+
+### `awaiting_bank_confirmation` — nur bei B2B-SEPA-Firmenlastschrift
+
+Der Antrag landet hier, wenn `einzugsart=b2b` gesetzt ist. Das Mitglied hat per E-Mail die Beitrittsbestätigung **plus** ein separates B2B-Firmenlastschrift-Mandat (mit eingedruckter Mandatsreferenz = Mitgliedsnummer, PROJ-47) bekommen — und wurde aufgefordert, das Mandat seiner Hausbank vorzulegen. Im Antrags-Detail erscheint eine prominente amber Hinweisbox „Warte auf Bank-Bestätigung".
+
+**Aktion**: sobald sich das Mitglied bei Ihnen meldet, klicken Sie auf **„Bank-Bestätigung erhalten"** — der Antrag wechselt auf `ready_for_activation`, der Timestamp `bank_confirmed_at` wird gesetzt.
+
+### `ready_for_activation` — bereit zur Aktivierung in der EEG
+
+Der Antrag wird auf diesen Status gesetzt, sobald entweder (a) die Bank-Bestätigung erfolgt ist (B2B-Pfad) oder (b) automatisch direkt nach dem Import (alle anderen Einzugsarten). Das Mitglied ist jetzt im eegFaktura-Core angelegt und wartet darauf, vom Core-Team aktiviert zu werden.
+
+**Zwei Wege zur Aktivierung:**
+1. **Per Antrag manuell** — Klick auf **„Als aktiv markieren"** im Detail. Setzt den Status auf `activated` und stempelt `activated_at = NOW()`.
+2. **Per Batch im Core prüfen** — Klick auf **„Aktivierung im Core prüfen"** in der Antragsübersicht (siehe Datei `04-admin-applications.md`). Iteriert alle eigenen `ready_for_activation`-Anträge, fragt pro Tenant einmal beim Core nach (`GET /participant`), und transitioniert diejenigen Anträge automatisch auf `activated`, deren Teilnehmer im Core bereits ACTIVE ist.
+
+In beiden Fällen erhält das Mitglied eine kurze Welcome-Mail „Sie sind nun aktiv in der EEG".
+
+### `activated` — Endzustand
+
+Aktives Mitglied. Keine weiteren Aktionen verfügbar. Kein Reset, keine Rückwärts-Übergänge. Deaktivierung erfolgt direkt im eegFaktura-Core.
 
 ## EEG umzuordnen (PROJ-40)
 

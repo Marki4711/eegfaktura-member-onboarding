@@ -174,6 +174,10 @@ Fields:
 - `member_number` — nullable TEXT (since migration 000027); assigned at import time, chosen by the admin in the import dialog (pre-filled with the next free value derived from the core's existing participantNumber pattern, alphanumeric supported, e.g. "A006"). Shown as first data field in the approval PDF.
 - `email_confirmation_token_hash` — nullable BYTEA; SHA-256 of the single-use confirmation token (PROJ-31). NULL means no token has been issued. Cleared on confirmation (kept after consumption so a second click can return "already confirmed").
 - `email_confirmation_token_expires_at` — nullable TIMESTAMPTZ; token validity window (30 days).
+- `bank_confirmed_at` *(PROJ-46)* — nullable TIMESTAMPTZ; stamped when admin transitions `awaiting_bank_confirmation → ready_for_activation` after the member confirms hausbank pre-notification. NULL on the non-b2b auto-skip path.
+- `activated_at` *(PROJ-46)* — nullable TIMESTAMPTZ; stamped when admin manually activates OR the activation-check batch finds the member ACTIVE in Core.
+- `network_operator_authorization` *(PROJ-44)* — BOOLEAN NOT NULL DEFAULT FALSE; member-granted authorisation for the EEG to coordinate with the grid operator on their behalf. Per-EEG via `field_config` (default `hidden`).
+- `network_operator_authorization_at` *(PROJ-44)* — nullable TIMESTAMPTZ; audit timestamp set on FALSE→TRUE transition.
 - `email_confirmed_at` — nullable TIMESTAMPTZ; set when the member clicked the link.
 - `email_confirmation_used_at` — nullable TIMESTAMPTZ; first-click timestamp (separate from `email_confirmed_at` to detect re-clicks).
 - `cooperative_shares_count` *(PROJ-37)* — INT NULL, CHECK `> 0`; Anzahl der vom Mitglied gezeichneten Genossenschaftsanteile. NULL bei EEGs ohne aktiviertes Anteils-Feature; sonst Submit-validiert `>= registration_entrypoint.cooperative_required_shares`. Gesamtbetrag wird nicht gespeichert — `count × amount` ist Render-Berechnung.
@@ -222,9 +226,13 @@ Fields:
 - `metering_point`
 - `direction`
 - `participation_factor`
-- `transformer` *(nullable, configurable)*
+- `transformer` *(nullable, configurable via PROJ-8)*
 - `installation_number` *(nullable, configurable)*
 - `installation_name` *(nullable, configurable)*
+- `address_street` / `address_street_number` / `address_zip` / `address_city` *(PROJ-39, all-or-nothing)*
+- `generation_type` *(PROJ-45, Pflicht bei PRODUCTION via CHECK)*
+- `battery_size_kwh` *(PROJ-45, nullable, configurable, nur PV)*
+- `inverter_manufacturer` *(PROJ-45, nullable, configurable, nur PV)*
 - `created_at`
 - `updated_at`
 
@@ -232,6 +240,7 @@ Rules:
 - one application can have multiple metering points
 - `metering_point` is unique within an application
 - a metering point may inherit the member's primary address (default) or carry its own deviating address (PROJ-39, see Section 3.3 above). The four `address_*` columns are all-or-nothing — either all four NULL or all four set; enforced server-side
+- `generation_type` is NULL for CONSUMPTION and Pflicht für PRODUCTION (DB-CHECK); `battery_size_kwh` + `inverter_manufacturer` werden vom Service auf NULL gesetzt wenn nicht-PV
 
 ### 3.4 `member_onboarding.status_log`
 
@@ -326,7 +335,7 @@ Rules:
 
 ## 4. Status Model
 
-Allowed status values:
+Allowed status values (12):
 - `draft`
 - `submitted`
 - `email_confirmed` *(PROJ-31, only reached when the EEG opts in to e-mail confirmation)*
@@ -334,8 +343,11 @@ Allowed status values:
 - `needs_info`
 - `approved`
 - `rejected`
-- `imported`
+- `imported` *(transient — Import-Service auto-routes immediately, see PROJ-46)*
 - `import_failed`
+- `awaiting_bank_confirmation` *(PROJ-46, only at `einzugsart=b2b`, set automatically by import service)*
+- `ready_for_activation` *(PROJ-46, set automatically by import service for non-b2b, or by admin after bank confirmation)*
+- `activated` *(PROJ-46, strict end state — no transitions out, no reset)*
 
 Allowed transitions:
 - `draft -> submitted`
@@ -353,11 +365,19 @@ Allowed transitions:
 - `approved -> imported`
 - `approved -> import_failed`
 - `import_failed -> approved`
+- `imported -> awaiting_bank_confirmation` *(PROJ-46, auto by import service when `einzugsart=b2b`. Not exposed on `/status`.)*
+- `imported -> ready_for_activation` *(PROJ-46, auto by import service for non-b2b. Not exposed on `/status`.)*
+- `awaiting_bank_confirmation -> ready_for_activation` *(PROJ-46, admin manuell nach Bank-Bestätigung)*
+- `awaiting_bank_confirmation -> under_review` *(PROJ-46, admin rückwärts)*
+- `ready_for_activation -> activated` *(PROJ-46, admin manuell ODER Batch-Button `POST /api/admin/applications/check-activation`)*
+- `ready_for_activation -> under_review` *(PROJ-46, admin rückwärts)*
 - `imported -> approved` *(PROJ-30, only via `POST /reset-import`, never via generic `/status`)*
+- `awaiting_bank_confirmation -> approved` *(PROJ-46, via `POST /reset-import`)*
+- `ready_for_activation -> approved` *(PROJ-46, via `POST /reset-import`)*
 
 When `registration_entrypoint.require_email_confirmation = TRUE` (PROJ-31), the generic admin `/status` endpoint rejects `submitted -> under_review|needs_info|approved` with 409 until the member has clicked the confirmation link. `submitted -> rejected` remains available as the admin's anti-spam override.
 
-The set of allowed status values is enforced in **three places** (Go constants in `internal/shared/models.go`, `adminTransitions` map in `internal/application/admin_service.go`, and the `application_status_check` CHECK constraint — see migration `000036_application_status_check_email_confirmed.up.sql` for the DROP-and-re-ADD pattern). All three must be updated when introducing a new status.
+The set of allowed status values is enforced in **three places** (Go constants in `internal/shared/models.go`, `adminTransitions` map in `internal/application/admin_service.go`, and the `application_status_check` CHECK constraint — see migration `000041_post_import_statuses.up.sql` for the latest DROP-and-re-ADD pattern). All three must be updated when introducing a new status.
 
 ## 5. Business Rules
 

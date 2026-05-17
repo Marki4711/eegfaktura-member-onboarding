@@ -54,7 +54,7 @@ The business logic additionally validates the EEG authorization in the backend.
 ## 4. Domain Types
 
 ### Status
-Allowed values:
+Allowed values (12):
 - `draft`
 - `submitted`
 - `email_confirmed` *(PROJ-31, only when the EEG opts in to e-mail confirmation)*
@@ -62,8 +62,11 @@ Allowed values:
 - `needs_info`
 - `approved`
 - `rejected`
-- `imported`
+- `imported` *(transient — import service auto-routes immediately, see PROJ-46)*
 - `import_failed`
+- `awaiting_bank_confirmation` *(PROJ-46, b2b only, set automatically by import service)*
+- `ready_for_activation` *(PROJ-46, set automatically by import service for non-b2b)*
+- `activated` *(PROJ-46, strict end state)*
 
 ### Meter Direction
 Allowed values:
@@ -174,7 +177,7 @@ Creates a new application.
   "meteringPoints": [
     {
       "meteringPoint": "AT0031000000000000000000990022105",
-      "direction": "CONSUMPTION",
+      "direction": "PRODUCTION",
       "participationFactor": 1.0,
       "transformer": "T1",
       "installationNumber": "12345",
@@ -182,7 +185,10 @@ Creates a new application.
       "addressStreet": "Werkstraße",
       "addressStreetNumber": "12",
       "addressZip": "4020",
-      "addressCity": "Linz"
+      "addressCity": "Linz",
+      "generationType": "pv",
+      "batterySizeKwh": 10.5,
+      "inverterManufacturer": "Fronius"
     }
   ],
   "membershipStartDate": "2026-05-01",
@@ -196,11 +202,18 @@ Creates a new application.
   "electricVehicleCount": 1,
   "electricVehicleAnnualKm": 12000,
   "electricHotWater": null,
-  "cooperativeSharesCount": 1
+  "cooperativeSharesCount": 1,
+  "networkOperatorAuthorization": true
 }
 ```
 
-All fields under `meteringPoints[].transformer/installationNumber/installationName` and the application-level energy/household fields are optional by default. Whether they are required is determined by the EEG's `fieldConfig` (see 5.1). Fields not relevant to the current `memberType` are ignored.
+All fields under `meteringPoints[].transformer/installationNumber/installationName/batterySizeKwh/inverterManufacturer` and the application-level energy/household fields are optional by default. Whether they are required is determined by the EEG's `fieldConfig` (see 5.1). Fields not relevant to the current `memberType` are ignored.
+
+`meteringPoints[].generationType` (PROJ-45) is required when `direction = PRODUCTION` (DB-CHECK enforces it); allowed values `pv`/`hydro`/`wind`/`biomass`. Server defaults to `pv` when missing on a PRODUCTION row. NULL is enforced for CONSUMPTION rows — service nullifies any submitted value.
+
+`meteringPoints[].batterySizeKwh` and `meteringPoints[].inverterManufacturer` (PROJ-45) are only meaningful for PRODUCTION rows with `generationType = "pv"`. The service nulls them in all other cases.
+
+`networkOperatorAuthorization` (PROJ-44) is the member's authorisation for the EEG to coordinate with the grid operator on their behalf. The configurable-field `network_operator_authorization` controls visibility — when the EEG sets it to `required`, the boolean must be `true` on submit (otherwise 400). When `hidden`, the server nulls/false-sets it. The auth timestamp `network_operator_authorization_at` is stamped automatically on the FALSE→TRUE flip.
 
 `titelNach` (PROJ-39) is the optional academic title after the name (e.g. `BSc`, `MSc`). The existing `titel` field represents the title **before** the name. Both are independent.
 
@@ -588,20 +601,29 @@ Returns the admin list.
 - `approved -> imported`
 - `approved -> import_failed`
 - `import_failed -> approved`
+- `awaiting_bank_confirmation -> ready_for_activation` *(PROJ-46, admin manuell nach Bank-Bestätigung)*
+- `awaiting_bank_confirmation -> under_review` *(PROJ-46, admin rückwärts)*
+- `ready_for_activation -> activated` *(PROJ-46, admin manuell; auch via Batch-Endpoint, siehe 6.5.6)*
+- `ready_for_activation -> under_review` *(PROJ-46, admin rückwärts)*
 
 Reachable only via dedicated endpoints (NOT via this generic `/status` route):
 - `submitted -> email_confirmed` — via member click on `POST /api/public/applications/confirm-email`
-- `imported -> approved` — via `POST /api/admin/applications/{id}/reset-import` (PROJ-30, see 6.5.3)
+- `imported -> awaiting_bank_confirmation` / `imported -> ready_for_activation` — auto-transition by import service (Branch on `einzugsart`), see 6.5
+- `imported|awaiting_bank_confirmation|ready_for_activation -> approved` — via `POST /api/admin/applications/{id}/reset-import` (PROJ-30 + PROJ-46, see 6.5.3). NOT possible from `activated` (strict end state).
 
 When `registration_entrypoint.require_email_confirmation = TRUE` (PROJ-31), this endpoint rejects `submitted -> under_review|needs_info|approved` with HTTP 409 until the member has clicked the confirmation link. `submitted -> rejected` remains available as the admin's anti-spam override.
 
+`activated` has **no transitions out** — deactivation must happen in the eegFaktura core directly (PROJ-46 Entscheidung A).
+
 ### Side effects
-- on `approved`: set `approved_at`, set `reviewed_by_user_id`, asynchron Approval-PDF + Mail an EEG
+- on `approved`: set `approved_at`, set `reviewed_by_user_id`. **Since PROJ-46 Stage B no PDF/mail is generated here** — Beitrittsbestätigungs-PDF + Member/EEG mails are now generated/sent at import time (see 6.5), when the member number exists. The legacy `SendApprovalEmail` method is deprecated.
 - on `rejected`: set `rejected_at`, set `reviewed_by_user_id`, **PROJ-41:** synchroner Mail-Versand an Mitglied mit `reason` 1:1 im Body
 - on `needs_info`: set `needs_info_reason`, **PROJ-43:** synchroner Mail-Versand an Mitglied mit `reason` 1:1 im Body
+- on `ready_for_activation` (when coming from `awaiting_bank_confirmation`): set `bank_confirmed_at` *(PROJ-46)*
+- on `activated`: set `activated_at`, async welcome mail an Mitglied *(PROJ-46)*
 - always write entry in `status_log`
 
-Die Mitglieder-Mails bei `rejected` und `needs_info` werden **synchron vor dem Commit** versendet (hard-fail). Schlägt der SMTP-Versand fehl, wird die Statusänderung zurückgerollt und der Aufruf antwortet mit HTTP 500 + Mail-Fehlermeldung — der Admin sieht das Problem direkt in der UI.
+Die Mitglieder-Mails bei `rejected` und `needs_info` werden **synchron vor dem Commit** versendet (hard-fail). Schlägt der SMTP-Versand fehl, wird die Statusänderung zurückgerollt und der Aufruf antwortet mit HTTP 500 + Mail-Fehlermeldung — der Admin sieht das Problem direkt in der UI. Alle anderen Mails sind best-effort async.
 
 ### Response 200
 ```json
@@ -654,16 +676,15 @@ tariff assignment, the admin pflegt es manuell im Core nach).
 {
   "success": true,
   "applicationId": "3f8c8c2d-....",
-  "status": "imported",
+  "status": "awaiting_bank_confirmation",
   "targetParticipantId": "4711",
   "memberTariffWarning": "core returned HTTP 404"
 }
 ```
 
-`memberTariffWarning` (PROJ-27) is only present when the participant was
-created successfully but the follow-up call to set the member-level tariff
-failed. The application is still moved to `imported` — meter tariffs are
-persisted; the admin needs to set the member tariff manually in the core.
+`status` reflects the final post-import status (PROJ-46): `awaiting_bank_confirmation` for `einzugsart=b2b`, otherwise `ready_for_activation`. `imported` is a transient intermediate state and is rarely seen — it remains only if the auto-followup transition fails (the admin can then reset via `/reset-import`).
+
+`memberTariffWarning` (PROJ-27) is only present when the participant was created successfully but the follow-up call to set the member-level tariff failed. The application is still moved out of `approved` — meter tariffs are persisted; the admin needs to set the member tariff manually in the core.
 
 ### Failure response 409 / 422 / 500
 ```json
@@ -680,8 +701,16 @@ persisted; the admin needs to set the member tariff manually in the core.
 - set `import_finished_at`
 - set `imported_at`
 - set `target_participant_id`
-- `status = imported`
-- write `status_log`
+- set `member_number`
+- `status = imported` (transient), then **auto-transition** to either
+  `awaiting_bank_confirmation` (b2b) or `ready_for_activation` (non-b2b)
+  in a separate transaction (PROJ-46)
+- write 1 or 2 entries in `status_log` (one for `→ imported`, one for the
+  auto-followup)
+- **PROJ-46 Stage B + PROJ-47**: best-effort async fan-out — generates the
+  Beitrittsbestätigungs-PDF (mit Mitgliedsnummer), sends it to the member
+  + EEG-Contact-Copy; for `einzugsart=b2b` adds a second attachment
+  (Firmenlastschrift-Mandat-PDF mit Mandatsreferenz=Mitgliedsnummer)
 
 ### Side effects on failure
 - set `import_started_at`
@@ -786,13 +815,14 @@ Full `AdminApplicationDetailResponse` with cleared import bookkeeping (status re
 
 ---
 
-## 6.5.3 Reset import (PROJ-30)
+## 6.5.3 Reset import (PROJ-30 + PROJ-46 extension)
 
 ### POST `/api/admin/applications/{id}/reset-import`
 
-Transitions an application from `imported` back to `approved` so it can be
-re-imported after the eegFaktura admin deleted the participant in the core.
-No call to the core — the admin verifies the deletion manually.
+Transitions an application from a post-import status back to `approved` so
+it can be re-imported after the eegFaktura admin deleted the participant
+in the core. No call to the core — the admin verifies the deletion
+manually.
 
 ### Request
 ```json
@@ -806,9 +836,12 @@ No call to the core — the admin verifies the deletion manually.
 | `reason` | yes | 5–500 chars (after trimming) |
 
 ### Rules
-- Application must be in status `imported` (otherwise 409).
-- The transition `imported → approved` is **only** reachable via this
-  endpoint; the generic `POST /status` does not accept it.
+- Application must be in status `imported`, `awaiting_bank_confirmation`,
+  or `ready_for_activation` (PROJ-46 expansion). NOT `activated` —
+  active members must be deactivated in the Core first (otherwise 409).
+- The transitions `imported → approved`, `awaiting_bank_confirmation → approved`,
+  `ready_for_activation → approved` are **only** reachable via this
+  endpoint; the generic `POST /status` does not accept them.
 - Tenant-Admin scope: must match the EEG of the application.
 
 ### Response 200
@@ -825,7 +858,10 @@ Returns the full `AdminApplicationDetail` after the reset (status now
 - `member_number = NULL` — assigned at import time (PROJ-27); cleared so the
   next re-import gets a fresh suggestion from the core's max+1 and doesn't
   show a stale assignment in the admin detail view
-- write `status_log` entry with `from='imported'`, `to='approved'`,
+- `bank_confirmed_at = NULL`, `activated_at = NULL` — *(PROJ-46)* cleared
+  so a re-import starts from a clean slate (b2b will need fresh bank-
+  confirmation, activation will be re-evaluated)
+- write `status_log` entry with `from=<current status>`, `to='approved'`,
   `reason = <user reason>\n[system] previous target_participant_id=<uuid>\n[system] previous member_number=<x>`
   (the old participant UUID and member number are archived in the log so
   the audit trail preserves them after the columns are cleared)
@@ -833,7 +869,53 @@ Returns the full `AdminApplicationDetail` after the reset (status now
 ### Failure responses
 - `400` reason missing / too short / too long
 - `403` tenant mismatch
-- `409` application not in `imported` status
+- `409` application not in a resetable status (`activated` rejects here)
+
+---
+
+## 6.5.6 Activation check (PROJ-46 Stage D)
+
+### POST `/api/admin/applications/check-activation`
+
+Admin-triggered batch check that asks the eegFaktura core which of our
+`ready_for_activation` applications are now `ACTIVE` there, and transitions
+matching rows to `activated`. Replaces the originally planned cron-polling
+(user decision: admin-triggered keeps SOAP cost and surprise factor low).
+
+### Request
+No body. Tenant scope is derived from the admin's JWT (`tenant`-claim) —
+superusers operate on all EEGs, tenant admins on their own RC numbers only.
+
+### Response 200
+```json
+{
+  "checked":   12,
+  "activated":  3,
+  "errors":   ["tenant RC0001: core returned HTTP 503"]
+}
+```
+
+| Field | Meaning |
+|---|---|
+| `checked` | Number of applications inspected (in scope: `status = ready_for_activation` AND tenant in admin's allowed list) |
+| `activated` | Number transitioned from `ready_for_activation` to `activated` |
+| `errors` | Per-tenant or per-application errors (empty/omitted on full success) |
+
+### Algorithm
+1. List all `ready_for_activation` applications for the admin's tenants.
+2. Group by `rc_number`.
+3. Per tenant: call `GET /participant` (core) — bounded by 4 MiB / ~2000 participants per call.
+4. Build an in-memory index `target_participant_id → core.status`.
+5. For each candidate: if Core-Status is `ACTIVE`, transition to `activated`
+   via guarded `UpdateStatusAdminTx`, stamp `activated_at = NOW()`, write
+   `status_log` entry with actor `system:activation-check`.
+6. Best-effort — per-tenant errors don't abort the whole batch.
+
+### Failure responses
+- `503` Core integration not configured (`CORE_BASE_URL` empty) or no admin
+  bearer token present (dev mode without Keycloak)
+- `500` Unexpected error during batch run (rare — per-tenant failures are
+  collected in `errors`)
 
 ---
 
@@ -961,7 +1043,9 @@ Replaces the field configuration for an EEG atomically. Unknown field names and 
 }
 ```
 
-Allowed field names: `phone`, `birth_date`, `uid_number`, `membership_start_date`, `persons_in_household`, `consumption_previous_year`, `consumption_forecast`, `feed_in_forecast`, `pv_power_kwp`, `heat_pump`, `electric_vehicle`, `electric_hot_water`, `transformer`, `installation_number`, `installation_name`
+Allowed field names: `phone`, `birth_date`, `uid_number`, `membership_start_date`, `persons_in_household`, `consumption_previous_year`, `consumption_forecast`, `feed_in_forecast`, `pv_power_kwp`, `heat_pump`, `electric_vehicle`, `electric_vehicle_count`, `electric_vehicle_annual_km`, `electric_hot_water`, `network_operator_authorization` *(PROJ-44)*, `transformer`, `installation_number`, `installation_name`, `battery_size_kwh` *(PROJ-45)*, `inverter_manufacturer` *(PROJ-45)*
+
+**Type-conditional visibility (PROJ-45):** the admin UI shows badges next to each conditional field — `[Verbraucher]` (only renders when the application has ≥1 CONSUMPTION metering point), `[Einspeisung]` (≥1 PRODUCTION), `[PV]` (additionally requires `generation_type='pv'` on the MP), `[+E-Auto]` (additionally requires `electric_vehicle=true`). Backend mirrors the gate: the required-check on these fields only fires when the matching MP-type / EV flag is present.
 
 Allowed states: `hidden`, `optional`, `required`, `admin_only`
 
@@ -1275,7 +1359,7 @@ The file contains:
 
 ### GET `/api/admin/applications/{id}/approval-pdf`
 
-Generates and downloads the Beitrittsbestätigung (approval confirmation) as a PDF file for the given application. Only available for applications in status `approved`, `imported`, or `import_failed`.
+Generates and downloads the Beitrittsbestätigung (approval confirmation) as a PDF file for the given application. Available for applications in status `approved`, `imported`, `import_failed`, `awaiting_bank_confirmation`, `ready_for_activation`, or `activated`.
 
 ### Auth
 Keycloak JWT. Tenant-admin access is checked against the application's RC number.
@@ -1288,7 +1372,9 @@ Keycloak JWT. Tenant-admin access is checked against the application's RC number
 - `403 Forbidden` — tenant mismatch
 - `409 Conflict` — application not in downloadable status
 
-The PDF contains the same data as the approval PDF automatically emailed to the EEG on status change to `approved`:
+The PDF is identical to the one auto-attached to the member/EEG mails at import time (PROJ-46 Stage B). Up to PROJ-46 Stage B this PDF was emailed to the EEG on `→ approved`; that auto-send is gone and the PDF generation is now anchored to the import step (so the member number is available for the SEPA mandate reference). For B2B applicants the import mail additionally contains a separate Firmenlastschrift-Mandat-PDF with embedded Mandatsreferenz=Mitgliedsnummer (PROJ-47); that mandate PDF is currently **not** downloadable via this endpoint.
+
+Contents:
 - Header: title "Beitrittsbestätigung", EEG name, RC number, approval date, reference number
 - Mitgliedsdaten: member number (if assigned), member type, name/company, birth date, address, email, phone
 - Bankverbindung: IBAN, account holder, SEPA mandate type (Basislastschrift / Firmenlastschrift / Per E-Mail)

@@ -127,13 +127,20 @@ Folgende Bereiche erfordern bei Änderungen dediziertes `/security-review`:
 - `internal/http/auth.go` — JWT-Parsing, `IsSuperuser()`
 - `internal/http/admin.go` — Tenant-Zugriffskontrolle
 - `internal/http/middleware.go` — Rate Limiting, Security Headers
-- `internal/application/` — Status-Transitionen, Import-Logik
+- `internal/application/` — Status-Transitionen, Import-Logik, Post-Import-Übergänge (PROJ-46), Reset-Import-Erweiterung
 - `internal/application/email_confirmation.go` — Token-Erzeugung und -Hashing (PROJ-31)
-- `db/migrations/` — Schema-Änderungen
+- `internal/importing/` — Core-Calls (POST /participant, GET /participant für Activation-Check), Auto-Branch nach Import
+- `internal/mail/` — Mail-Templates für PROJ-46 (`application_imported_*`, `application_activated_*`) und PROJ-47 (B2B-Mandat-Anhang)
+- `db/migrations/` — Schema-Änderungen, insbes. CHECK-Constraint-Erweiterung bei neuen Status-Werten
 - `helm/` — Kubernetes-Deployment, Secrets
 - `Dockerfile*` — Container-Images
-- `.github/workflows/` — CI/CD-Pipelines
-- `cmd/server/main.go` — Route-Registrierung, Auth-Middleware-Konfiguration
+- `.github/workflows/` — CI/CD-Pipelines (inkl. `eol-check.yml` für proaktive Runtime-EOL-Warnung)
+- `cmd/server/main.go` — Route-Registrierung, Auth-Middleware-Konfiguration, neue Endpoints (`/check-activation`)
+
+**Runtime-Hygiene:**
+- Frontend-Image läuft auf **Node 22 LTS** (Node 20 ist seit 2026-04-30 EOL; Bump vom 2026-05-17). Bei nächstem Runtime-Wechsel den `cycle`-Eintrag in `.github/workflows/eol-check.yml` und den `@types/node`-Ignore-Filter in `.github/dependabot.yml` nachziehen.
+- Monatlicher EOL-Check-Workflow (`.github/workflows/eol-check.yml`) fragt endoflife.date für Node / Go / PostgreSQL und öffnet ein GitHub-Issue, sobald eine Komponente innerhalb von 60 Tagen EOL erreicht.
+- Snyk-Container-Scan deckt 4 Base-Images ab (`node:22-alpine`, `golang:1.26-alpine`, `alpine:3.20`, `postgres:16-alpine`) — Ergänzung zur reaktiven EOL-Erkennung.
 
 ---
 

@@ -53,8 +53,19 @@ Geben Sie mindestens einen Zählpunkt an:
 - **Zählpunktnummer** — 33-stellige Nummer im Format `AT...` (steht auf Ihrer Stromrechnung)
 - **Richtung** — Verbraucher (Strom wird bezogen) oder Erzeuger (Strom wird eingespeist)
 - **Teilnahmefaktor** — prozentualer Anteil der Teilnahme an der EEG (Standard: 100 %)
+- **Erzeugungsform** *(PROJ-45, nur bei Erzeuger-Zählpunkten)* — Auswahl PV / Wasser / Wind / Biomasse, Default PV
+- **Größe Batterie (kWh)** und **Hersteller Wechselrichter** *(PROJ-45, nur bei PV-Erzeugern, sofern die EEG diese Felder konfiguriert hat)*
+- **Abweichende Adresse** *(PROJ-39, optional)* — Checkbox einblendet vier Adressfelder, wenn der Zählpunkt nicht an Ihrer Wohnadresse liegt. Alle vier Felder müssen ausgefüllt werden, sobald die Checkbox aktiviert ist.
 
 Über **Zählpunkt hinzufügen** können Sie bis zu 10 Zählpunkte angeben.
+
+### Schritt 5b: Weitere Angaben *(typabhängig, PROJ-45)*
+
+Nach der Zählpunkt-Eingabe erscheint — sofern Ihre EEG die zugehörigen Felder konfiguriert hat — der Block „Weitere Angaben". Welche Felder dort sichtbar sind, hängt vom Typ Ihrer Zählpunkte ab:
+
+- **Verbraucher-Zählpunkt vorhanden:** „Personen im Haushalt", „Verbrauch Vorjahr/Prognose", „Wärmepumpe", „E-Auto" (+ optional Anzahl/Jahres-km, falls E-Auto = Ja), „Warmwasser elektrisch"
+- **Erzeuger-Zählpunkt vorhanden:** „PV-Leistung (kWp)", „Einspeisung Prognose"
+- Bei reinen Verbraucher-Anträgen werden die Erzeuger-Felder ausgeblendet, bei reinen Erzeuger-Anträgen die Verbraucher-Felder.
 
 ## Schritt 5a: Genossenschaftsanteile (nur bei aktivierten EEGs)
 
@@ -72,6 +83,7 @@ Wenn Ihre EEG dieses Feature nicht aktiviert hat, ist der Block ausgeblendet und
 - Bestätigen Sie die **Richtigkeit Ihrer Angaben**
 - Falls Ihre EEG zusätzliche Pflicht-Dokumente hinterlegt hat (z. B. Satzung), bestätigen Sie diese ebenfalls per Häkchen
 - Falls Ihre EEG **Info-Dokumente** (PROJ-36) verlinkt hat (z. B. Mitgliederinfo, Hausordnung), werden diese nur zur Kenntnisnahme angezeigt — kein Häkchen, aber das Einreichen des Antrags gilt als Kenntnisnahme
+- Falls Ihre EEG die **Netzbetreiber-Vollmacht** (PROJ-44) verlangt, lesen Sie den Volltext der Vollmacht und bestätigen Sie sie per Häkchen — damit ermächtigen Sie die EEG, in Ihrem Namen Abstimmungen mit dem Netzbetreiber durchzuführen
 - Klicken Sie auf **Antrag einreichen**
 
 Nach der Einreichung erhalten Sie eine **Bestätigungs-E-Mail** mit Ihrer Antragsnummer (Format `<RC>-<Jahr>-<NNNN>`, z. B. `RC123456-2026-0001`). Die E-Mail enthält zusätzlich:

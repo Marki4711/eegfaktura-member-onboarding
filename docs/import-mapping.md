@@ -106,6 +106,13 @@ These fields are added directly in eegFaktura after import or set by core defaul
 
 Onboarding-only fields (intentionally **not** sent to core):
 - `application.cooperative_shares_count` *(PROJ-37)* — cooperative shares are bookkeeping inside the EEG and have no representation in the core's participant model.
+- `application.network_operator_authorization` + `network_operator_authorization_at` *(PROJ-44)* — Vollmacht für die EEG, mit dem Netzbetreiber zu agieren. Keine Core-Repräsentation; lokal in `application` als Audit-Trail aufbewahrt.
+- `application.bank_confirmed_at` + `activated_at` *(PROJ-46)* — Audit-Timestamps für die Onboarding-Stati `awaiting_bank_confirmation` / `activated`. Nicht im Core.
+- `metering_point.generation_type` / `battery_size_kwh` / `inverter_manufacturer` *(PROJ-45)* — EEG-Optimierungs-Metadaten. Werden lokal gespeichert (Excel-Export für eegFaktura-Importer am Spalten-Ende ergänzt), gehen aber nicht über die JSON-`POST /participant`-API mit (Core kennt diese Felder noch nicht).
+
+### Activation-Check (PROJ-46 Stage D, reverse-read)
+
+`POST /api/admin/applications/check-activation` ruft pro Tenant `GET /participant` im Core auf und liest dort `participant.status` (`NEW` / `PENDING` / `ACTIVE`). Trifft `ACTIVE` zu, transitioniert die Onboarding-Application von `ready_for_activation` auf `activated`. Keine Schreib-Aktion gegen den Core, nur ein Lese-Pfad zum Status-Sync.
 
 ### Reverse integration: EEG master data sync (PROJ-32 / PROJ-33)
 

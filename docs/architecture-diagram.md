@@ -69,26 +69,31 @@ graph TB
 
 ---
 
-## Geplante zukünftige Integration: Import in eegFaktura Core
+## Integration mit eegFaktura Core (live)
 
-### Option A: Direkter API-Aufruf (intern)
+Beide Integrationspfade — direkter API-Aufruf und Excel-Export — sind
+implementiert und in Produktion. Der direkte API-Pfad ist der primäre
+Onboarding-Flow; der Excel-Export bleibt als Fallback (z.B. bei
+Core-Wartung, oder für Anwender, die lieber prüfen-vor-Import).
+
+### A) Direkter API-Aufruf (Standard-Pfad, live)
 
 ```mermaid
 graph LR
-    MOB_BE["Member Onboarding\nBackend"] -->|"POST /api/participants\n(Bearer Token)"| EF_BACKEND["eegfaktura\nBackend"]
-    EF_BACKEND -->|write| EF_DB[("eegFaktura DB\nSchema: public")]
+    MOB_BE["Member Onboarding\nBackend"] -->|"POST /api/participant\n(Bearer Token, tenant-header)"| EF_BACKEND["eegfaktura\nBackend"]
+    MOB_BE -->|"GET /api/participant\n(Activation-Check, PROJ-46 Stage D)"| EF_BACKEND
+    MOB_BE -->|"GraphQL eeg-master-data\n(PROJ-32 Sync)"| EF_BACKEND
+    EF_BACKEND -->|write/read| EF_DB[("eegFaktura DB\nSchema: public")]
 ```
 
 | Aspekt | Detail |
 |---|---|
-| **Vorteil** | Vollständig automatisierbar, kein manueller Schritt |
-| **Risiko** | **Enge Kopplung**: Änderungen an der eegFaktura-API erfordern Anpassungen im Onboarding-Backend. |
-| **Risiko** | eegFaktura-API muss eine stabile, versionierte Schnittstelle für den internen Gebrauch bereitstellen. |
-| **Risiko** | Netzwerkfehler oder API-Fehler können den Import-Schritt blockieren; Retry-Logik ist erforderlich. |
-| **Risiko** | Auth-Token für den Service-to-Service-Call muss sicher verwaltet werden (Keycloak Service Account oder API-Key). |
-| **Aktueller Status** | In der Architektur vorgesehen (`internal/coreclient`, `internal/importing`), aber **noch nicht implementiert**. |
+| **Status** | **Live seit PROJ-4** (Onboarding → Core), erweitert in PROJ-27 (Tariff-Selection), PROJ-30 (Reset-Import), PROJ-32 (EEG-Stammdaten-Sync, GraphQL), PROJ-33 (Logo-Sync), PROJ-34 (Stuck-Recovery), PROJ-46 (Post-Import-Stati + GET /participant Activation-Check). |
+| **Auth** | Admin-Bearer-Token wird per `Authorization`-Header weitergereicht (User-Context, kein Service-Account). |
+| **Boundary** | Backend ist die einzige Komponente, die den Core erreicht. Frontends und externe API rufen nie direkt den Core auf. |
+| **Resilience** | Retry-Logik auf HTTP-Level; PROJ-34-Stuck-Recovery für orphan-Participants; Reset-Import für rollback nach Core-seitiger Korrektur. |
 
-### Option B: Excel-Export / Datei-Import (entkoppelt)
+### B) Excel-Export (Fallback, live)
 
 ```mermaid
 graph LR
@@ -98,29 +103,9 @@ graph LR
 
 | Aspekt | Detail |
 |---|---|
-| **Vorteil** | **Vollständig entkoppelt**: Kein direkter API-Aufruf zwischen den Systemen. Änderungen an eegFaktura beeinflussen das Onboarding nicht. |
-| **Vorteil** | Kein Netzwerkfehlerrisiko zwischen den Backends. |
-| **Vorteil** | Admin behält volle Kontrolle und kann vor dem Import prüfen. |
-| **Nachteil** | Manueller Schritt: Admin muss Export herunterladen und in eegFaktura importieren. |
-| **Nachteil** | Kein Echtzeit-Feedback ob der Import erfolgreich war. |
-| **Eignung** | Empfohlen als **kurzfristige Lösung** und für EEGs mit geringem Antragsvolumen. |
-
----
-
-## Empfehlung: Phasenweises Vorgehen
-
-```
-Phase 1 (jetzt):       Excel-Export als Fallback / manuelle Option implementieren
-                       → Niedrigstes Risiko, sofort nutzbar
-
-Phase 2 (mittelfristig): Direkten API-Aufruf implementieren, wenn eegFaktura eine
-                          stabile interne Import-API bereitstellt
-                          → Parallel zum Excel-Export betreiben
-                          → Automatisiert für Standard-Fälle
-
-Phase 3 (langfristig):   Excel-Import als Fallback beibehalten (Fehlerbehandlung,
-                          manuelle Korrekturen)
-```
+| **Status** | **Live seit PROJ-17.** Endpoint `GET /api/admin/applications/{id}/export/excel`. |
+| **Wann verwenden** | Wenn der Core temporär nicht erreichbar ist, oder wenn der Admin den Import zunächst prüfen will (Excel ist editierbar). |
+| **Nachteil** | Manueller Schritt im EEG-Faktura-Frontend; PROJ-45-Spalten (Erzeugungsform, Batterie, Wechselrichter) am Spalten-Ende werden vom alten Importer ggf. ignoriert. |
 
 ---
 

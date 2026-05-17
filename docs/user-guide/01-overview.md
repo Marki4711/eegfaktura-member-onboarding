@@ -34,20 +34,31 @@ Mitglied                    EEG-Betreiber              eegFaktura
 ## Antragsstatus im Überblick
 
 ```
-draft → submitted ─┬─ (Standard) ──→ under_review → approved → imported
+draft → submitted ─┬─ (Standard) ──→ under_review → approved → imported (Millisek.)
                    │                       ↕            ↑          │
-                   │                  needs_info        │      (Reset)
-                   │                       ↕            │          │
-                   │                    rejected        └──────────┘
-                   │                                    │
-                   │                               import_failed
+                   │                  needs_info        │   ┌──────┴──────┐
+                   │                       ↕            │   ▼             ▼
+                   │                    rejected        │  b2b?         non-b2b
+                   │                                    │   │             │
+                   │                          import_failed │             │
+                   │                                        ▼             │
+                   │                          awaiting_bank_confirmation  │
+                   │                                        ↕             ↓
+                   │                                ready_for_activation ←┘
+                   │                                        ↓
+                   │                                    activated (Endzustand)
                    │
                    └─ (EEG mit E-Mail-Bestätigung) ─→ email_confirmed → under_review → …
 ```
 
-* `submitted → email_confirmed`: nur wenn die EEG **E-Mail-Bestätigung erforderlich** aktiviert hat — wird durch Klick des Mitglieds auf den Bestätigungs-Link in der Willkommens-Mail ausgelöst.
+* `submitted → email_confirmed`: nur wenn die EEG **E-Mail-Bestätigung erforderlich** aktiviert hat — Mitglied klickt den Bestätigungs-Link in der Willkommens-Mail.
 * `import_failed → approved`: nach Fehlerbehebung kann der Import erneut versucht werden.
-* `imported → approved`: über die Aktion **Import zurücksetzen** in der Detailansicht.
+* `imported` ist **transient** (nur Millisekunden) — der Server transitioniert sofort weiter abhängig von `einzugsart=b2b`:
+  - **b2b:** `imported → awaiting_bank_confirmation` (Admin wartet auf Mitglied-Rückmeldung zur Hausbank-Pre-Notification, dann manuell weiter)
+  - **sonst:** `imported → ready_for_activation` (direkt nach Aktivierung im Core bereit)
+* `ready_for_activation → activated`: Admin klickt manuell „Als aktiv markieren" ODER nutzt den Batch-Button „Aktivierung im Core prüfen" in der Antragsliste.
+* `activated` ist **strikter Endzustand**: keine Übergänge raus, kein Reset. Deaktivierung erfolgt direkt im Core.
+* `imported / awaiting_bank_confirmation / ready_for_activation → approved`: über die Aktion **Import zurücksetzen** in der Detailansicht. NICHT aus `activated`.
 
 | Status | Bedeutung |
 |--------|-----------|
@@ -58,5 +69,8 @@ draft → submitted ─┬─ (Standard) ──→ under_review → approved →
 | `needs_info` | EEG-Betreiber hat Rückfragen gestellt |
 | `approved` | Antrag genehmigt, bereit für Import |
 | `rejected` | Antrag abgelehnt |
-| `imported` | Erfolgreich in eegFaktura importiert |
+| `imported` | Erfolgreich in eegFaktura importiert (transient, Auto-Routing direkt danach) |
 | `import_failed` | Import fehlgeschlagen, kann wiederholt werden |
+| `awaiting_bank_confirmation` | (B2B-SEPA) Mitglied muss sein B2B-Mandat bei der Hausbank hinterlegen, EEG-Admin wartet auf Bestätigung |
+| `ready_for_activation` | Bereit zur finalen Aktivierung in der EEG |
+| `activated` | Aktives Mitglied — Endzustand |

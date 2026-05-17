@@ -154,15 +154,40 @@ Basic rules:
 
 ### Status values — keep three places in sync
 
-Current set: `draft`, `submitted`, `email_confirmed` *(PROJ-31)*, `under_review`, `needs_info`, `approved`, `rejected`, `imported`, `import_failed`.
+Current set (12 values): `draft`, `submitted`, `email_confirmed` *(PROJ-31)*, `under_review`, `needs_info`, `approved`, `rejected`, `imported`, `import_failed`, `awaiting_bank_confirmation` *(PROJ-46, b2b only)*, `ready_for_activation` *(PROJ-46)*, `activated` *(PROJ-46, strict end state)*.
 
 Adding or removing an application status requires updates in all three:
 
 1. `CLAUDE.md` → "Allowed status values" (canonical).
 2. `internal/shared/models.go` status constants + `adminTransitions` map in `internal/application/admin_service.go`.
-3. `application_status_check` CHECK constraint — new migration that DROPs and re-ADDs it. Reference pattern: `db/migrations/000036_application_status_check_email_confirmed.up.sql`.
+3. `application_status_check` CHECK constraint — new migration that DROPs and re-ADDs it. Latest pattern: `db/migrations/000041_post_import_statuses.up.sql`.
 
 Go-only tests don't catch a stale constraint — verify with an end-to-end transition on a migrated Postgres before release.
+
+### Post-Import lifecycle (PROJ-46)
+
+After a successful import the Import-Service auto-routes the application
+out of the transient `imported` state, branched by `application.einzugsart`:
+
+```
+approved → imported (transient, ms only)
+              ↓
+        einzugsart = 'b2b'? 
+         ├── ja →  awaiting_bank_confirmation  (Admin wartet auf
+         │            Member-Rückmeldung zur Hausbank-Pre-Notification)
+         │            ↓  (Admin manuell)
+         │       ready_for_activation
+         │            ↓  (Admin manuell ODER Batch-Button)
+         │       activated  (strict end state)
+         │
+         └── nein →  ready_for_activation  (auto-skip)
+                       ↓
+                  activated
+```
+
+The Batch-Button "Aktivierung im Core prüfen" (`POST /api/admin/applications/check-activation`) queries the Core's `GET /participant` per tenant, groups by `target_participant_id`, and transitions matching rows whose Core-Status is `ACTIVE` to `activated`. Manual `→ activated` per row is also available from the detail page.
+
+Reset-Import (`POST /reset-import`, PROJ-30 + PROJ-46) is allowed from `imported`, `awaiting_bank_confirmation`, and `ready_for_activation`. NOT from `activated` — deactivation must happen in the Core, not silently here.
 
 ## 6. Technology Decisions
 
@@ -235,6 +260,22 @@ Standalone build and standalone migrations in repository `eegfaktura-member-onbo
 - `status_log(application_id, created_at)`, `document_consent(application_id, consented_at)`, `metering_point(application_id, created_at)` — the three "list children, ordered by time" queries on every admin detail view
 - `(rc_number, member_number) WHERE member_number IS NOT NULL` — partial UNIQUE for duplicate-detection
 - Deep pagination is capped at `page = 10000` in the admin list handler so no OFFSET scan can run away.
+
+### Mail Flow (post-PROJ-46 / PROJ-47)
+
+| Übergang | Member-Mail | Member-Anhänge | EEG-Mail | Modus |
+|---|---|---|---|---|
+| `→ submitted` | ✅ Eingangsbestätigung (+ Confirm-Link bei PROJ-31) | SEPA-Mandat-PDF (Basis/Firma, Mandatsref-Platzhalter) wenn `SEPAMandateEnabled=true` | ✅ Antrags-Notification | best-effort async |
+| `submitted → email_confirmed` (PROJ-31) | ❌ | — | ✅ aufgeschobene Notification | best-effort async |
+| `→ needs_info` (PROJ-43) | ✅ Rückfrage 1:1 | — | ❌ | **hard-fail sync** |
+| `→ rejected` (PROJ-41) | ✅ Ablehnungs-Text 1:1 | — | ❌ | **hard-fail sync** |
+| `→ imported` (b2b auto → `awaiting_bank_confirmation`) | ✅ Beitrittsbestätigung + b2b-Bank-Hinweis | **PDF 1** Beitrittsbestätigung (Mitgliedsnummer) **PDF 2** Firmenlastschrift-Mandat mit Mandatsref = Mitgliedsnummer (PROJ-47) | ✅ Kopie + „warte auf Bank-Bestätigung" | best-effort async |
+| `→ imported` (non-b2b auto → `ready_for_activation`) | ✅ Beitrittsbestätigung | Beitrittsbestätigung | ✅ Kopie + „bereit zur Aktivierung" | best-effort async |
+| `→ activated` (PROJ-46) | ✅ „Willkommen — Sie sind nun aktiv in der EEG" | — | ❌ | best-effort async |
+
+**Wichtige Änderung seit PROJ-46 Stage B:** die Approval-PDF wird **nicht mehr** beim `→ approved`-Übergang generiert/versendet (`SendApprovalEmail` ist deprecated). Sie wird beim Import erzeugt (mit Mitgliedsnummer) und geht an Member + EEG-Kopie.
+
+**Hard-Fail vs. Best-Effort:** PROJ-41 (rejected) + PROJ-43 (needs_info) sind die einzigen synchron-hart-fehlschlagenden Mails — bei SMTP-Fehler wird der Statuswechsel rückgängig gemacht. Alle anderen Mails laufen best-effort in Goroutines. Durchgängige Hard-Fail-Umstellung bleibt offene Architektur-Entscheidung (siehe `docs/operations.md`).
 
 ### Mail Deliverability
 
