@@ -6,6 +6,15 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    # Groups: pakete, die wegen geteilter peer deps nur als Satz bumpen.
+    # Ohne Gruppierung öffnet Dependabot mehrere PRs, die einzeln am
+    # ERESOLVE-Konflikt scheitern (Beispiel: @tiptap/react@3.23.4 verlangt
+    # @tiptap/core@3.23.4, aber @tiptap/starter-kit@3.22.4 hält core auf
+    # 3.22.4 — beide Pakete + extension-link müssen zusammen).
+    groups:
+      tiptap:
+        patterns:
+          - "@tiptap/*"
     # Ignore: @types/node Major-Bumps. Die TypeScript-Typen müssen zur
     # Node-Runtime im Dockerfile.frontend / CI passen (aktuell Node 22).
     # Wenn die Runtime auf einen neuen Major angehoben wird, hier den
