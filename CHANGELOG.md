@@ -10,6 +10,60 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Geändert — Mail-Templates: Audit-Fixes + Orphan-Cleanup *(2026-05-17)*
+
+Vollständiger Inhalts-Audit aller 8 Mail-Templates + Behebung der
+gefundenen Inkonsistenzen.
+
+**Welle 1 (kritisch):**
+- `application_imported_member.html` um PROJ-48-Pfad erweitert: neuer
+  `HasMandateAttachment`-Flag in `importedTemplateData` triggert einen
+  zusätzlichen Block „Ihr SEPA-Lastschriftmandat" mit Signatur-Anleitung
+  (Ausdruck oder ID-Austria-App) — wird gerendert, wenn beim Import ein
+  Basis-Mandat angehängt wurde (PROJ-48-`sepa_mandate_at_import=true`-
+  Pfad für `einzugsart=core`). B2B-Block (PROJ-47) bleibt parallel.
+- `application_imported_eeg.html` analog: zusätzlicher Hinweis-Block,
+  wenn das Mitglied das Basis-Mandat mit ausgefüllter Mandatsreferenz
+  bekommen hat — Admin weiß, dass auf unterschriebene Rücksendung
+  gewartet werden muss, bevor Lastschriften eingezogen werden.
+- `approvalSepaMandateType` und `resolveSepaMandateType` an PROJ-48
+  angepasst: SEPA-Variante richtet sich jetzt allein nach
+  `app.einzugsart` (Auto-Logik via Mitgliedstyp + useCompanySEPAMandate
+  entfernt — entsprach nicht mehr dem neuen Default-Core-Workflow).
+- `application_approved_eeg.html` **gelöscht** (Orphan seit PROJ-46
+  Stage B). `SendApprovalEmail`-Method aus MailService-Interface,
+  NoOpMailService und SMTPMailService entfernt. Zugehörige Tests
+  (`TestSendApprovalEmail*`, `TestApprovalTemplate*`) entfernt.
+  Auch der `approvalTpl`-Field und `approvedEEGTemplateData`-Typ weg.
+
+**Welle 2 (Inhalte + Konsistenz):**
+- `application_submitted_member.html`:
+  - SEPA-Tabellenzeile vereinfacht (vorher mit verschachtelter
+    SEPAMandateEnabled/Accepted-Logik): zeigt jetzt klare drei
+    Varianten — „Mandat als PDF-Anhang", „Mandat wird mit
+    Beitrittsbestätigung übermittelt" (PROJ-48-Pfad), oder
+    „Online-Zustimmung erteilt"
+  - Redundanter Schluss-Text entfernt (war doppelt mit
+    Confirmation-Box am Anfang)
+- `application_submitted_eeg.html`: zusätzliche Zeile
+  „E-Mail bestätigt am: …" wenn PROJ-31 aktiv ist — macht den
+  Zeitversatz zwischen Submit und EEG-Mail-Versand transparent.
+  `EmailConfirmedAt`-Feld in `eegTemplateData` ergänzt.
+- `application_needs_info_member.html`: Anleitung erweitert um den
+  Hinweis, dass die EEG den ursprünglichen Antragslink erneut zusenden
+  kann, wenn das Mitglied Angaben direkt im Form korrigieren möchte
+  (vorher nur „E-Mail antworten").
+- `application_activated_member.html`: realistischere Formulierung —
+  „formal aktiv, tatsächliche Teilnahme startet sobald der
+  Netzbetreiber freigeschaltet hat" (vorher überoptimistisch
+  „ab sofort am Sharing teil"). Plus erste-Abrechnungs-Hinweis.
+- **Konsistente Signaturen quer durch alle Member-Templates**:
+  „Ihr Team von {EEG-Name}" mit Fallback „Ihre Energiegemeinschaft"
+  (vorher mal „Ihr eegFaktura-Team"). Der eegFaktura-Brand bleibt
+  nur im Footer als Erzeuger-Hinweis.
+- Alle Member-Templates beginnen einheitlich mit
+  „Sehr geehrte/r {Vorname} {Nachname}".
+
 ### Neu — PROJ-48: SEPA-Default-Core + konfigurierbares Mandat-Timing + B2B-Hinweis *(2026-05-17)*
 
 Drei zusammenhängende Änderungen am SEPA-Workflow:

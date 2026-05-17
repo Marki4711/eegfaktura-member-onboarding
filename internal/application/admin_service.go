@@ -1386,15 +1386,22 @@ func approvalMemberTypeLabel(mt shared.MemberType) string {
 	}
 }
 
+// approvalSepaMandateType returns the human-readable SEPA-Variante for the
+// approval PDF. Seit PROJ-48 richtet sich die Variante allein nach
+// `app.einzugsart` (Admin-Entscheidung), nicht mehr nach Mitgliedstyp +
+// useCompanySEPAMandate.
 func approvalSepaMandateType(app *shared.Application, ep *shared.RegistrationEntrypoint) string {
-	if !app.SepaMandateAccepted {
+	if !ep.SEPAMandateEnabled || !app.SepaMandateAccepted {
 		return "Per E-Mail"
 	}
-	if ep.UseCompanySEPAMandate &&
-		(app.MemberType == shared.MemberTypeCompany || app.MemberType == shared.MemberTypeAssociation) {
+	switch app.Einzugsart {
+	case "b2b":
 		return "Firmenlastschrift"
+	case "kein_sepa":
+		return "Kein SEPA"
+	default:
+		return "Basislastschrift"
 	}
-	return "Basislastschrift"
 }
 
 func buildApprovalConfigurableFields(app *shared.Application, fieldConfig map[string]string) []pdf.ConfigurableFieldPDF {

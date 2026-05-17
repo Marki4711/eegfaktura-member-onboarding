@@ -12,9 +12,19 @@
   <p><strong>Rückfrage der Energiegemeinschaft:</strong></p>
   <div style="margin: 12px 0; padding: 12px 16px; background-color: #fff8e1; border-left: 4px solid #f9a825; white-space: pre-wrap;">{{.Reason}}</div>
 
-  <p>Bitte beantworten Sie die Rückfrage, indem Sie diese E-Mail direkt beantworten — Ihre Antwort geht an Ihre Energiegemeinschaft.</p>
+  <p>
+    <strong>So beantworten Sie die Rückfrage:</strong> Antworten Sie direkt auf diese
+    E-Mail — Ihre Antwort geht an
+    {{if .EEGName}}{{.EEGName}}{{else}}Ihre Energiegemeinschaft{{end}}.
+    Falls Sie Angaben in Ihrem Antrag selbst korrigieren oder ergänzen
+    möchten, kann
+    {{if .EEGName}}{{.EEGName}}{{else}}Ihre Energiegemeinschaft{{end}} Ihnen
+    den ursprünglichen Antragslink erneut zusenden.
+  </p>
 
-  <p>Mit freundlichen Grüßen<br>Ihr eegFaktura-Team</p>
+  <p>Mit freundlichen Grüßen<br>
+    {{if .EEGName}}Ihr Team von {{.EEGName}}{{else}}Ihre Energiegemeinschaft{{end}}
+  </p>
 
   <hr style="border: none; border-top: 1px solid #ddd; margin: 32px 0 16px;">
   <p style="font-size: 12px; color: #777; line-height: 1.5;">

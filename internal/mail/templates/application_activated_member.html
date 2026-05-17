@@ -5,13 +5,14 @@
   <title>Sie sind jetzt aktiv in der EEG</title>
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 700px;">
-  <p>Guten Tag {{if .Firstname}}{{.Firstname}} {{end}}{{.Lastname}},</p>
+  <p>Sehr geehrte/r {{if .Firstname}}{{.Firstname}} {{end}}{{.Lastname}},</p>
 
   <p>
     Ihre Mitgliedschaft bei
     {{if .EEGName}}<strong>{{.EEGName}}</strong>{{else}}der Energiegemeinschaft{{end}}
-    ist nun <strong>aktiv</strong>. Sie nehmen ab sofort am Energie-Sharing der
-    Gemeinschaft teil.
+    ist nun <strong>formal aktiv</strong>. Die organisatorische Anlage ist
+    abgeschlossen — die tatsächliche Teilnahme am Energie-Sharing startet,
+    sobald Ihr Zählpunkt vom Netzbetreiber freigeschaltet wurde.
   </p>
 
   <table style="border-collapse: collapse; margin: 16px 0;">
@@ -25,9 +26,11 @@
     </tr>
   </table>
 
-  <p style="margin-top: 20px;">
-    Bei Fragen wenden Sie sich gerne direkt an
-    {{if .EEGName}}{{.EEGName}}{{else}}Ihre EEG{{end}}.
+  <p style="margin-top: 16px;">
+    Die erste Abrechnung erhalten Sie nach Ende des jeweiligen Abrechnungszeitraums.
+    Bei Fragen wenden Sie sich bitte direkt an
+    {{if .EEGName}}{{.EEGName}}{{else}}Ihre Energiegemeinschaft{{end}} — Sie
+    können diese E-Mail einfach beantworten.
   </p>
 
   <p style="margin-top: 24px;">Mit freundlichen Grüßen<br>
@@ -38,6 +41,7 @@
   <p style="font-size: 12px; color: #777; line-height: 1.5;">
     Diese Nachricht wurde automatisch durch <strong>eegFaktura Mitglieder-Onboarding</strong> erzeugt
     {{if .EEGName}} für {{.EEGName}}{{end}}.
+    Eine Antwort auf diese E-Mail geht direkt an Ihre Energiegemeinschaft.
   </p>
 </body>
 </html>

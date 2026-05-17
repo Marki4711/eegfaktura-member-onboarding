@@ -12,9 +12,13 @@
   <p><strong>Begründung der Energiegemeinschaft:</strong></p>
   <div style="margin: 12px 0; padding: 12px 16px; background-color: #f8f8f8; border-left: 4px solid #c00; white-space: pre-wrap;">{{.Reason}}</div>
 
-  <p>Bei Fragen zur Entscheidung wenden Sie sich bitte direkt an Ihre Energiegemeinschaft — Sie können diese E-Mail einfach beantworten.</p>
+  <p>Bei Fragen zur Entscheidung wenden Sie sich bitte direkt an
+    {{if .EEGName}}{{.EEGName}}{{else}}Ihre Energiegemeinschaft{{end}} —
+    Sie können diese E-Mail einfach beantworten.</p>
 
-  <p>Mit freundlichen Grüßen<br>Ihr eegFaktura-Team</p>
+  <p>Mit freundlichen Grüßen<br>
+    {{if .EEGName}}Ihr Team von {{.EEGName}}{{else}}Ihre Energiegemeinschaft{{end}}
+  </p>
 
   <hr style="border: none; border-top: 1px solid #ddd; margin: 32px 0 16px;">
   <p style="font-size: 12px; color: #777; line-height: 1.5;">

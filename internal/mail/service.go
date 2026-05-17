@@ -33,11 +33,6 @@ type MailService interface {
 	SendSubmissionEmails(app *shared.Application, meteringPoints []shared.MeteringPoint, entrypoint *shared.RegistrationEntrypoint, fieldConfig map[string]string, attachment []byte, consents []shared.DocumentConsent, emailConfirmationURL string)
 	SendEEGNotification(app *shared.Application, meteringPoints []shared.MeteringPoint, entrypoint *shared.RegistrationEntrypoint, fieldConfig map[string]string)
 	SendMemberConfirmation(app *shared.Application, entrypoint *shared.RegistrationEntrypoint) error
-	// SendApprovalEmail is deprecated since PROJ-46: the welcome PDF is now
-	// delivered at import time (when the member_number is set) via
-	// SendImportedNotification. Kept on the interface for test compatibility;
-	// production code no longer calls this.
-	SendApprovalEmail(app *shared.Application, entrypoint *shared.RegistrationEntrypoint, pdfBytes []byte, pdfFailed bool) error
 	// PROJ-41: Mail an Mitglied bei Ablehnung. Reason wird 1:1 in den
 	// Mail-Body übernommen (von der Admin-Oberfläche eingegeben).
 	SendRejectedNotification(app *shared.Application, entrypoint *shared.RegistrationEntrypoint, reason string) error
@@ -68,9 +63,6 @@ func (n *NoOpMailService) SendEEGNotification(_ *shared.Application, _ []shared.
 func (n *NoOpMailService) SendMemberConfirmation(_ *shared.Application, _ *shared.RegistrationEntrypoint) error {
 	return nil
 }
-func (n *NoOpMailService) SendApprovalEmail(_ *shared.Application, _ *shared.RegistrationEntrypoint, _ []byte, _ bool) error {
-	return nil
-}
 func (n *NoOpMailService) SendRejectedNotification(_ *shared.Application, _ *shared.RegistrationEntrypoint, _ string) error {
 	return nil
 }
@@ -89,7 +81,6 @@ type SMTPMailService struct {
 	sender             Sender
 	memberTpl          *template.Template
 	eegTpl             *template.Template
-	approvalTpl        *template.Template
 	rejectedTpl        *template.Template
 	needsInfoTpl       *template.Template
 	importedMemberTpl  *template.Template
@@ -114,10 +105,6 @@ func NewSMTPMailService(sender Sender, adminBaseURL string) (*SMTPMailService, e
 	eegTpl, err := template.New("application_submitted_eeg.html").Funcs(templateFuncs).ParseFS(templateFS, "templates/application_submitted_eeg.html")
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse eeg template: %w", err)
-	}
-	approvalTpl, err := template.New("application_approved_eeg.html").Funcs(templateFuncs).ParseFS(templateFS, "templates/application_approved_eeg.html")
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse approval template: %w", err)
 	}
 	rejectedTpl, err := template.New("application_rejected_member.html").Funcs(templateFuncs).ParseFS(templateFS, "templates/application_rejected_member.html")
 	if err != nil {
@@ -144,7 +131,6 @@ func NewSMTPMailService(sender Sender, adminBaseURL string) (*SMTPMailService, e
 		sender:            sender,
 		memberTpl:         memberTpl,
 		eegTpl:            eegTpl,
-		approvalTpl:       approvalTpl,
 		rejectedTpl:       rejectedTpl,
 		needsInfoTpl:      needsInfoTpl,
 		importedMemberTpl: importedMemberTpl,
@@ -223,7 +209,12 @@ type eegTemplateData struct {
 	// Identifikation
 	ReferenceNumber string
 	SubmittedAt     string
-	RCNumber        string
+	// EmailConfirmedAt (PROJ-31, optional). Wenn die EEG `require_email_confirmation=true`
+	// hat, wird die EEG-Notification erst NACH dem Member-Klick versendet —
+	// dann kann SubmittedAt deutlich älter sein als der Mailversand. Das
+	// Template macht den Zeitversatz transparent.
+	EmailConfirmedAt string
+	RCNumber         string
 
 	// Mitgliedstyp
 	MemberType string
@@ -264,13 +255,6 @@ type eegTemplateData struct {
 
 	// Admin-Link (leer wenn ADMIN_BASE_URL nicht konfiguriert)
 	AdminDetailURL string
-}
-
-type approvedEEGTemplateData struct {
-	MemberName      string
-	ReferenceNumber string
-	EEGName         string
-	PDFFailed       bool
 }
 
 var configurableFieldLabels = map[string]string{
@@ -367,15 +351,22 @@ func buildConfigurableFields(app *shared.Application, fieldConfig map[string]str
 	return result
 }
 
+// resolveSepaMandateType returns the human-readable SEPA-Variante for the
+// EEG-submission mail. Seit PROJ-48 richtet sich die Variante allein nach
+// `app.einzugsart` (Admin-Entscheidung), nicht mehr nach Mitgliedstyp +
+// useCompanySEPAMandate.
 func resolveSepaMandateType(app *shared.Application, ep *shared.RegistrationEntrypoint) string {
-	if !app.SepaMandateAccepted {
+	if !ep.SEPAMandateEnabled || !app.SepaMandateAccepted {
 		return "Per E-Mail"
 	}
-	if ep.UseCompanySEPAMandate &&
-		(app.MemberType == shared.MemberTypeCompany || app.MemberType == shared.MemberTypeAssociation) {
+	switch app.Einzugsart {
+	case "b2b":
 		return "Firmenlastschrift"
+	case "kein_sepa":
+		return "Kein SEPA"
+	default:
+		return "Basislastschrift"
 	}
-	return "Basislastschrift"
 }
 
 func memberDisplayName(app *shared.Application) string {
@@ -545,10 +536,15 @@ func (s *SMTPMailService) SendEEGNotification(app *shared.Application, meteringP
 	if app.SubmittedAt != nil {
 		submittedAt = shared.FmtDateTime(*app.SubmittedAt)
 	}
+	emailConfirmedAt := ""
+	if app.EmailConfirmedAt != nil {
+		emailConfirmedAt = shared.FmtDateTime(*app.EmailConfirmedAt)
+	}
 
 	tplData := eegTemplateData{
 		ReferenceNumber:      app.ReferenceNumber,
 		SubmittedAt:          submittedAt,
+		EmailConfirmedAt:     emailConfirmedAt,
 		RCNumber:             app.RCNumber,
 		MemberType:           memberTypeLabel,
 		Titel:                derefString(app.Titel),
@@ -620,52 +616,6 @@ func (s *SMTPMailService) SendMemberConfirmation(app *shared.Application, entryp
 		metrics.MailSentTotal.WithLabelValues("resend", "failed").Inc()
 	} else {
 		metrics.MailSentTotal.WithLabelValues("resend", "success").Inc()
-	}
-	return err
-}
-
-// SendApprovalEmail sends the approval notification with optional PDF attachment to the EEG contact.
-// Returns nil immediately when contact_email is not configured.
-func (s *SMTPMailService) SendApprovalEmail(app *shared.Application, entrypoint *shared.RegistrationEntrypoint, pdfBytes []byte, pdfFailed bool) error {
-	if entrypoint.ContactEmail == nil || *entrypoint.ContactEmail == "" {
-		return nil
-	}
-
-	eegName := ""
-	if entrypoint.EEGName != nil {
-		eegName = *entrypoint.EEGName
-	}
-
-	memberName := memberDisplayName(app)
-
-	var buf bytes.Buffer
-	if err := s.approvalTpl.Execute(&buf, approvedEEGTemplateData{
-		MemberName:      memberName,
-		ReferenceNumber: app.ReferenceNumber,
-		EEGName:         eegName,
-		PDFFailed:       pdfFailed,
-	}); err != nil {
-		return fmt.Errorf("render approval template: %w", err)
-	}
-
-	subject := fmt.Sprintf("Mitgliedsantrag genehmigt – %s (%s)", memberName, app.ReferenceNumber)
-	filename := fmt.Sprintf("beitrittsbestaetigung-%s.pdf", app.ReferenceNumber)
-	approvalHTML := buf.String()
-	approvalPlain := htmlToText(approvalHTML)
-
-	// Reply-To = applicant so the EEG admin can use the approval mail itself
-	// to write to the new member (welcome note, follow-up info).
-	opts := transactionalOpts(app.Email)
-	var err error
-	if len(pdfBytes) > 0 {
-		err = s.sender.SendWithAttachment(opts, *entrypoint.ContactEmail, subject, approvalHTML, approvalPlain, filename, pdfBytes)
-	} else {
-		err = s.sender.Send(opts, *entrypoint.ContactEmail, subject, approvalHTML, approvalPlain)
-	}
-	if err != nil {
-		metrics.MailSentTotal.WithLabelValues("eeg_approval", "failed").Inc()
-	} else {
-		metrics.MailSentTotal.WithLabelValues("eeg_approval", "success").Inc()
 	}
 	return err
 }
@@ -759,18 +709,24 @@ type importedTemplateData struct {
 	EEGName         string
 	PDFFailed       bool
 	IsB2B           bool
+	// HasMandateAttachment (PROJ-48) — true wenn ein zweiter PDF-Anhang
+	// (SEPA-Mandat) in der Mail steckt. Bei IsB2B immer true wenn das
+	// B2B-Mandat erfolgreich generiert wurde; bei einzugsart=core nur
+	// wenn EEG-Setting sepa_mandate_at_import=true ist (PROJ-48-Pfad).
+	HasMandateAttachment bool
 }
 
-func buildImportedData(app *shared.Application, ep *shared.RegistrationEntrypoint, pdfFailed bool) importedTemplateData {
+func buildImportedData(app *shared.Application, ep *shared.RegistrationEntrypoint, pdfFailed bool, hasMandate bool) importedTemplateData {
 	return importedTemplateData{
-		Firstname:       derefString(app.Firstname),
-		Lastname:        derefString(app.Lastname),
-		MemberName:      memberDisplayName(app),
-		ReferenceNumber: app.ReferenceNumber,
-		MemberNumber:    derefString(app.MemberNumber),
-		EEGName:         derefString(ep.EEGName),
-		PDFFailed:       pdfFailed,
-		IsB2B:           app.Einzugsart == "b2b",
+		Firstname:            derefString(app.Firstname),
+		Lastname:             derefString(app.Lastname),
+		MemberName:           memberDisplayName(app),
+		ReferenceNumber:      app.ReferenceNumber,
+		MemberNumber:         derefString(app.MemberNumber),
+		EEGName:              derefString(ep.EEGName),
+		PDFFailed:            pdfFailed,
+		IsB2B:                app.Einzugsart == "b2b",
+		HasMandateAttachment: hasMandate,
 	}
 }
 
@@ -783,7 +739,7 @@ func buildImportedData(app *shared.Application, ep *shared.RegistrationEntrypoin
 // the member can hand it to their bank. Both sends are best-effort:
 // failures are logged + counted but do not roll back the import.
 func (s *SMTPMailService) SendImportedNotification(app *shared.Application, ep *shared.RegistrationEntrypoint, pdfBytes []byte, pdfFailed bool, b2bMandatePDF []byte) error {
-	data := buildImportedData(app, ep, pdfFailed)
+	data := buildImportedData(app, ep, pdfFailed, len(b2bMandatePDF) > 0)
 	subject := fmt.Sprintf("Ihre Beitrittsbestätigung – Mitgliedsnummer %s", data.MemberNumber)
 	filename := fmt.Sprintf("beitrittsbestaetigung-%s.pdf", app.ReferenceNumber)
 	b2bFilename := fmt.Sprintf("sepa-firmenlastschrift-mandat-%s.pdf", data.MemberNumber)

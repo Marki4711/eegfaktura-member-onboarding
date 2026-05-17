@@ -54,6 +54,14 @@
     Der Antrag ist im Status <strong>„Bereit zur Aktivierung"</strong> und kann
     nach finaler Prüfung im Admin-Bereich auf <strong>„Aktiviert"</strong> gesetzt werden.
   </p>
+  {{if .HasMandateAttachment}}
+  <p style="margin-top: 12px; padding: 10px 14px; background-color: #f1f8e9; border-left: 4px solid #2e7d32;">
+    <strong>SEPA-Mandat:</strong> Das Mitglied hat in dieser Mail das Basis-Lastschriftmandat
+    mit eingedruckter Mandatsreferenz = Mitgliedsnummer <strong>{{.MemberNumber}}</strong>
+    erhalten (Anhang identisch mit Ihrer Kopie). Bitte warten Sie auf das unterschriebene
+    Mandat vom Mitglied, bevor Sie Lastschriften einziehen.
+  </p>
+  {{end}}
   {{end}}
 
   <p style="margin-top: 24px;">Mit freundlichen Grüßen<br>Ihr eegFaktura-System</p>

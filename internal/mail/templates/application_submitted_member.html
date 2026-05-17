@@ -186,17 +186,15 @@
       <td style="padding: 4px 10px;">Bestätigt</td>
     </tr>
     {{end}}
-    {{if .SEPAMandateEnabled}}
-      {{if .SepaMandateAccepted}}
-      <tr>
-        <td style="padding: 4px 10px; color: #666;">SEPA-Lastschriftmandat</td>
-        <td style="padding: 4px 10px;">Per E-Mail übermittelt</td>
-      </tr>
-      {{end}}
-    {{else}}
+    {{if .SepaMandateAccepted}}
     <tr>
       <td style="padding: 4px 10px; color: #666;">SEPA-Lastschriftmandat</td>
-      <td style="padding: 4px 10px;">Erteilt</td>
+      <td style="padding: 4px 10px;">
+        {{if .SEPAMandateEnabled}}
+          {{if .HasSEPAMandate}}Mandat als PDF-Anhang dieser E-Mail{{else}}Mandat wird mit der Beitrittsbestätigung übermittelt{{end}}
+        {{else}}Online-Zustimmung erteilt
+        {{end}}
+      </td>
     </tr>
     {{end}}
     {{range .DocumentConsents}}
@@ -241,18 +239,15 @@
   </p>
   {{end}}
 
-  {{if .EmailConfirmationURL}}
+  {{if not .EmailConfirmationURL}}
   <p>
-    Sobald Sie auf den Bestätigungs-Button geklickt haben, prüft Ihre Energiegemeinschaft Ihren Antrag und meldet sich bei Ihnen.
-  </p>
-  {{else}}
-  <p>
-    Ihre Energiegemeinschaft wird Ihren Antrag in Kürze prüfen und sich bei Ihnen melden.
-    Bitte haben Sie etwas Geduld – wir werden Sie so schnell wie möglich informieren.
+    {{if .EEGName}}{{.EEGName}}{{else}}Ihre Energiegemeinschaft{{end}} wird Ihren Antrag in Kürze prüfen und sich bei Ihnen melden.
   </p>
   {{end}}
 
-  <p>Mit freundlichen Grüßen<br>Ihr eegFaktura-Team</p>
+  <p>Mit freundlichen Grüßen<br>
+    {{if .EEGName}}Ihr Team von {{.EEGName}}{{else}}Ihre Energiegemeinschaft{{end}}
+  </p>
 
   <hr style="border: none; border-top: 1px solid #ddd; margin: 32px 0 16px;">
   <p style="font-size: 12px; color: #777; line-height: 1.5;">

@@ -135,6 +135,12 @@
       <td style="padding: 4px 16px 4px 0; font-weight: bold;">Eingereicht am:</td>
       <td style="padding: 4px 0;">{{.SubmittedAt}}</td>
     </tr>
+    {{if .EmailConfirmedAt}}
+    <tr>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold;">E-Mail bestätigt am:</td>
+      <td style="padding: 4px 0;">{{.EmailConfirmedAt}}</td>
+    </tr>
+    {{end}}
     <tr>
       <td style="padding: 4px 16px 4px 0; font-weight: bold;">RC-Nummer:</td>
       <td style="padding: 4px 0;">{{.RCNumber}}</td>
