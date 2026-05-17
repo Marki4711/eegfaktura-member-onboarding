@@ -44,7 +44,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.0",
     "cmdk": "^1.1.1",
-    "dompurify": "^3.4.1",
+    "dompurify": "^3.4.3",
     "ibantools": "^4.5.4",
     "lucide-react": "^1.14.0",
     "next": "^16.2.6",
