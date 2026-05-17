@@ -10,6 +10,32 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Neu — PROJ-44: Netzbetreiber-Vollmacht (per-EEG konfigurierbar) *(2026-05-17)*
+
+Manche Netzbetreiber (z.B. Netz OÖ) verlangen eine separate Vollmacht
+des Mitglieds, damit die EEG in dessen Namen mit dem Netzbetreiber
+verhandeln darf. Die Vollmacht ist nicht Teil der EEG-Mitgliedschafts­
+zustimmung und nicht bei jeder EEG nötig — daher als neues
+konfigurierbares Feld (PROJ-8-Pattern, Default `hidden`).
+
+- Migration `000039_network_operator_authorization`: zwei Spalten auf
+  `application` — `network_operator_authorization BOOLEAN NOT NULL DEFAULT FALSE`
+  + `network_operator_authorization_at TIMESTAMPTZ NULL`
+- Neues konfigurierbares Feld `network_operator_authorization` —
+  EEGs mit Anforderung setzen es auf `required`, Bestands-EEGs bleiben
+  auf `hidden` (kein Sichtbarkeitswechsel ohne Admin-Aktion)
+- Verbindlicher Wortlaut der Vollmacht im Frontend (Checkbox-Label),
+  Wortlaut versioniert über Code-Commit (keine DB-Versionierung — YAGNI)
+- Service-Layer: `_at` wird automatisch auf `NOW()` gesetzt, wenn das
+  Flag von FALSE auf TRUE wechselt; `clearNetworkAuthIfHidden` schützt
+  vor forged Clients, die das Flag für EEGs mit `hidden`-Config setzen
+- Approval-PDF + Member-/EEG-Mail: rendern „Netzbetreiber-Vollmacht
+  erteilt: Ja" über bestehenden `buildConfigurableFields`-Pfad;
+  FALSE wird unterdrückt (Default für Bestandsanträge)
+- Admin-Detail: zeigt Vollmacht + Erteilungs-Timestamp, wenn erteilt
+- Excel-Export: bewusst **nicht** befüllt — eegFaktura-Importer­spalten­
+  struktur kennt das Feld nicht, Audit-Trail liegt in DB + PDF + Mail
+
 ### Geändert — Node-Runtime auf Node 22 LTS gebumpt + automatischer EOL-Check *(2026-05-17)*
 
 Node 20 ist seit 30. April 2026 End-of-Life — keine neuen Security-Patches

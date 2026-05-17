@@ -199,9 +199,14 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 		ElectricHotWater:        req.ElectricHotWater,
 		CooperativeSharesCount:  req.CooperativeSharesCount,
 	}
+	if req.NetworkOperatorAuthorization != nil && *req.NetworkOperatorAuthorization {
+		app.NetworkOperatorAuthorization = true
+		app.NetworkOperatorAuthorizationAt = &now
+	}
 	applyAdminValues(app, fieldConfig)
 	clearMemberTypeFields(app)
 	clearEVDetailsIfDisabled(app)
+	clearNetworkAuthIfHidden(app, fieldConfig)
 	if err = validateMemberTypeFields(app); err != nil {
 		return nil, err
 	}
@@ -347,9 +352,24 @@ func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateAp
 			app.SepaMandateAcceptedAt = &now
 		}
 	}
+	if req.NetworkOperatorAuthorization != nil {
+		// PROJ-44: only allow setting true; the timestamp records first grant.
+		// We don't expose a revoke path through this endpoint (out of V1 scope).
+		if *req.NetworkOperatorAuthorization && !app.NetworkOperatorAuthorization {
+			now := time.Now()
+			app.NetworkOperatorAuthorization = true
+			app.NetworkOperatorAuthorizationAt = &now
+		}
+	}
 
+	fieldConfig, fcErr := s.fieldConfigRepo.Get(strings.ToUpper(app.RCNumber))
+	if fcErr != nil {
+		slog.Warn("failed to load field config for update", "rc", app.RCNumber, "error", fcErr)
+		fieldConfig = map[string]FieldConfigEntry{}
+	}
 	clearMemberTypeFields(app)
 	clearEVDetailsIfDisabled(app)
+	clearNetworkAuthIfHidden(app, fieldConfig)
 	if err = validateMemberTypeFields(app); err != nil {
 		return nil, err
 	}
@@ -1021,6 +1041,9 @@ func validateConfigurableRequiredFields(app *shared.Application, fieldConfig map
 	requiredIfMissing("electric_vehicle_count", "electricVehicleCount", "Anzahl E-Fahrzeuge", evIsTrue && app.ElectricVehicleCount == nil)
 	requiredIfMissing("electric_vehicle_annual_km", "electricVehicleAnnualKm", "Jahres-Kilometer (E-Fahrzeuge)", evIsTrue && app.ElectricVehicleAnnualKm == nil)
 	requiredIfMissing("electric_hot_water", "electricHotWater", "Warmwasser elektrisch", app.ElectricHotWater == nil)
+	// PROJ-44: required ⇒ Häkchen muss gesetzt sein. Bool default FALSE
+	// reicht nicht — die Vollmacht muss explizit erteilt werden.
+	requiredIfMissing("network_operator_authorization", "networkOperatorAuthorization", "Netzbetreiber-Vollmacht", !app.NetworkOperatorAuthorization)
 
 	if len(errs) > 0 {
 		return shared.NewValidationError("Validation failed", errs)
@@ -1087,6 +1110,16 @@ func clearEVDetailsIfDisabled(app *shared.Application) {
 	if app.ElectricVehicle == nil || !*app.ElectricVehicle {
 		app.ElectricVehicleCount = nil
 		app.ElectricVehicleAnnualKm = nil
+	}
+}
+
+// clearNetworkAuthIfHidden resets the PROJ-44 authorization when the EEG has
+// the field set to "hidden". Prevents a forged client from setting the flag
+// for an EEG that doesn't collect it.
+func clearNetworkAuthIfHidden(app *shared.Application, fieldConfig map[string]FieldConfigEntry) {
+	if effectiveState(fieldConfig, "network_operator_authorization") == "hidden" {
+		app.NetworkOperatorAuthorization = false
+		app.NetworkOperatorAuthorizationAt = nil
 	}
 }
 

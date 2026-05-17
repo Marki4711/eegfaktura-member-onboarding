@@ -177,6 +177,8 @@ Fields:
 - `email_confirmed_at` — nullable TIMESTAMPTZ; set when the member clicked the link.
 - `email_confirmation_used_at` — nullable TIMESTAMPTZ; first-click timestamp (separate from `email_confirmed_at` to detect re-clicks).
 - `cooperative_shares_count` *(PROJ-37)* — INT NULL, CHECK `> 0`; Anzahl der vom Mitglied gezeichneten Genossenschaftsanteile. NULL bei EEGs ohne aktiviertes Anteils-Feature; sonst Submit-validiert `>= registration_entrypoint.cooperative_required_shares`. Gesamtbetrag wird nicht gespeichert — `count × amount` ist Render-Berechnung.
+- `network_operator_authorization` *(PROJ-44)* — BOOLEAN NOT NULL DEFAULT FALSE; vom Mitglied erteilte Vollmacht an die EEG, in dessen Namen mit dem Netzbetreiber zu agieren. Per-EEG via `field_config` aktivierbar (Standard `hidden`); Bestandsanträge bleiben auf FALSE.
+- `network_operator_authorization_at` *(PROJ-44)* — TIMESTAMPTZ NULL; Audit-Timestamp, vom Service auf NOW() gesetzt beim Wechsel von FALSE→TRUE.
 
 ### 3.3 `member_onboarding.metering_point`
 

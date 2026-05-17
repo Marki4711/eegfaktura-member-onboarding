@@ -139,6 +139,8 @@ const baseSchema = z.object({
     message: "Richtigkeit der Angaben muss bestätigt werden",
   }),
   sepaMandateAccepted: z.boolean(),
+  // PROJ-44: required-Validierung via buildFormSchema, abhängig vom field_config
+  networkOperatorAuthorization: z.boolean().optional(),
   meteringPoints: z
     .array(meteringPointSchema)
     .min(1, "Mindestens ein Zählpunkt ist erforderlich")
@@ -237,6 +239,16 @@ function buildFormSchema(
     requireNum("heat_pump", "heatPump", "Wärmepumpe vorhanden");
     requireNum("electric_vehicle", "electricVehicle", "E-Auto vorhanden");
     requireNum("electric_hot_water", "electricHotWater", "Warmwasser elektrisch");
+
+    // PROJ-44: Netzbetreiber-Vollmacht. Wenn required, muss das Häkchen
+    // explizit gesetzt sein (false zählt nicht als Erteilung).
+    if (resolve("network_operator_authorization") === "required" && !data.networkOperatorAuthorization) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["networkOperatorAuthorization"],
+        message: "Netzbetreiber-Vollmacht muss erteilt werden",
+      });
+    }
 
     // PROJ-37: Genossenschaftsanteile required when the EEG has enabled
     // it. Count must be at least cooperativeRequiredShares; voluntary
@@ -366,6 +378,8 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
       cooperativeSharesCount: config.cooperativeSharesEnabled
         ? (config.cooperativeRequiredShares ?? 1)
         : undefined,
+      // PROJ-44: ungesetzt — Mitglied muss aktiv das Häkchen setzen.
+      networkOperatorAuthorization: false,
     },
   });
 
@@ -487,6 +501,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
           electricVehicleAnnualKm: values.electricVehicle ? values.electricVehicleAnnualKm : undefined,
           electricHotWater: values.electricHotWater ?? null,
           cooperativeSharesCount: values.cooperativeSharesCount,
+          networkOperatorAuthorization: values.networkOperatorAuthorization || undefined,
           meteringPoints: values.meteringPoints.map((mp) => ({
             meteringPoint: mp.meteringPoint,
             direction: mp.direction,
@@ -1434,6 +1449,34 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                         Ich erteile der Energiegemeinschaft ein SEPA-Lastschriftmandat
                         und stimme dem Einzug fälliger Rechnungsbeträge von meinem
                         angegebenen Konto zu. *
+                      </FormLabel>
+                      <FormMessage />
+                    </div>
+                  </FormItem>
+                )}
+              />
+            )}
+            {fs("network_operator_authorization") !== "hidden" && (
+              <FormField
+                control={form.control}
+                name="networkOperatorAuthorization"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start gap-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value ?? false}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="font-normal cursor-pointer">
+                        Ich erteile der EEG für die Dauer der Mitgliedschaft zeitlich
+                        unbegrenzt die Vollmacht, in meinem Namen sämtliche Schritte
+                        und Abstimmungen mit dem zuständigen Netzbetreiber durchzuführen,
+                        die zur vollständigen (De-)Aktivierung der angeführten Zählpunkte
+                        in der EEG notwendig sind. Dies betrifft insbesondere auch die
+                        Nutzung des Online-Portals des Netzbetreibers.
+                        {fs("network_operator_authorization") === "required" && " *"}
                       </FormLabel>
                       <FormMessage />
                     </div>

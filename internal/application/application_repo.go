@@ -36,6 +36,7 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 			consumption_forecast, feed_in_forecast, pv_power_kwp,
 			heat_pump, electric_vehicle, electric_vehicle_count, electric_vehicle_annual_km, electric_hot_water,
 			cooperative_shares_count,
+			network_operator_authorization, network_operator_authorization_at,
 			created_at, updated_at
 		) VALUES (
 			$1, $2, $3, $4,
@@ -49,7 +50,8 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 			$32, $33, $34,
 			$35, $36, $37, $38, $39,
 			$40,
-			$41, $42
+			$41, $42,
+			$43, $44
 		) RETURNING id`
 
 	now := app.CreatedAt
@@ -65,6 +67,7 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 		app.ConsumptionForecast, app.FeedInForecast, app.PvPowerKwp,
 		app.HeatPump, app.ElectricVehicle, app.ElectricVehicleCount, app.ElectricVehicleAnnualKm, app.ElectricHotWater,
 		app.CooperativeSharesCount,
+		app.NetworkOperatorAuthorization, app.NetworkOperatorAuthorizationAt,
 		app.CreatedAt, app.UpdatedAt,
 	}
 
@@ -94,6 +97,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		       einzugsart, bank_name, mandate_reference, mandate_date,
 		       member_number,
 		       cooperative_shares_count,
+		       network_operator_authorization, network_operator_authorization_at,
 		       email_confirmed_at, email_confirmation_used_at,
 		       email_confirmation_token_hash, email_confirmation_token_expires_at,
 		       created_at, updated_at
@@ -112,6 +116,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	var electricVehicleCount, electricVehicleAnnualKm sql.NullInt64
 	var memberNumber sql.NullString
 	var cooperativeSharesCount sql.NullInt64
+	var networkOperatorAuthorizationAt sql.NullTime
 	var emailConfirmedAt, emailConfirmationUsedAt, emailConfirmationTokenExpiresAt sql.NullTime
 	var emailConfirmationTokenHash sql.NullString
 
@@ -132,6 +137,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		&app.Einzugsart, &bankName, &mandateReference, &mandateDate,
 		&memberNumber,
 		&cooperativeSharesCount,
+		&app.NetworkOperatorAuthorization, &networkOperatorAuthorizationAt,
 		&emailConfirmedAt, &emailConfirmationUsedAt,
 		&emailConfirmationTokenHash, &emailConfirmationTokenExpiresAt,
 		&app.CreatedAt, &app.UpdatedAt,
@@ -277,6 +283,9 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		v := memberNumber.String
 		app.MemberNumber = &v
 	}
+	if networkOperatorAuthorizationAt.Valid {
+		app.NetworkOperatorAuthorizationAt = &networkOperatorAuthorizationAt.Time
+	}
 	if emailConfirmedAt.Valid {
 		app.EmailConfirmedAt = &emailConfirmedAt.Time
 	}
@@ -346,8 +355,10 @@ func (r *ApplicationRepository) UpdateTx(tx *sql.Tx, app *shared.Application) er
 			heat_pump = $30, electric_vehicle = $31,
 			electric_vehicle_count = $32, electric_vehicle_annual_km = $33,
 			electric_hot_water = $34,
+			network_operator_authorization = $35,
+			network_operator_authorization_at = $36,
 			updated_at = NOW()
-		WHERE id = $35`
+		WHERE id = $37`
 
 	_, err := tx.Exec(query,
 		app.MemberType,
@@ -363,6 +374,7 @@ func (r *ApplicationRepository) UpdateTx(tx *sql.Tx, app *shared.Application) er
 		app.HeatPump, app.ElectricVehicle,
 		app.ElectricVehicleCount, app.ElectricVehicleAnnualKm,
 		app.ElectricHotWater,
+		app.NetworkOperatorAuthorization, app.NetworkOperatorAuthorizationAt,
 		app.ID,
 	)
 	if err != nil {

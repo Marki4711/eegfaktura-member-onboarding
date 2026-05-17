@@ -224,17 +224,18 @@ type approvedEEGTemplateData struct {
 }
 
 var configurableFieldLabels = map[string]string{
-	"persons_in_household":        "Personen im Haushalt",
-	"consumption_previous_year":   "Verbrauch Vorjahr (kWh)",
-	"consumption_forecast":        "Verbrauch Prognose (kWh)",
-	"feed_in_forecast":            "Einspeisung Prognose (kWh)",
-	"pv_power_kwp":                "PV-Leistung (kWp)",
-	"heat_pump":                   "Wärmepumpe vorhanden",
-	"electric_vehicle":            "Elektrofahrzeug vorhanden",
-	"electric_vehicle_count":      "Anzahl E-Fahrzeuge",
-	"electric_vehicle_annual_km":  "Jahres-Kilometer (E-Fahrzeuge)",
-	"electric_hot_water":          "Warmwasser elektrisch",
-	"membership_start_date":       "Beitrittsdatum",
+	"persons_in_household":            "Personen im Haushalt",
+	"consumption_previous_year":       "Verbrauch Vorjahr (kWh)",
+	"consumption_forecast":            "Verbrauch Prognose (kWh)",
+	"feed_in_forecast":                "Einspeisung Prognose (kWh)",
+	"pv_power_kwp":                    "PV-Leistung (kWp)",
+	"heat_pump":                       "Wärmepumpe vorhanden",
+	"electric_vehicle":                "Elektrofahrzeug vorhanden",
+	"electric_vehicle_count":          "Anzahl E-Fahrzeuge",
+	"electric_vehicle_annual_km":      "Jahres-Kilometer (E-Fahrzeuge)",
+	"electric_hot_water":              "Warmwasser elektrisch",
+	"membership_start_date":           "Beitrittsdatum",
+	"network_operator_authorization":  "Netzbetreiber-Vollmacht erteilt",
 }
 
 var memberTypeLabels = map[string]string{
@@ -308,6 +309,10 @@ func buildConfigurableFields(app *shared.Application, fieldConfig map[string]str
 	}
 	if app.MembershipStartDate != nil {
 		add("membership_start_date", app.MembershipStartDate.Format("02.01.2006"))
+	}
+	// PROJ-44: nur "Ja" rendern, default-FALSE wird unterdrückt.
+	if app.NetworkOperatorAuthorization {
+		add("network_operator_authorization", "Ja")
 	}
 	return result
 }

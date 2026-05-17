@@ -146,6 +146,11 @@ type Application struct {
 	// EEGs ohne aktivierte Anteils-Erfassung; sonst > 0 (Submit-Validierung
 	// erzwingt >= entrypoint.cooperative_required_shares).
 	CooperativeSharesCount  *int       `json:"cooperativeSharesCount,omitempty" db:"cooperative_shares_count"`
+	// PROJ-44: Netzbetreiber-Vollmacht. Default FALSE; per-EEG via
+	// field_config konfigurierbar (Standard hidden). `_at` wird vom
+	// Service auf NOW() gesetzt, wenn der Wert von FALSE auf TRUE wechselt.
+	NetworkOperatorAuthorization   bool       `json:"networkOperatorAuthorization" db:"network_operator_authorization"`
+	NetworkOperatorAuthorizationAt *time.Time `json:"networkOperatorAuthorizationAt,omitempty" db:"network_operator_authorization_at"`
 	// E-Mail-Bestätigung (PROJ-31). Token-Hash + Expiry sind interne Felder
 	// und werden nicht in API-Responses serialisiert (JSON-Tag "-").
 	EmailConfirmedAt                 *time.Time `json:"emailConfirmedAt,omitempty"      db:"email_confirmed_at"`

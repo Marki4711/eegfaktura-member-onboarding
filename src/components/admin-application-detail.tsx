@@ -472,6 +472,12 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
               <Field label="Datenschutz-Version" value={application.privacyVersion} />
               <Field label="Akzeptiert am" value={formatDateTime(application.privacyAcceptedAt)} />
               <BoolField label="Richtigkeit bestätigt" value={application.accuracyConfirmed} />
+              {application.networkOperatorAuthorization && (
+                <>
+                  <BoolField label="Netzbetreiber-Vollmacht erteilt" value={true} />
+                  <Field label="Vollmacht erteilt am" value={formatDateTime(application.networkOperatorAuthorizationAt)} />
+                </>
+              )}
             </dl>
             {application.consents && application.consents.length > 0 && (() => {
               const all = application.consents as DocumentConsentView[];

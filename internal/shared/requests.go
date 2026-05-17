@@ -52,6 +52,9 @@ type CreateApplicationRequest struct {
 	// EEGs mit aktivierter Anteils-Erfassung, sonst optional (wird dann
 	// serverseitig ignoriert).
 	CooperativeSharesCount *int `json:"cooperativeSharesCount,omitempty" validate:"omitempty,min=1"`
+	// PROJ-44: Netzbetreiber-Vollmacht. Nur relevant wenn EEG das Feld als
+	// optional/required konfiguriert hat.
+	NetworkOperatorAuthorization *bool `json:"networkOperatorAuthorization,omitempty"`
 	// Cloudflare Turnstile token (PROJ-16) — optional, verified server-side when TURNSTILE_SECRET_KEY is set
 	TurnstileToken *string `json:"turnstileToken,omitempty"`
 }
@@ -102,6 +105,8 @@ type UpdateApplicationRequest struct {
 	// PROJ-37: Admin/Member-Updates der gezeichneten Anteils-Anzahl. Bei
 	// EEGs ohne Anteils-Erfassung serverseitig ignoriert.
 	CooperativeSharesCount *int `json:"cooperativeSharesCount,omitempty" validate:"omitempty,min=1"`
+	// PROJ-44: Netzbetreiber-Vollmacht (Update durch Member im needs_info-Flow).
+	NetworkOperatorAuthorization *bool `json:"networkOperatorAuthorization,omitempty"`
 }
 
 // Response models

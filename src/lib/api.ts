@@ -46,6 +46,9 @@ export const CONFIGURABLE_FIELDS: {
     { name: "electric_vehicle_count",  label: "Anzahl E-Fahrzeuge",             defaultState: "hidden"   },
     { name: "electric_vehicle_annual_km", label: "Jahres-Kilometer (E-Fahrzeuge)", defaultState: "hidden" },
     { name: "electric_hot_water",      label: "Warmwasser elektrisch (Boiler)",  defaultState: "hidden"   },
+    // PROJ-44: Netzbetreiber-Vollmacht (siehe NETWORK_OPERATOR_AUTH_TEXT
+    // in registration-form.tsx für den verbindlichen Wortlaut).
+    { name: "network_operator_authorization", label: "Netzbetreiber-Vollmacht erteilen", defaultState: "hidden" },
   ],
   meteringPoint: [
     { name: "transformer",        label: "Transformator", defaultState: "hidden" },
@@ -163,6 +166,10 @@ export interface CreateApplicationRequest {
   electricHotWater?: boolean | null;
   // PROJ-37: Anzahl gezeichneter Genossenschaftsanteile
   cooperativeSharesCount?: number;
+  // PROJ-44: Netzbetreiber-Vollmacht. Backend setzt `_at` automatisch
+  // beim ersten true. Frontend sendet das Flag nur, wenn die EEG das
+  // Feld konfiguriert hat.
+  networkOperatorAuthorization?: boolean;
   turnstileToken?: string;
 }
 
@@ -459,6 +466,11 @@ export interface AdminApplicationDetail {
   cooperativeSharesEnabled?: boolean;
   cooperativeRequiredShares?: number;
   cooperativeShareAmountCents?: number;
+  // PROJ-44: Netzbetreiber-Vollmacht (per-EEG konfigurierbar). Default false
+  // bei Bestandsanträgen — Admin-UI rendert das Feld nur wenn TRUE oder wenn
+  // die EEG es als optional/required konfiguriert hat.
+  networkOperatorAuthorization?: boolean;
+  networkOperatorAuthorizationAt?: string | null;
 }
 
 // PROJ-34: payload for POST /api/admin/applications/{id}/mark-imported-manually

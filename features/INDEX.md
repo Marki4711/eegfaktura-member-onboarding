@@ -57,5 +57,6 @@ Central tracking for all features.
 | PROJ-41 | Status-Change-Mails an Mitglied (Ablehnung + Info-Anfrage) | In Review | `features/PROJ-41-status-change-mails.md` | 2026-05-17 |
 | PROJ-40 | EEG-Umzuordnung eines Antrags im Admin-Review | In Review | `features/PROJ-40-eeg-reassign.md` | 2026-05-17 |
 | PROJ-42 | E-Fahrzeug-Detailerfassung (Anzahl + Jahres-km) | In Review | `features/PROJ-42-ev-details.md` | 2026-05-17 |
+| PROJ-44 | Netzbetreiber-Vollmacht (per-EEG konfigurierbar) | In Review | `features/PROJ-44-network-operator-authorization.md` | 2026-05-17 |
 
-## Next Available ID: PROJ-44
+## Next Available ID: PROJ-45

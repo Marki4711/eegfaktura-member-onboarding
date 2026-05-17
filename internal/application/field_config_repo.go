@@ -23,6 +23,8 @@ var knownConfigurableFields = map[string]string{
 	"transformer":              "hidden",
 	"installation_number":      "hidden",
 	"installation_name":        "hidden",
+	// PROJ-44: Netzbetreiber-Vollmacht (Application-Scope).
+	"network_operator_authorization": "hidden",
 }
 
 var validFieldStates = map[string]bool{
