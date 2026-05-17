@@ -10,6 +10,20 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Geändert — Zählpunkt-Mask auf offizielle Gruppierung 2-6-5-20 *(2026-05-17)*
+
+Recherche zur E-Control / MeteringCode-Spec ergab, dass die offizielle
+vierteilige Struktur der Zählpunktbezeichnung in Österreich
+`AT | Netzbetreibernummer (6) | PLZ (5) | Zählpunktnummer (20)` lautet.
+Die bisherige UI-Mask `2-6-5-12-8` war willkürlich.
+
+Mask im Mitgliederformular auf die offizielle Aufteilung umgestellt
+(`AT 000000 00000 [20 Stellen]`). Visuelle Änderung, keine Auswirkung
+auf Validierung oder gespeicherte Daten (33 Stellen unverändert).
+
+Vorbereitung für PROJ-52 (konfigurierbarer Prefix pro Richtung + Auto-Pad
++ alphanumerischer letzter Block — Spec angelegt, Implementierung folgt).
+
 ### Geändert — Speichersteuerung-Frage + Batterie-Gruppierung (PROJ-49 follow-up) *(2026-05-17)*
 
 Neue Mitglied-Frage „Speichersteuerung im Sinne der EEG vorstellbar?" auf

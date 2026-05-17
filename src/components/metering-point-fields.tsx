@@ -85,7 +85,11 @@ export function MeteringPointFields({ form, fieldConfig }: MeteringPointFieldsPr
                     </div>
                     <FormControl>
                       <MaskedInput
-                        mask="AT 000000 00000 000000000000 00000000"
+                        // Offizielle Gruppierung nach E-Control / MeteringCode
+                        // (2-6-5-20): Ländercode | Netzbetreibernummer | PLZ |
+                        // Zählpunktnummer. Volle 33 Stellen unverändert,
+                        // Validierung im Backend (^AT\d{31}$) bleibt gleich.
+                        mask="AT 000000 00000 00000000000000000000"
                         lazy={false}
                         prepareChar={(str: string) => str.toUpperCase()}
                         value={field.value}

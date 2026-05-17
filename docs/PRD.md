@@ -104,6 +104,7 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 |----|---------|-----------|
 | PROJ-26 | Eigener Mailserver pro EEG | Anstelle des zentralen Postal |
 | PROJ-50 | Zugang Online-Portal Netzbetreiber + bedingte Anleitungs-Mail | Praxis-Anforderung 2026-05-17, mehrere offene Fragen vor Umsetzung |
+| PROJ-52 | Konfigurierbarer Zählpunkt-Prefix pro Richtung + Auto-Pad + Alphanumerik | Konzept geklärt, Implementierung steht aus |
 
 ### On Hold
 
@@ -114,7 +115,7 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 | PROJ-23 | Stammdaten-Import aus eegFaktura-Excel | Ersetzt durch PROJ-32 (GraphQL-Sync) |
 | PROJ-51 | Anzeige offener Nutzungsgebühren im Admin-UI | Wartet auf Klärung des Abrechnungs- und Status-Pflege-Konzepts |
 
-> **Next available feature ID:** PROJ-52 (siehe `features/INDEX.md`).
+> **Next available feature ID:** PROJ-53 (siehe `features/INDEX.md`).
 
 ## 5. Success Metrics
 
