@@ -57,6 +57,52 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         continue-on-error: true
 
+      # Container: scan the runtime base images for OS-level CVEs and
+      # base-image EOL warnings (Snyk Advisor). Complements the proactive
+      # endoflife.date check in eol-check.yml — Snyk reacts to actual
+      # accumulating CVEs in the base image, endoflife.date warns ahead
+      # of the EOL date itself. Pulled directly from Docker Hub rather
+      # than building locally to keep the workflow fast; `--file=` points
+      # Snyk at the Dockerfile so it can map findings to FROM-instructions.
+      - name: Snyk Container – frontend (node:22-alpine)
+        run: |
+          docker pull node:22-alpine
+          snyk container test node:22-alpine \
+            --file=Dockerfile.frontend \
+            --severity-threshold=high
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        continue-on-error: true
+
+      - name: Snyk Container – backend builder (golang:1.26-alpine)
+        run: |
+          docker pull golang:1.26-alpine
+          snyk container test golang:1.26-alpine \
+            --file=Dockerfile.backend \
+            --severity-threshold=high
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        continue-on-error: true
+
+      - name: Snyk Container – backend runtime (alpine:3.20)
+        run: |
+          docker pull alpine:3.20
+          snyk container test alpine:3.20 \
+            --file=Dockerfile.backend \
+            --severity-threshold=high
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        continue-on-error: true
+
+      - name: Snyk Container – postgres (postgres:16-alpine)
+        run: |
+          docker pull postgres:16-alpine
+          snyk container test postgres:16-alpine \
+            --severity-threshold=high
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        continue-on-error: true
+
       # Keep snyk.io project snapshot up to date
       - name: Snyk Monitor (snapshot)
         if: github.ref == 'refs/heads/main'
