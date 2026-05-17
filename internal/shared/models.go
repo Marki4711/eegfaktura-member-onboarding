@@ -184,6 +184,13 @@ type MeteringPoint struct {
 	AddressStreetNumber *string `json:"addressStreetNumber,omitempty" db:"address_street_number"`
 	AddressZip          *string `json:"addressZip,omitempty" db:"address_zip"`
 	AddressCity         *string `json:"addressCity,omitempty" db:"address_city"`
+	// PROJ-45: Erzeugungsform + Batterie. GenerationType ist Pflicht für
+	// PRODUCTION (DB-Check), NULL für CONSUMPTION. BatterySizeKwh +
+	// InverterManufacturer sind optional und nur befüllt wenn
+	// GenerationType='pv' — Service-Layer cleart sonst.
+	GenerationType       *string  `json:"generationType,omitempty" db:"generation_type"`
+	BatterySizeKwh       *float64 `json:"batterySizeKwh,omitempty" db:"battery_size_kwh"`
+	InverterManufacturer *string  `json:"inverterManufacturer,omitempty" db:"inverter_manufacturer"`
 }
 
 // HasDeviatingAddress returns true if this metering point has a different

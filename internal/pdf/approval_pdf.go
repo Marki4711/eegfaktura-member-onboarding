@@ -86,6 +86,10 @@ type MeteringPointPDF struct {
 	// PROJ-39: pre-formatted address line ("Straße Nr, PLZ Ort"). Empty
 	// when the metering point uses the member's primary address.
 	AddressLine string
+	// PROJ-45: pre-formatted "Erzeugung"-Zeile für PRODUCTION-Zählpunkte.
+	// Beispiele: "PV", "PV, Speicher 10,5 kWh (Fronius)". Leer für
+	// CONSUMPTION oder wenn nichts darzustellen ist.
+	GenerationLine string
 }
 
 // ConsentPDF holds a consent snapshot for the approval PDF.
@@ -275,6 +279,12 @@ func (g *FPDFApprovalGenerator) GenerateApproval(data ApprovalPDFData) ([]byte, 
 		if mp.AddressLine != "" {
 			setFont("I", 8)
 			f.CellFormat(cw, 5, w1252("    Adresse: "+mp.AddressLine), "0", 1, "L", false, 0, "")
+			setFont("", 9)
+		}
+		// PROJ-45: Erzeugungs-Details (Form, Batterie, Wechselrichter).
+		if mp.GenerationLine != "" {
+			setFont("I", 8)
+			f.CellFormat(cw, 5, w1252("    Erzeugung: "+mp.GenerationLine), "0", 1, "L", false, 0, "")
 			setFont("", 9)
 		}
 	}

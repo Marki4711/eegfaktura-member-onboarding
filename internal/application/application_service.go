@@ -107,13 +107,16 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 			MeteringPoint:       normalized,
 			Direction:           shared.MeterDirection(mpReq.Direction),
 			ParticipationFactor: mpReq.ParticipationFactor,
-			Transformer:         trimStringPtr(mpReq.Transformer),
-			InstallationNumber:  trimStringPtr(mpReq.InstallationNumber),
-			InstallationName:    trimStringPtr(mpReq.InstallationName),
-			AddressStreet:       trimStringPtr(mpReq.AddressStreet),
-			AddressStreetNumber: trimStringPtr(mpReq.AddressStreetNumber),
-			AddressZip:          trimStringPtr(mpReq.AddressZip),
-			AddressCity:         trimStringPtr(mpReq.AddressCity),
+			Transformer:          trimStringPtr(mpReq.Transformer),
+			InstallationNumber:   trimStringPtr(mpReq.InstallationNumber),
+			InstallationName:     trimStringPtr(mpReq.InstallationName),
+			AddressStreet:        trimStringPtr(mpReq.AddressStreet),
+			AddressStreetNumber:  trimStringPtr(mpReq.AddressStreetNumber),
+			AddressZip:           trimStringPtr(mpReq.AddressZip),
+			AddressCity:          trimStringPtr(mpReq.AddressCity),
+			GenerationType:       trimStringPtr(mpReq.GenerationType),
+			BatterySizeKwh:       mpReq.BatterySizeKwh,
+			InverterManufacturer: trimStringPtr(mpReq.InverterManufacturer),
 			CreatedAt:           time.Now(),
 			UpdatedAt:           time.Now(),
 		})
@@ -121,6 +124,7 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 	if err = validateMeteringPointAddresses(meteringPoints); err != nil {
 		return nil, err
 	}
+	normalizeMeteringPointGeneration(meteringPoints)
 	if err = s.meteringRepo.ValidateUniqueMeteringPoints(uuid.Nil, meteringPoints); err != nil {
 		return nil, shared.NewValidationError("Validation failed", map[string]string{
 			"meteringPoints": err.Error(),
@@ -210,7 +214,8 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 	if err = validateMemberTypeFields(app); err != nil {
 		return nil, err
 	}
-	if err = validateConfigurableRequiredFields(app, fieldConfig); err != nil {
+	clearAppFieldsByMpTypes(app, meteringPoints)
+	if err = validateConfigurableRequiredFields(app, fieldConfig, meteringPoints); err != nil {
 		return nil, err
 	}
 	if err = validateConfigurableMeteringPointFields(meteringPoints, fieldConfig); err != nil {
@@ -384,24 +389,28 @@ func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateAp
 				})
 			}
 			meteringPoints = append(meteringPoints, shared.MeteringPoint{
-				ApplicationID:       id,
-				MeteringPoint:       normalized,
-				Direction:           shared.MeterDirection(mpReq.Direction),
-				ParticipationFactor: mpReq.ParticipationFactor,
-				Transformer:         trimStringPtr(mpReq.Transformer),
-				InstallationNumber:  trimStringPtr(mpReq.InstallationNumber),
-				InstallationName:    trimStringPtr(mpReq.InstallationName),
-				AddressStreet:       trimStringPtr(mpReq.AddressStreet),
-				AddressStreetNumber: trimStringPtr(mpReq.AddressStreetNumber),
-				AddressZip:          trimStringPtr(mpReq.AddressZip),
-				AddressCity:         trimStringPtr(mpReq.AddressCity),
-				CreatedAt:           time.Now(),
-				UpdatedAt:           time.Now(),
+				ApplicationID:        id,
+				MeteringPoint:        normalized,
+				Direction:            shared.MeterDirection(mpReq.Direction),
+				ParticipationFactor:  mpReq.ParticipationFactor,
+				Transformer:          trimStringPtr(mpReq.Transformer),
+				InstallationNumber:   trimStringPtr(mpReq.InstallationNumber),
+				InstallationName:     trimStringPtr(mpReq.InstallationName),
+				AddressStreet:        trimStringPtr(mpReq.AddressStreet),
+				AddressStreetNumber:  trimStringPtr(mpReq.AddressStreetNumber),
+				AddressZip:           trimStringPtr(mpReq.AddressZip),
+				AddressCity:          trimStringPtr(mpReq.AddressCity),
+				GenerationType:       trimStringPtr(mpReq.GenerationType),
+				BatterySizeKwh:       mpReq.BatterySizeKwh,
+				InverterManufacturer: trimStringPtr(mpReq.InverterManufacturer),
+				CreatedAt:            time.Now(),
+				UpdatedAt:            time.Now(),
 			})
 		}
 		if err = validateMeteringPointAddresses(meteringPoints); err != nil {
 			return nil, err
 		}
+		normalizeMeteringPointGeneration(meteringPoints)
 
 		// Only check for duplicates within the new set — CreateBulkTx replaces all existing points
 		if err = s.meteringRepo.ValidateUniqueMeteringPoints(uuid.Nil, meteringPoints); err != nil {
@@ -491,7 +500,8 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID, consents []shared.C
 		slog.Warn("failed to load field config", "rc", app.RCNumber, "error", fcErr)
 		fieldConfig = map[string]FieldConfigEntry{}
 	}
-	if err = validateConfigurableRequiredFields(app, fieldConfig); err != nil {
+	clearAppFieldsByMpTypes(app, meteringPoints)
+	if err = validateConfigurableRequiredFields(app, fieldConfig, meteringPoints); err != nil {
 		return nil, err
 	}
 	if err = validateConfigurableMeteringPointFields(meteringPoints, fieldConfig); err != nil {
@@ -1011,13 +1021,41 @@ func applyAdminValues(app *shared.Application, fieldConfig map[string]FieldConfi
 }
 
 // validateConfigurableRequiredFields checks application-level fields configured as "required".
-func validateConfigurableRequiredFields(app *shared.Application, fieldConfig map[string]FieldConfigEntry) error {
+//
+// `mps` enables PROJ-45 typabhängige Sichtbarkeit: when provided, consumption-
+// related fields (heat_pump, electric_vehicle, …) only fail the required-check
+// when at least one CONSUMPTION metering point exists, and production-related
+// fields (pv_power_kwp, feed_in_forecast) only when a PRODUCTION point exists.
+// Pass nil to disable the gating (legacy callers and unit tests).
+func validateConfigurableRequiredFields(app *shared.Application, fieldConfig map[string]FieldConfigEntry, mps []shared.MeteringPoint) error {
 	errs := map[string]string{}
+
+	// PROJ-45: when mps is provided, gate type-specific required-checks
+	// on the presence of a matching meter direction. nil ⇒ no gating
+	// (legacy + test callers).
+	hasConsumption, hasProduction := true, true
+	if mps != nil {
+		hasConsumption, hasProduction = false, false
+		for _, mp := range mps {
+			if mp.Direction == shared.DirectionConsumption {
+				hasConsumption = true
+			}
+			if mp.Direction == shared.DirectionProduction {
+				hasProduction = true
+			}
+		}
+	}
 
 	requiredIfMissing := func(name, jsonKey, label string, missing bool) {
 		if effectiveState(fieldConfig, name) == "required" && missing {
 			errs[jsonKey] = label + " ist erforderlich"
 		}
+	}
+	requiredIfMissingTyped := func(name, jsonKey, label string, missing bool, gate bool) {
+		if !gate {
+			return
+		}
+		requiredIfMissing(name, jsonKey, label, missing)
 	}
 	missingStr := func(v *string) bool { return v == nil || strings.TrimSpace(*v) == "" }
 
@@ -1025,22 +1063,22 @@ func validateConfigurableRequiredFields(app *shared.Application, fieldConfig map
 	requiredIfMissing("birth_date", "birthDate", "Geburtsdatum", app.BirthDate == nil)
 	requiredIfMissing("uid_number", "uidNumber", "UID-Nummer", missingStr(app.UIDNumber))
 	requiredIfMissing("membership_start_date", "membershipStartDate", "Beitrittsdatum", app.MembershipStartDate == nil)
-	requiredIfMissing("persons_in_household", "personsInHousehold", "Anzahl Personen im Haushalt", app.PersonsInHousehold == nil)
-	requiredIfMissing("consumption_previous_year", "consumptionPreviousYear", "Verbrauch Vorjahr", app.ConsumptionPreviousYear == nil)
-	requiredIfMissing("consumption_forecast", "consumptionForecast", "Verbrauch Prognose", app.ConsumptionForecast == nil)
-	requiredIfMissing("feed_in_forecast", "feedInForecast", "Einspeisung Prognose", app.FeedInForecast == nil)
-	requiredIfMissing("pv_power_kwp", "pvPowerKwp", "PV-Leistung", app.PvPowerKwp == nil)
-	requiredIfMissing("heat_pump", "heatPump", "Wärmepumpe vorhanden", app.HeatPump == nil)
-	requiredIfMissing("electric_vehicle", "electricVehicle", "E-Auto vorhanden", app.ElectricVehicle == nil)
+	requiredIfMissingTyped("persons_in_household", "personsInHousehold", "Anzahl Personen im Haushalt", app.PersonsInHousehold == nil, hasConsumption)
+	requiredIfMissingTyped("consumption_previous_year", "consumptionPreviousYear", "Verbrauch Vorjahr", app.ConsumptionPreviousYear == nil, hasConsumption)
+	requiredIfMissingTyped("consumption_forecast", "consumptionForecast", "Verbrauch Prognose", app.ConsumptionForecast == nil, hasConsumption)
+	requiredIfMissingTyped("feed_in_forecast", "feedInForecast", "Einspeisung Prognose", app.FeedInForecast == nil, hasProduction)
+	requiredIfMissingTyped("pv_power_kwp", "pvPowerKwp", "PV-Leistung", app.PvPowerKwp == nil, hasProduction)
+	requiredIfMissingTyped("heat_pump", "heatPump", "Wärmepumpe vorhanden", app.HeatPump == nil, hasConsumption)
+	requiredIfMissingTyped("electric_vehicle", "electricVehicle", "E-Auto vorhanden", app.ElectricVehicle == nil, hasConsumption)
 	// PROJ-42: die Detail-Felder sind nur sinnvoll wenn EV=true. Wenn der
 	// Bewerber EV=Nein angegeben hat, gelten Count + Jahres-km als „nicht
 	// anwendbar" — auch wenn die EEG sie als required konfiguriert hat
 	// (sonst würde ein Nein-Bewerber an „Anzahl E-Fahrzeuge ist erforderlich"
 	// scheitern). Required greift also nur wenn EV=true UND count/km fehlt.
 	evIsTrue := app.ElectricVehicle != nil && *app.ElectricVehicle
-	requiredIfMissing("electric_vehicle_count", "electricVehicleCount", "Anzahl E-Fahrzeuge", evIsTrue && app.ElectricVehicleCount == nil)
-	requiredIfMissing("electric_vehicle_annual_km", "electricVehicleAnnualKm", "Jahres-Kilometer (E-Fahrzeuge)", evIsTrue && app.ElectricVehicleAnnualKm == nil)
-	requiredIfMissing("electric_hot_water", "electricHotWater", "Warmwasser elektrisch", app.ElectricHotWater == nil)
+	requiredIfMissingTyped("electric_vehicle_count", "electricVehicleCount", "Anzahl E-Fahrzeuge", evIsTrue && app.ElectricVehicleCount == nil, hasConsumption)
+	requiredIfMissingTyped("electric_vehicle_annual_km", "electricVehicleAnnualKm", "Jahres-Kilometer (E-Fahrzeuge)", evIsTrue && app.ElectricVehicleAnnualKm == nil, hasConsumption)
+	requiredIfMissingTyped("electric_hot_water", "electricHotWater", "Warmwasser elektrisch", app.ElectricHotWater == nil, hasConsumption)
 	// PROJ-44: required ⇒ Häkchen muss gesetzt sein. Bool default FALSE
 	// reicht nicht — die Vollmacht muss explizit erteilt werden.
 	requiredIfMissing("network_operator_authorization", "networkOperatorAuthorization", "Netzbetreiber-Vollmacht", !app.NetworkOperatorAuthorization)
@@ -1096,11 +1134,52 @@ func validateConfigurableMeteringPointFields(points []shared.MeteringPoint, fiel
 		checkStr("transformer", "Transformator", mp.Transformer)
 		checkStr("installation_number", "Anlagen-Nr.", mp.InstallationNumber)
 		checkStr("installation_name", "Anlagenname", mp.InstallationName)
+		// PROJ-45: battery + inverter are PRODUCTION+pv-only (gated by isPv).
+		// required-Check feuert nur, wenn der Zählpunkt eine PV-Anlage ist.
+		isPv := mp.Direction == shared.DirectionProduction &&
+			mp.GenerationType != nil && *mp.GenerationType == "pv"
+		if isPv {
+			if effectiveState(fieldConfig, "battery_size_kwh") == "required" && mp.BatterySizeKwh == nil {
+				errs[fmt.Sprintf("meteringPoints.%d.batterySizeKwh", i)] = "Größe Batterie ist erforderlich"
+			}
+			if effectiveState(fieldConfig, "inverter_manufacturer") == "required" &&
+				(mp.InverterManufacturer == nil || strings.TrimSpace(*mp.InverterManufacturer) == "") {
+				errs[fmt.Sprintf("meteringPoints.%d.inverterManufacturer", i)] = "Hersteller Wechselrichter ist erforderlich"
+			}
+		}
 		if len(errs) > 0 {
 			return shared.NewValidationError("Validation failed", errs)
 		}
 	}
 	return nil
+}
+
+// normalizeMeteringPointGeneration enforces PROJ-45 invariants on each MP:
+//   - CONSUMPTION ⇒ generation_type/battery/inverter all NULL
+//   - PRODUCTION without explicit generation_type defaults to 'pv'
+//   - PRODUCTION with non-pv generation_type ⇒ battery/inverter NULL
+//
+// Called before Insert/Update so the DB-CHECK doesn't reject valid client
+// payloads that omitted the default, and so forged clients can't smuggle
+// battery values for wind/hydro/biomass plants.
+func normalizeMeteringPointGeneration(points []shared.MeteringPoint) {
+	for i := range points {
+		mp := &points[i]
+		if mp.Direction != shared.DirectionProduction {
+			mp.GenerationType = nil
+			mp.BatterySizeKwh = nil
+			mp.InverterManufacturer = nil
+			continue
+		}
+		if mp.GenerationType == nil || strings.TrimSpace(*mp.GenerationType) == "" {
+			pv := "pv"
+			mp.GenerationType = &pv
+		}
+		if *mp.GenerationType != "pv" {
+			mp.BatterySizeKwh = nil
+			mp.InverterManufacturer = nil
+		}
+	}
 }
 
 // clearEVDetailsIfDisabled drops PROJ-42 details when ElectricVehicle is
@@ -1110,6 +1189,42 @@ func clearEVDetailsIfDisabled(app *shared.Application) {
 	if app.ElectricVehicle == nil || !*app.ElectricVehicle {
 		app.ElectricVehicleCount = nil
 		app.ElectricVehicleAnnualKm = nil
+	}
+}
+
+// clearAppFieldsByMpTypes implements PROJ-45 typabhängige Sichtbarkeit at the
+// service layer: when the application carries no CONSUMPTION meter, all
+// consumption-related application-level fields (Verbrauch, Wärmepumpe, E-Auto,
+// Warmwasser, Personen) are nilled. When no PRODUCTION meter exists, the two
+// production-related fields (PV-Leistung, Einspeisung Prognose) are nilled.
+// Run before validation + persist so forged clients can't smuggle data that
+// makes no sense for the meter mix.
+func clearAppFieldsByMpTypes(app *shared.Application, mps []shared.MeteringPoint) {
+	if mps == nil {
+		return
+	}
+	hasConsumption, hasProduction := false, false
+	for _, mp := range mps {
+		if mp.Direction == shared.DirectionConsumption {
+			hasConsumption = true
+		}
+		if mp.Direction == shared.DirectionProduction {
+			hasProduction = true
+		}
+	}
+	if !hasConsumption {
+		app.PersonsInHousehold = nil
+		app.ConsumptionPreviousYear = nil
+		app.ConsumptionForecast = nil
+		app.HeatPump = nil
+		app.ElectricVehicle = nil
+		app.ElectricVehicleCount = nil
+		app.ElectricVehicleAnnualKm = nil
+		app.ElectricHotWater = nil
+	}
+	if !hasProduction {
+		app.FeedInForecast = nil
+		app.PvPowerKwp = nil
 	}
 }
 

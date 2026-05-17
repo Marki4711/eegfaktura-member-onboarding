@@ -54,8 +54,20 @@ export const CONFIGURABLE_FIELDS: {
     { name: "transformer",        label: "Transformator", defaultState: "hidden" },
     { name: "installation_number", label: "Anlagen-Nr.",  defaultState: "hidden" },
     { name: "installation_name",  label: "Anlagenname",  defaultState: "hidden" },
+    // PROJ-45: Batterie + Wechselrichter (nur bei generation_type='pv' aktiv).
+    { name: "battery_size_kwh",      label: "Größe Batterie (kWh)",        defaultState: "hidden" },
+    { name: "inverter_manufacturer", label: "Hersteller Wechselrichter",  defaultState: "hidden" },
   ],
 };
+
+// PROJ-45: Erzeugungsform pro PRODUCTION-Zählpunkt. Default 'pv' im Backend.
+export const GENERATION_TYPES = [
+  { value: "pv",      label: "PV (Photovoltaik)" },
+  { value: "hydro",   label: "Wasser" },
+  { value: "wind",    label: "Wind" },
+  { value: "biomass", label: "Biomasse" },
+] as const;
+export type GenerationType = typeof GENERATION_TYPES[number]["value"];
 
 export function resolveFieldState(config: FieldConfig | undefined, fieldName: string, defaultState: FieldState): FieldState {
   return config?.[fieldName] ?? defaultState;
@@ -124,6 +136,13 @@ export interface MeteringPointRequest {
   addressStreetNumber?: string;
   addressZip?: string;
   addressCity?: string;
+  // PROJ-45: Erzeugungsform + Batterie. generationType ist Pflicht für
+  // PRODUCTION (Backend defaultet auf 'pv'), NULL für CONSUMPTION.
+  // batterySizeKwh + inverterManufacturer sind nur sinnvoll wenn
+  // generationType='pv' — Backend cleart sonst.
+  generationType?: GenerationType;
+  batterySizeKwh?: number;
+  inverterManufacturer?: string;
 }
 
 export interface CreateApplicationRequest {
@@ -394,6 +413,11 @@ export interface MeteringPointDetail {
   addressStreetNumber?: string | null;
   addressZip?: string | null;
   addressCity?: string | null;
+  // PROJ-45: Erzeugungsform + Batterie. generationType ist NULL bei
+  // CONSUMPTION, sonst pv/hydro/wind/biomass.
+  generationType?: GenerationType | null;
+  batterySizeKwh?: number | null;
+  inverterManufacturer?: string | null;
 }
 
 export interface StatusLogEntry {

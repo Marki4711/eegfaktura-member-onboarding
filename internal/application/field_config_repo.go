@@ -25,6 +25,10 @@ var knownConfigurableFields = map[string]string{
 	"installation_name":        "hidden",
 	// PROJ-44: Netzbetreiber-Vollmacht (Application-Scope).
 	"network_operator_authorization": "hidden",
+	// PROJ-45: Batterie + Wechselrichter (Metering-Point-Scope, nur bei
+	// generation_type='pv' rendern — Service cleart sonst).
+	"battery_size_kwh":      "hidden",
+	"inverter_manufacturer": "hidden",
 }
 
 var validFieldStates = map[string]bool{

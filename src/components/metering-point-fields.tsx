@@ -26,7 +26,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { resolveFieldState, CONFIGURABLE_FIELDS, type FieldConfig } from "@/lib/api";
+import { resolveFieldState, CONFIGURABLE_FIELDS, GENERATION_TYPES, type FieldConfig } from "@/lib/api";
 import type { RegistrationFormValues } from "./registration-form";
 
 interface MeteringPointFieldsProps {
@@ -49,6 +49,9 @@ export function MeteringPointFields({ form, fieldConfig }: MeteringPointFieldsPr
   const showInstallationNumber = mpfs("installation_number") !== "hidden";
   const showInstallationName = mpfs("installation_name") !== "hidden";
   const hasExtraMpFields = showTransformer || showInstallationNumber || showInstallationName;
+  // PROJ-45: Batterie + Wechselrichter sind PV-only und PROJ-8-konfigurierbar.
+  const showBatterySize = mpfs("battery_size_kwh") !== "hidden";
+  const showInverter = mpfs("inverter_manufacturer") !== "hidden";
 
   return (
     <div className="space-y-4">
@@ -189,6 +192,15 @@ export function MeteringPointFields({ form, fieldConfig }: MeteringPointFieldsPr
 
           <DeviatingAddressBlock form={form} index={index} />
 
+          <GenerationBlock
+            form={form}
+            index={index}
+            showBatterySize={showBatterySize}
+            showInverter={showInverter}
+            batteryRequired={mpfs("battery_size_kwh") === "required"}
+            inverterRequired={mpfs("inverter_manufacturer") === "required"}
+          />
+
           {hasExtraMpFields && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
               {showTransformer && (
@@ -262,12 +274,114 @@ export function MeteringPointFields({ form, fieldConfig }: MeteringPointFieldsPr
           type="button"
           variant="outline"
           size="sm"
-          onClick={() => append({ meteringPoint: "", direction: "CONSUMPTION", participationFactor: 100 })}
+          onClick={() => append({ meteringPoint: "", direction: "CONSUMPTION", participationFactor: 100, generationType: "pv" })}
         >
           <PlusCircle className="h-4 w-4 mr-2" />
           Zählpunkt hinzufügen
         </Button>
       )}
+    </div>
+  );
+}
+
+// GenerationBlock renders the PROJ-45 fields per metering point:
+//   - generation_type Select (only for PRODUCTION; Pflicht, Default 'pv')
+//   - battery_size_kwh + inverter_manufacturer (only when generation_type='pv'
+//     AND the EEG has the corresponding configurable field enabled)
+function GenerationBlock({
+  form,
+  index,
+  showBatterySize,
+  showInverter,
+  batteryRequired,
+  inverterRequired,
+}: {
+  form: UseFormReturn<RegistrationFormValues>;
+  index: number;
+  showBatterySize: boolean;
+  showInverter: boolean;
+  batteryRequired: boolean;
+  inverterRequired: boolean;
+}) {
+  const direction = form.watch(`meteringPoints.${index}.direction`);
+  const generationType = form.watch(`meteringPoints.${index}.generationType`);
+  if (direction !== "PRODUCTION") return null;
+  const isPv = (generationType ?? "pv") === "pv";
+  return (
+    <div className="pt-1 space-y-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <FormField
+          control={form.control}
+          name={`meteringPoints.${index}.generationType`}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Erzeugungsform *</FormLabel>
+              <Select
+                value={field.value ?? "pv"}
+                onValueChange={(v) => field.onChange(v)}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {GENERATION_TYPES.map((g) => (
+                    <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        {isPv && showBatterySize && (
+          <FormField
+            control={form.control}
+            name={`meteringPoints.${index}.batterySizeKwh`}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  Größe Batterie (kWh){batteryRequired ? " *" : ""}
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={0.1}
+                    value={field.value ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.valueAsNumber;
+                      field.onChange(isNaN(v) ? undefined : v);
+                    }}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    ref={field.ref}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+        {isPv && showInverter && (
+          <FormField
+            control={form.control}
+            name={`meteringPoints.${index}.inverterManufacturer`}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  Hersteller Wechselrichter{inverterRequired ? " *" : ""}
+                </FormLabel>
+                <FormControl>
+                  <Input {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+      </div>
     </div>
   );
 }

@@ -75,6 +75,11 @@ type CreateMeteringPointRequest struct {
 	AddressStreetNumber *string `json:"addressStreetNumber,omitempty" validate:"omitempty,max=50"`
 	AddressZip          *string `json:"addressZip,omitempty" validate:"omitempty,max=20"`
 	AddressCity         *string `json:"addressCity,omitempty" validate:"omitempty,max=255"`
+	// PROJ-45: Erzeugungsform + Batterie. GenerationType wird vom Service
+	// auf "pv" defaultet, wenn Direction=PRODUCTION und leer übermittelt.
+	GenerationType       *string  `json:"generationType,omitempty" validate:"omitempty,oneof=pv hydro wind biomass"`
+	BatterySizeKwh       *float64 `json:"batterySizeKwh,omitempty" validate:"omitempty,min=0"`
+	InverterManufacturer *string  `json:"inverterManufacturer,omitempty" validate:"omitempty,max=100"`
 }
 
 // UpdateApplicationRequest represents the request to update an application

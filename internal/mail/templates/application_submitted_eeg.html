@@ -102,7 +102,7 @@
     <tbody>
       {{range .MeteringPoints}}
       <tr>
-        <td style="padding: 6px 12px; border-bottom: 1px solid #eee;">{{.MeteringPoint}}</td>
+        <td style="padding: 6px 12px; border-bottom: 1px solid #eee;">{{.MeteringPoint}}{{if .GenerationLine}}<br><span style="color:#666;font-size:12px;">{{.GenerationLine}}</span>{{end}}</td>
         <td style="padding: 6px 12px; border-bottom: 1px solid #eee;">{{.Direction}}</td>
         <td style="padding: 6px 12px; border-bottom: 1px solid #eee; text-align: right;">{{.ParticipationFactor}} %</td>
         <td style="padding: 6px 12px; border-bottom: 1px solid #eee;">{{if .AddressLine}}{{.AddressLine}}{{else}}<span style="color:#999;">—</span>{{end}}</td>

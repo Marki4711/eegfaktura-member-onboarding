@@ -10,6 +10,46 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Neu — PROJ-45: Erzeugungsform + Batterie + typabhängige Sichtbarkeit *(2026-05-17)*
+
+Drei zusammenhängende Erweiterungen rund um Erzeugungs-Zählpunkte:
+
+1. **Erzeugungsform pro PRODUCTION-Zählpunkt** — neues Pflichtfeld
+   `generation_type` mit den Werten `pv`/`hydro`/`wind`/`biomass`,
+   Default `pv`. Bestandsdaten werden migrationsweise auf `pv` gesetzt.
+   DB-CHECK erzwingt: CONSUMPTION ⇒ NULL, PRODUCTION ⇒ einer der vier Werte.
+2. **Batterie + Wechselrichter pro PV-Zählpunkt** — zwei neue PROJ-8-
+   konfigurierbare Felder `battery_size_kwh` (NUMERIC) und
+   `inverter_manufacturer` (Freitext). Default `hidden`; werden nur
+   gerendert wenn EEG-Konfig aktiv UND `generation_type='pv'`.
+3. **Typabhängige Sichtbarkeit der App-Level-Energie-Felder** —
+   Verbrauchs-Felder (Wärmepumpe, E-Auto, Verbrauch …) erscheinen nur
+   wenn der Antrag mindestens einen CONSUMPTION-Zählpunkt hat;
+   Erzeugungsfelder (PV-Leistung, Einspeisung Prognose) nur bei
+   PRODUCTION-Zählpunkten. Frontend rendert live; Backend cleart die
+   Felder beim Speichern (`clearAppFieldsByMpTypes`) und gated den
+   required-Check entsprechend.
+
+Migration `000040_generation_type_and_battery` läuft als Pre-Upgrade-
+Job automatisch beim nächsten Deploy.
+
+- Service-Layer-Normalisierung (`normalizeMeteringPointGeneration`):
+  CONSUMPTION ⇒ generation_type/battery/inverter NULL; PRODUCTION ohne
+  expliziten Typ ⇒ `pv`; non-pv ⇒ battery/inverter NULL — Schutz gegen
+  forged Clients und konsistente Persistenz
+- Admin-Edit-Form (`admin-edit-form.tsx`): Erzeugungsform-Select pro
+  PRODUCTION-Zählpunkt + Batterie/Hersteller-Inputs bei PV
+- Admin-Detail-Tabelle: neue Spalte „Erzeugung" mit kompakter
+  Darstellung „PV, Speicher 10,5 kWh (Fronius)"
+- Approval-PDF: zusätzliche Zeile pro PRODUCTION-Zählpunkt
+  („Erzeugung: PV, Speicher 10 kWh (Fronius)")
+- Mail (Member + EEG): Erzeugungs-Zeile in der Zählpunkt-Tabelle
+- Excel-Export: drei neue Spalten am Ende der Zeile
+  (`Erzeugungsform`, `Größe Batterie (kWh)`, `Hersteller WR`) —
+  eegFaktura-Importer ignoriert unbekannte Spalten, kein Import-Risiko
+- `validateConfigurableRequiredFields` neue Signatur mit `mps`-Parameter
+  für typabhängiges Gating; Unit-Tests passen `nil` (kein Gating).
+
 ### Neu — PROJ-44: Netzbetreiber-Vollmacht (per-EEG konfigurierbar) *(2026-05-17)*
 
 Manche Netzbetreiber (z.B. Netz OÖ) verlangen eine separate Vollmacht

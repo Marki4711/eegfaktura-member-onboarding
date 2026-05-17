@@ -182,6 +182,22 @@ Fields:
 
 ### 3.3 `member_onboarding.metering_point`
 
+**PROJ-45-Spalten** (Erzeugungsform + Batterie pro Zählpunkt):
+- `generation_type` VARCHAR(20) NULL — `pv` | `hydro` | `wind` | `biomass`. NULL bei CONSUMPTION, Pflicht (CHECK) bei PRODUCTION. Default `pv` für neue Production-Zählpunkte; Bestandsdaten werden migrationsweise auf `pv` gesetzt.
+- `battery_size_kwh` NUMERIC(7,2) NULL — Kapazität des Heimspeichers in kWh. Nur sinnvoll wenn `generation_type='pv'` (Service-Layer cleart sonst); PROJ-8-konfigurierbar (Default `hidden`).
+- `inverter_manufacturer` VARCHAR(100) NULL — Freitext-Hersteller (Fronius/SMA/Huawei …). Gleiche Bedingungen wie `battery_size_kwh`.
+
+**PROJ-45-Constraint:**
+```sql
+CHECK (
+    (direction = 'CONSUMPTION' AND generation_type IS NULL)
+    OR
+    (direction = 'PRODUCTION' AND generation_type IN ('pv','hydro','wind','biomass'))
+)
+```
+
+
+
 PROJ-39: vier optionale `address_*`-Spalten erfassen eine abweichende
 Standortadresse je Zählpunkt. Wenn alle vier NULL sind, gilt die
 Adresse des Mitglieds (`application.resident_*`); wenn mindestens eine

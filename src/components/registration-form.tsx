@@ -88,6 +88,11 @@ const meteringPointSchema = z
     addressStreetNumber: z.string().trim().max(50).optional(),
     addressZip: z.string().trim().max(20).optional(),
     addressCity: z.string().trim().max(255).optional(),
+    // PROJ-45: Erzeugungsform + Batterie. generationType ist nur für
+    // PRODUCTION relevant — UI rendert das Feld auch nur dann.
+    generationType: z.enum(["pv", "hydro", "wind", "biomass"]).optional(),
+    batterySizeKwh: z.number().min(0).optional(),
+    inverterManufacturer: z.string().trim().max(100).optional(),
   })
   .superRefine((mp, ctx) => {
     const fields = [mp.addressStreet, mp.addressStreetNumber, mp.addressZip, mp.addressCity];
@@ -360,7 +365,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
       privacyAccepted: !showCentralPolicy,
       accuracyConfirmed: false,
       sepaMandateAccepted: sepaMandateEnabled ? true : false,
-      meteringPoints: [{ meteringPoint: "", direction: "CONSUMPTION", participationFactor: 100 }],
+      meteringPoints: [{ meteringPoint: "", direction: "CONSUMPTION", participationFactor: 100, generationType: "pv" }],
       membershipStartDate: "",
       personsInHousehold: undefined,
       consumptionPreviousYear: undefined,
@@ -386,13 +391,32 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
   const memberType = form.watch("memberType");
   const isPerson = memberType === "private" || memberType === "farmer";
 
+  // PROJ-45: typabhängige Sichtbarkeit der App-level Felder. Wir leiten
+  // hasConsumption/hasProduction live aus den eingegebenen Zählpunkten ab.
+  const watchedMps = form.watch("meteringPoints");
+  const hasConsumption = (watchedMps ?? []).some((m) => m?.direction === "CONSUMPTION");
+  const hasProduction = (watchedMps ?? []).some((m) => m?.direction === "PRODUCTION");
+
+  // Mapping: Feld → benötigter Zählpunkttyp.
+  const consumptionFields = new Set([
+    "persons_in_household", "consumption_previous_year", "consumption_forecast",
+    "heat_pump", "electric_vehicle", "electric_hot_water",
+  ]);
+  const productionFields = new Set(["feed_in_forecast", "pv_power_kwp"]);
+  function shouldShow(name: string): boolean {
+    if (fs(name) === "hidden") return false;
+    if (consumptionFields.has(name) && !hasConsumption) return false;
+    if (productionFields.has(name) && !hasProduction) return false;
+    return true;
+  }
+
   // extra configurable fields that default to "hidden"
   const extraFieldNames = [
     "membership_start_date", "persons_in_household", "consumption_previous_year",
     "consumption_forecast", "feed_in_forecast", "pv_power_kwp",
     "heat_pump", "electric_vehicle", "electric_hot_water",
   ];
-  const hasExtraFields = extraFieldNames.some((n) => fs(n) !== "hidden");
+  const hasExtraFields = extraFieldNames.some((n) => shouldShow(n));
 
   function onMemberTypeChange(value: MemberType) {
     form.setValue("memberType", value);
@@ -513,6 +537,11 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
             addressStreetNumber: mp.addressStreetNumber || undefined,
             addressZip: mp.addressZip || undefined,
             addressCity: mp.addressCity || undefined,
+            // PROJ-45: server normalisiert nochmal (CONSUMPTION ⇒ nil),
+            // aber wir senden bewusst nur was relevant ist.
+            generationType: mp.direction === "PRODUCTION" ? (mp.generationType ?? "pv") : undefined,
+            batterySizeKwh: mp.direction === "PRODUCTION" && mp.generationType === "pv" ? mp.batterySizeKwh : undefined,
+            inverterManufacturer: mp.direction === "PRODUCTION" && mp.generationType === "pv" ? (mp.inverterManufacturer || undefined) : undefined,
           })),
           turnstileToken: turnstileToken || undefined,
         });
@@ -1076,7 +1105,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                     )}
                   />
                 )}
-                {fs("persons_in_household") !== "hidden" && (
+                {shouldShow("persons_in_household") && (
                   <FormField
                     control={form.control}
                     name="personsInHousehold"
@@ -1099,7 +1128,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                     )}
                   />
                 )}
-                {fs("consumption_previous_year") !== "hidden" && (
+                {shouldShow("consumption_previous_year") && (
                   <FormField
                     control={form.control}
                     name="consumptionPreviousYear"
@@ -1123,7 +1152,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                     )}
                   />
                 )}
-                {fs("consumption_forecast") !== "hidden" && (
+                {shouldShow("consumption_forecast") && (
                   <FormField
                     control={form.control}
                     name="consumptionForecast"
@@ -1147,7 +1176,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                     )}
                   />
                 )}
-                {fs("feed_in_forecast") !== "hidden" && (
+                {shouldShow("feed_in_forecast") && (
                   <FormField
                     control={form.control}
                     name="feedInForecast"
@@ -1171,7 +1200,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                     )}
                   />
                 )}
-                {fs("pv_power_kwp") !== "hidden" && (
+                {shouldShow("pv_power_kwp") && (
                   <FormField
                     control={form.control}
                     name="pvPowerKwp"
@@ -1196,7 +1225,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                     )}
                   />
                 )}
-                {fs("heat_pump") !== "hidden" && (
+                {shouldShow("heat_pump") && (
                   <FormField
                     control={form.control}
                     name="heatPump"
@@ -1223,7 +1252,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                     )}
                   />
                 )}
-                {fs("electric_vehicle") !== "hidden" && (
+                {shouldShow("electric_vehicle") && (
                   <FormField
                     control={form.control}
                     name="electricVehicle"
@@ -1292,7 +1321,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                     )}
                   />
                 )}
-                {fs("electric_hot_water") !== "hidden" && (
+                {shouldShow("electric_hot_water") && (
                   <FormField
                     control={form.control}
                     name="electricHotWater"

@@ -43,6 +43,10 @@ interface FormMeteringPoint {
   meteringPoint: string;
   direction: "CONSUMPTION" | "PRODUCTION";
   participationFactor: number;
+  // PROJ-45: pro PRODUCTION-Zählpunkt admin-editierbar; CONSUMPTION ignoriert das.
+  generationType?: "pv" | "hydro" | "wind" | "biomass";
+  batterySizeKwh?: number;
+  inverterManufacturer?: string;
 }
 
 function validateEmail(email: string) {
@@ -86,6 +90,9 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
       meteringPoint: mp.meteringPoint,
       direction: mp.direction,
       participationFactor: mp.participationFactor ?? 100,
+      generationType: (mp.generationType ?? undefined) as FormMeteringPoint["generationType"],
+      batterySizeKwh: mp.batterySizeKwh ?? undefined,
+      inverterManufacturer: mp.inverterManufacturer ?? undefined,
     }))
   );
   const [saving, setSaving] = useState(false);
@@ -121,7 +128,7 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
   function addRow() {
     setMeteringPoints((prev) => [
       ...prev,
-      { key: ++mpKeyCounter, meteringPoint: "", direction: "CONSUMPTION", participationFactor: 100 },
+      { key: ++mpKeyCounter, meteringPoint: "", direction: "CONSUMPTION", participationFactor: 100, generationType: "pv" },
     ]);
   }
 
@@ -135,6 +142,10 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
         if (mp.key !== key) return mp;
         if (field === "participationFactor") {
           return { ...mp, participationFactor: parseInt(value, 10) };
+        }
+        if (field === "batterySizeKwh") {
+          const n = parseFloat(value);
+          return { ...mp, batterySizeKwh: isNaN(n) ? undefined : n };
         }
         return { ...mp, [field]: value };
       })
@@ -188,6 +199,11 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
       meteringPoint: mp.meteringPoint.trim(),
       direction: mp.direction,
       participationFactor: mp.participationFactor,
+      // PROJ-45: server normalisiert nochmal — CONSUMPTION ⇒ generation_type
+      // wird auf NULL gecleart, non-pv ⇒ battery/inverter NULL.
+      generationType: mp.direction === "PRODUCTION" ? (mp.generationType ?? "pv") : undefined,
+      batterySizeKwh: mp.direction === "PRODUCTION" && (mp.generationType ?? "pv") === "pv" ? mp.batterySizeKwh : undefined,
+      inverterManufacturer: mp.direction === "PRODUCTION" && (mp.generationType ?? "pv") === "pv" ? (mp.inverterManufacturer || undefined) : undefined,
     }));
 
     try {
@@ -428,46 +444,87 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
             )}
             <div className="space-y-2">
               {meteringPoints.map((mp) => (
-                <div key={mp.key} className="flex gap-2 items-center">
-                  <Input
-                    value={mp.meteringPoint}
-                    onChange={(e) => updateRow(mp.key, "meteringPoint", e.target.value)}
-                    placeholder="AT003100000000000000000000000000"
-                    className="font-mono text-sm flex-1"
-                  />
-                  <Select
-                    value={mp.direction}
-                    onValueChange={(v) => updateRow(mp.key, "direction", v)}
-                  >
-                    <SelectTrigger className="w-36">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="CONSUMPTION">Bezug</SelectItem>
-                      <SelectItem value="PRODUCTION">Einspeisung</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <div className="flex items-center gap-1 shrink-0">
+                <div key={mp.key} className="space-y-1">
+                  <div className="flex gap-2 items-center">
                     <Input
-                      type="number"
-                      min={1}
-                      max={100}
-                      value={mp.participationFactor}
-                      onChange={(e) => updateRow(mp.key, "participationFactor", e.target.value)}
-                      className="w-20 text-sm"
-                      title="Teilnahmefaktor (%)"
+                      value={mp.meteringPoint}
+                      onChange={(e) => updateRow(mp.key, "meteringPoint", e.target.value)}
+                      placeholder="AT003100000000000000000000000000"
+                      className="font-mono text-sm flex-1"
                     />
-                    <span className="text-sm text-muted-foreground">%</span>
+                    <Select
+                      value={mp.direction}
+                      onValueChange={(v) => updateRow(mp.key, "direction", v)}
+                    >
+                      <SelectTrigger className="w-36">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="CONSUMPTION">Bezug</SelectItem>
+                        <SelectItem value="PRODUCTION">Einspeisung</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Input
+                        type="number"
+                        min={1}
+                        max={100}
+                        value={mp.participationFactor}
+                        onChange={(e) => updateRow(mp.key, "participationFactor", e.target.value)}
+                        className="w-20 text-sm"
+                        title="Teilnahmefaktor (%)"
+                      />
+                      <span className="text-sm text-muted-foreground">%</span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeRow(mp.key)}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      ✕
+                    </Button>
                   </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeRow(mp.key)}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    ✕
-                  </Button>
+                  {mp.direction === "PRODUCTION" && (
+                    <div className="ml-1 flex gap-2 items-center text-xs text-muted-foreground">
+                      <span>Erzeugung:</span>
+                      <Select
+                        value={mp.generationType ?? "pv"}
+                        onValueChange={(v) => updateRow(mp.key, "generationType", v)}
+                      >
+                        <SelectTrigger className="w-40 h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pv">PV (Photovoltaik)</SelectItem>
+                          <SelectItem value="hydro">Wasser</SelectItem>
+                          <SelectItem value="wind">Wind</SelectItem>
+                          <SelectItem value="biomass">Biomasse</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {(mp.generationType ?? "pv") === "pv" && (
+                        <>
+                          <Input
+                            type="number"
+                            min={0}
+                            step={0.1}
+                            value={mp.batterySizeKwh ?? ""}
+                            onChange={(e) => updateRow(mp.key, "batterySizeKwh", e.target.value)}
+                            className="w-24 h-8 text-xs"
+                            title="Größe Batterie (kWh)"
+                          />
+                          <span>kWh</span>
+                          <Input
+                            value={mp.inverterManufacturer ?? ""}
+                            onChange={(e) => updateRow(mp.key, "inverterManufacturer", e.target.value)}
+                            className="w-40 h-8 text-xs"
+                            title="Hersteller Wechselrichter"
+                          />
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

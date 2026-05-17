@@ -1,4 +1,4 @@
-package application
+﻿package application
 
 import (
 	"testing"
@@ -65,7 +65,7 @@ func baseAppWithAllOptional() *shared.Application {
 
 func TestValidateConfigurableRequiredFields_AllOptional_NoError(t *testing.T) {
 	app := baseAppWithAllOptional()
-	if err := validateConfigurableRequiredFields(app, map[string]FieldConfigEntry{}); err != nil {
+	if err := validateConfigurableRequiredFields(app, map[string]FieldConfigEntry{}, nil); err != nil {
 		t.Fatalf("expected no error with all-optional config, got: %v", err)
 	}
 }
@@ -73,7 +73,7 @@ func TestValidateConfigurableRequiredFields_AllOptional_NoError(t *testing.T) {
 func TestValidateConfigurableRequiredFields_PhoneRequired_Missing(t *testing.T) {
 	app := baseAppWithAllOptional()
 	app.Phone = nil
-	err := validateConfigurableRequiredFields(app, mkCfg("phone", "required"))
+	err := validateConfigurableRequiredFields(app, mkCfg("phone", "required"), nil)
 	if err == nil {
 		t.Fatal("expected error for required phone that is nil")
 	}
@@ -90,7 +90,7 @@ func TestValidateConfigurableRequiredFields_PhoneRequired_Present(t *testing.T) 
 	app := baseAppWithAllOptional()
 	p := "+43 664 1234567"
 	app.Phone = &p
-	if err := validateConfigurableRequiredFields(app, mkCfg("phone", "required")); err != nil {
+	if err := validateConfigurableRequiredFields(app, mkCfg("phone", "required"), nil); err != nil {
 		t.Fatalf("expected no error when required phone is present, got: %v", err)
 	}
 }
@@ -98,7 +98,7 @@ func TestValidateConfigurableRequiredFields_PhoneRequired_Present(t *testing.T) 
 func TestValidateConfigurableRequiredFields_BirthDateRequired_Missing(t *testing.T) {
 	app := baseAppWithAllOptional()
 	app.BirthDate = nil
-	if err := validateConfigurableRequiredFields(app, mkCfg("birth_date", "required")); err == nil {
+	if err := validateConfigurableRequiredFields(app, mkCfg("birth_date", "required"), nil); err == nil {
 		t.Fatal("expected error for required birth_date that is nil")
 	}
 }
@@ -106,7 +106,7 @@ func TestValidateConfigurableRequiredFields_BirthDateRequired_Missing(t *testing
 func TestValidateConfigurableRequiredFields_MembershipStartDateRequired_Missing(t *testing.T) {
 	app := baseAppWithAllOptional()
 	app.MembershipStartDate = nil
-	if err := validateConfigurableRequiredFields(app, mkCfg("membership_start_date", "required")); err == nil {
+	if err := validateConfigurableRequiredFields(app, mkCfg("membership_start_date", "required"), nil); err == nil {
 		t.Fatal("expected error for required membership_start_date that is nil")
 	}
 }
@@ -114,7 +114,7 @@ func TestValidateConfigurableRequiredFields_MembershipStartDateRequired_Missing(
 func TestValidateConfigurableRequiredFields_PvPowerRequired_Missing(t *testing.T) {
 	app := baseAppWithAllOptional()
 	app.PvPowerKwp = nil
-	if err := validateConfigurableRequiredFields(app, mkCfg("pv_power_kwp", "required")); err == nil {
+	if err := validateConfigurableRequiredFields(app, mkCfg("pv_power_kwp", "required"), nil); err == nil {
 		t.Fatal("expected error for required pv_power_kwp that is nil")
 	}
 }
@@ -122,7 +122,7 @@ func TestValidateConfigurableRequiredFields_PvPowerRequired_Missing(t *testing.T
 func TestValidateConfigurableRequiredFields_HeatPumpRequired_Missing(t *testing.T) {
 	app := baseAppWithAllOptional()
 	app.HeatPump = nil
-	if err := validateConfigurableRequiredFields(app, mkCfg("heat_pump", "required")); err == nil {
+	if err := validateConfigurableRequiredFields(app, mkCfg("heat_pump", "required"), nil); err == nil {
 		t.Fatal("expected error for required heat_pump that is nil")
 	}
 }
@@ -131,7 +131,7 @@ func TestValidateConfigurableRequiredFields_HeatPumpRequired_Present(t *testing.
 	app := baseAppWithAllOptional()
 	v := true
 	app.HeatPump = &v
-	if err := validateConfigurableRequiredFields(app, mkCfg("heat_pump", "required")); err != nil {
+	if err := validateConfigurableRequiredFields(app, mkCfg("heat_pump", "required"), nil); err != nil {
 		t.Fatalf("expected no error when required heat_pump is set, got: %v", err)
 	}
 }
@@ -141,7 +141,7 @@ func TestValidateConfigurableRequiredFields_MultipleFieldsMissing(t *testing.T) 
 	now := time.Now()
 	app.MembershipStartDate = &now
 	cfg := mkCfg("phone", "required", "heat_pump", "required")
-	err := validateConfigurableRequiredFields(app, cfg)
+	err := validateConfigurableRequiredFields(app, cfg, nil)
 	if err == nil {
 		t.Fatal("expected validation error for multiple missing required fields")
 	}
@@ -333,3 +333,5 @@ func TestValidateMPFields_MultiplePoints_SecondMissing(t *testing.T) {
 		t.Fatal("expected error when second metering point is missing required transformer")
 	}
 }
+
+

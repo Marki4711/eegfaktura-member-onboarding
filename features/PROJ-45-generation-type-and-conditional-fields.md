@@ -1,7 +1,8 @@
 # PROJ-45: Erzeugungsform + Batterie-Felder + typabhängige Sichtbarkeit
 
-**Status:** Konzept (Diskussion offen)
+**Status:** In Review
 **Created:** 2026-05-17
+**Last Updated:** 2026-05-17 (Implementierung abgeschlossen)
 
 ## Hintergrund
 
@@ -69,8 +70,10 @@ Zwei neue Spalten auf `metering_point`:
   sich zu schnell, und Freitext liefert ausreichend Info zur EEG-
   Recherche.
 
-Beide nur sinnvoll bei PRODUCTION-Zählpunkten (Service cleart bei
-CONSUMPTION analog `clearEVDetailsIfDisabled`).
+Beide nur sinnvoll bei PRODUCTION-Zählpunkten **und**
+`generation_type = 'pv'` (User-Entscheidung 2026-05-17). Service-Layer
+cleart beide auf NULL, wenn Richtung != PRODUCTION oder generation_type
+!= 'pv' (analog `clearEVDetailsIfDisabled`).
 
 ### Konfigurierbarkeit
 
@@ -85,7 +88,7 @@ aktiver Batterie-Bewirtschaftung schalten sie auf `optional` oder
 ### UI
 
 Nur wenn (a) EEG-Konfig `!= hidden` UND (b) Zählpunkt-Richtung =
-PRODUCTION. Sonst nicht rendern.
+PRODUCTION UND (c) `generation_type = 'pv'`. Sonst nicht rendern.
 
 ## 3. Typabhängige Sichtbarkeit (Querschnitt)
 
@@ -205,20 +208,14 @@ fix sichtbar/required für jeden PRODUCTION-Zählpunkt.
   nicht bei reinen PRODUCTION-Anträgen, auch wenn EEG-Konfig =
   required
 
-## Offene Fragen vor Implementierung
+## Entscheidungen (User-Bestätigung 2026-05-17)
 
-1. **Generation_type-Pflicht bei Bestandsanträgen:** alle bestehenden
-   PRODUCTION-Zählpunkte werden migrationsweise auf `pv` gesetzt.
-   Falls EEGs das vorab korrigieren wollen, brauchen wir einen
-   Admin-Edit-Pfad. → Vorschlag: per Admin-Detail-Edit-Form mit
-   einem zusätzlichen Select pro Zählpunkt. Hinzufügen?
-2. **Batterie-Felder Sichtbarkeitslogik:** nur bei `generation_type=pv`
-   anzeigen, oder bei allen PRODUCTION-Typen? → Spec schlägt „alle
-   PRODUCTION" vor (Wind-Anlagen können auch Speicher haben).
-3. **Wechselrichter-Hersteller bei Wasser/Wind/Biomasse:** semantisch
-   nicht immer passend (Wasserkraft hat keinen Wechselrichter im
-   PV-Sinn). → Vorschlag: Feld trotzdem zeigen, Mitglied kann
-   leer lassen.
+1. **Admin-Edit für `generation_type` bestehender Zählpunkte:** Ja,
+   per Admin-Detail-Edit-Form mit Select pro PRODUCTION-Zählpunkt.
+2. **Batterie + Wechselrichter-Hersteller: nur bei `generation_type = 'pv'`.**
+   Wind/Wasser/Biomasse zeigen die Felder nicht. Service-Layer cleart
+   beide auf NULL, wenn `generation_type != 'pv'` ist (analog
+   `clearEVDetailsIfDisabled`).
 
 ## Empfohlene Aufteilung
 

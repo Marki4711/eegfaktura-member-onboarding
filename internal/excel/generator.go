@@ -28,6 +28,9 @@ var columnHeaders = []string{
 	"Mitglied seit", "IBAN", "Kontoinhaber", "Bankname",
 	"Email", "TelefonNr", "SteuerNr", "UmsatzsteuerNr",
 	"MitgliedsNr", "Zählpunktstatus", "registriert seit", "Meter Codes",
+	// PROJ-45: zusätzliche Spalten am Ende; eegFaktura-Importer ignoriert
+	// Spalten, die er nicht kennt — kein Risiko für den Import.
+	"Erzeugungsform", "Größe Batterie (kWh)", "Hersteller WR",
 }
 
 // GenerateExcel produces an xlsx file matching the eegFaktura import template.
@@ -336,7 +339,22 @@ func writeDataRow(f *excelize.File, rowNum int, app *shared.Application, mp *sha
 		return err
 	}
 	// AJ: Meter Codes — empty
-
+	// PROJ-45: AK/AL/AM nur bei PRODUCTION-Zählpunkten mit generation_type.
+	if mp.GenerationType != nil {
+		if err := set("AK", *mp.GenerationType); err != nil {
+			return err
+		}
+	}
+	if mp.BatterySizeKwh != nil {
+		if err := f.SetCellValue(sheetName, "AL"+r, *mp.BatterySizeKwh); err != nil {
+			return err
+		}
+	}
+	if mp.InverterManufacturer != nil {
+		if err := set("AM", *mp.InverterManufacturer); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

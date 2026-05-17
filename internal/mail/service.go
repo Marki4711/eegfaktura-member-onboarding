@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"log/slog"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -161,6 +162,9 @@ type meteringPointView struct {
 	ParticipationFactor int
 	// PROJ-39: abweichende Adresse je Zählpunkt (leer wenn = Mitgliederadresse).
 	AddressLine string
+	// PROJ-45: Erzeugungs-Zeile (Form + Speicher + Wechselrichter) für
+	// PRODUCTION-Zählpunkte; leer für CONSUMPTION.
+	GenerationLine string
 }
 
 // ConfigurableFieldDisplay is a resolved label-value entry for email and PDF templates.
@@ -357,6 +361,7 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 			Direction:           dir,
 			ParticipationFactor: mp.ParticipationFactor,
 			AddressLine:         formatMeteringPointAddress(&meteringPoints[i]),
+			GenerationLine:      FormatGenerationLine(&meteringPoints[i]),
 		}
 	}
 
@@ -459,6 +464,7 @@ func (s *SMTPMailService) SendEEGNotification(app *shared.Application, meteringP
 			Direction:           dir,
 			ParticipationFactor: mp.ParticipationFactor,
 			AddressLine:         formatMeteringPointAddress(&meteringPoints[i]),
+			GenerationLine:      FormatGenerationLine(&meteringPoints[i]),
 		}
 	}
 
@@ -706,6 +712,54 @@ func formatMeteringPointAddress(mp *shared.MeteringPoint) string {
 	zip := derefString(mp.AddressZip)
 	city := derefString(mp.AddressCity)
 	return strings.TrimSpace(street+" "+streetNumber) + ", " + strings.TrimSpace(zip+" "+city)
+}
+
+// generationTypeLabels maps the internal generation_type token to the German
+// label used on PDF, mail, and Excel.
+var generationTypeLabels = map[string]string{
+	"pv":      "PV",
+	"hydro":   "Wasser",
+	"wind":    "Wind",
+	"biomass": "Biomasse",
+}
+
+// FormatGenerationLine returns "PV", "PV, Speicher 10,5 kWh (Fronius)" or
+// similar based on the PRODUCTION metering point's generation_type +
+// optional battery/inverter fields. Returns "" for CONSUMPTION points or
+// when no generation_type is set.
+func FormatGenerationLine(mp *shared.MeteringPoint) string {
+	if mp.Direction != shared.DirectionProduction || mp.GenerationType == nil {
+		return ""
+	}
+	label, ok := generationTypeLabels[*mp.GenerationType]
+	if !ok {
+		label = *mp.GenerationType
+	}
+	// Battery / Wechselrichter sind PV-only (normalizeMeteringPointGeneration
+	// im application package erzwingt das). Wir prüfen das hier nicht
+	// nochmal — wenn die Werte gefüllt sind, gehören sie zu PV.
+	var extras []string
+	if mp.BatterySizeKwh != nil {
+		extras = append(extras, "Speicher "+formatKwh(*mp.BatterySizeKwh)+" kWh")
+	}
+	if mp.InverterManufacturer != nil && strings.TrimSpace(*mp.InverterManufacturer) != "" {
+		wrapper := "(" + strings.TrimSpace(*mp.InverterManufacturer) + ")"
+		if len(extras) > 0 {
+			extras[len(extras)-1] += " " + wrapper
+		} else {
+			extras = append(extras, wrapper)
+		}
+	}
+	if len(extras) == 0 {
+		return label
+	}
+	return label + ", " + strings.Join(extras, ", ")
+}
+
+// formatKwh rendert einen kWh-Wert mit deutschem Komma. 10.0 → "10", 10.5 → "10,5".
+func formatKwh(v float64) string {
+	s := strings.TrimRight(strings.TrimRight(strconv.FormatFloat(v, 'f', 2, 64), "0"), ".")
+	return strings.ReplaceAll(s, ".", ",")
 }
 
 // transactionalOpts returns the per-message options every outgoing mail uses:

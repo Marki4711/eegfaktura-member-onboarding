@@ -1168,6 +1168,7 @@ func buildApprovalPDFData(
 			Direction:           dir,
 			ParticipationFactor: mp.ParticipationFactor,
 			AddressLine:         addrLine,
+			GenerationLine:      mail.FormatGenerationLine(&meteringPoints[i]),
 		}
 	}
 
