@@ -200,6 +200,9 @@ Allowed status values:
 - `rejected`
 - `imported`
 - `import_failed`
+- `awaiting_bank_confirmation` *(PROJ-46, only at `einzugsart=b2b`, set automatically by the import service)*
+- `ready_for_activation` *(PROJ-46, set automatically by import service for non-b2b, or by admin after bank-confirmation)*
+- `activated` *(PROJ-46, end state — strictly no transitions out)*
 
 Allowed transitions:
 
@@ -218,7 +221,15 @@ Allowed transitions:
 - `approved -> imported`
 - `approved -> import_failed`
 - `import_failed -> approved`
+- `imported -> awaiting_bank_confirmation` *(PROJ-46, auto-transition by import service when `einzugsart=b2b`. Not exposed on `/status`.)*
+- `imported -> ready_for_activation` *(PROJ-46, auto-transition by import service for non-b2b einzugsarten. Not exposed on `/status`.)*
+- `awaiting_bank_confirmation -> ready_for_activation` *(PROJ-46, admin manuell after member confirms bank coordination)*
+- `awaiting_bank_confirmation -> under_review` *(PROJ-46, admin rückwärts-Übergang)*
+- `ready_for_activation -> activated` *(PROJ-46, admin manually OR via activation-check button — Stage D)*
+- `ready_for_activation -> under_review` *(PROJ-46, admin rückwärts-Übergang)*
 - `imported -> approved` *(PROJ-30, only via dedicated `POST /reset-import` endpoint, never via generic `/status`)*
+- `awaiting_bank_confirmation -> approved` *(PROJ-46, via `POST /reset-import`)*
+- `ready_for_activation -> approved` *(PROJ-46, via `POST /reset-import`)*
 
 When `registration_entrypoint.require_email_confirmation = TRUE` (PROJ-31), the
 generic admin `/status` endpoint rejects `submitted -> under_review|needs_info|approved`

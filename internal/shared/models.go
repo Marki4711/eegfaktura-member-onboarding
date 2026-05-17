@@ -49,15 +49,19 @@ type RegistrationEntrypoint struct {
 type ApplicationStatus string
 
 const (
-	StatusDraft          ApplicationStatus = "draft"
-	StatusSubmitted      ApplicationStatus = "submitted"
-	StatusEmailConfirmed ApplicationStatus = "email_confirmed"
-	StatusUnderReview    ApplicationStatus = "under_review"
-	StatusNeedsInfo      ApplicationStatus = "needs_info"
-	StatusApproved       ApplicationStatus = "approved"
-	StatusRejected       ApplicationStatus = "rejected"
-	StatusImported       ApplicationStatus = "imported"
-	StatusImportFailed   ApplicationStatus = "import_failed"
+	StatusDraft                     ApplicationStatus = "draft"
+	StatusSubmitted                 ApplicationStatus = "submitted"
+	StatusEmailConfirmed            ApplicationStatus = "email_confirmed"
+	StatusUnderReview               ApplicationStatus = "under_review"
+	StatusNeedsInfo                 ApplicationStatus = "needs_info"
+	StatusApproved                  ApplicationStatus = "approved"
+	StatusRejected                  ApplicationStatus = "rejected"
+	StatusImported                  ApplicationStatus = "imported"
+	StatusImportFailed              ApplicationStatus = "import_failed"
+	// PROJ-46: Stati für die Nachbereitung nach erfolgreichem Import.
+	StatusAwaitingBankConfirmation  ApplicationStatus = "awaiting_bank_confirmation"
+	StatusReadyForActivation        ApplicationStatus = "ready_for_activation"
+	StatusActivated                 ApplicationStatus = "activated"
 )
 
 // MemberType represents the type of EEG member
@@ -91,6 +95,12 @@ type Application struct {
 	ApprovedAt           *time.Time        `json:"approvedAt,omitempty" db:"approved_at"`
 	RejectedAt           *time.Time        `json:"rejectedAt,omitempty" db:"rejected_at"`
 	ImportedAt           *time.Time        `json:"importedAt,omitempty" db:"imported_at"`
+	// PROJ-46: Audit-Timestamps für die Stati nach dem Import.
+	// BankConfirmedAt wird gesetzt beim Übergang awaiting_bank_confirmation →
+	// ready_for_activation (Admin manuell). ActivatedAt beim Übergang
+	// ready_for_activation → activated (Admin manuell oder Activation-Check).
+	BankConfirmedAt      *time.Time        `json:"bankConfirmedAt,omitempty" db:"bank_confirmed_at"`
+	ActivatedAt          *time.Time        `json:"activatedAt,omitempty"     db:"activated_at"`
 	MemberType           MemberType        `json:"memberType" db:"member_type"`
 	Titel                *string           `json:"titel,omitempty" db:"titel"`
 	TitelNach            *string           `json:"titelNach,omitempty" db:"titel_nach"`

@@ -386,6 +386,26 @@ func (s *ImportService) Import(ctx context.Context, id uuid.UUID, bearerToken, a
 		TargetParticipantID: participantID,
 	}
 
+	// PROJ-46: auto-branch out of `imported` to the post-import status.
+	// `imported` is intentionally a transient landing zone for the import
+	// bookkeeping — within milliseconds it transitions to the correct
+	// post-import state. b2b needs admin confirmation that the member
+	// coordinated with their bank; everything else skips straight to
+	// ready_for_activation.
+	postImportStatus := shared.StatusReadyForActivation
+	if app.Einzugsart == "b2b" {
+		postImportStatus = shared.StatusAwaitingBankConfirmation
+	}
+	if err := s.autoTransitionAfterImport(id, postImportStatus, actorID); err != nil {
+		// Do NOT fail the import — the application is correctly in
+		// `imported`, the Core insert succeeded, and an admin can resolve
+		// the next step manually (PROJ-34 stuck-import recovery covers it).
+		slog.Warn("import: post-import auto-transition failed; application stays in 'imported'",
+			"application_id", id, "target_status", postImportStatus, "error", err)
+	} else {
+		result.Status = postImportStatus
+	}
+
 	// PROJ-27: member-level tariff cannot be set via POST /participant
 	// (goqu:"skipinsert" on EegParticipantBase.TariffId). Apply it as a
 	// follow-up partial update. A failure here does not roll back the
@@ -404,6 +424,48 @@ func (s *ImportService) Import(ctx context.Context, id uuid.UUID, bearerToken, a
 	}
 
 	return result, nil
+}
+
+// autoTransitionAfterImport moves the application out of `imported` to the
+// post-import status (PROJ-46). Always runs after a successful import. Uses
+// the guarded UpdateStatusAdminTx so a concurrent admin action that already
+// moved the row to e.g. `ready_for_activation` cannot be overwritten.
+func (s *ImportService) autoTransitionAfterImport(id uuid.UUID, toStatus shared.ApplicationStatus, actorID string) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin: %w", err)
+	}
+	defer tx.Rollback()
+
+	if err := s.appRepo.UpdateStatusAdminTx(
+		tx, id, shared.StatusImported, toStatus,
+		nil, nil, nil, nil, ptrOrNil(actorID), nil, nil,
+	); err != nil {
+		return err
+	}
+
+	from := string(shared.StatusImported)
+	var actorPtr *string
+	if actorID != "" {
+		actorPtr = &actorID
+	}
+	if err := s.statusLogRepo.CreateTx(tx, &shared.StatusLogEntry{
+		ApplicationID:   id,
+		FromStatus:      &from,
+		ToStatus:        string(toStatus),
+		ChangedByUserID: actorPtr,
+		CreatedAt:       time.Now().UTC(),
+	}); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func ptrOrNil(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
 }
 
 // persistResult writes the application UPDATE and the status_log INSERT in a

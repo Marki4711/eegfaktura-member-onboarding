@@ -83,6 +83,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	query := `
 		SELECT id, reference_number, rc_number, status, started_at, submitted_at,
 		       approved_at, rejected_at, imported_at,
+		       bank_confirmed_at, activated_at,
 		       member_type, titel, titel_nach, firstname, lastname, birth_date,
 		       company_name, uid_number, register_number,
 		       email, phone,
@@ -109,6 +110,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	var titel, titelNach, firstname, lastname, companyName, uidNumber, registerNumber sql.NullString
 	var bankName, mandateReference sql.NullString
 	var birthDate, startedAt, submittedAt, approvedAt, rejectedAt, importedAt, privacyAcceptedAt, sepaMandateAcceptedAt, importStartedAt, importFinishedAt sql.NullTime
+	var bankConfirmedAt, activatedAt sql.NullTime
 	var membershipStartDate, mandateDate sql.NullTime
 	var personsInHousehold, consumptionPreviousYear, consumptionForecast, feedInForecast sql.NullInt64
 	var pvPowerKwp sql.NullFloat64
@@ -123,6 +125,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	err := r.db.QueryRow(query, id).Scan(
 		&app.ID, &app.ReferenceNumber, &app.RCNumber, &app.Status, &startedAt,
 		&submittedAt, &approvedAt, &rejectedAt, &importedAt,
+		&bankConfirmedAt, &activatedAt,
 		&app.MemberType, &titel, &titelNach, &firstname, &lastname, &birthDate,
 		&companyName, &uidNumber, &registerNumber,
 		&app.Email, &phone,
@@ -221,6 +224,12 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	}
 	if importedAt.Valid {
 		app.ImportedAt = &importedAt.Time
+	}
+	if bankConfirmedAt.Valid {
+		app.BankConfirmedAt = &bankConfirmedAt.Time
+	}
+	if activatedAt.Valid {
+		app.ActivatedAt = &activatedAt.Time
 	}
 	if privacyAcceptedAt.Valid {
 		app.PrivacyAcceptedAt = &privacyAcceptedAt.Time
@@ -846,6 +855,10 @@ func (r *ApplicationRepository) ResetImportTx(tx *sql.Tx, id uuid.UUID) error {
 	// stale assignment in the admin detail view and (b) collide with
 	// the next-member-number suggestion on retry. The previous value is
 	// preserved in the status_log reason by the caller (see admin_service.go).
+	//
+	// PROJ-46: bank_confirmed_at + activated_at are also cleared so a
+	// re-import starts from a clean slate (re-confirmation needed if b2b,
+	// re-activation needed in either case).
 	query := `
 		UPDATE member_onboarding.application SET
 			status                = $1,
@@ -855,6 +868,8 @@ func (r *ApplicationRepository) ResetImportTx(tx *sql.Tx, id uuid.UUID) error {
 			target_participant_id = NULL,
 			import_error_message  = NULL,
 			member_number         = NULL,
+			bank_confirmed_at     = NULL,
+			activated_at          = NULL,
 			updated_at            = NOW()
 		WHERE id = $2`
 	_, err := tx.Exec(query, shared.StatusApproved, id)
@@ -1136,6 +1151,7 @@ func (r *ApplicationRepository) UpdateStatusAdminTx(
 	toStatus shared.ApplicationStatus,
 	submittedAt, approvedAt, rejectedAt *time.Time,
 	needsInfoReason, reviewedByUserID *string,
+	bankConfirmedAt, activatedAt *time.Time,
 ) error {
 	query := `
 		UPDATE member_onboarding.application SET
@@ -1145,10 +1161,12 @@ func (r *ApplicationRepository) UpdateStatusAdminTx(
 			rejected_at         = COALESCE($4, rejected_at),
 			needs_info_reason   = COALESCE($5, needs_info_reason),
 			reviewed_by_user_id = COALESCE($6, reviewed_by_user_id),
+			bank_confirmed_at   = COALESCE($7, bank_confirmed_at),
+			activated_at        = COALESCE($8, activated_at),
 			updated_at          = NOW()
-		WHERE id = $7 AND status = $8`
+		WHERE id = $9 AND status = $10`
 
-	res, err := tx.Exec(query, toStatus, submittedAt, approvedAt, rejectedAt, needsInfoReason, reviewedByUserID, id, expectedFrom)
+	res, err := tx.Exec(query, toStatus, submittedAt, approvedAt, rejectedAt, needsInfoReason, reviewedByUserID, bankConfirmedAt, activatedAt, id, expectedFrom)
 	if err != nil {
 		return fmt.Errorf("failed to update application status: %w", err)
 	}

@@ -10,6 +10,33 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Neu — PROJ-46 Stage A: Stati für Import-Nachbereitung *(2026-05-17)*
+
+Erste Stage: DB + Backend-Übergänge + Reset-Erweiterung. Mails (Stage B),
+Admin-UI (Stage C) und Activation-Check-Button (Stage D) folgen separat.
+
+- Migration `000041_post_import_statuses`: drei neue Status-Werte
+  (`awaiting_bank_confirmation`, `ready_for_activation`, `activated`),
+  CHECK-Constraint erweitert, zwei neue Audit-Timestamps
+  (`bank_confirmed_at`, `activated_at`)
+- Import-Service: nach erfolgreichem `→ imported` läuft automatisch
+  ein Branch — `einzugsart=b2b` ⇒ `awaiting_bank_confirmation`,
+  sonst direkt `ready_for_activation`. Status `imported` existiert
+  nur Millisekunden als Landing-Zone für die Import-Bookkeeping.
+- `adminTransitions`-Map: neue Übergänge für die zwei mittleren
+  Stati (manuelle Weiterschaltung + Rückwärts auf `under_review`).
+  `activated` ist strikter Endzustand, keine Transitions hinaus.
+- `UpdateStatusAdminTx`: COALESCE-Pattern um `bank_confirmed_at`
+  und `activated_at` erweitert; Service stempelt die Timestamps
+  beim jeweiligen Übergang.
+- Reset-Import (PROJ-30) erweitert: Reset ist jetzt auch aus
+  `awaiting_bank_confirmation` und `ready_for_activation` möglich
+  (zurück auf `approved`). Aus `activated` **nicht** — strikter
+  Endzustand, Deaktivierung muss im Core erfolgen. Reset cleart
+  zusätzlich `bank_confirmed_at` + `activated_at` für sauberen Retry.
+- CLAUDE.md Status-Sektion aktualisiert (3 neue Stati + 7 neue
+  Transition-Einträge dokumentiert).
+
 ### Neu — PROJ-45: Erzeugungsform + Batterie + typabhängige Sichtbarkeit *(2026-05-17)*
 
 Drei zusammenhängende Erweiterungen rund um Erzeugungs-Zählpunkte:

@@ -58,6 +58,15 @@ var adminTransitions = map[shared.ApplicationStatus][]shared.ApplicationStatus{
 	shared.StatusUnderReview:     {shared.StatusNeedsInfo, shared.StatusApproved, shared.StatusRejected},
 	shared.StatusNeedsInfo:       {shared.StatusSubmitted},
 	shared.StatusImportFailed:    {shared.StatusApproved},
+	// PROJ-46: post-import statuses.
+	// `imported → awaiting_bank_confirmation` and `imported → ready_for_activation`
+	// are auto-transitions triggered by the import service right after a
+	// successful import (branched on einzugsart) — they are intentionally
+	// NOT in this admin map. If a manual fallback is needed later, expose
+	// a dedicated endpoint rather than widening the generic /status surface.
+	shared.StatusAwaitingBankConfirmation: {shared.StatusReadyForActivation, shared.StatusUnderReview},
+	shared.StatusReadyForActivation:       {shared.StatusActivated, shared.StatusUnderReview},
+	// `activated` is a strict end state — no transitions out (User-Wunsch A).
 }
 
 // AdminApplicationService implements admin review business logic.
@@ -511,7 +520,7 @@ func (s *AdminApplicationService) ChangeStatus(id uuid.UUID, toStatus shared.App
 	now := time.Now().UTC()
 
 	// Timestamp columns that vary by target status.
-	var submittedAt, approvedAt, rejectedAt *time.Time
+	var submittedAt, approvedAt, rejectedAt, bankConfirmedAt, activatedAt *time.Time
 	var needsInfoReason *string
 
 	switch toStatus {
@@ -524,6 +533,16 @@ func (s *AdminApplicationService) ChangeStatus(id uuid.UUID, toStatus shared.App
 	case shared.StatusNeedsInfo:
 		r := reason
 		needsInfoReason = &r
+	case shared.StatusReadyForActivation:
+		// PROJ-46: only stamp bank_confirmed_at when coming from
+		// awaiting_bank_confirmation (the b2b path). Auto-skip from
+		// imported leaves bank_confirmed_at NULL because no bank
+		// confirmation took place.
+		if app.Status == shared.StatusAwaitingBankConfirmation {
+			bankConfirmedAt = &now
+		}
+	case shared.StatusActivated:
+		activatedAt = &now
 	}
 
 	var actorPtr *string
@@ -565,7 +584,7 @@ func (s *AdminApplicationService) ChangeStatus(id uuid.UUID, toStatus shared.App
 	}
 	defer tx.Rollback()
 
-	if err := s.appRepo.UpdateStatusAdminTx(tx, id, app.Status, toStatus, submittedAt, approvedAt, rejectedAt, needsInfoReason, actorPtr); err != nil {
+	if err := s.appRepo.UpdateStatusAdminTx(tx, id, app.Status, toStatus, submittedAt, approvedAt, rejectedAt, needsInfoReason, actorPtr, bankConfirmedAt, activatedAt); err != nil {
 		return nil, fmt.Errorf("failed to update status: %w", err)
 	}
 
@@ -799,11 +818,16 @@ func (s *AdminApplicationService) ClearImportLock(id uuid.UUID, reason, actorID 
 	return s.appRepo.GetByID(id)
 }
 
-// ResetImport returns an imported application to status `approved` so the
-// admin can re-import after the participant was deleted in the eegFaktura
-// core. The transition imported→approved is deliberately NOT in
+// ResetImport returns an imported (or post-import) application to status
+// `approved` so the admin can re-import after the participant was deleted
+// in the eegFaktura core. The transition is deliberately NOT in
 // adminTransitions — it is only reachable through this dedicated method to
 // keep the generic /status endpoint conservative. See PROJ-30.
+//
+// PROJ-46 extension: allowed source statuses are now `imported`,
+// `awaiting_bank_confirmation`, and `ready_for_activation`. `activated`
+// is intentionally excluded — an active member must be deactivated in the
+// core first, not silently un-onboarded here (User-Wunsch A).
 //
 // The reason is mandatory (Q3 of PROJ-30) and is written to the status_log.
 // The previous target_participant_id is appended to the reason as
@@ -822,9 +846,14 @@ func (s *AdminApplicationService) ResetImport(id uuid.UUID, reason, actorID stri
 		return nil, err
 	}
 
-	if app.Status != shared.StatusImported {
+	resetable := map[shared.ApplicationStatus]bool{
+		shared.StatusImported:                 true,
+		shared.StatusAwaitingBankConfirmation: true,
+		shared.StatusReadyForActivation:       true,
+	}
+	if !resetable[app.Status] {
 		return nil, shared.NewConflictError(
-			fmt.Sprintf("only imported applications can be reset (current: %s)", app.Status),
+			fmt.Sprintf("only imported / awaiting_bank_confirmation / ready_for_activation applications can be reset (current: %s)", app.Status),
 		)
 	}
 
@@ -859,7 +888,7 @@ func (s *AdminApplicationService) ResetImport(id uuid.UUID, reason, actorID stri
 		return nil, err
 	}
 
-	fromStatus := string(shared.StatusImported)
+	fromStatus := string(app.Status)
 	toStatus := string(shared.StatusApproved)
 	var actorPtr *string
 	if actorID != "" {

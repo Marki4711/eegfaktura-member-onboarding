@@ -1,7 +1,8 @@
 # PROJ-46: Stati für Import-Nachbereitung (B2B-Bank-Bestätigung + Aktivierung)
 
-**Status:** Konzept
+**Status:** In Progress (Stage A)
 **Created:** 2026-05-17
+**Last Updated:** 2026-05-17 (offene Fragen geklärt — Implementierung gestartet)
 
 ## Hintergrund
 
@@ -71,9 +72,9 @@ Reset-Import-Erweiterung (User-Wunsch 6, PROJ-30-Erweiterung):
 - `imported → approved` *(bestehend)*
 - `awaiting_bank_confirmation → approved` *(neu, läuft über `/reset-import`)*
 - `ready_for_activation → approved` *(neu)*
-- `activated → approved` *(neu — siehe offene Frage A)*
+- `activated → ???` — **kein Reset erlaubt** (User-Entscheidung A). Endzustand.
 
-Alle Resets löschen `member_number` + schreiben Audit-Trail-Eintrag in
+Resets löschen `member_number` + schreiben Audit-Trail-Eintrag in
 `status_log` (bestehende PROJ-30-Mechanik wird wiederverwendet).
 
 ### Status-Reihenfolge im DB-CHECK-Constraint
@@ -138,22 +139,20 @@ EEG-Mail-Trigger (zusätzlich):
 | `→ awaiting_bank_confirmation` | Hinweis „Member wartet auf Bank-Bestätigung — bitte bei Rückmeldung Status weiterschalten" |
 | `→ activated` | optional Kopie — Admin sieht den Übergang sowieso im UI |
 
-## Polling-Automatik für `→ activated` (User-Wunsch 4)
+## Activation-Check-Button (User-Wunsch 4)
 
-Ein periodischer Job (Cron, z.B. stündlich) iteriert über alle Anträge
-in Status `ready_for_activation` und fragt eegFaktura-Core, ob das
-Mitglied dort aktiv ist. Bei „aktiv" → automatischer Übergang auf
-`activated`, `activated_at = NOW()`, Status-Log-Eintrag mit
-`actor=system`.
+**Kein Polling, kein Cron-Job.** Stattdessen: ein Button in der
+Antragsliste, der für die ausgewählten/gefilterten
+`ready_for_activation`-Anträge im Core nachfragt, ob das Mitglied
+bereits aktiv ist. Bei „aktiv" → Übergang auf `activated`,
+`activated_at = NOW()`, Status-Log-Eintrag mit `actor=<admin-user>`.
 
 **Benötigt Core-API-Endpoint** zum Aktivitäts-Check. Falls noch nicht
-vorhanden → separates Vor-Ticket. Bis dahin: nur manuelle Aktivierung
-durch den Admin, Polling-Job als Folge-Implementierung.
+vorhanden → in Stage D mit-bauen.
 
-Konfigurierbar pro EEG via neuem Boolean
-`registration_entrypoint.auto_activation_enabled` (Default `false`).
-Admin kann den Automatismus einschalten, sobald die Core-Anbindung
-verifiziert ist.
+Der Button ist Admin-getriggert (kein Hintergrund-Job, keine
+EEG-Konfig), damit der Admin selbst entscheidet, wann er den
+Round-Trip macht.
 
 ## Admin-UI-Erweiterung
 
@@ -167,23 +166,15 @@ verifiziert ist.
 - **Detail-Page:** wenn Status `awaiting_bank_confirmation`, prominente
   Hinweisbox „Auf Member-Rückmeldung warten".
 
-## Offene Fragen
+## Geklärte Entscheidungen (2026-05-17)
 
-**A) Reset aus `activated`:** User-Antwort 6 erwähnt nur die zwei
-neuen mittleren Stati. `activated → approved` wäre möglich, aber
-heißt: ein aktives Mitglied wird wieder zum Bewerber. Ich würde es
-**erlauben**, aber im UI eine Extra-Warnung anzeigen
-(„Mitglied ist aktiv — Reset entfernt es aus der EEG"). Bestätigen?
-
-**B) Polling-Intervall + Core-API:** Stündlich? Täglich? Und gibt es
-schon einen Core-Endpoint zum Aktivitäts-Check, oder muss der erst
-gebaut werden?
-
-**C) Auto-Übergang `imported → awaiting_bank_confirmation` bzw.
-`ready_for_activation`:** soll der Übergang im selben DB-Commit wie
-der `→ imported`-Übergang passieren, oder als zweiter Commit direkt
-danach? Sauberer: zweistufig im selben Service-Aufruf (`imported`
-wird nie länger als ein paar Millisekunden bestehen). Bestätigen?
+- **A) Reset aus `activated`:** **nicht erlaubt.** `activated` ist
+  strikter Endzustand. Wenn ein „aktives" Mitglied versehentlich
+  aktiviert wurde, muss das im Core-System rückgängig gemacht werden.
+- **B) Polling:** **kein Cron-Job.** Stattdessen Admin-Button in der
+  Antragsliste (siehe Activation-Check-Button-Sektion oben).
+- **C) Auto-Übergang nach Import:** im selben Service-Aufruf direkt
+  nach `imported`. Status `imported` existiert nur sehr kurz.
 
 ## Out of Scope V1
 
@@ -208,18 +199,18 @@ wird nie länger als ein paar Millisekunden bestehen). Bestätigen?
 - Smoke-Test 4: Rückwärts-Übergang `awaiting_bank_confirmation →
   under_review`
 
-## Empfohlene Implementierungs-Stages
+## Implementierungs-Stages
 
-Da der Scope groß ist:
-
-1. **Stage A — DB + Backend + Übergänge** (ohne Mails, ohne Polling):
-   Migration, Status-Enums, Service-Logik, Reset-Import-Erweiterung.
+1. **Stage A — DB + Backend + Übergänge** (ohne Mails, ohne Activation-
+   Check): Migration 000041, Status-Enums (3 neue Werte), Transitions-
+   Map, Auto-Branch nach Import (b2b vs sonst), Reset-Import-
+   Erweiterung auf `awaiting_bank_confirmation` + `ready_for_activation`.
 2. **Stage B — PDF-Timing + Member/EEG-Mails:** Verschiebung der
-   PDF-Generierung, neue Mail-Templates für Bank-Hinweis und
-   Aktivierungs-Bestätigung.
-3. **Stage C — Admin-UI:** Status-Buttons, Detail-Page-Banner,
-   Reset-Dialog.
-4. **Stage D — Polling-Automatik:** Cron-Job + Core-API-Endpoint
-   (vorausgesetzt der Endpoint existiert oder wird hier mitgebaut).
-
-Stages A–C sind in einem Sprint machbar; D hängt am Core.
+   PDF-Generierung von `approved` auf `imported` (mit Mitgliedsnummer),
+   neue Mail-Templates für Bank-Hinweis und Aktivierungs-Bestätigung.
+3. **Stage C — Admin-UI:** Status-Buttons in `admin-status-actions`,
+   Status-Badge-Farben, Detail-Page-Banner für
+   `awaiting_bank_confirmation`, Reset-Dialog-Erweiterung.
+4. **Stage D — Activation-Check:** Admin-Button in Antragsliste,
+   Core-API-Aufruf, Übergang auf `activated`. Hängt am Vorhandensein
+   eines passenden Core-Endpoints.
