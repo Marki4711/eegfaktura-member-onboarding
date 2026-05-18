@@ -1,6 +1,6 @@
 # PROJ-35: Per-EEG-Referenznummern (`<RC>-<Jahr>-<NNNN>`)
 
-## Status: In Review
+## Status: Deployed
 **Created:** 2026-05-14
 **Last Updated:** 2026-05-14 (Migration 000033 + Repo + Submit-Pfad implementiert; alte Refs bleiben unverändert)
 

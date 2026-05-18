@@ -1,6 +1,6 @@
 # PROJ-47: B2B-SEPA-Firmenlastschrift-Mandat mit Mandatsreferenz beim Import
 
-**Status:** In Review
+**Status:** Deployed
 **Created:** 2026-05-17
 
 ## Hintergrund

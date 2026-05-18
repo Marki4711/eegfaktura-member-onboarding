@@ -47,24 +47,24 @@ Central tracking for all features.
 | PROJ-30 | Reset eines importierten Antrags auf approved | Approved | `features/PROJ-30-reset-imported-to-approved.md` | 2026-05-12 |
 | PROJ-31 | E-Mail-Adresse-Bestätigung (Anti-Abuse) | Deployed | `features/PROJ-31-email-confirmation.md` | 2026-05-14 |
 | PROJ-32 | EEG-Stammdaten aus Core (Phase 1 – ohne Logo) | Deployed | `features/PROJ-32-eeg-master-data-from-core.md` | 2026-05-14 |
-| PROJ-33 | EEG-Logo aus Core (Phase 2 von PROJ-32) | In Review | `features/PROJ-33-eeg-logo-from-core.md` | 2026-05-14 |
-| PROJ-34 | Robuste Import-Recovery (Orphan-Fallback + Pre-Check + Unstuck-GUI) | In Review | `features/PROJ-34-import-recovery.md` | 2026-05-14 |
-| PROJ-35 | Per-EEG-Referenznummern (`<RC>-<Jahr>-<NNNN>`) | In Review | `features/PROJ-35-per-eeg-reference-numbers.md` | 2026-05-14 |
-| PROJ-36 | Optionale Rechtsdokumente als Info-Dokumente | In Review | `features/PROJ-36-optional-legal-documents-as-info.md` | 2026-05-14 |
-| PROJ-37 | Genossenschaftsanteile (per-EEG-Konfiguration + Antragsfeld) | In Review | `features/PROJ-37-cooperative-shares.md` | 2026-05-15 |
-| PROJ-38 | Status-Modell-Hygiene & Audit-Fixes | In Review | `features/PROJ-38-status-hygiene.md` | 2026-05-16 |
-| PROJ-39 | Titel-Nach + Bankname im Public-Form + abweichende Adresse je Zählpunkt | In Review | `features/PROJ-39-extra-fields.md` | 2026-05-17 |
-| PROJ-41 | Status-Change-Mails an Mitglied (Ablehnung + Info-Anfrage) | In Review | `features/PROJ-41-status-change-mails.md` | 2026-05-17 |
-| PROJ-40 | EEG-Umzuordnung eines Antrags im Admin-Review | In Review | `features/PROJ-40-eeg-reassign.md` | 2026-05-17 |
-| PROJ-42 | E-Fahrzeug-Detailerfassung (Anzahl + Jahres-km) | In Review | `features/PROJ-42-ev-details.md` | 2026-05-17 |
-| PROJ-44 | Netzbetreiber-Vollmacht (per-EEG konfigurierbar) | In Review | `features/PROJ-44-network-operator-authorization.md` | 2026-05-17 |
-| PROJ-45 | Erzeugungsform + Batterie-Felder + typabhängige Sichtbarkeit | In Review | `features/PROJ-45-generation-type-and-conditional-fields.md` | 2026-05-17 |
-| PROJ-46 | Stati für Import-Nachbereitung (B2B-Bank-Bestätigung + Aktivierung) | In Review | `features/PROJ-46-post-import-statuses.md` | 2026-05-17 |
-| PROJ-47 | B2B-SEPA-Firmenlastschrift-Mandat mit Mandatsreferenz beim Import | In Review | `features/PROJ-47-b2b-sepa-mandate-at-import.md` | 2026-05-17 |
-| PROJ-48 | SEPA-Default-Core + konfigurierbares Mandat-Timing + B2B-Hinweis | In Review | `features/PROJ-48-sepa-default-core-and-import-timing.md` | 2026-05-17 |
-| PROJ-49 | Energie-Felder pro Zählpunkt (Refactoring + Einspeiselimit) | In Review | `features/PROJ-49-energy-fields-on-metering-point.md` | 2026-05-17 |
+| PROJ-33 | EEG-Logo aus Core (Phase 2 von PROJ-32) | Deployed | `features/PROJ-33-eeg-logo-from-core.md` | 2026-05-14 |
+| PROJ-34 | Robuste Import-Recovery (Orphan-Fallback + Pre-Check + Unstuck-GUI) | Deployed | `features/PROJ-34-import-recovery.md` | 2026-05-14 |
+| PROJ-35 | Per-EEG-Referenznummern (`<RC>-<Jahr>-<NNNN>`) | Deployed | `features/PROJ-35-per-eeg-reference-numbers.md` | 2026-05-14 |
+| PROJ-36 | Optionale Rechtsdokumente als Info-Dokumente | Deployed | `features/PROJ-36-optional-legal-documents-as-info.md` | 2026-05-14 |
+| PROJ-37 | Genossenschaftsanteile (per-EEG-Konfiguration + Antragsfeld) | Deployed | `features/PROJ-37-cooperative-shares.md` | 2026-05-15 |
+| PROJ-38 | Status-Modell-Hygiene & Audit-Fixes | Deployed | `features/PROJ-38-status-hygiene.md` | 2026-05-16 |
+| PROJ-39 | Titel-Nach + Bankname im Public-Form + abweichende Adresse je Zählpunkt | Deployed | `features/PROJ-39-extra-fields.md` | 2026-05-17 |
+| PROJ-41 | Status-Change-Mails an Mitglied (Ablehnung + Info-Anfrage) | Deployed | `features/PROJ-41-status-change-mails.md` | 2026-05-17 |
+| PROJ-40 | EEG-Umzuordnung eines Antrags im Admin-Review | Deployed | `features/PROJ-40-eeg-reassign.md` | 2026-05-17 |
+| PROJ-42 | E-Fahrzeug-Detailerfassung (Anzahl + Jahres-km) | Deployed | `features/PROJ-42-ev-details.md` | 2026-05-17 |
+| PROJ-44 | Netzbetreiber-Vollmacht (per-EEG konfigurierbar) | Deployed | `features/PROJ-44-network-operator-authorization.md` | 2026-05-17 |
+| PROJ-45 | Erzeugungsform + Batterie-Felder + typabhängige Sichtbarkeit | Deployed | `features/PROJ-45-generation-type-and-conditional-fields.md` | 2026-05-17 |
+| PROJ-46 | Stati für Import-Nachbereitung (B2B-Bank-Bestätigung + Aktivierung) | Deployed | `features/PROJ-46-post-import-statuses.md` | 2026-05-17 |
+| PROJ-47 | B2B-SEPA-Firmenlastschrift-Mandat mit Mandatsreferenz beim Import | Deployed | `features/PROJ-47-b2b-sepa-mandate-at-import.md` | 2026-05-17 |
+| PROJ-48 | SEPA-Default-Core + konfigurierbares Mandat-Timing + B2B-Hinweis | Deployed | `features/PROJ-48-sepa-default-core-and-import-timing.md` | 2026-05-17 |
+| PROJ-49 | Energie-Felder pro Zählpunkt (Refactoring + Einspeiselimit) | Deployed | `features/PROJ-49-energy-fields-on-metering-point.md` | 2026-05-17 |
 | PROJ-50 | Zugang Online-Portal Netzbetreiber + bedingte Anleitungs-Mail | On Hold | `features/PROJ-50-network-operator-portal-access.md` | 2026-05-17 |
 | PROJ-51 | Anzeige offener Nutzungsgebühren im Admin-UI | On Hold | `features/PROJ-51-usage-fee-status-display.md` | 2026-05-17 |
-| PROJ-52 | Konfigurierbarer Zählpunkt-Prefix pro Richtung + Auto-Pad + Alphanumerik | In Review | `features/PROJ-52-metering-point-prefix-per-direction.md` | 2026-05-17 |
+| PROJ-52 | Konfigurierbarer Zählpunkt-Prefix pro Richtung + Auto-Pad + Alphanumerik | Deployed | `features/PROJ-52-metering-point-prefix-per-direction.md` | 2026-05-17 |
 
 ## Next Available ID: PROJ-53

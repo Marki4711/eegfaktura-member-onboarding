@@ -1,6 +1,6 @@
 # PROJ-49: Energie-Felder pro Zählpunkt (Refactoring + Einspeiselimit)
 
-**Status:** In Review
+**Status:** Deployed
 **Created:** 2026-05-17
 **Last Updated:** 2026-05-17 (Backend + Frontend + Doku umgesetzt)
 

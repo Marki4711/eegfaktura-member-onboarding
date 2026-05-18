@@ -1,6 +1,6 @@
 # PROJ-37: Genossenschaftsanteile (per-EEG-Konfiguration + Antragsfeld)
 
-## Status: In Review
+## Status: Deployed
 **Created:** 2026-05-15
 **Last Updated:** 2026-05-15 (Stages A–I implementiert. Bekannte V1-Lücke: Admin-Edit-Form-Integration nicht enthalten — Stage G beschränkt auf Read-Only-Anzeige im Detail-View. Admin kann Anteils-Korrekturen über den needs_info-Flow erzwingen, Direkt-Edit folgt in V1.1.)
 

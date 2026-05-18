@@ -1,6 +1,6 @@
 # PROJ-46: Stati für Import-Nachbereitung (B2B-Bank-Bestätigung + Aktivierung)
 
-**Status:** In Progress (Stage A)
+**Status:** Deployed
 **Created:** 2026-05-17
 **Last Updated:** 2026-05-17 (offene Fragen geklärt — Implementierung gestartet)
 

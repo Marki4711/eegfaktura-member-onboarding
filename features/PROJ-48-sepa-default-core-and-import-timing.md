@@ -1,6 +1,6 @@
 # PROJ-48: SEPA-Default-Core + konfigurierbares Mandat-Timing + B2B-Hinweis
 
-**Status:** In Review
+**Status:** Deployed
 **Created:** 2026-05-17
 
 ## Hintergrund

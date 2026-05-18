@@ -1,6 +1,6 @@
 # PROJ-42: E-Fahrzeug-Detailerfassung (Anzahl + Jahres-km)
 
-**Status:** In Review
+**Status:** Deployed
 **Created:** 2026-05-17
 
 ## Hintergrund

@@ -1,6 +1,6 @@
 # PROJ-34: Robuste Import-Recovery (Orphan-Fallback + Pre-Check + Admin-Unstuck)
 
-## Status: In Review
+## Status: Deployed
 **Created:** 2026-05-14
 **Last Updated:** 2026-05-14 (Stages A–F implementiert; konkreter Fehler aus dem Test-Cluster-Log analysiert und behoben)
 

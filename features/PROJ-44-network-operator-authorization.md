@@ -1,6 +1,6 @@
 # PROJ-44: Netzbetreiber-Vollmacht (per-EEG konfigurierbare Zustimmung)
 
-**Status:** In Review
+**Status:** Deployed
 **Created:** 2026-05-17
 
 ## Hintergrund

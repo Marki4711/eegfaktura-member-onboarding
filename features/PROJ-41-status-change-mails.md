@@ -1,6 +1,6 @@
 # PROJ-41 & PROJ-43: Status-Change-Mails an Mitglied (Ablehnung + Info-Anfrage)
 
-**Status:** In Review
+**Status:** Deployed
 **Created:** 2026-05-17
 
 ## Hintergrund

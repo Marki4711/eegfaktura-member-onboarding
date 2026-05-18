@@ -1,6 +1,6 @@
 # PROJ-45: Erzeugungsform + Batterie-Felder + typabhängige Sichtbarkeit
 
-**Status:** In Review
+**Status:** Deployed
 **Created:** 2026-05-17
 **Last Updated:** 2026-05-17 (Implementierung abgeschlossen)
 

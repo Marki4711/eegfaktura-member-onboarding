@@ -1,6 +1,6 @@
 # PROJ-39: Titel-Nach + Bankname im Public-Form + abweichende Adresse je Zählpunkt
 
-**Status:** In Review
+**Status:** Deployed
 **Created:** 2026-05-17
 
 ## Drei unabhängige Erweiterungen

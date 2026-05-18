@@ -1,6 +1,6 @@
 # PROJ-38: Status-Modell-Hygiene & Audit-Fixes
 
-**Status:** In Review
+**Status:** Deployed
 **Created:** 2026-05-16
 **Predecessor:** PROJ-31 follow-up (Audit nach `application_status_check`-Regression)
 

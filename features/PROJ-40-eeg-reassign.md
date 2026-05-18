@@ -1,6 +1,6 @@
 # PROJ-40: EEG-Umzuordnung eines Antrags im Review
 
-**Status:** In Review
+**Status:** Deployed
 **Created:** 2026-05-17
 **Security-sensitive:** ja — `/security-review` empfohlen vor Prod-Deploy
 

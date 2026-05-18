@@ -1,6 +1,6 @@
 # PROJ-33: EEG-Logo aus eegFaktura-Core (Phase 2 von PROJ-32)
 
-## Status: In Review
+## Status: Deployed
 **Created:** 2026-05-14
 **Last Updated:** 2026-05-14 (Stages A–F implemented; Q1 resolved via live `billingConfigs/tenant/TE100200` curl — `headerImageFileDataId` is the gate field, billing-config `id` is the URL parameter)
 

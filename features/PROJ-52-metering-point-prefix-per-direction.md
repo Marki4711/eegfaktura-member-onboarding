@@ -1,6 +1,6 @@
 # PROJ-52: Konfigurierbarer Zählpunkt-Prefix pro Richtung + Auto-Pad + Alphanumerik
 
-**Status:** In Review
+**Status:** Deployed
 **Created:** 2026-05-17
 **Last Updated:** 2026-05-18
 
