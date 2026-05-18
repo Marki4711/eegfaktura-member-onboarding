@@ -1668,6 +1668,9 @@ func (h *AdminHandler) GetEEGSettings(w http.ResponseWriter, r *http.Request) {
 		"showCentralPolicy":       ep.ShowCentralPolicy,
 		"memberNumberStart":       ep.MemberNumberStart,
 		"requireEmailConfirmation": ep.RequireEmailConfirmation,
+		// PROJ-52: pro Richtung konfigurierbarer Zählpunkt-Prefix.
+		"meteringPointPrefixConsumption": ep.MeteringPointPrefixConsumption,
+		"meteringPointPrefixProduction":  ep.MeteringPointPrefixProduction,
 		// PROJ-37 Genossenschaftsanteile
 		"cooperativeSharesEnabled":    ep.CooperativeSharesEnabled,
 		"cooperativeRequiredShares":   ep.CooperativeRequiredShares,
@@ -1690,6 +1693,16 @@ func (h *AdminHandler) SaveEEGSettings(w http.ResponseWriter, r *http.Request) {
 		ShowCentralPolicy        *bool  `json:"showCentralPolicy"`
 		MemberNumberStart        *int   `json:"memberNumberStart"`
 		RequireEmailConfirmation *bool  `json:"requireEmailConfirmation"`
+		// PROJ-52: zwei optionale Prefixes — jedes Feld ist ein
+		// **PATCH**-Signal: nil = unverändert lassen, leerer String = clearen,
+		// Wert = setzen (nach Normalisierung).
+		MeteringPointPrefixConsumption *string `json:"meteringPointPrefixConsumption"`
+		MeteringPointPrefixProduction  *string `json:"meteringPointPrefixProduction"`
+		// Flag, ob die Prefix-Felder im Body überhaupt mitgeliefert wurden.
+		// Wir brauchen das, weil json.Decode nil von "Feld nicht im Body"
+		// nicht unterscheiden kann — also macht der Frontend ein explizites
+		// Mitsenden (nil ⇒ clear, leerer String ⇒ clear, Wert ⇒ set).
+		MeteringPointPrefixesPresent bool `json:"meteringPointPrefixesPresent"`
 		// PROJ-37 Genossenschaftsanteile
 		CooperativeSharesEnabled    bool   `json:"cooperativeSharesEnabled"`
 		CooperativeRequiredShares   *int   `json:"cooperativeRequiredShares"`
@@ -1763,6 +1776,29 @@ func (h *AdminHandler) SaveEEGSettings(w http.ResponseWriter, r *http.Request) {
 
 	if body.RequireEmailConfirmation != nil {
 		if err := h.entrypointRepo.SaveRequireEmailConfirmation(rcNumber, *body.RequireEmailConfirmation); err != nil {
+			h.handleServiceError(w, err)
+			return
+		}
+	}
+
+	// PROJ-52: nur speichern wenn der Frontend das Feld explizit
+	// mitsendet. Normalisierung (Whitespace + Dots entfernen, uppercase)
+	// und Format-Check (^AT[0-9A-Z]{0,31}$) laufen vor dem Save.
+	if body.MeteringPointPrefixesPresent {
+		consumption := application.NormalizeMeteringPointPrefix(body.MeteringPointPrefixConsumption)
+		production := application.NormalizeMeteringPointPrefix(body.MeteringPointPrefixProduction)
+		fields := map[string]string{}
+		if err := application.ValidateMeteringPointPrefix(consumption); err != nil {
+			fields["meteringPointPrefixConsumption"] = err.Error()
+		}
+		if err := application.ValidateMeteringPointPrefix(production); err != nil {
+			fields["meteringPointPrefixProduction"] = err.Error()
+		}
+		if len(fields) > 0 {
+			h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", fields)))
+			return
+		}
+		if err := h.entrypointRepo.SaveMeteringPointPrefixes(rcNumber, consumption, production); err != nil {
 			h.handleServiceError(w, err)
 			return
 		}

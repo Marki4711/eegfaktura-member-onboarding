@@ -523,6 +523,15 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID, consents []shared.C
 		return nil, fmt.Errorf("failed to load entrypoint for submit: %w", epErr)
 	}
 
+	// PROJ-52: defense-in-depth prefix-match. If the EEG has configured a
+	// metering-point-prefix for a direction, every metering point of that
+	// direction must start with the configured prefix. NULL prefix = no
+	// check for that direction (Fallback 2a: andere Richtung fällt auf
+	// das reine "AT"-Pattern zurück).
+	if err := validateMeteringPointPrefixMatch(meteringPoints, entrypoint); err != nil {
+		return nil, err
+	}
+
 	// PROJ-37: cooperative-shares validation. When the EEG has activated
 	// the feature, the application must carry a count >= required_shares.
 	// Members fill in the count when the form is configured to display
@@ -917,10 +926,21 @@ func validateIBAN(iban string) bool {
 	return remainder == 1
 }
 
-// meteringPointRegex enforces the Austrian Zählpunkt-Nummer format:
-// "AT" followed by exactly 31 digits (33 chars total). Pre-compiled at
-// package init so service calls don't re-compile the pattern.
-var meteringPointRegex = regexp.MustCompile(`^AT[0-9]{31}$`)
+// meteringPointRegex enforces the Austrian Zählpunkt-Nummer format nach
+// E-Control / MeteringCode (PROJ-52): "AT" + 11 Ziffern (Netzbetreiber-
+// nummer + PLZ) + 20 alphanumerische Stellen (Zählpunkt-Kennung).
+// Pre-compiled at package init.
+//
+// Davor (Pre-PROJ-52): `^AT[0-9]{31}$` — die letzten 20 Stellen waren auf
+// Ziffern beschränkt. In der österreichischen Praxis sind die Zählpunkte
+// fast immer numerisch, die offizielle Spec erlaubt aber A-Z0-9. Bestands-
+// daten bleiben gültig (Ziffern sind eine Teilmenge von [A-Z0-9]).
+var meteringPointRegex = regexp.MustCompile(`^AT[0-9]{11}[A-Z0-9]{20}$`)
+
+// meteringPointPrefixRegex matches the per-direction configurable prefix
+// (PROJ-52). Must start with "AT", length 2–33, only digits + uppercase
+// letters after the "AT". Matches the DB CHECK on registration_entrypoint.
+var meteringPointPrefixRegex = regexp.MustCompile(`^AT[0-9A-Z]{0,31}$`)
 
 // validateMeteringPointFormat returns true when mp matches the Austrian
 // Zählpunkt format. Whitespace and case are NOT normalised here — callers
@@ -928,6 +948,71 @@ var meteringPointRegex = regexp.MustCompile(`^AT[0-9]{31}$`)
 // the frontend Zod transform and the public-form mask deliver.
 func validateMeteringPointFormat(mp string) bool {
 	return meteringPointRegex.MatchString(mp)
+}
+
+// NormalizeMeteringPointPrefix strips whitespace and dots, uppercases the
+// result, and returns it. Returns nil when the input is nil or yields an
+// empty string after normalisation (so "  " stores as NULL, not empty).
+func NormalizeMeteringPointPrefix(in *string) *string {
+	if in == nil {
+		return nil
+	}
+	s := *in
+	s = strings.ReplaceAll(s, " ", "")
+	s = strings.ReplaceAll(s, ".", "")
+	s = strings.ReplaceAll(s, "-", "")
+	s = strings.ToUpper(s)
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
+// ValidateMeteringPointPrefix returns nil when in matches the configurable
+// prefix format (PROJ-52) or is nil/empty. Callers should normalize first.
+func ValidateMeteringPointPrefix(in *string) error {
+	if in == nil || *in == "" {
+		return nil
+	}
+	if !meteringPointPrefixRegex.MatchString(*in) {
+		return fmt.Errorf("Prefix muss mit AT beginnen und darf nur Ziffern + A-Z enthalten (max 33 Stellen)")
+	}
+	return nil
+}
+
+// validateMeteringPointPrefixMatch enforces the per-direction Zählpunkt-
+// Prefix-Konfiguration aus dem EEG-Entrypoint (PROJ-52). NULL prefix für
+// eine Richtung ⇒ keine Prüfung; sonst muss jeder Zählpunkt dieser
+// Richtung mit dem konfigurierten Prefix beginnen. Liefert genau einen
+// Fehler pro betroffener Richtung (kompakt; das Frontend sieht ohnehin
+// alle Verstöße über die dynamische Mask).
+func validateMeteringPointPrefixMatch(points []shared.MeteringPoint, ep *shared.RegistrationEntrypoint) error {
+	if ep == nil {
+		return nil
+	}
+	errs := map[string]string{}
+	for i, mp := range points {
+		var prefix *string
+		switch mp.Direction {
+		case shared.DirectionConsumption:
+			prefix = ep.MeteringPointPrefixConsumption
+		case shared.DirectionProduction:
+			prefix = ep.MeteringPointPrefixProduction
+		}
+		if prefix == nil || *prefix == "" {
+			continue
+		}
+		if !strings.HasPrefix(mp.MeteringPoint, *prefix) {
+			errs[fmt.Sprintf("meteringPoints.%d.meteringPoint", i)] = fmt.Sprintf(
+				"Zählpunkt muss mit %s beginnen (vom EEG-Admin konfigurierter Prefix für diese Richtung)",
+				*prefix,
+			)
+		}
+	}
+	if len(errs) > 0 {
+		return shared.NewValidationError("Validation failed", errs)
+	}
+	return nil
 }
 
 // applyAdminValues sets application fields from admin-configured default values for admin_only fields.

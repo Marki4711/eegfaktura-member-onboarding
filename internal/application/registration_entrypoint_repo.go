@@ -42,6 +42,7 @@ func (r *RegistrationEntrypointRepository) GetByRCNumber(rcNumber string) (*shar
 		       creditor_id, sepa_mandate_enabled, use_company_sepa_mandate,
 		       sepa_mandate_at_import,
 		       show_central_policy, member_number_start, require_email_confirmation,
+		       metering_point_prefix_consumption, metering_point_prefix_production,
 		       last_synced_from_core_at, eeg_logo_synced_at,
 		       cooperative_shares_enabled, cooperative_required_shares,
 		       cooperative_share_amount_cents,
@@ -56,6 +57,7 @@ func (r *RegistrationEntrypointRepository) GetByRCNumber(rcNumber string) (*shar
 		&ep.CreditorID, &ep.SEPAMandateEnabled, &ep.UseCompanySEPAMandate,
 		&ep.SEPAMandateAtImport,
 		&ep.ShowCentralPolicy, &ep.MemberNumberStart, &ep.RequireEmailConfirmation,
+		&ep.MeteringPointPrefixConsumption, &ep.MeteringPointPrefixProduction,
 		&ep.LastSyncedFromCoreAt, &ep.EEGLogoSyncedAt,
 		&ep.CooperativeSharesEnabled, &ep.CooperativeRequiredShares,
 		&ep.CooperativeShareAmountCents,
@@ -294,6 +296,31 @@ func (r *RegistrationEntrypointRepository) SaveRequireEmailConfirmation(rcNumber
 		WHERE rc_number = $2`, require, rcNumber)
 	if err != nil {
 		return fmt.Errorf("failed to save require_email_confirmation for %s: %w", rcNumber, err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check rows affected: %w", err)
+	}
+	if rows == 0 {
+		return shared.ErrNotFound
+	}
+	return nil
+}
+
+// SaveMeteringPointPrefixes (PROJ-52) persists the per-direction Zählpunkt
+// prefix configuration. Both values are optional — pass nil to clear. The
+// caller is responsible for normalisation (whitespace + dots stripped,
+// uppercase) and the high-level format check; the DB CHECK constraint
+// (^AT[0-9A-Z]{0,31}$) is the final guard.
+func (r *RegistrationEntrypointRepository) SaveMeteringPointPrefixes(rcNumber string, consumption, production *string) error {
+	result, err := r.db.Exec(`
+		UPDATE member_onboarding.registration_entrypoint
+		SET metering_point_prefix_consumption = $1,
+		    metering_point_prefix_production  = $2,
+		    updated_at = NOW()
+		WHERE rc_number = $3`, consumption, production, rcNumber)
+	if err != nil {
+		return fmt.Errorf("failed to save metering-point prefixes for %s: %w", rcNumber, err)
 	}
 	rows, err := result.RowsAffected()
 	if err != nil {

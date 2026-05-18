@@ -170,6 +170,12 @@ type RegistrationConfig struct {
 	// richtigen Hinweis zeigt („Bitte E-Mail bestätigen" statt
 	// „wird nun von unserem Team geprüft").
 	RequireEmailConfirmation bool          `json:"requireEmailConfirmation"`
+	// PROJ-52: pro Richtung konfigurierbarer Zählpunkt-Prefix. NULL =
+	// keine EEG-spezifische Vorbelegung (Mask zeigt nur "AT" als fix).
+	// Wenn gesetzt, baut die Public-Form die Zählpunkt-Mask dynamisch
+	// je nach gewählter Richtung; Service-Layer validiert Match beim Submit.
+	MeteringPointPrefixConsumption *string `json:"meteringPointPrefixConsumption,omitempty"`
+	MeteringPointPrefixProduction  *string `json:"meteringPointPrefixProduction,omitempty"`
 	LegalDocuments     []LegalDocumentItem `json:"legalDocuments"`
 	// PROJ-37: only set when CooperativeSharesEnabled=true on the EEG.
 	// Both inner values are then non-nil and > 0.

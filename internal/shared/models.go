@@ -32,6 +32,14 @@ type RegistrationEntrypoint struct {
 	ShowCentralPolicy          bool      `json:"showCentralPolicy"          db:"show_central_policy"`
 	MemberNumberStart          int       `json:"memberNumberStart"          db:"member_number_start"`
 	RequireEmailConfirmation   bool      `json:"requireEmailConfirmation"   db:"require_email_confirmation"`
+	// PROJ-52: pro Richtung konfigurierbarer Zählpunkt-Prefix. NULL = heutiges
+	// Verhalten (nur "AT" ist fix). Wenn gesetzt, prüft das Backend beim
+	// Submit, dass Zählpunkte der jeweiligen Richtung mit dem Prefix beginnen
+	// (defense-in-depth zur Frontend-Mask). DB-CHECK-Constraint stellt das
+	// Roh-Format sicher (^AT[0-9A-Z]{0,31}$), Service-Layer normalisiert
+	// vor dem Speichern (Whitespace + Dots entfernen, uppercase).
+	MeteringPointPrefixConsumption *string `json:"meteringPointPrefixConsumption,omitempty" db:"metering_point_prefix_consumption"`
+	MeteringPointPrefixProduction  *string `json:"meteringPointPrefixProduction,omitempty"  db:"metering_point_prefix_production"`
 	// LastSyncedFromCoreAt is NULL until the admin has triggered the first
 	// sync (PROJ-32). After that, every successful sync stamps it with NOW().
 	LastSyncedFromCoreAt       *time.Time `json:"lastSyncedFromCoreAt,omitempty" db:"last_synced_from_core_at"`
