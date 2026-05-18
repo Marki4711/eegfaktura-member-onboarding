@@ -49,15 +49,15 @@ Klicken Sie auf die gewünschte Aktion. Je nach aktuellem Status stehen untersch
 
 | Aktueller Status | Mögliche Aktionen |
 |-----------------|-------------------|
-| `submitted` | In Prüfung nehmen, Ablehnen *(bei aktiver E-Mail-Bestätigung nur „Ablehnen", bis das Mitglied bestätigt)* |
-| `email_confirmed` | In Prüfung nehmen, Rückfragen stellen, Ablehnen |
+| `submitted` | In Bearbeitung nehmen, Ablehnen *(bei aktiver E-Mail-Bestätigung nur „Ablehnen", bis das Mitglied bestätigt)* |
+| `email_confirmed` | In Bearbeitung nehmen, Rückfragen stellen, Ablehnen |
 | `under_review` | Genehmigen, Rückfragen stellen, Ablehnen |
 | `needs_info` | — (wartet auf Ergänzung durch das Mitglied) |
 | `approved` | Import starten |
 | `import_failed` | Import erneut starten |
 | `imported` | Import zurücksetzen *(nur sichtbar wenn Auto-Branch fehlgeschlagen)* |
-| `awaiting_bank_confirmation` | **Bank-Bestätigung erhalten**, Zurück in Prüfung, Import zurücksetzen |
-| `ready_for_activation` | **Als aktiv markieren**, Zurück in Prüfung, Import zurücksetzen *(oder via Batch-Button „Aktivierung im Core prüfen" in der Liste)* |
+| `awaiting_bank_confirmation` | **Bank-Bestätigung erhalten**, Zurück in Bearbeitung, Import zurücksetzen |
+| `ready_for_activation` | **Als aktiv markieren**, Zurück in Bearbeitung, Import zurücksetzen *(oder via Batch-Button „Aktivierung im Core prüfen" in der Liste)* |
 | `activated` | — (Endzustand, keine Aktionen möglich) |
 
 Zusätzlich verfügbar in allen Review-Stati (`submitted` / `email_confirmed` / `under_review` / `needs_info`) für Admins mit Zugriff auf ≥ 2 EEGs:
@@ -74,15 +74,15 @@ Sobald der Bewerber klickt:
 
 - Status wechselt automatisch auf `email_confirmed`
 - Sie erhalten die EEG-Benachrichtigungs-Mail mit den Antragsdaten
-- Alle normalen Status-Aktionen (In Prüfung nehmen, Rückfragen, Genehmigen, Ablehnen) sind ab jetzt verfügbar
+- Alle normalen Status-Aktionen (In Bearbeitung nehmen, Rückfragen, Genehmigen, Ablehnen) sind ab jetzt verfügbar
 
 **Bestätigungs-Link erneut senden**: Sollte das Mitglied den Link nicht finden (z. B. Spam-Ordner), nutzen Sie in der Detail-Seite oben rechts **„Bestätigungs-Link erneut senden"**. Das generiert ein neues Token; der alte Link wird ungültig. Min. 5 Minuten Wartezeit zwischen zwei Sendungen.
 
 **Automatische Ablehnung**: Anträge, deren Bestätigung 30 Tage lang ausbleibt, werden vom System automatisch auf `rejected` gesetzt mit dem Grund „E-Mail-Bestätigung ausgeblieben (Auto-Reject nach 30 Tagen)".
 
-## In Prüfung nehmen (`under_review`)
+## In Bearbeitung nehmen (`under_review`)
 
-Nehmen Sie einen eingereichten Antrag in Prüfung, um anzuzeigen, dass Sie ihn aktiv bearbeiten. Dies ist optional, hilft aber wenn mehrere Admins auf dieselbe EEG arbeiten.
+Nehmen Sie einen eingereichten Antrag in Bearbeitung, um anzuzeigen, dass Sie ihn aktiv bearbeiten. Dies ist optional, hilft aber wenn mehrere Admins auf dieselbe EEG arbeiten.
 
 ## Rückfragen stellen (`needs_info`)
 
@@ -94,6 +94,8 @@ Wenn Angaben fehlen oder unklar sind:
 4. **Hard-Fail (PROJ-43, ab 2026-05-17):** scheitert der SMTP-Versand, wird der Statuswechsel zurückgerollt und Sie sehen die Fehlermeldung direkt im Dialog. Status bleibt unverändert, Sie können nach SMTP-Recovery erneut klicken
 
 Nach der Ergänzung durch das Mitglied wechselt der Status automatisch zurück auf `submitted`.
+
+> **Hinweis zum Mail-Footer (seit 2026-05-18):** Der Footer in den Member-Mails (Eingangsbestätigung, Rückfragen, Ablehnung) verweist auf die **EEG-Kontakt-E-Mail** als `mailto:`-Link statt der bisherigen Postadresse. Antworten gehen weiter direkt an Ihre EEG (Reply-To bleibt unverändert) — der Link ist nur eine zusätzliche Komfort-Option für Mitglieder, die nicht via Antwort sondern via neue Mail kontaktieren wollen.
 
 ## Genehmigen (`approved`)
 
@@ -161,6 +163,8 @@ Nach erfolgreichem Import läuft der Antrag automatisch in einen der beiden Wart
 ### `awaiting_bank_confirmation` — nur bei B2B-SEPA-Firmenlastschrift
 
 Der Antrag landet hier, wenn `einzugsart=b2b` gesetzt ist. Das Mitglied hat per E-Mail die Beitrittsbestätigung **plus** ein separates B2B-Firmenlastschrift-Mandat (mit eingedruckter Mandatsreferenz = Mitgliedsnummer, PROJ-47) bekommen — und wurde aufgefordert, das Mandat seiner Hausbank vorzulegen. Im Antrags-Detail erscheint eine prominente amber Hinweisbox „Warte auf Bank-Bestätigung".
+
+> **Hinweis (seit 2026-05-18):** Beide SEPA-Mandate (Basislastschrift CORE und B2B-Firmenlastschrift) zeigen im Unterschriftsfeld jetzt das **Datum der Übermittlung** als vorbefülltes „Datum". Das Mitglied trägt nur noch Ort + Unterschrift ein. Das gleiche Datum wird im Antrags-Detail unter „Mandatsdatum" angezeigt und beim Faktura-Import als Mandate-Date mitgeführt.
 
 **Aktion**: sobald sich das Mitglied bei Ihnen meldet, klicken Sie auf **„Bank-Bestätigung erhalten"** — der Antrag wechselt auf `ready_for_activation`, der Timestamp `bank_confirmed_at` wird gesetzt.
 

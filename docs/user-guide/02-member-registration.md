@@ -18,15 +18,16 @@ Diesen Link erhalten Sie von Ihrem EEG-Betreiber (z.B. per E-Mail oder auf der W
 
 Wählen Sie den zutreffenden Mitgliedstyp:
 
-| Typ | Beschreibung |
-|-----|-------------|
-| **Privatperson** | Natürliche Person |
-| **Landwirt** | Land- und forstwirtschaftlicher Betrieb |
-| **Gemeinde** | Öffentliche Körperschaft |
-| **Unternehmen** | Juristische Person / GmbH, AG, etc. |
-| **Verein** | Eingetragener Verein |
+| Typ | Beschreibung | USt.-Hinweis im Dropdown |
+|-----|-------------|--------------------------|
+| **Privatperson** | Natürliche Person | — |
+| **Kleinunternehmer** | Einzelunternehmer mit Kleinunternehmer-Regelung | `(0 % USt.)` |
+| **Pauschalierter Landwirt** | Land- und forstwirtschaftlicher Betrieb | `(13 % USt.)` |
+| **Gemeinde / öffentliche Körperschaft** | — | `(variabel)` |
+| **Unternehmen** | Juristische Person / GmbH, AG, etc. | `(20 % USt.)` |
+| **Verein** | Eingetragener Verein | `(variabel)` |
 
-Je nach Mitgliedstyp werden unterschiedliche Felder angezeigt (z.B. Firmenname statt Vorname/Nachname).
+Je nach Mitgliedstyp werden unterschiedliche Felder angezeigt (z. B. Firmenname statt Vorname/Nachname). Der USt.-Hinweis in Klammern dient der Orientierung — er zeigt, welchen Steuersatz Ihre Rechnungen aus der EEG voraussichtlich tragen werden.
 
 ## Schritt 3: Persönliche Daten eingeben
 
@@ -48,11 +49,14 @@ Geben Sie Ihre IBAN und den Kontoinhaber an. Mit dem Setzen des Häkchens bei **
 
 ![Zählpunkt-Eingabe](images/register-form-metering-points.png)
 
-Geben Sie mindestens einen Zählpunkt an:
+Geben Sie mindestens einen Zählpunkt an. Pro Zählpunkt-Eintrag erscheinen die Felder in zwei Zeilen — zuerst **Richtung** und **Teilnahmefaktor** in einer Zeile, darunter die volle **Zählpunktnummer**. Das ist Absicht: die Richtung bestimmt die Eingabe-Mask der Zählpunktnummer (siehe unten).
 
-- **Zählpunktnummer** — 33-stellige Nummer im Format `AT...` (steht auf Ihrer Stromrechnung)
 - **Richtung** — Verbraucher (Strom wird bezogen) oder Erzeuger (Strom wird eingespeist)
 - **Teilnahmefaktor** — prozentualer Anteil der Teilnahme an der EEG (Standard: 100 %)
+- **Zählpunktnummer** — 33-stellige Nummer im Format `AT...` in der offiziellen E-Control-Gruppierung `2-6-5-20` (steht auf Ihrer Stromrechnung). Die letzten 20 Stellen können Großbuchstaben und Ziffern enthalten.
+  - **Prefix-Vorbelegung (PROJ-52)**: Wenn Ihre EEG einen Zählpunkt-Prefix für die gewählte Richtung konfiguriert hat, ist dieser bereits eingetragen und kann nicht überschrieben werden — Sie tippen nur die individuellen letzten Stellen.
+  - **Auto-Pad**: Wenn Sie das Eingabefeld verlassen und weniger Stellen als nötig eingetippt haben, werden fehlende Stellen automatisch mit führenden Nullen zwischen Prefix und Ihrer Eingabe ergänzt.
+  - **Richtungs-Wechsel** löscht das Zählpunkt-Feld, damit der korrekte Prefix für die neue Richtung greifen kann.
 - **Erzeugungsform** *(PROJ-45, nur bei Erzeuger-Zählpunkten)* — Auswahl PV / Wasser / Wind / Biomasse, Default PV
 - **Batteriespeicher vorhanden** *(PROJ-49 follow-up, nur bei PV-Erzeugern)* — Master-Checkbox: nach dem Aktivieren erscheinen die drei Speicher-Felder gemeinsam:
   - **Größe Batterie (kWh)** *(PROJ-45, sofern die EEG das Feld konfiguriert hat)*
@@ -104,7 +108,9 @@ Nach der Einreichung erhalten Sie eine **Bestätigungs-E-Mail** mit Ihrer Antrag
 
 Wenn Ihre EEG das Feature **„E-Mail-Bestätigung erforderlich"** (PROJ-31) aktiviert hat, enthält Ihre Bestätigungs-Mail zusätzlich einen gelben Hinweisblock mit einem Button **„E-Mail-Adresse bestätigen"**. Der Link ist 30 Tage gültig. Erst nach dem Klick wird Ihr Antrag von der EEG bearbeitet.
 
-Ist das Feature in Ihrer EEG deaktiviert, entfällt dieser Schritt — der Antrag geht direkt in die Prüfung.
+In diesem Fall zeigt die Erfolgsmeldung direkt nach dem Einreichen den Hinweis **„Bitte prüfen Sie jetzt Ihr E-Mail-Postfach und bestätigen Sie Ihre E-Mail-Adresse über den zugesandten Link."** statt der Standard-Meldung „wird nun von unserem Team geprüft".
+
+Ist das Feature in Ihrer EEG deaktiviert, entfällt dieser Schritt — der Antrag geht direkt in die Bearbeitung.
 
 ## Was passiert nach der Einreichung?
 

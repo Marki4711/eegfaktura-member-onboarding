@@ -62,9 +62,27 @@ Beide Wert-Felder sind nur sichtbar, wenn der Toggle aktiv ist. Änderungen wirk
 
 Die Anteilsinformation wird **nicht** an eegFaktura übertragen — sie ist reine Onboarding-Erfassung als Buchhaltungs-Beleg.
 
+### Zählpunkt-Prefixes (PROJ-52)
+
+Mitglieder müssen heute eine 33-stellige Zählpunktnummer eintippen. Wenn die Zählpunkte Ihrer EEG mehrheitlich vom selben Netzbetreiber + Postleitzahl-Bereich kommen, können Sie hier den festen Anfang vorgeben — das Mitglied tippt dann nur noch die individuellen letzten Stellen.
+
+- **Verbraucher-Prefix**: Vorbelegung für Verbraucher-Zählpunkte (CONSUMPTION).
+- **Einspeisungs-Prefix**: Vorbelegung für Einspeise-Zählpunkte (PRODUCTION).
+- Beide sind unabhängig. Wenn nur eine Richtung konfiguriert ist, fällt die andere automatisch auf das reine „AT"-Pattern zurück (Mitglied tippt alle 31 Stellen nach „AT").
+
+**Format**: muss mit `AT` beginnen, max 33 Stellen, danach Ziffern und Großbuchstaben (offizielle E-Control-Spec: Stellen 3–13 numerisch für Netzbetreibernummer + PLZ, Stellen 14–33 alphanumerisch für die Zählpunkt-Kennung). Whitespace, Punkte und Bindestriche werden beim Speichern automatisch entfernt — Sie können den Prefix also bequem mit Leerzeichen eintippen.
+
+**Live-Vorschau** unter jedem Input zeigt, wie viele Stellen das Mitglied im Formular noch selbst eintippen muss („AT + 31 Stellen frei" bei leerem Feld, sonst „[Prefix] + N Stelle(n) vom Mitglied").
+
+**Effekt im Mitgliedsformular**:
+- Beim Wechsel der Zählpunkt-Richtung wird der passende Prefix automatisch in das Zählpunkt-Feld eingetragen.
+- Der Prefix-Teil ist gelockt — das Mitglied kann ihn weder überschreiben noch backspacen.
+- Beim Verlassen des Eingabefelds werden fehlende Stellen zwischen Prefix und Mitglieds-Eingabe mit führenden Nullen aufgefüllt (z. B. tippt das Mitglied `12345` und bekommt nach dem Klick weg `[Prefix]000000000012345`).
+- Backend prüft beim Submit zusätzlich, dass jeder Zählpunkt mit dem konfigurierten Prefix der jeweiligen Richtung beginnt (defense-in-depth).
+
 ### E-Mail-Adresse bestätigen
 
-- **E-Mail-Adresse bestätigen**: Wenn aktiv, erhält das neue Mitglied in der Bestätigungs-Mail einen Button „E-Mail-Adresse bestätigen". Erst nach dem Klick wechselt der Antrag in den Status **„E-Mail bestätigt"** und ist für Ihre Prüfung freigegeben. Solange die Bestätigung aussteht, sehen Sie den Antrag mit dem Status „Eingereicht" und einer Warnung in der Detail-Ansicht.
+- **E-Mail-Adresse bestätigen**: Wenn aktiv, erhält das neue Mitglied in der Bestätigungs-Mail einen Button „E-Mail-Adresse bestätigen". Erst nach dem Klick wechselt der Antrag in den Status **„E-Mail bestätigt"** und ist für Ihre Bearbeitung freigegeben. Solange die Bestätigung aussteht, sehen Sie den Antrag mit dem Status „Eingereicht" und einer Warnung in der Detail-Ansicht.
 
 Empfehlung: aktivieren, wenn Sie regelmäßig Müll-Anträge oder Tippfehler bei der E-Mail-Adresse erleben. Vor dem ersten Lauf prüfen, dass die SMTP-Konfiguration stabil ist — sonst können Mitglieder nicht klicken.
 
@@ -122,6 +140,7 @@ Neben jedem Feld mit Badge steht ein kleines **Info-Icon** — Klick/Hover zeigt
 - **Einspeisung Prognose** *(PROJ-49, Zählpunkt-Scope)* — jährliche Einspeise-Prognose pro Erzeuger-Zählpunkt (alle Erzeugungsformen). Default: `Ausgeblendet`.
 - **PV-Leistung (kWp)** *(PROJ-49, Zählpunkt-Scope, nur PV)* — installierte Spitzenleistung pro PV-Zählpunkt. Default: `Ausgeblendet`.
 - **Einspeiselimit (kW)** *(PROJ-49, Zählpunkt-Scope, nur PV)* — maximal zulässige Einspeiseleistung, wenn der Netzanschluss begrenzt ist. Mitglied wählt zuerst Ja/Nein und gibt bei Ja den Wert in kW ein. Default: `Ausgeblendet`.
+- **Bankname** *(Application-Scope, ab 2026-05-18 konfigurierbar)* — bisher fix im Bankverbindungsblock angezeigt. Default `Optional` (bewahrt heutiges Verhalten). Auf `Ausgeblendet` setzen, wenn IBAN+Kontoinhaber genügen sollen; auf `Verpflichtend`, wenn der Bankname explizit gefordert ist (z. B. weil die EEG bei Auslandsüberweisungen die Bank kennen will).
 
 Klicken Sie auf **Konfiguration speichern**, um die Änderungen zu übernehmen.
 

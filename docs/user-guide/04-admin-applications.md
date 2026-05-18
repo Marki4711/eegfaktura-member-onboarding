@@ -29,7 +29,7 @@ Die Mitgliedsnummer ist nicht in der Liste, sondern erst in der Detailansicht ei
 
 | Filter | Beschreibung |
 |--------|-------------|
-| **Status** | Nur Anträge mit einem bestimmten Status anzeigen (Entwurf, Eingereicht, E-Mail bestätigt, In Prüfung, Info benötigt, Genehmigt, Abgelehnt, Importiert, Import fehlgeschlagen, **Warte auf Bank-Bestätigung**, **Bereit zur Aktivierung**, **Aktiviert**) |
+| **Status** | Nur Anträge mit einem bestimmten Status anzeigen (Entwurf, Eingereicht, E-Mail bestätigt, In Bearbeitung, Info benötigt, Genehmigt, Abgelehnt, Importiert, Import fehlgeschlagen, **Warte auf Bank-Bestätigung**, **Bereit zur Aktivierung**, **Aktiviert**) |
 | **Name** | Teilsuche über Vorname, Nachname und Firmenname (z. B. findet „Must" sowohl „Max Mustermann" als auch eine Firma „Musterbetrieb GmbH") |
 | **E-Mail** | Teilsuche in der E-Mail-Adresse |
 | **EEG** | Nur Anträge einer bestimmten EEG anzeigen (erscheint nur bei Admins mit mehreren EEGs) |

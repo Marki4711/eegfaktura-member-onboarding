@@ -10,6 +10,76 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Docs — Audit aller `docs/` und `docs/user-guide/` *(2026-05-18)*
+
+Vollständiger Durchgang aller Top-Level-Dokumente und der User-Guide nach
+heute deployed Features. Befunde und Fixes:
+
+**User-Guide:**
+- `04-admin-applications.md` + `05-admin-status.md`: 5× „In Prüfung" /
+  „Zur Prüfung" / „In Prüfung nehmen" → „In Bearbeitung" / „In Bearbeitung
+  nehmen" / „Zurück in Bearbeitung" (Status-Filter, Button-Labels,
+  Section-Titel). PDF und Feature-Specs bewusst nicht angefasst.
+- `06-admin-settings.md`: Neuer Abschnitt **„Zählpunkt-Prefixes (PROJ-52)"**
+  mit Beschreibung von Verbraucher-/Einspeisungs-Prefix, Format-Regeln,
+  Live-Vorschau, Auto-Pad und Backend-Match-Validation. `bank_name` in der
+  Liste „Spezielle konfigurierbare Felder" ergänzt.
+- `02-member-registration.md`: Member-Type-Tabelle um `Kleinunternehmer`
+  ergänzt + USt.-Hinweis-Spalte. Schritt 5 (Zählpunkte) um neues Layout
+  (Richtung+Faktor zuerst, Zählpunkt full-width darunter), Mask-Lock und
+  Auto-Pad-Verhalten erweitert. Schritt 7 ergänzt um die heutige
+  PROJ-31-Success-Variante („Bitte E-Mail-Postfach prüfen").
+- `05-admin-status.md`: Hinweis zur Mail-Footer-Änderung (mailto-Link statt
+  Postadresse) und zum vorbefüllten SEPA-Mandat-Datum ergänzt.
+
+**Top-Level-Docs:**
+- `PRD.md`: 17 Features (PROJ-33 bis PROJ-49 ohne PROJ-43-Duplikat) +
+  PROJ-52 von „In Review" / „Planned" → „Shipped to production".
+  PROJ-26 + PROJ-50 in den „On Hold"-Block verschoben.
+- `security.md`: `validateMeteringPointPrefixMatch` (PROJ-52) zu den
+  security-sensitive Bereichen unter `internal/application/` ergänzt.
+- `api-spec.md`, `domain-model.md`, `architecture.md`, `import-mapping.md`,
+  `operations.md`, `open-questions.md`, `keycloak-setup.md`: keine
+  Anpassungen nötig — wurden bei den jeweiligen Feature-Commits mitgepflegt.
+
+**Mail-Templates + PDF-Generatoren:**
+- Audit bestätigt: alle `{{.Field}}`-Referenzen matchen die Go-Structs,
+  Footer-Texte zeigen `EEGContactEmail` als mailto-Link, Zählpunkte werden
+  in der 2-6-5-20-Gruppierung gerendert, SEPA-MandateDate wird in beiden
+  PDF-Varianten oberhalb der Unterschriftslinie vorbefüllt. Keine Fixes
+  erforderlich.
+
+**Screenshots in `docs/user-guide/images/`:**
+- Folgende Screenshots zeigen veraltete UI-Texte und sollten bei nächster
+  Gelegenheit neu aufgenommen werden (manuell, kein Headless-Setup im
+  CI): `admin-filter-panel.png` („In Prüfung"), `admin-status-actions.png`
+  („In Prüfung nehmen" / „Zurück in Prüfung"), `admin-application-detail-1.png`
+  („zur Prüfung bereit"), `admin-settings-eeg.png` (fehlender Zählpunkt-
+  Prefix-Block), `register-form-metering-points.png` (neues Layout +
+  Prefix-Lock).
+
+### Reviews — Code-Review + Security-Review *(2026-05-18)*
+
+Nach dem Docs-Audit zusätzlich:
+
+- **Code-Review**: Cross-Check aller Mail-Templates, PDF-Generatoren und
+  HTTP-Handler gegen api-spec.md, domain-model.md und die heute deployed
+  Features. Vier parallele Explore-Agents (Mail+PDF, API, User-Guide,
+  Top-Level-Docs) — alle Mail-Felder konsistent, kein undokumentierter
+  Endpoint, keine veralteten Surface-Definitionen. Einziger Hinweis:
+  `docs/docs.go` (Swagger-UI-Generierung) ist seit PROJ-28 nicht regeneriert
+  — `api-spec.md` ist Source of Truth und aktuell, Swagger-UI hinkt
+  nach. Vor nächstem Release `swag init -g cmd/server/main.go` ausführen
+  (nicht-blockierend, optional).
+- **Security-Review**: PROJ-52 Prefix-Match-Validation greift als
+  defense-in-depth zusätzlich zur Frontend-Mask, DB-CHECK-Constraint
+  (`^AT[0-9A-Z]{0,31}$`) schließt den letzten Layer. Normalisierung
+  (Whitespace + Dots + Hyphens, uppercase) wird vor Validierung
+  ausgeführt — kein Bypass via Eingabe-Tricks. Keine Auth-Boundaries
+  geändert, keine neuen öffentlichen Endpoints, kein Geheimnis im Code.
+  `app.MandateDate` ist eine reine Tagesinformation (keine PII-Eskalation).
+  Bestehende Snyk-Scans + govulncheck weiter grün.
+
 ### Geändert — Zählpunkt-Mask auf offizielle Gruppierung 2-6-5-20 *(2026-05-17)*
 
 Recherche zur E-Control / MeteringCode-Spec ergab, dass die offizielle

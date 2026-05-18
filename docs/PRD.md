@@ -66,28 +66,24 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 | PROJ-25 | Bulk-Aktionen im Admin | Multi-Select-Operationen |
 | PROJ-31 | E-Mail-Adresse-Bestätigung (Anti-Abuse) | Per EEG opt-in |
 | PROJ-32 | EEG-Stammdaten aus Core | GraphQL Sync, Phase 1 ohne Logo |
-
-### In Review (auf Deployed-Promotion wartend)
-
-| ID | Feature | Status |
-|----|---------|--------|
-| PROJ-33 | EEG-Logo aus Core | In Review |
-| PROJ-34 | Robuste Import-Recovery | In Review |
-| PROJ-35 | Per-EEG-Referenznummern | In Review |
-| PROJ-36 | Info-Dokumente ohne Checkbox | In Review |
-| PROJ-37 | Genossenschaftsanteile | In Review |
-| PROJ-38 | Status-Modell-Hygiene + Audit-Fixes | In Review |
-| PROJ-39 | Titel-Nach + Bankname + per-MP-Adresse | In Review |
-| PROJ-40 | EEG-Umzuordnung im Admin-Review | In Review |
-| PROJ-41 | Status-Change-Mails (Ablehnung, hard-fail) | In Review |
-| PROJ-42 | E-Fahrzeug-Detailerfassung | In Review |
+| PROJ-33 | EEG-Logo aus Core | Deployed 2026-05-18 |
+| PROJ-34 | Robuste Import-Recovery | Orphan-Fallback + Pre-Check + Unstuck-GUI |
+| PROJ-35 | Per-EEG-Referenznummern | Format `<RC>-<Jahr>-<NNNN>` |
+| PROJ-36 | Info-Dokumente ohne Checkbox | Auto-informational consent |
+| PROJ-37 | Genossenschaftsanteile | Per-EEG-Konfig + Submit-Validation |
+| PROJ-38 | Status-Modell-Hygiene + Audit-Fixes | PROJ-31 Follow-up |
+| PROJ-39 | Titel-Nach + Bankname + per-MP-Adresse | Erweiterte Stammdaten |
+| PROJ-40 | EEG-Umzuordnung im Admin-Review | Tenant-Switch ohne Re-Submit |
+| PROJ-41 | Status-Change-Mails (Ablehnung, hard-fail) | Sync-pre-commit SMTP |
+| PROJ-42 | E-Fahrzeug-Detailerfassung | Anzahl + Jahres-km |
 | PROJ-43 | Status-Change-Mails (Info-Anfrage, hard-fail) | gebündelt mit PROJ-41 |
-| PROJ-44 | Netzbetreiber-Vollmacht | In Review |
-| PROJ-45 | Erzeugungsform + Batterie + typabh. Sichtbarkeit | In Review |
-| PROJ-46 | Stati für Import-Nachbereitung (Stage A–D) | In Review |
-| PROJ-47 | B2B-SEPA-Mandat mit Mandatsreferenz beim Import | In Review |
-| PROJ-48 | SEPA-Default-Core + konfigurierbares Mandat-Timing + B2B-Hinweis | In Review |
-| PROJ-49 | Energie-Felder pro Zählpunkt + Einspeiselimit | In Review |
+| PROJ-44 | Netzbetreiber-Vollmacht | Per-EEG opt-in |
+| PROJ-45 | Erzeugungsform + Batterie + typabh. Sichtbarkeit | PV/Wind/Hydro/Biomasse |
+| PROJ-46 | Stati für Import-Nachbereitung (Stage A–D) | awaiting_bank → ready → activated |
+| PROJ-47 | B2B-SEPA-Mandat mit Mandatsreferenz beim Import | Mitgliedsnummer als Mandatsreferenz |
+| PROJ-48 | SEPA-Default-Core + konfigurierbares Mandat-Timing | Submit- vs. Import-Time-Mandat |
+| PROJ-49 | Energie-Felder pro Zählpunkt + Einspeiselimit | Refactoring von app-level zu meter-level |
+| PROJ-52 | Konfigurierbarer Zählpunkt-Prefix pro Richtung | Mask-Lock + Auto-Pad + 2-6-5-20-Format + Alphanumerik + SEPA-Mandat-Datum |
 
 ### Approved (wartet auf Deployment-Bündelung)
 
@@ -98,14 +94,6 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 | PROJ-29 | IBAN-Eingabe mit visueller Gruppierung |
 | PROJ-30 | Reset eines importierten Antrags auf approved |
 
-### Planned
-
-| ID | Feature | Anmerkung |
-|----|---------|-----------|
-| PROJ-26 | Eigener Mailserver pro EEG | Anstelle des zentralen Postal |
-| PROJ-50 | Zugang Online-Portal Netzbetreiber + bedingte Anleitungs-Mail | Praxis-Anforderung 2026-05-17, mehrere offene Fragen vor Umsetzung |
-| PROJ-52 | Konfigurierbarer Zählpunkt-Prefix pro Richtung + Auto-Pad + Alphanumerik | Konzept geklärt, Implementierung steht aus |
-
 ### On Hold
 
 | ID | Feature | Grund |
@@ -113,6 +101,8 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 | PROJ-10 | Admin Notifications | Vertagung — niedrige Dringlichkeit |
 | PROJ-22 | Tailwind CSS v3 → v4 | Revertiert 2026-04-26 wegen Regressionen; Retry braucht Stabilisierung der v4-Ecosystem-Updates |
 | PROJ-23 | Stammdaten-Import aus eegFaktura-Excel | Ersetzt durch PROJ-32 (GraphQL-Sync) |
+| PROJ-26 | Eigener Mailserver pro EEG | Geparkt 2026-05-18 |
+| PROJ-50 | Zugang Online-Portal Netzbetreiber + bedingte Anleitungs-Mail | Geparkt 2026-05-18 — mehrere offene Fragen |
 | PROJ-51 | Anzeige offener Nutzungsgebühren im Admin-UI | Wartet auf Klärung des Abrechnungs- und Status-Pflege-Konzepts |
 
 > **Next available feature ID:** PROJ-53 (siehe `features/INDEX.md`).
