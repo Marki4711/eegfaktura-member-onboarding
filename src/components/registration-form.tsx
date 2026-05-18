@@ -59,7 +59,7 @@ const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
 const MEMBER_TYPE_OPTIONS: { value: MemberType; label: string; hint: string }[] = [
   { value: "private",         label: "Privatperson",                    hint: "" },
-  { value: "sole_proprietor", label: "Kleinunternehmer",                hint: "" },
+  { value: "sole_proprietor", label: "Kleinunternehmer",                hint: "0 % USt." },
   { value: "farmer",          label: "Pauschalierter Landwirt",         hint: "13 % USt." },
   { value: "municipality",    label: "Gemeinde / öffentliche Körperschaft", hint: "variabel" },
   { value: "company",         label: "Unternehmen",                     hint: "20 % USt." },
