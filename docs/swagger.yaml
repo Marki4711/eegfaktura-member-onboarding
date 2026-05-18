@@ -1,123 +1,34 @@
 basePath: /
 definitions:
-  http.externalApplicationRequest:
+  github_com_your-org_eegfaktura-member-onboarding_internal_importing.ActivationCheckResult:
     properties:
-      accountHolder:
-        maxLength: 150
-        minLength: 1
-        type: string
-      birthDate:
-        type: string
-      companyName:
-        maxLength: 150
-        minLength: 1
-        type: string
-      consumptionForecast:
-        minimum: 0
+      activated:
         type: integer
-      consumptionPreviousYear:
-        minimum: 0
+      checked:
         type: integer
-      electricHotWater:
-        type: boolean
-      electricVehicle:
-        type: boolean
-      email:
-        type: string
-      feedInForecast:
-        minimum: 0
-        type: integer
-      firstname:
-        maxLength: 100
-        minLength: 1
-        type: string
-      heatPump:
-        type: boolean
-      iban:
-        maxLength: 50
-        minLength: 15
-        type: string
-      lastname:
-        maxLength: 100
-        minLength: 1
-        type: string
-      memberType:
-        enum:
-        - private
-        - farmer
-        - municipality
-        - company
-        - association
-        type: string
-      membershipStartDate:
-        description: Configurable fields (PROJ-8)
-        type: string
-      meteringPoints:
+      errors:
         items:
-          $ref: '#/definitions/shared.CreateMeteringPointRequest'
-        maxItems: 10
-        minItems: 1
+          type: string
         type: array
-      personsInHousehold:
-        minimum: 0
-        type: integer
-      phone:
-        maxLength: 50
-        type: string
-      privacyAccepted:
-        type: boolean
-      pvPowerKwp:
-        minimum: 0
-        type: number
-      registerNumber:
-        maxLength: 50
-        type: string
-      residentCity:
-        maxLength: 255
-        minLength: 1
-        type: string
-      residentStreet:
-        maxLength: 255
-        minLength: 1
-        type: string
-      residentStreetNumber:
-        maxLength: 50
-        minLength: 1
-        type: string
-      residentZip:
-        maxLength: 20
-        minLength: 1
-        type: string
-      sepaMandateAccepted:
-        type: boolean
-      titel:
-        maxLength: 50
-        type: string
-      uidNumber:
-        maxLength: 50
-        type: string
-    required:
-    - accountHolder
-    - email
-    - iban
-    - memberType
-    - meteringPoints
-    - privacyAccepted
-    - residentCity
-    - residentStreet
-    - residentStreetNumber
-    - residentZip
-    - sepaMandateAccepted
     type: object
-  shared.AdminApplicationDetailResponse:
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.AdminApplicationDetailResponse:
     properties:
       accountHolder:
         type: string
       accuracyConfirmed:
         type: boolean
+      activatedAt:
+        type: string
       adminNote:
         type: string
       approvedAt:
+        type: string
+      bankConfirmedAt:
+        description: |-
+          PROJ-46: Audit-Timestamps für die Stati nach dem Import.
+          BankConfirmedAt wird gesetzt beim Übergang awaiting_bank_confirmation →
+          ready_for_activation (Admin manuell). ActivatedAt beim Übergang
+          ready_for_activation → activated (Admin manuell oder Activation-Check).
         type: string
       bankName:
         type: string
@@ -127,12 +38,25 @@ definitions:
         type: string
       consents:
         items:
-          $ref: '#/definitions/shared.DocumentConsentView'
+          $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.DocumentConsentView'
         type: array
-      consumptionForecast:
+      cooperativeRequiredShares:
         type: integer
-      consumptionPreviousYear:
+      cooperativeShareAmountCents:
         type: integer
+      cooperativeSharesCount:
+        description: |-
+          PROJ-37: Anzahl gezeichneter Genossenschaftsanteile. NULL bei
+          EEGs ohne aktivierte Anteils-Erfassung; sonst > 0 (Submit-Validierung
+          erzwingt >= entrypoint.cooperative_required_shares).
+        type: integer
+      cooperativeSharesEnabled:
+        description: |-
+          CooperativeSharesEnabled (PROJ-37) mirrors the EEG-level toggle so
+          the admin detail can render the shares block when relevant. The
+          matching two value fields (required / amount-per-share) come from
+          the entrypoint and are joined in at detail-build time.
+        type: boolean
       createdAt:
         type: string
       einzugsart:
@@ -141,10 +65,27 @@ definitions:
         type: boolean
       electricVehicle:
         type: boolean
+      electricVehicleAnnualKm:
+        type: integer
+      electricVehicleCount:
+        description: |-
+          PROJ-42: Detail-Erfassung — nur relevant wenn ElectricVehicle == true.
+          Service-Layer clearet beide auf NULL falls electric_vehicle nicht gesetzt.
+        type: integer
       email:
         type: string
-      feedInForecast:
-        type: integer
+      emailConfirmationPending:
+        description: |-
+          EmailConfirmationPending is a derived, non-persistent flag set by the
+          repository after load: true when a confirmation token is still active
+          and the member has not yet clicked it. Lets the admin UI render the
+          "⏳ unbestätigt" badge without re-deriving from internal columns.
+        type: boolean
+      emailConfirmedAt:
+        description: |-
+          E-Mail-Bestätigung (PROJ-31). Token-Hash + Expiry sind interne Felder
+          und werden nicht in API-Responses serialisiert (JSON-Tag "-").
+        type: string
       firstname:
         type: string
       heatPump:
@@ -159,6 +100,14 @@ definitions:
         type: string
       importStartedAt:
         type: string
+      importStuck:
+        description: |-
+          ImportStuck (PROJ-34) is true when the application is in
+          status='approved' with import_started_at set > ImportStuckThreshold
+          ago and no import_finished_at. The admin UI renders the unstuck
+          banner only when this flag is true. Computed by the handler from
+          the underlying timestamps; not persisted.
+        type: boolean
       importedAt:
         type: string
       lastname:
@@ -168,17 +117,28 @@ definitions:
       mandateReference:
         type: string
       memberNumber:
-        type: integer
+        type: string
       memberType:
-        $ref: '#/definitions/shared.MemberType'
+        $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.MemberType'
       membershipStartDate:
-        description: Configurable application-level fields (PROJ-8)
+        description: |-
+          Configurable application-level fields (PROJ-8). Note: PROJ-49 moved
+          consumption/feed_in/pv_power fields to metering_point — they now live
+          on MeteringPoint, not here.
         type: string
       meteringPoints:
         items:
-          $ref: '#/definitions/shared.MeteringPoint'
+          $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.MeteringPoint'
         type: array
       needsInfoReason:
+        type: string
+      networkOperatorAuthorization:
+        description: |-
+          PROJ-44: Netzbetreiber-Vollmacht. Default FALSE; per-EEG via
+          field_config konfigurierbar (Standard hidden). `_at` wird vom
+          Service auf NOW() gesetzt, wenn der Wert von FALSE auf TRUE wechselt.
+        type: boolean
+      networkOperatorAuthorizationAt:
         type: string
       personsInHousehold:
         type: integer
@@ -190,8 +150,6 @@ definitions:
         type: string
       privacyVersion:
         type: string
-      pvPowerKwp:
-        type: number
       rcNumber:
         type: string
       referenceNumber:
@@ -217,10 +175,10 @@ definitions:
       startedAt:
         type: string
       status:
-        $ref: '#/definitions/shared.ApplicationStatus'
+        $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ApplicationStatus'
       statusLog:
         items:
-          $ref: '#/definitions/shared.StatusLogEntry'
+          $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.StatusLogEntry'
         type: array
       submittedAt:
         type: string
@@ -228,12 +186,14 @@ definitions:
         type: string
       titel:
         type: string
+      titelNach:
+        type: string
       uidNumber:
         type: string
       updatedAt:
         type: string
     type: object
-  shared.AdminUpdateApplicationRequest:
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.AdminUpdateApplicationRequest:
     properties:
       accountHolder:
         maxLength: 150
@@ -275,12 +235,10 @@ definitions:
       mandateReference:
         maxLength: 255
         type: string
-      memberNumber:
-        minimum: 1
-        type: integer
       memberType:
         enum:
         - private
+        - sole_proprietor
         - farmer
         - municipality
         - company
@@ -288,7 +246,7 @@ definitions:
         type: string
       meteringPoints:
         items:
-          $ref: '#/definitions/shared.CreateMeteringPointRequest'
+          $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.CreateMeteringPointRequest'
         maxItems: 10
         minItems: 1
         type: array
@@ -317,11 +275,14 @@ definitions:
       titel:
         maxLength: 50
         type: string
+      titelNach:
+        maxLength: 50
+        type: string
       uidNumber:
         maxLength: 50
         type: string
     type: object
-  shared.ApplicationListItem:
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.ApplicationListItem:
     properties:
       companyName:
         type: string
@@ -344,11 +305,11 @@ definitions:
       submittedAt:
         type: string
     type: object
-  shared.ApplicationListResponse:
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.ApplicationListResponse:
     properties:
       items:
         items:
-          $ref: '#/definitions/shared.ApplicationListItem'
+          $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ApplicationListItem'
         type: array
       page:
         type: integer
@@ -357,7 +318,7 @@ definitions:
       total:
         type: integer
     type: object
-  shared.ApplicationResponse:
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.ApplicationResponse:
     properties:
       createdAt:
         type: string
@@ -370,27 +331,35 @@ definitions:
       updatedAt:
         type: string
     type: object
-  shared.ApplicationStatus:
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.ApplicationStatus:
     enum:
     - draft
     - submitted
+    - email_confirmed
     - under_review
     - needs_info
     - approved
     - rejected
     - imported
     - import_failed
+    - awaiting_bank_confirmation
+    - ready_for_activation
+    - activated
     type: string
     x-enum-varnames:
     - StatusDraft
     - StatusSubmitted
+    - StatusEmailConfirmed
     - StatusUnderReview
     - StatusNeedsInfo
     - StatusApproved
     - StatusRejected
     - StatusImported
     - StatusImportFailed
-  shared.BulkActionRequest:
+    - StatusAwaitingBankConfirmation
+    - StatusReadyForActivation
+    - StatusActivated
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.BulkActionRequest:
     properties:
       action:
         enum:
@@ -411,7 +380,7 @@ definitions:
     - action
     - ids
     type: object
-  shared.BulkActionResponse:
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.BulkActionResponse:
     properties:
       skipped:
         items:
@@ -422,7 +391,7 @@ definitions:
           type: string
         type: array
     type: object
-  shared.ChangeStatusRequest:
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.ChangeStatusRequest:
     properties:
       reason:
         type: string
@@ -431,14 +400,41 @@ definitions:
     required:
     - toStatus
     type: object
-  shared.ChangeStatusResponse:
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.ChangeStatusResponse:
     properties:
       id:
         type: string
       status:
         type: string
     type: object
-  shared.ConsentInput:
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.ClearImportLockRequest:
+    properties:
+      reason:
+        maxLength: 500
+        minLength: 5
+        type: string
+    required:
+    - reason
+    type: object
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.ConfirmEmailRequest:
+    properties:
+      token:
+        maxLength: 200
+        minLength: 10
+        type: string
+    required:
+    - token
+    type: object
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.ConfirmEmailResponse:
+    properties:
+      alreadyConfirmed:
+        type: boolean
+      eegContactEmail:
+        type: string
+      eegName:
+        type: string
+    type: object
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.ConsentInput:
     properties:
       isCentralPolicy:
         type: boolean
@@ -447,7 +443,15 @@ definitions:
       url:
         type: string
     type: object
-  shared.CreateApplicationRequest:
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.ConsentType:
+    enum:
+    - explicit
+    - informational
+    type: string
+    x-enum-varnames:
+    - ConsentTypeExplicit
+    - ConsentTypeInformational
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.CreateApplicationRequest:
     properties:
       accountHolder:
         maxLength: 150
@@ -455,27 +459,37 @@ definitions:
         type: string
       accuracyConfirmed:
         type: boolean
+      bankName:
+        maxLength: 255
+        type: string
       birthDate:
         type: string
       companyName:
         maxLength: 150
         minLength: 1
         type: string
-      consumptionForecast:
-        minimum: 0
-        type: integer
-      consumptionPreviousYear:
-        minimum: 0
+      cooperativeSharesCount:
+        description: |-
+          PROJ-37: Anzahl der gezeichneten Genossenschaftsanteile. Pflicht bei
+          EEGs mit aktivierter Anteils-Erfassung, sonst optional (wird dann
+          serverseitig ignoriert).
+        minimum: 1
         type: integer
       electricHotWater:
         type: boolean
       electricVehicle:
         type: boolean
-      email:
-        type: string
-      feedInForecast:
+      electricVehicleAnnualKm:
         minimum: 0
         type: integer
+      electricVehicleCount:
+        description: |-
+          PROJ-42: Details zur E-Fahrzeug-Erfassung. Werden serverseitig
+          auf NULL gesetzt wenn electric_vehicle != true.
+        minimum: 1
+        type: integer
+      email:
+        type: string
       firstname:
         maxLength: 100
         minLength: 1
@@ -493,20 +507,28 @@ definitions:
       memberType:
         enum:
         - private
+        - sole_proprietor
         - farmer
         - municipality
         - company
         - association
         type: string
       membershipStartDate:
-        description: Configurable application-level fields (PROJ-8)
+        description: |-
+          Configurable application-level fields (PROJ-8). PROJ-49 moved
+          consumption/feed_in/pv_power fields to MeteringPoint sub-struct.
         type: string
       meteringPoints:
         items:
-          $ref: '#/definitions/shared.CreateMeteringPointRequest'
+          $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.CreateMeteringPointRequest'
         maxItems: 10
         minItems: 1
         type: array
+      networkOperatorAuthorization:
+        description: |-
+          PROJ-44: Netzbetreiber-Vollmacht. Nur relevant wenn EEG das Feld als
+          optional/required konfiguriert hat.
+        type: boolean
       personsInHousehold:
         minimum: 0
         type: integer
@@ -517,9 +539,6 @@ definitions:
         type: boolean
       privacyVersion:
         type: string
-      pvPowerKwp:
-        minimum: 0
-        type: number
       rcNumber:
         type: string
       registerNumber:
@@ -544,6 +563,9 @@ definitions:
       sepaMandateAccepted:
         type: boolean
       titel:
+        maxLength: 50
+        type: string
+      titelNach:
         maxLength: 50
         type: string
       turnstileToken:
@@ -569,12 +591,63 @@ definitions:
     - residentZip
     - sepaMandateAccepted
     type: object
-  shared.CreateMeteringPointRequest:
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.CreateMeteringPointRequest:
     properties:
+      addressCity:
+        maxLength: 255
+        type: string
+      addressStreet:
+        description: |-
+          Abweichende Adresse je Zählpunkt (PROJ-39). Entweder alle vier
+          leer/NULL → Mitgliederadresse gilt, oder alle vier gesetzt →
+          abweichende Adresse. Service-Layer prüft die All-or-Nothing-Regel.
+        maxLength: 255
+        type: string
+      addressStreetNumber:
+        maxLength: 50
+        type: string
+      addressZip:
+        maxLength: 20
+        type: string
+      batteryControlAcceptable:
+        description: |-
+          PROJ-49 follow-up: „Speichersteuerung über die EEG vorstellbar?"
+          Nur sinnvoll bei PV + vorhandenem Speicher (Service cleart sonst).
+        type: boolean
+      batterySizeKwh:
+        minimum: 0
+        type: number
+      consumptionForecast:
+        minimum: 0
+        type: integer
+      consumptionPreviousYear:
+        description: |-
+          PROJ-49: Energie-Felder pro Zählpunkt. Sichtbarkeit + Validierung
+          per Direction/GenerationType im Service-Layer (siehe MeteringPoint).
+        minimum: 0
+        type: integer
       direction:
         enum:
         - CONSUMPTION
         - PRODUCTION
+        type: string
+      feedInForecast:
+        minimum: 0
+        type: integer
+      feedInLimitKw:
+        minimum: 0
+        type: number
+      feedInLimitPresent:
+        type: boolean
+      generationType:
+        description: |-
+          PROJ-45: Erzeugungsform + Batterie. GenerationType wird vom Service
+          auf "pv" defaultet, wenn Direction=PRODUCTION und leer übermittelt.
+        enum:
+        - pv
+        - hydro
+        - wind
+        - biomass
         type: string
       installationName:
         maxLength: 100
@@ -582,13 +655,18 @@ definitions:
       installationNumber:
         maxLength: 50
         type: string
+      inverterManufacturer:
+        maxLength: 100
+        type: string
       meteringPoint:
-        maxLength: 33
         type: string
       participationFactor:
         maximum: 100
         minimum: 1
         type: integer
+      pvPowerKwp:
+        minimum: 0
+        type: number
       transformer:
         description: Configurable metering-point-level fields (PROJ-8)
         maxLength: 100
@@ -598,8 +676,14 @@ definitions:
     - meteringPoint
     - participationFactor
     type: object
-  shared.DocumentConsentView:
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.DocumentConsentView:
     properties:
+      consentType:
+        allOf:
+        - $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ConsentType'
+        description: |-
+          ConsentType distinguishes `explicit` (member ticked a checkbox)
+          from `informational` (document was shown as info-only). PROJ-36.
       consentedAt:
         type: string
       id:
@@ -611,7 +695,47 @@ definitions:
       url:
         type: string
     type: object
-  shared.ErrorResponse:
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.EEGSettingsComparisonResponse:
+    properties:
+      coreReachable:
+        type: boolean
+      coreUnreachableError:
+        type: string
+      differingFields:
+        items:
+          $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.EEGSettingsFieldDiff'
+        type: array
+      inSync:
+        type: boolean
+      lastSyncedAt:
+        type: string
+      logoSyncWarning:
+        description: |-
+          LogoSyncWarning is set by POST /sync when the master-data sync
+          succeeded but the follow-up logo fetch did not — e.g. the core's
+          logo is larger than the 256 KB cap, or has an unsupported MIME.
+          Empty on the comparison endpoint and on a clean sync.
+        type: string
+      logoSyncedAt:
+        description: |-
+          LogoSyncedAt mirrors registration_entrypoint.eeg_logo_synced_at —
+          the admin UI uses it to render a "Logo zuletzt synchronisiert"
+          label next to the preview. NULL until the first successful logo
+          sync.
+        type: string
+    type: object
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.EEGSettingsFieldDiff:
+    properties:
+      coreValue:
+        type: string
+      field:
+        type: string
+      label:
+        type: string
+      localValue:
+        type: string
+    type: object
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse:
     properties:
       code:
         type: string
@@ -622,7 +746,7 @@ definitions:
       message:
         type: string
     type: object
-  shared.LegalDocumentItem:
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.LegalDocumentItem:
     properties:
       id:
         type: string
@@ -637,7 +761,22 @@ definitions:
       url:
         type: string
     type: object
-  shared.MemberType:
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.MarkImportedManuallyRequest:
+    properties:
+      memberNumber:
+        maxLength: 50
+        minLength: 1
+        type: string
+      reason:
+        maxLength: 500
+        type: string
+      targetParticipantId:
+        type: string
+    required:
+    - memberNumber
+    - targetParticipantId
+    type: object
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.MemberType:
     enum:
     - private
     - sole_proprietor
@@ -653,7 +792,7 @@ definitions:
     - MemberTypeMunicipality
     - MemberTypeCompany
     - MemberTypeAssociation
-  shared.MeterDirection:
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.MeterDirection:
     enum:
     - CONSUMPTION
     - PRODUCTION
@@ -661,33 +800,106 @@ definitions:
     x-enum-varnames:
     - DirectionConsumption
     - DirectionProduction
-  shared.MeteringPoint:
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.MeteringPoint:
     properties:
+      addressCity:
+        type: string
+      addressStreet:
+        description: |-
+          Abweichende Adresse je Zählpunkt (PROJ-39). Wenn alle vier NULL,
+          gilt die Mitgliederadresse. Wenn ≥1 gesetzt, müssen alle vier
+          gesetzt sein (Validierung im Service-Layer).
+        type: string
+      addressStreetNumber:
+        type: string
+      addressZip:
+        type: string
       applicationId:
         type: string
+      batteryControlAcceptable:
+        description: |-
+          PROJ-49 follow-up: Mitglied-Antwort auf „Speichersteuerung über die
+          EEG vorstellbar?". Nur sinnvoll bei PRODUCTION + generation_type='pv'
+          UND wenn das Mitglied Batterie-Parameter angegeben hat (Service cleart
+          in allen anderen Fällen).
+        type: boolean
+      batterySizeKwh:
+        type: number
+      consumptionForecast:
+        type: integer
+      consumptionPreviousYear:
+        description: |-
+          PROJ-49: Energie-Felder pro Zählpunkt. Service-Layer-Regeln:
+            - ConsumptionPreviousYear / ConsumptionForecast: nur CONSUMPTION,
+              sonst auf NULL gesetzt.
+            - FeedInForecast: nur PRODUCTION, sonst NULL.
+            - PvPowerKwp / FeedInLimitPresent / FeedInLimitKw: nur PRODUCTION
+              mit GenerationType='pv', sonst NULL.
+            - FeedInLimitKw nur wenn FeedInLimitPresent=true, sonst NULL.
+        type: integer
       createdAt:
         type: string
       direction:
-        $ref: '#/definitions/shared.MeterDirection'
+        $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.MeterDirection'
+      feedInForecast:
+        type: integer
+      feedInLimitKw:
+        type: number
+      feedInLimitPresent:
+        type: boolean
+      generationType:
+        description: |-
+          PROJ-45: Erzeugungsform + Batterie. GenerationType ist Pflicht für
+          PRODUCTION (DB-Check), NULL für CONSUMPTION. BatterySizeKwh +
+          InverterManufacturer sind optional und nur befüllt wenn
+          GenerationType='pv' — Service-Layer cleart sonst.
+        type: string
       id:
         type: string
       installationName:
         type: string
       installationNumber:
         type: string
+      inverterManufacturer:
+        type: string
       meteringPoint:
         type: string
       participationFactor:
         type: integer
+      pvPowerKwp:
+        type: number
       transformer:
         description: Configurable metering-point-level fields (PROJ-8)
         type: string
       updatedAt:
         type: string
     type: object
-  shared.RegistrationConfig:
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.ReassignEEGRequest:
+    properties:
+      reason:
+        maxLength: 500
+        minLength: 5
+        type: string
+      targetRcNumber:
+        maxLength: 50
+        minLength: 1
+        type: string
+    required:
+    - reason
+    - targetRcNumber
+    type: object
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.RegistrationConfig:
     properties:
       active:
+        type: boolean
+      cooperativeRequiredShares:
+        type: integer
+      cooperativeShareAmountCents:
+        type: integer
+      cooperativeSharesEnabled:
+        description: |-
+          PROJ-37: only set when CooperativeSharesEnabled=true on the EEG.
+          Both inner values are then non-nil and > 0.
         type: boolean
       fieldConfig:
         additionalProperties:
@@ -697,10 +909,34 @@ definitions:
         type: string
       legalDocuments:
         items:
-          $ref: '#/definitions/shared.LegalDocumentItem'
+          $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.LegalDocumentItem'
         type: array
+      meteringPointPrefixConsumption:
+        description: |-
+          PROJ-52: pro Richtung konfigurierbarer Zählpunkt-Prefix. NULL =
+          keine EEG-spezifische Vorbelegung (Mask zeigt nur "AT" als fix).
+          Wenn gesetzt, baut die Public-Form die Zählpunkt-Mask dynamisch
+          je nach gewählter Richtung; Service-Layer validiert Match beim Submit.
+        type: string
+      meteringPointPrefixProduction:
+        type: string
       rcNumber:
         type: string
+      requireEmailConfirmation:
+        description: |-
+          RequireEmailConfirmation (PROJ-31) wird in die Public-Form
+          weitergereicht, damit die Erfolgsmeldung nach dem Einreichen den
+          richtigen Hinweis zeigt („Bitte E-Mail bestätigen" statt
+          „wird nun von unserem Team geprüft").
+        type: boolean
+      sepaMandateAtImport:
+        description: |-
+          SEPAMandateAtImport (PROJ-48) wird an die Public-Form weitergereicht,
+          damit der Hinweistext „Mandat kommt jetzt vs. nach Import" korrekt
+          gerendert werden kann. False = heutiges Verhalten (Mandat als Anhang
+          in der Eingangsbestätigung); True = Mandat kommt erst beim Import
+          mit Mitgliedsnummer als Mandatsreferenz.
+        type: boolean
       sepaMandateEnabled:
         type: boolean
       showCentralPolicy:
@@ -708,7 +944,16 @@ definitions:
       title:
         type: string
     type: object
-  shared.StatusLogEntry:
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.ResetImportRequest:
+    properties:
+      reason:
+        maxLength: 500
+        minLength: 5
+        type: string
+    required:
+    - reason
+    type: object
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.StatusLogEntry:
     properties:
       applicationId:
         type: string
@@ -725,25 +970,31 @@ definitions:
       toStatus:
         type: string
     type: object
-  shared.SubmitRequest:
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.SubmitRequest:
     properties:
       consents:
         items:
-          $ref: '#/definitions/shared.ConsentInput'
+          $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ConsentInput'
         type: array
     type: object
-  shared.SubmitResponse:
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.SubmitResponse:
     properties:
       id:
         type: string
       referenceNumber:
         type: string
       status:
-        $ref: '#/definitions/shared.ApplicationStatus'
+        $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ApplicationStatus'
       submittedAt:
         type: string
     type: object
-  shared.UpdateApplicationRequest:
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.UpdateAdminNoteRequest:
+    properties:
+      note:
+        maxLength: 2000
+        type: string
+    type: object
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.UpdateApplicationRequest:
     properties:
       accountHolder:
         maxLength: 150
@@ -751,12 +1002,21 @@ definitions:
         type: string
       accuracyConfirmed:
         type: boolean
+      bankName:
+        maxLength: 255
+        type: string
       birthDate:
         type: string
       companyName:
         maxLength: 150
         minLength: 1
         type: string
+      cooperativeSharesCount:
+        description: |-
+          PROJ-37: Admin/Member-Updates der gezeichneten Anteils-Anzahl. Bei
+          EEGs ohne Anteils-Erfassung serverseitig ignoriert.
+        minimum: 1
+        type: integer
       email:
         type: string
       firstname:
@@ -774,6 +1034,7 @@ definitions:
       memberType:
         enum:
         - private
+        - sole_proprietor
         - farmer
         - municipality
         - company
@@ -781,10 +1042,13 @@ definitions:
         type: string
       meteringPoints:
         items:
-          $ref: '#/definitions/shared.CreateMeteringPointRequest'
+          $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.CreateMeteringPointRequest'
         maxItems: 10
         minItems: 1
         type: array
+      networkOperatorAuthorization:
+        description: 'PROJ-44: Netzbetreiber-Vollmacht (Update durch Member im needs_info-Flow).'
+        type: boolean
       phone:
         maxLength: 50
         type: string
@@ -816,9 +1080,112 @@ definitions:
       titel:
         maxLength: 50
         type: string
+      titelNach:
+        maxLength: 50
+        type: string
       uidNumber:
         maxLength: 50
         type: string
+    type: object
+  internal_http.externalApplicationRequest:
+    properties:
+      accountHolder:
+        maxLength: 150
+        minLength: 1
+        type: string
+      birthDate:
+        type: string
+      companyName:
+        maxLength: 150
+        minLength: 1
+        type: string
+      electricHotWater:
+        type: boolean
+      electricVehicle:
+        type: boolean
+      email:
+        type: string
+      firstname:
+        maxLength: 100
+        minLength: 1
+        type: string
+      heatPump:
+        type: boolean
+      iban:
+        maxLength: 50
+        minLength: 15
+        type: string
+      lastname:
+        maxLength: 100
+        minLength: 1
+        type: string
+      memberType:
+        enum:
+        - private
+        - sole_proprietor
+        - farmer
+        - municipality
+        - company
+        - association
+        type: string
+      membershipStartDate:
+        description: |-
+          Configurable fields (PROJ-8). PROJ-49 moved consumption / feed_in /
+          pv_power to MeteringPoints[] sub-entries.
+        type: string
+      meteringPoints:
+        items:
+          $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.CreateMeteringPointRequest'
+        maxItems: 10
+        minItems: 1
+        type: array
+      personsInHousehold:
+        minimum: 0
+        type: integer
+      phone:
+        maxLength: 50
+        type: string
+      privacyAccepted:
+        type: boolean
+      registerNumber:
+        maxLength: 50
+        type: string
+      residentCity:
+        maxLength: 255
+        minLength: 1
+        type: string
+      residentStreet:
+        maxLength: 255
+        minLength: 1
+        type: string
+      residentStreetNumber:
+        maxLength: 50
+        minLength: 1
+        type: string
+      residentZip:
+        maxLength: 20
+        minLength: 1
+        type: string
+      sepaMandateAccepted:
+        type: boolean
+      titel:
+        maxLength: 50
+        type: string
+      uidNumber:
+        maxLength: 50
+        type: string
+    required:
+    - accountHolder
+    - email
+    - iban
+    - memberType
+    - meteringPoints
+    - privacyAccepted
+    - residentCity
+    - residentStreet
+    - residentStreetNumber
+    - residentZip
+    - sepaMandateAccepted
     type: object
 host: member-onboarding.eegfaktura.at
 info:
@@ -846,9 +1213,10 @@ paths:
         in: query
         name: reference_number
         type: string
-      - description: Filter by member lastname (partial match)
+      - description: Filter by member name — partial match across firstname, lastname,
+          and company_name
         in: query
-        name: lastname
+        name: name
         type: string
       - description: Filter by email (partial match)
         in: query
@@ -884,15 +1252,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/shared.ApplicationListResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ApplicationListResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
       security:
       - BearerAuth: []
       summary: List applications
@@ -914,19 +1282,19 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Delete application
@@ -947,23 +1315,23 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/shared.AdminApplicationDetailResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.AdminApplicationDetailResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "403":
           description: Tenant mismatch
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get application detail
@@ -985,37 +1353,80 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/shared.AdminUpdateApplicationRequest'
+          $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.AdminUpdateApplicationRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/shared.AdminApplicationDetailResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.AdminApplicationDetailResponse'
         "400":
           description: Validation error
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "403":
           description: Tenant mismatch
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Update application (admin)
+      tags:
+      - Admin
+  /api/admin/applications/{id}/admin-note:
+    patch:
+      consumes:
+      - application/json
+      description: Replaces only the admin_note column. Does not touch member type,
+        metering points, participation factors, or any other field — by design, so
+        saving a note from the admin UI cannot accidentally reset application data.
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: New note (empty string clears it)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.UpdateAdminNoteRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: no content
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update admin note
       tags:
       - Admin
   /api/admin/applications/{id}/approval-pdf:
@@ -1038,26 +1449,79 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "409":
           description: Conflict
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Download approval PDF
+      tags:
+      - Admin
+  /api/admin/applications/{id}/clear-import-lock:
+    post:
+      consumes:
+      - application/json
+      description: Clears the in-flight slot on a stuck application without changing
+        its status. Useful when the admin wants to retry the import — at the explicit
+        risk of producing a duplicate in the core if the original attempt had already
+        inserted there. A reason is mandatory and recorded in the status_log together
+        with the previous target_participant_id (if any).
+      parameters:
+      - description: Application UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Reason for the lock release
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ClearImportLockRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.AdminApplicationDetailResponse'
+        "400":
+          description: Validation failed
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "403":
+          description: Tenant mismatch
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "409":
+          description: Application not in stuck import state
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Release a stuck import lock for retry (PROJ-34)
       tags:
       - Admin
   /api/admin/applications/{id}/export/excel:
@@ -1080,22 +1544,214 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Export application as Excel
+      tags:
+      - Admin
+  /api/admin/applications/{id}/import:
+    post:
+      description: Triggers a synchronous import of an approved application into the
+        eegFaktura core service. On success, the application transitions to status
+        `imported` and `targetParticipantId` is populated. On failure, the status
+        is set to `import_failed` and the error is recorded.
+      parameters:
+      - description: Application UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Import succeeded
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Application has no metering points
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "403":
+          description: Tenant mismatch
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "409":
+          description: Application not in approved status
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "500":
+          description: Core service error or DB error
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "503":
+          description: Core service not configured
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Import an approved application into eegFaktura core
+      tags:
+      - Admin
+  /api/admin/applications/{id}/mark-imported-manually:
+    post:
+      consumes:
+      - application/json
+      description: Recovery for the orphan scenario where the core created the participant
+        but the onboarding bookkeeping failed and left the application stuck in `approved`
+        with an in-flight slot. Admin reads the participant UUID + member-number from
+        eegFaktura and submits them; status transitions to `imported`. Refused with
+        409 when the application is not in the stuck state.
+      parameters:
+      - description: Application UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Participant UUID + member-number from eegFaktura
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.MarkImportedManuallyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.AdminApplicationDetailResponse'
+        "400":
+          description: Validation failed
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "403":
+          description: Tenant mismatch
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "409":
+          description: Application not in stuck import state
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Manually close a stuck import (PROJ-34)
+      tags:
+      - Admin
+  /api/admin/applications/{id}/next-member-number:
+    get:
+      description: Returns max(numeric participantNumber) + 1 over the existing participants
+        in the application's tenant. Used by the import dialog to pre-fill the member
+        number field; the admin may override it before submitting the import.
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: next_member_number
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "503":
+          description: Core not configured / lookup failed
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Suggest next member number for an application
+      tags:
+      - Admin
+  /api/admin/applications/{id}/reassign-eeg:
+    post:
+      consumes:
+      - application/json
+      description: Moves an application from its current EEG to a different EEG. The
+        admin must be authorized for BOTH source and target (or be a superuser). The
+        reference number is regenerated from the target EEG's per-year counter. Old
+        rc_number + old reference_number are archived in the status_log. Only reassignable
+        while status ∈ {submitted, email_confirmed, under_review, needs_info}.
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Target RC + reason
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ReassignEEGRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.AdminApplicationDetailResponse'
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "403":
+          description: Tenant mismatch on source or target
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "404":
+          description: Application or target RC not found
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "409":
+          description: Status not reassignable, source==target, or target inactive
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Reassign application to a different EEG
       tags:
       - Admin
   /api/admin/applications/{id}/resend-confirmation:
@@ -1114,22 +1770,118 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Resend member confirmation email
+      tags:
+      - Admin
+  /api/admin/applications/{id}/resend-email-confirmation:
+    post:
+      description: Rotates the confirmation token and re-sends the member confirmation
+        mail with a fresh link. Throttled to one resend every 5 minutes per application.
+      parameters:
+      - description: Application UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: Email resent
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "409":
+          description: Throttled, wrong status, or EEG opt-out
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Resend e-mail confirmation link (PROJ-31)
+      tags:
+      - Admin
+  /api/admin/applications/{id}/reset-import:
+    post:
+      consumes:
+      - application/json
+      description: Transitions an application from `imported` back to `approved` so
+        it can be re-imported after the eegFaktura admin deleted the participant in
+        the core. Clears `target_participant_id` and all `import_*` bookkeeping fields.
+        A reason is mandatory and recorded in the status_log; the previous `target_participant_id`
+        is archived in the same log entry. The eegFaktura core is NOT contacted —
+        admin verifies the deletion manually.
+      parameters:
+      - description: Application UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Reason for the reset
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ResetImportRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.AdminApplicationDetailResponse'
+        "400":
+          description: Validation failed
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "403":
+          description: Tenant mismatch
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "409":
+          description: Application not in imported status
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Reset an imported application back to approved (PROJ-30)
       tags:
       - Admin
   /api/admin/applications/{id}/status:
@@ -1149,34 +1901,34 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/shared.ChangeStatusRequest'
+          $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ChangeStatusRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/shared.ChangeStatusResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ChangeStatusResponse'
         "400":
           description: Unknown status value
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "403":
           description: Tenant mismatch
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "409":
           description: Invalid status transition
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Change application status
@@ -1195,29 +1947,52 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/shared.BulkActionRequest'
+          $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.BulkActionRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/shared.BulkActionResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.BulkActionResponse'
         "400":
           description: Validation error
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Bulk status action
+      tags:
+      - Admin
+  /api/admin/applications/check-activation:
+    post:
+      description: Iterates over all applications in status `ready_for_activation`
+        (filtered by the admin's tenant claim) and queries the eegFaktura core's GET
+        /participant per tenant. Transitions matching applications to `activated`
+        when the core participant status is ACTIVE. Returns a summary { checked, activated,
+        errors }.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_importing.ActivationCheckResult'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Check core for activation status of pending applications
       tags:
       - Admin
   /api/admin/applications/drafts:
@@ -1236,14 +2011,167 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Delete all draft applications
+      tags:
+      - Admin
+  /api/admin/settings/eeg/core-comparison:
+    get:
+      description: Fetches the EEG master data from the core via GraphQL and diffs
+        it field-by-field against the local registration_entrypoint row. Used by the
+        Settings UI to show a drift banner.
+      parameters:
+      - description: RC number
+        in: query
+        name: rc_number
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.EEGSettingsComparisonResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "503":
+          description: Core not configured or unreachable
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Compare local EEG master data with the eegFaktura core (PROJ-32)
+      tags:
+      - Admin
+  /api/admin/settings/eeg/logo:
+    get:
+      description: Returns the BYTEA logo bytes pulled from the eegFaktura-billing
+        service on the last successful sync, with the correct Content-Type. 404 when
+        no logo has been synced yet (or the EEG has no logo configured).
+      parameters:
+      - description: RC number
+        in: query
+        name: rc_number
+        required: true
+        type: string
+      produces:
+      - image/png
+      - image/jpeg
+      - image/gif
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "404":
+          description: No logo synced yet
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Serve the cached EEG logo for inline preview (PROJ-33)
+      tags:
+      - Admin
+  /api/admin/settings/eeg/sync:
+    post:
+      description: Fetches the latest EEG master data from the core via GraphQL and
+        writes the synced columns on registration_entrypoint. Stamps last_synced_from_core_at.
+        The synced fields (name, address, creditor-id, contact-email) are not user-editable
+        elsewhere.
+      parameters:
+      - description: RC number
+        in: query
+        name: rc_number
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.EEGSettingsComparisonResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "502":
+          description: Core returned an error
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "503":
+          description: Core not configured
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Pull EEG master data from the eegFaktura core (PROJ-32)
+      tags:
+      - Admin
+  /api/admin/tariffs:
+    get:
+      description: Proxies the eegFaktura core's GET /eeg/tariff for the import-time
+        tariff selection dialog. The admin's bearer token is forwarded; tenant isolation
+        is enforced via the rcNumber query parameter (must be in the JWT's Tenants
+        claim, or caller must be superuser).
+      parameters:
+      - description: EEG RC number
+        in: query
+        name: rcNumber
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{ tariffs: [...] }'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: rcNumber missing
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "403":
+          description: Tenant mismatch
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "503":
+          description: Core service unavailable
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List tariffs available for an EEG (PROJ-27)
       tags:
       - Admin
   /api/external/v1/applications:
@@ -1259,7 +2187,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/http.externalApplicationRequest'
+          $ref: '#/definitions/internal_http.externalApplicationRequest'
       produces:
       - application/json
       responses:
@@ -1272,23 +2200,23 @@ paths:
         "404":
           description: RC number not found
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "409":
           description: Duplicate metering point
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "410":
           description: Registration deactivated
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "422":
           description: Validation error
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
       security:
       - ApiKeyAuth: []
       summary: Submit application (external)
@@ -1306,34 +2234,34 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/shared.CreateApplicationRequest'
+          $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.CreateApplicationRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/shared.ApplicationResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ApplicationResponse'
         "400":
           description: Validation error
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "409":
           description: Duplicate metering point
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "410":
           description: Registration deactivated
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "422":
           description: Turnstile verification failed
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
       summary: Create application draft
       tags:
       - Public
@@ -1354,30 +2282,30 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/shared.UpdateApplicationRequest'
+          $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.UpdateApplicationRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/shared.ApplicationResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ApplicationResponse'
         "400":
           description: Validation error or invalid UUID
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "404":
           description: Application not found
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "409":
           description: Application already submitted
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
       summary: Update application draft
       tags:
       - Public
@@ -1398,31 +2326,67 @@ paths:
         in: body
         name: body
         schema:
-          $ref: '#/definitions/shared.SubmitRequest'
+          $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.SubmitRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/shared.SubmitResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.SubmitResponse'
         "400":
           description: Invalid UUID
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "404":
           description: Application not found
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "409":
           description: Invalid status transition
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
       summary: Submit application
+      tags:
+      - Public
+  /api/public/applications/confirm-email:
+    post:
+      consumes:
+      - application/json
+      description: Validates a token from the confirmation e-mail. On success transitions
+        the application from `submitted` to `email_confirmed` and triggers the deferred
+        EEG-notification mail.
+      parameters:
+      - description: Token from the confirmation e-mail
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ConfirmEmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ConfirmEmailResponse'
+        "400":
+          description: Token invalid or expired
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "409":
+          description: Application is no longer waiting for confirmation
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+      summary: Confirm member e-mail address (PROJ-31)
       tags:
       - Public
   /api/public/registration/{rc_number}:
@@ -1441,19 +2405,19 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/shared.RegistrationConfig'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.RegistrationConfig'
         "404":
           description: RC number unknown
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "410":
           description: Registration deactivated for this EEG
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/shared.ErrorResponse'
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
       summary: Get registration config
       tags:
       - Public
@@ -1476,7 +2440,45 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Health check
+      summary: Health check (legacy combined)
+      tags:
+      - System
+  /livez:
+    get:
+      description: Always returns 200 once the HTTP server is up. Intended for K8s
+        livenessProbe.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'status: alive'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Liveness probe
+      tags:
+      - System
+  /readyz:
+    get:
+      description: Returns 200 when the service is ready to serve traffic (DB reachable).
+        503 otherwise.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'status: ready'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: 'status: not_ready'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Readiness probe
       tags:
       - System
 schemes:

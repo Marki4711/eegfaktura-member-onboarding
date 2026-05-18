@@ -1433,7 +1433,7 @@ func (h *AdminHandler) UpdateAdminNote(w http.ResponseWriter, r *http.Request) {
 // @Security     BearerAuth
 // @Param        id    path  string                       true  "Application UUID"
 // @Param        body  body  shared.ResetImportRequest    true  "Reason for the reset"
-// @Success      200   {object}  shared.AdminApplicationDetail
+// @Success      200   {object}  shared.AdminApplicationDetailResponse
 // @Failure      400   {object}  shared.ErrorResponse  "Validation failed"
 // @Failure      401   {object}  shared.ErrorResponse
 // @Failure      403   {object}  shared.ErrorResponse  "Tenant mismatch"
