@@ -9,6 +9,10 @@ import (
 var knownConfigurableFields = map[string]string{
 	"phone":                    "optional",
 	"birth_date":               "optional",
+	// bank_name: bisher fix in der Bankverbindungs-Section. Seit
+	// dieser Erweiterung pro EEG konfigurierbar. Default "optional"
+	// bewahrt das heutige Verhalten (immer sichtbar, nicht erzwungen).
+	"bank_name":                "optional",
 	"membership_start_date":    "hidden",
 	"persons_in_household":     "hidden",
 	"heat_pump":                "hidden",

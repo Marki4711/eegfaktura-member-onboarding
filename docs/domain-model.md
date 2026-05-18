@@ -97,7 +97,7 @@ Rules:
 - `(rc_number, field_name)` is unique
 - `field_name` must be one of the centrally registered configurable fields (enforced in application code)
 - `state` is constrained to `hidden`, `optional`, `required`, `admin_only` (DB CHECK constraint)
-- missing entries default to `hidden` for new fields; `optional` for `phone`, `birth_date`, `uid_number`
+- missing entries default to `hidden` for new fields; `optional` for `phone`, `birth_date`, `uid_number`, `bank_name`
 - `admin_only` fields are returned as `hidden` in the public registration config — members never see them
 
 ---

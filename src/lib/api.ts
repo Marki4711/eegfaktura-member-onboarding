@@ -48,6 +48,7 @@ export const CONFIGURABLE_FIELDS: {
   application: [
     { name: "phone",                   label: "Telefonnummer",                   defaultState: "optional" },
     { name: "birth_date",              label: "Geburtsdatum",                    defaultState: "optional" },
+    { name: "bank_name",               label: "Bankname",                        defaultState: "optional" },
     { name: "membership_start_date",   label: "Aktiv am (Beitrittsdatum)",       defaultState: "hidden"   },
     { name: "persons_in_household",    label: "Anzahl Personen im Haushalt",     defaultState: "hidden",
       visibilityTags: ["consumption"],

@@ -247,6 +247,7 @@ function buildFormSchema(
 
     requireText("phone", "phone", "Telefonnummer");
     requireText("birth_date", "birthDate", "Geburtsdatum");
+    requireText("bank_name", "bankName", "Bankname");
     requireText("membership_start_date", "membershipStartDate", "Beitrittsdatum");
     requireNum("persons_in_household", "personsInHousehold", "Anzahl Personen im Haushalt");
     // PROJ-49: consumption_*, feed_in_forecast, pv_power_kwp werden jetzt
@@ -1090,19 +1091,21 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="bankName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Bankname</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {fs("bank_name") !== "hidden" && (
+                <FormField
+                  control={form.control}
+                  name="bankName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Bankname{req("bank_name")}</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
             </div>
           </CardContent>
         </Card>

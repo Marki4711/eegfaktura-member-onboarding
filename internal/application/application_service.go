@@ -1034,6 +1034,7 @@ func validateConfigurableRequiredFields(app *shared.Application, fieldConfig map
 
 	requiredIfMissing("phone", "phone", "Telefonnummer", missingStr(app.Phone))
 	requiredIfMissing("birth_date", "birthDate", "Geburtsdatum", app.BirthDate == nil)
+	requiredIfMissing("bank_name", "bankName", "Bankname", missingStr(app.BankName))
 	requiredIfMissing("uid_number", "uidNumber", "UID-Nummer", missingStr(app.UIDNumber))
 	requiredIfMissing("membership_start_date", "membershipStartDate", "Beitrittsdatum", app.MembershipStartDate == nil)
 	requiredIfMissingTyped("persons_in_household", "personsInHousehold", "Anzahl Personen im Haushalt", app.PersonsInHousehold == nil, hasConsumption)
