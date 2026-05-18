@@ -13,10 +13,12 @@ Implementiert in vier Commits:
 - `8771a80` Public-Form — Felder-Reihenfolge umgestellt (Richtung+Faktor in Zeile 1, Zählpunkt full-width in Zeile 2), dynamische Mask mit `S=[A-Z0-9]`-Definition, Prefix-Prefill bei Direction-Wechsel, `padToMeteringPointLength`-Helper für Auto-Pad onBlur, `MeteringPointRow`-Subkomponente extrahiert.
 - (dieser Commit) Docs — api-spec + domain-model + INDEX-Status.
 
+Mini-Lücken-Nachzieher (2026-05-18, später am Tag):
+- **Mask-Lock des Prefixes implementiert** (Commit folgt diesem Push). `buildMeteringPointMask` in metering-point-fields.tsx baut die imask-Mask dynamisch je nach aktivem Prefix: Prefix-Stellen werden als literal-escapete Zeichen (`\X`) emittiert, sodass das Mitglied sie weder überschreiben noch backspacen kann. Backend-Validierung bleibt als zweite Verteidigungslinie.
+- **2-6-5-20-Gruppierung in PDF + Mail** (Commit 345947a, „mandate_reference"-Spec-Detailfrage 5). Approval-PDF und member-facing Mails zeigen Zählpunktnummern jetzt in der offiziellen E-Control-Gruppierung. Storage und Public-Form-Mask bleiben unverändert.
+
 Bewusste Abweichungen von der Skizze:
-- **Mask-Lock des Prefixes nicht implementiert.** imask kann literale Digits/Letters in der Mask-Definition nicht trivial behandeln. Stattdessen wird der Prefix beim Direction-Wechsel vorbelegt und der Backend validiert das Match beim Submit. UX-Vorteil: Mitglied sieht den Prefix, kann ihn aber theoretisch überschreiben — Backend fängt das ab.
 - **Trennzeichen-Normalisierung** auch Hyphens (`-`) zusätzlich zu Whitespace + Dots — Tester benutzen alle drei austauschbar.
-- `mandate_reference`-Format-Anker (Spec-Detailfrage 5) bleibt out-of-scope — wird im Approval-PDF unverändert als 33-stellige Rohform gerendert.
 
 ## Hintergrund
 

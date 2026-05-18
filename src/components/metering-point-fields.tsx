@@ -43,7 +43,40 @@ interface MeteringPointFieldsProps {
 // PROJ-52: imask definitions — `0` ist Default-Digit, `S` neue Klasse
 // für die alphanumerischen Stellen 14–33 (E-Control-Spec).
 const MP_MASK_DEFINITIONS = { S: /[A-Z0-9]/ } as const;
-const MP_MASK = "AT 000000 00000 SSSSSSSSSSSSSSSSSSSS";
+
+// buildMeteringPointMask (PROJ-52 Mini-Lücke „Mask-Lock"): baut die
+// imask-Mask-String dynamisch je nach aktivem EEG-Prefix. Stellen
+// innerhalb des Prefixes werden als literal-escapete Zeichen
+// emittiert (`\X`), sodass der Mitglied sie weder überschreiben
+// noch backspacen kann. Stellen außerhalb bleiben Placeholder:
+//   - Position 1-2: AT (immer literal — Länder-Code)
+//   - Position 3-13: `0` (Digit; Netzbetreibernummer + PLZ, 11 Stellen)
+//   - Position 14-33: `S` ([A-Z0-9]; Zählpunkt-Kennung, 20 Stellen)
+// Gruppierung 2-6-5-20: Spaces nach Position 2, 8 und 13.
+//
+// Ein leerer/NULL Prefix liefert die Default-Mask ohne Locks.
+function buildMeteringPointMask(activePrefix: string | null): string {
+  const out: string[] = [];
+  for (let i = 1; i <= 33; i++) {
+    if (activePrefix && i <= activePrefix.length) {
+      // Inside configured prefix — escape so imask treats as literal,
+      // unabhängig davon ob das Zeichen sonst Placeholder wäre (z. B. `S`).
+      out.push("\\" + activePrefix[i - 1]);
+    } else if (i === 1) {
+      out.push("A");
+    } else if (i === 2) {
+      out.push("T");
+    } else if (i <= 13) {
+      out.push("0");
+    } else {
+      out.push("S");
+    }
+    if (i === 2 || i === 8 || i === 13) {
+      out.push(" ");
+    }
+  }
+  return out.join("");
+}
 
 // padToMeteringPointLength (PROJ-52): füllt zwischen Prefix und
 // Mitglieds-Anteil mit führenden Nullen auf 33 Stellen auf. Lässt
@@ -189,6 +222,13 @@ function MeteringPointRow({
   const direction = form.watch(`meteringPoints.${index}.direction`);
   const activePrefix =
     direction === "PRODUCTION" ? prefixProduction : prefixConsumption;
+  // PROJ-52 Mini-Lücke „Mask-Lock": Dynamische imask-Mask, in der die
+  // Prefix-Stellen als literal-escapete Zeichen emittiert werden. Damit
+  // kann das Mitglied weder den Prefix überschreiben noch backspacen —
+  // die EEG-Vorgabe ist im Frontend hart, das Backend bleibt dahinter
+  // als zweite Verteidigungslinie. Recomputed pro Direction-Wechsel,
+  // weil sich der aktive Prefix dann ändert.
+  const dynamicMask = buildMeteringPointMask(activePrefix);
 
   // PROJ-52: bei Direction-Wechsel die Zählpunkt-Mask mit dem passenden
   // Prefix vorbelegen — aber nur, wenn der bisherige Wert leer ist oder
@@ -326,10 +366,11 @@ function MeteringPointRow({
             </div>
             <FormControl>
               <MaskedInput
-                // PROJ-52: Mask-Definition Konsolidierung — Stellen 3–13
-                // weiter Ziffern, Stellen 14–33 alphanumerisch (S=[A-Z0-9]).
+                // PROJ-52: dynamische Mask — Prefix-Stellen sind literal
+                // gelockt (Mitglied kann sie nicht überschreiben), Reststellen
+                // sind Placeholder (`0` für Stellen 3–13, `S` für 14–33).
                 // Offizielle Gruppierung 2-6-5-20.
-                mask={MP_MASK}
+                mask={dynamicMask}
                 definitions={MP_MASK_DEFINITIONS}
                 lazy={false}
                 prepareChar={(str: string) => str.toUpperCase()}
