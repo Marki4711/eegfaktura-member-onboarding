@@ -1077,7 +1077,7 @@ Replaces the field configuration for an EEG atomically. Unknown field names and 
 }
 ```
 
-Allowed field names: `phone`, `birth_date`, `uid_number`, `bank_name`, `membership_start_date`, `persons_in_household`, `consumption_previous_year`, `consumption_forecast`, `feed_in_forecast`, `pv_power_kwp`, `heat_pump`, `electric_vehicle`, `electric_vehicle_count`, `electric_vehicle_annual_km`, `electric_hot_water`, `network_operator_authorization` *(PROJ-44)*, `transformer`, `installation_number`, `installation_name`, `battery_size_kwh` *(PROJ-45)*, `inverter_manufacturer` *(PROJ-45)*
+Allowed field names: `phone`, `birth_date`, `uid_number`, `bank_name`, `membership_start_date`, `persons_in_household`, `consumption_previous_year`, `consumption_forecast`, `feed_in_forecast`, `pv_power_kwp`, `inverter_power_kw`, `heat_pump`, `electric_vehicle`, `electric_vehicle_count`, `electric_vehicle_annual_km`, `electric_hot_water`, `network_operator_authorization` *(PROJ-44)*, `transformer`, `installation_number`, `installation_name`, `battery_size_kwh` *(PROJ-45)*, `inverter_manufacturer` *(PROJ-45)*
 
 **Type-conditional visibility (PROJ-45):** the admin UI shows badges next to each conditional field — `[Verbraucher]` (only renders when the application has ≥1 CONSUMPTION metering point), `[Einspeisung]` (≥1 PRODUCTION), `[PV]` (additionally requires `generation_type='pv'` on the MP), `[+E-Auto]` (additionally requires `electric_vehicle=true`). Backend mirrors the gate: the required-check on these fields only fires when the matching MP-type / EV flag is present.
 

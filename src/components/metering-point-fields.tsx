@@ -121,6 +121,7 @@ export function MeteringPointFields({
   const showConsumptionFc   = mpfs("consumption_forecast") !== "hidden";
   const showFeedInForecast  = mpfs("feed_in_forecast") !== "hidden";
   const showPvPower         = mpfs("pv_power_kwp") !== "hidden";
+  const showInverterPower   = mpfs("inverter_power_kw") !== "hidden";
   const showFeedInLimit     = mpfs("feed_in_limit_kw") !== "hidden";
   // PROJ-49 follow-up: „Speichersteuerung im Sinne der EEG vorstellbar?"
   const showBatteryControl  = mpfs("battery_control_acceptable") !== "hidden";
@@ -142,6 +143,7 @@ export function MeteringPointFields({
           hasExtraMpFields={hasExtraMpFields}
           showFeedInForecast={showFeedInForecast}
           showPvPower={showPvPower}
+          showInverterPower={showInverterPower}
           showFeedInLimit={showFeedInLimit}
           showBatterySize={showBatterySize}
           showInverter={showInverter}
@@ -191,6 +193,7 @@ function MeteringPointRow({
   hasExtraMpFields,
   showFeedInForecast,
   showPvPower,
+  showInverterPower,
   showFeedInLimit,
   showBatterySize,
   showInverter,
@@ -211,6 +214,7 @@ function MeteringPointRow({
   hasExtraMpFields: boolean;
   showFeedInForecast: boolean;
   showPvPower: boolean;
+  showInverterPower: boolean;
   showFeedInLimit: boolean;
   showBatterySize: boolean;
   showInverter: boolean;
@@ -405,6 +409,8 @@ function MeteringPointRow({
         feedInForecastRequired={requiredOf("feed_in_forecast") === "required"}
         showPvPower={showPvPower}
         pvPowerRequired={requiredOf("pv_power_kwp") === "required"}
+        showInverterPower={showInverterPower}
+        inverterPowerRequired={requiredOf("inverter_power_kw") === "required"}
         showFeedInLimit={showFeedInLimit}
         feedInLimitRequired={requiredOf("feed_in_limit_kw") === "required"}
       />
@@ -511,6 +517,8 @@ function GenerationBlock({
   feedInForecastRequired,
   showPvPower,
   pvPowerRequired,
+  showInverterPower,
+  inverterPowerRequired,
   showFeedInLimit,
   feedInLimitRequired,
 }: {
@@ -520,6 +528,8 @@ function GenerationBlock({
   feedInForecastRequired: boolean;
   showPvPower: boolean;
   pvPowerRequired: boolean;
+  showInverterPower: boolean;
+  inverterPowerRequired: boolean;
   showFeedInLimit: boolean;
   feedInLimitRequired: boolean;
 }) {
@@ -563,6 +573,35 @@ function GenerationBlock({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>PV-Leistung (kWp){pvPowerRequired ? " *" : ""}</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={0.1}
+                    value={field.value ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.valueAsNumber;
+                      field.onChange(isNaN(v) ? undefined : v);
+                    }}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    ref={field.ref}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+        {isPv && showInverterPower && (
+          <FormField
+            control={form.control}
+            name={`meteringPoints.${index}.inverterPowerKw`}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  Nennleistung PV-Wechselrichter (kW){inverterPowerRequired ? " *" : ""}
+                </FormLabel>
                 <FormControl>
                   <Input
                     type="number"

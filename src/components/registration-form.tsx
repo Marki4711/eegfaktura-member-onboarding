@@ -105,6 +105,7 @@ const meteringPointSchema = z
     consumptionForecast: z.number().int().min(0).optional(),
     feedInForecast: z.number().int().min(0).optional(),
     pvPowerKwp: z.number().min(0).optional(),
+    inverterPowerKw: z.number().min(0).optional(),
     feedInLimitPresent: z.boolean().optional(),
     feedInLimitKw: z.number().min(0).optional(),
     // PROJ-49 follow-up: „Speichersteuerung im Sinne der EEG vorstellbar?"
@@ -556,6 +557,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
               consumptionForecast: isConsumption ? mp.consumptionForecast : undefined,
               feedInForecast: isProduction ? mp.feedInForecast : undefined,
               pvPowerKwp: isPv ? mp.pvPowerKwp : undefined,
+              inverterPowerKw: isPv ? mp.inverterPowerKw : undefined,
               feedInLimitPresent: isPv ? mp.feedInLimitPresent : undefined,
               feedInLimitKw: isPv && mp.feedInLimitPresent ? mp.feedInLimitKw : undefined,
             };

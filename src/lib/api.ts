@@ -92,6 +92,9 @@ export const CONFIGURABLE_FIELDS: {
     { name: "pv_power_kwp",              label: "PV-Leistung (kWp)", defaultState: "hidden",
       visibilityTags: ["production", "pv"],
       visibilityHint: "Wird nur bei Einspeise-Zählpunkten mit Erzeugungsform PV angezeigt." },
+    { name: "inverter_power_kw",         label: "Nennleistung PV-Wechselrichter (kW)", defaultState: "hidden",
+      visibilityTags: ["production", "pv"],
+      visibilityHint: "Wird nur bei Einspeise-Zählpunkten mit Erzeugungsform PV angezeigt." },
     { name: "feed_in_limit_kw",          label: "Einspeiselimit (kW)", defaultState: "hidden",
       visibilityTags: ["production", "pv"],
       visibilityHint: "Wird nur bei Einspeise-Zählpunkten mit Erzeugungsform PV angezeigt — Mitglied gibt Ja/Nein an, bei Ja wird der kW-Wert abgefragt." },
@@ -218,6 +221,9 @@ export interface MeteringPointRequest {
   generationType?: GenerationType;
   batterySizeKwh?: number;
   inverterManufacturer?: string;
+  // Migration 000046: Nennleistung PV-Wechselrichter in kW. Nur sinnvoll
+  // bei PRODUCTION + 'pv' — Server cleart sonst.
+  inverterPowerKw?: number;
   // PROJ-49: Energie-Felder pro Zählpunkt. Sichtbarkeit per direction +
   // generationType — Backend cleart unzutreffende Felder serverseitig.
   //   consumptionPreviousYear / consumptionForecast — nur CONSUMPTION

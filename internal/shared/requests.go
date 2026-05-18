@@ -77,6 +77,9 @@ type CreateMeteringPointRequest struct {
 	GenerationType       *string  `json:"generationType,omitempty" validate:"omitempty,oneof=pv hydro wind biomass"`
 	BatterySizeKwh       *float64 `json:"batterySizeKwh,omitempty" validate:"omitempty,min=0"`
 	InverterManufacturer *string  `json:"inverterManufacturer,omitempty" validate:"omitempty,max=100"`
+	// Migration 000046: Nennleistung PV-Wechselrichter in kW. Nur sinnvoll
+	// bei PRODUCTION + GenerationType='pv'; Service-Layer cleart sonst.
+	InverterPowerKw *float64 `json:"inverterPowerKw,omitempty" validate:"omitempty,min=0"`
 	// PROJ-49: Energie-Felder pro Zählpunkt. Sichtbarkeit + Validierung
 	// per Direction/GenerationType im Service-Layer (siehe MeteringPoint).
 	ConsumptionPreviousYear *int64   `json:"consumptionPreviousYear,omitempty" validate:"omitempty,min=0"`

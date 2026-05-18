@@ -239,6 +239,7 @@ Fields:
 - `generation_type` *(PROJ-45, Pflicht bei PRODUCTION via CHECK)*
 - `battery_size_kwh` *(PROJ-45, nullable, configurable, nur PV)*
 - `inverter_manufacturer` *(PROJ-45, nullable, configurable, nur PV)*
+- `inverter_power_kw` *(Migration 000046, nullable NUMERIC kW, configurable, nur PRODUCTION + PV — Nennleistung des PV-Wechselrichters; Service-Layer cleart das Feld in allen anderen Fällen)*
 - `consumption_previous_year` *(PROJ-49, nullable BIGINT kWh, configurable, nur CONSUMPTION)*
 - `consumption_forecast` *(PROJ-49, nullable BIGINT kWh, configurable, nur CONSUMPTION)*
 - `feed_in_forecast` *(PROJ-49, nullable BIGINT kWh/Jahr, configurable, nur PRODUCTION)*

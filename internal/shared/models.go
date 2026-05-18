@@ -213,6 +213,10 @@ type MeteringPoint struct {
 	GenerationType       *string  `json:"generationType,omitempty" db:"generation_type"`
 	BatterySizeKwh       *float64 `json:"batterySizeKwh,omitempty" db:"battery_size_kwh"`
 	InverterManufacturer *string  `json:"inverterManufacturer,omitempty" db:"inverter_manufacturer"`
+	// InverterPowerKw (Migration 000046): Nennleistung des PV-Wechselrichters
+	// in kW. Nur sinnvoll bei PRODUCTION + GenerationType='pv'; Service-Layer
+	// cleart sonst. Per PROJ-8 konfigurierbar (knownConfigurableFields).
+	InverterPowerKw *float64 `json:"inverterPowerKw,omitempty" db:"inverter_power_kw"`
 	// PROJ-49: Energie-Felder pro Zählpunkt. Service-Layer-Regeln:
 	//   - ConsumptionPreviousYear / ConsumptionForecast: nur CONSUMPTION,
 	//     sonst auf NULL gesetzt.

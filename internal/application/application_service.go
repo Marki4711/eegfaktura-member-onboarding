@@ -117,6 +117,7 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 			GenerationType:       trimStringPtr(mpReq.GenerationType),
 			BatterySizeKwh:       mpReq.BatterySizeKwh,
 			InverterManufacturer: trimStringPtr(mpReq.InverterManufacturer),
+			InverterPowerKw:      mpReq.InverterPowerKw,
 			// PROJ-49: Energie-Felder pro Zählpunkt.
 			ConsumptionPreviousYear: mpReq.ConsumptionPreviousYear,
 			ConsumptionForecast:     mpReq.ConsumptionForecast,
@@ -409,6 +410,7 @@ func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateAp
 				GenerationType:       trimStringPtr(mpReq.GenerationType),
 				BatterySizeKwh:       mpReq.BatterySizeKwh,
 				InverterManufacturer: trimStringPtr(mpReq.InverterManufacturer),
+				InverterPowerKw:      mpReq.InverterPowerKw,
 				CreatedAt:            time.Now(),
 				UpdatedAt:            time.Now(),
 			})
@@ -1235,6 +1237,9 @@ func validateConfigurableMeteringPointFields(points []shared.MeteringPoint, fiel
 			if effectiveState(fieldConfig, "pv_power_kwp") == "required" && mp.PvPowerKwp == nil {
 				errs[fmt.Sprintf("meteringPoints.%d.pvPowerKwp", i)] = "PV-Leistung ist erforderlich"
 			}
+			if effectiveState(fieldConfig, "inverter_power_kw") == "required" && mp.InverterPowerKw == nil {
+				errs[fmt.Sprintf("meteringPoints.%d.inverterPowerKw", i)] = "Nennleistung PV-Wechselrichter ist erforderlich"
+			}
 			// feed_in_limit_kw ist nur Pflicht wenn FeedInLimitPresent=true.
 			if effectiveState(fieldConfig, "feed_in_limit_kw") == "required" &&
 				mp.FeedInLimitPresent != nil && *mp.FeedInLimitPresent && mp.FeedInLimitKw == nil {
@@ -1271,6 +1276,7 @@ func normalizeMeteringPointGeneration(points []shared.MeteringPoint) {
 			mp.GenerationType = nil
 			mp.BatterySizeKwh = nil
 			mp.InverterManufacturer = nil
+			mp.InverterPowerKw = nil
 			continue
 		}
 		if mp.GenerationType == nil || strings.TrimSpace(*mp.GenerationType) == "" {
@@ -1280,6 +1286,7 @@ func normalizeMeteringPointGeneration(points []shared.MeteringPoint) {
 		if *mp.GenerationType != "pv" {
 			mp.BatterySizeKwh = nil
 			mp.InverterManufacturer = nil
+			mp.InverterPowerKw = nil
 		}
 	}
 }
@@ -1349,6 +1356,7 @@ func clearMeteringPointEnergyByType(points []shared.MeteringPoint) {
 			mp.FeedInLimitPresent = nil
 			mp.FeedInLimitKw = nil
 			mp.BatteryControlAcceptable = nil
+			mp.InverterPowerKw = nil
 			continue
 		}
 		if mp.FeedInLimitPresent == nil || !*mp.FeedInLimitPresent {
