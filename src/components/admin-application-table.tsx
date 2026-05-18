@@ -179,7 +179,7 @@ export function AdminApplicationTable({
           ) : items.length === 0 ? (
             <TableRow>
               <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
-                Keine Anträge gefunden. Passen Sie die Filter an.
+                Keine Anträge gefunden. Passe die Filter an.
               </TableCell>
             </TableRow>
           ) : (

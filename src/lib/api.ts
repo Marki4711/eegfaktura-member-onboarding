@@ -399,7 +399,7 @@ async function adminRequest<T>(
       window.dispatchEvent(new Event("auth:expired"));
       throw new ApiResponseError({
         code: "unauthorized",
-        message: "Sitzung abgelaufen — Sie werden zur Anmeldung weitergeleitet.",
+        message: "Sitzung abgelaufen — du wirst zur Anmeldung weitergeleitet.",
       });
     }
     // Within cooldown: do NOT redirect again. Surface a clear error the UI

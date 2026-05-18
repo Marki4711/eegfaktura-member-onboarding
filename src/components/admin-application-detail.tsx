@@ -335,7 +335,7 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
               Das Mitglied hat den Bestätigungs-Link noch nicht angeklickt. Der Antrag kann
               erst nach Bestätigung weiterbearbeitet werden — bis dahin ist nur „Ablehnen"
               als Status-Aktion möglich.
-              Wenn die Bestätigungs-Mail im Spam-Ordner gelandet ist, schicken Sie den Link
+              Wenn die Bestätigungs-Mail im Spam-Ordner gelandet ist, schicke den Link
               über „Bestätigungs-Link erneut senden" oben rechts neu.
             </AlertDescription>
           </Alert>

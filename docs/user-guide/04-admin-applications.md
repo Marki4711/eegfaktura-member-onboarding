@@ -2,16 +2,16 @@
 
 ## Antragsübersicht
 
-Nach der Anmeldung sehen Sie die **Antragsübersicht** mit allen eingereichten Anträgen Ihrer EEG(s).
+Nach der Anmeldung siehst du die **Antragsübersicht** mit allen eingereichten Anträgen deiner EEG(s).
 
 ![Antragsübersicht](images/admin-applications-list.png)
 
 ### Toolbar-Aktionen
 
-Rechts oben in der Übersicht stehen Ihnen zwei Aktionen zur Verfügung:
+Rechts oben in der Übersicht stehen dir zwei Aktionen zur Verfügung:
 
 - **„Aktivierung im Core prüfen"** *(PROJ-46 Stage D)* — fragt für alle Anträge im Status „Bereit zur Aktivierung" beim eegFaktura-Core nach, ob das Mitglied dort bereits als ACTIVE eingetragen ist. Falls ja, wird der Antrag automatisch auf **„Aktiviert"** gesetzt. Toast zeigt das Ergebnis (z. B. „3 von 5 auf Aktiviert gesetzt") und die Liste wird neu geladen.
-- **„Alle Entwürfe löschen"** — erscheint nur, wenn Entwürfe existieren; löscht unwiderruflich alle nicht eingereichten Anträge Ihrer EEG(s).
+- **„Alle Entwürfe löschen"** — erscheint nur, wenn Entwürfe existieren; löscht unwiderruflich alle nicht eingereichten Anträge deiner EEG(s).
 
 Die Tabelle zeigt:
 - **Referenznummer** — eindeutige Kennung des Antrags
@@ -25,7 +25,7 @@ Die Mitgliedsnummer ist nicht in der Liste, sondern erst in der Detailansicht ei
 
 ## Anträge filtern
 
-Über das **Filterpanel** können Sie die Anträge gezielt einschränken:
+Über das **Filterpanel** kannst du die Anträge gezielt einschränken:
 
 | Filter | Beschreibung |
 |--------|-------------|
@@ -37,17 +37,17 @@ Die Mitgliedsnummer ist nicht in der Liste, sondern erst in der Detailansicht ei
 
 ## Sortieren
 
-Klicken Sie auf eine Spaltenüberschrift, um die Liste nach dieser Spalte zu sortieren:
+Klicke auf eine Spaltenüberschrift, um die Liste nach dieser Spalte zu sortieren:
 
 * Erster Klick → aufsteigend (Pfeil ↑)
 * Zweiter Klick → absteigend (Pfeil ↓)
 * Dritter Klick → Standardsortierung (Pfeil ↕)
 
-Die aktuelle Sortierung wird im Link in der Adressleiste mitgeführt, sodass Sie sortierte Ansichten teilen oder als Lesezeichen speichern können.
+Die aktuelle Sortierung wird im Link in der Adressleiste mitgeführt, sodass du sortierte Ansichten teilen oder als Lesezeichen speichern kannst.
 
 ## Antrag öffnen
 
-Klicken Sie auf eine Zeile in der Tabelle, um die **Detailansicht** des Antrags zu öffnen.
+Klicke auf eine Zeile in der Tabelle, um die **Detailansicht** des Antrags zu öffnen.
 
 ## Detailansicht
 
@@ -68,29 +68,29 @@ Die Detailansicht zeigt alle Angaben des Mitglieds:
 
 ## Antrag bearbeiten
 
-Als Admin können Sie folgende Felder direkt korrigieren:
+Als Admin kannst du folgende Felder direkt korrigieren:
 
 - Persönliche Daten und Adresse
 - IBAN und Kontoinhaber
 - Zählpunkte
 - Admin-Notiz (interne Anmerkungen)
 
-Klicken Sie auf **Bearbeiten**, nehmen Sie die Änderungen vor und speichern Sie.
+Klicke auf **Bearbeiten**, nimm die Änderungen vor und speichere.
 
-> **Hinweis:** Änderungen an Antragsdaten werden im Statusverlauf nicht automatisch protokolliert. Nutzen Sie die Admin-Notiz für wichtige Vermerke.
+> **Hinweis:** Änderungen an Antragsdaten werden im Statusverlauf nicht automatisch protokolliert. Nutze die Admin-Notiz für wichtige Vermerke.
 
 > **Hinweis:** Das Speichern der Admin-Notiz aktualisiert ausschließlich das Notizfeld — andere Antragsdaten (Mitgliedstyp, Zählpunkte, Teilnahmefaktor, …) werden dabei nicht überschrieben.
 
 ## Entwürfe löschen
 
-Wenn ein Mitglied einen Antrag begonnen, aber nie eingereicht hat (Status `draft`), können Sie ihn aus der Übersicht entfernen. Die Massen-Löschaktion respektiert dabei den aktiven **EEG-Filter**:
+Wenn ein Mitglied einen Antrag begonnen, aber nie eingereicht hat (Status `draft`), kannst du ihn aus der Übersicht entfernen. Die Massen-Löschaktion respektiert dabei den aktiven **EEG-Filter**:
 
 * Filter auf eine bestimmte EEG gesetzt → nur Entwürfe dieser EEG werden gelöscht
 * Kein EEG-Filter gesetzt (Superuser) → Entwürfe aller EEGs werden gelöscht
 
 ## E-Mail erneut senden
 
-Falls ein Mitglied die Bestätigungs-E-Mail nicht erhalten hat, können Sie diese über den Button **E-Mail erneut senden** in der Detailansicht nochmals versenden.
+Falls ein Mitglied die Bestätigungs-E-Mail nicht erhalten hat, kannst du diese über den Button **E-Mail erneut senden** in der Detailansicht nochmals versenden.
 
 ## EEG umzuordnen (PROJ-40)
 

@@ -70,8 +70,8 @@ export default async function RegisterPage({ params }: PageProps) {
           <AlertTitle>Registrierungslink ungültig</AlertTitle>
           <AlertDescription>
             Der Registrierungslink <strong>{rc_number.toUpperCase()}</strong> ist
-            nicht bekannt. Bitte überprüfen Sie den Link oder wenden Sie sich an
-            Ihren EEG-Administrator.
+            nicht bekannt. Bitte überprüfe den Link oder wende dich an
+            deinen EEG-Administrator.
           </AlertDescription>
         </Alert>
       </PublicPageShell>
@@ -85,8 +85,8 @@ export default async function RegisterPage({ params }: PageProps) {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Registrierung nicht verfügbar</AlertTitle>
           <AlertDescription>
-            Diese Registrierung ist nicht mehr aktiv. Bitte wenden Sie sich an
-            Ihren EEG-Administrator.
+            Diese Registrierung ist nicht mehr aktiv. Bitte wende dich an
+            deinen EEG-Administrator.
           </AlertDescription>
         </Alert>
       </PublicPageShell>
@@ -100,7 +100,7 @@ export default async function RegisterPage({ params }: PageProps) {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Dienst nicht verfügbar</AlertTitle>
           <AlertDescription>
-            Die Registrierung konnte nicht geladen werden. Bitte versuchen Sie
+            Die Registrierung konnte nicht geladen werden. Bitte versuche
             es später erneut.
           </AlertDescription>
         </Alert>

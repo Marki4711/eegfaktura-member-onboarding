@@ -2,34 +2,34 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Rückfragen zu Ihrem Beitrittsantrag</title>
+  <title>Rückfragen zu deinem Beitrittsantrag</title>
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-  {{if .Firstname}}<p>Sehr geehrte/r {{.Firstname}} {{.Lastname}},</p>{{else}}<p>Sehr geehrte Damen und Herren,</p>{{end}}
+  {{if .Firstname}}<p>Hallo {{.Firstname}} {{.Lastname}},</p>{{else}}<p>Hallo zusammen,</p>{{end}}
 
-  <p>{{if .EEGName}}<strong>{{.EEGName}}</strong> hat{{else}}Ihre Energiegemeinschaft hat{{end}} zu Ihrem Beitrittsantrag (Antragsnummer <strong>{{.ReferenceNumber}}</strong>) <strong>Rückfragen</strong>.</p>
+  <p>{{if .EEGName}}<strong>{{.EEGName}}</strong> hat{{else}}deine Energiegemeinschaft hat{{end}} zu deinem Beitrittsantrag (Antragsnummer <strong>{{.ReferenceNumber}}</strong>) <strong>Rückfragen</strong>.</p>
 
   <p><strong>Rückfrage der Energiegemeinschaft:</strong></p>
   <div style="margin: 12px 0; padding: 12px 16px; background-color: #fff8e1; border-left: 4px solid #f9a825; white-space: pre-wrap;">{{.Reason}}</div>
 
   <p>
-    <strong>So beantworten Sie die Rückfrage:</strong> Antworten Sie direkt auf diese
-    E-Mail — Ihre Antwort geht an
-    {{if .EEGName}}{{.EEGName}}{{else}}Ihre Energiegemeinschaft{{end}}.
-    Falls Sie Angaben in Ihrem Antrag selbst korrigieren oder ergänzen
-    möchten, kann
-    {{if .EEGName}}{{.EEGName}}{{else}}Ihre Energiegemeinschaft{{end}} Ihnen
+    <strong>So beantwortest du die Rückfrage:</strong> Antworte direkt auf diese
+    E-Mail — deine Antwort geht an
+    {{if .EEGName}}{{.EEGName}}{{else}}deine Energiegemeinschaft{{end}}.
+    Falls du Angaben in deinem Antrag selbst korrigieren oder ergänzen
+    möchtest, kann
+    {{if .EEGName}}{{.EEGName}}{{else}}deine Energiegemeinschaft{{end}} dir
     den ursprünglichen Antragslink erneut zusenden.
   </p>
 
   <p>Mit freundlichen Grüßen<br>
-    {{if .EEGName}}Ihr Team von {{.EEGName}}{{else}}Ihre Energiegemeinschaft{{end}}
+    {{if .EEGName}}Dein Team von {{.EEGName}}{{else}}Deine Energiegemeinschaft{{end}}
   </p>
 
   <hr style="border: none; border-top: 1px solid #ddd; margin: 32px 0 16px;">
   <p style="font-size: 12px; color: #777; line-height: 1.5;">
-    Sie erhalten diese E-Mail, weil unter Ihrer E-Mail-Adresse ein Mitgliedsantrag{{if .EEGName}} bei <strong>{{.EEGName}}</strong>{{end}} eingereicht wurde (Antragsnummer {{.ReferenceNumber}}).
-    {{if .EEGName}}Für Rückfragen wenden Sie sich bitte direkt an {{.EEGName}}{{if .EEGContactEmail}} (<a href="mailto:{{.EEGContactEmail}}">{{.EEGContactEmail}}</a>){{end}}{{end}} &mdash; eine Antwort auf diese E-Mail geht direkt an Ihre Energiegemeinschaft.
+    Du erhältst diese E-Mail, weil unter deiner E-Mail-Adresse ein Mitgliedsantrag{{if .EEGName}} bei <strong>{{.EEGName}}</strong>{{end}} eingereicht wurde (Antragsnummer {{.ReferenceNumber}}).
+    {{if .EEGName}}Für Rückfragen wende dich bitte direkt an {{.EEGName}}{{if .EEGContactEmail}} (<a href="mailto:{{.EEGContactEmail}}">{{.EEGContactEmail}}</a>){{end}}{{end}} &mdash; eine Antwort auf diese E-Mail geht direkt an deine Energiegemeinschaft.
   </p>
   <p style="font-size: 12px; color: #777;">
     Diese Nachricht wurde automatisch durch eegFaktura Mitglieder-Onboarding erzeugt.

@@ -158,7 +158,7 @@ type memberTemplateData struct {
 	EEGStreetNumber string
 	EEGZip          string
 	EEGCity         string
-	// EEGContactEmail: für die Footer-Zeile „Für Rückfragen wenden Sie sich
+	// EEGContactEmail: für die Footer-Zeile „Für Rückfragen wende dich
 	// direkt an die EEG (E-Mail)". Ersetzt die frühere Postadressen-Anzeige.
 	EEGContactEmail string
 	CreditorID      string
@@ -446,7 +446,7 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 	}); err != nil {
 		slog.Error("mail: failed to render member template", "application_id", app.ID, "error", err)
 	} else {
-		subject := fmt.Sprintf("Ihre Beitrittserklärung wurde eingereicht (%s)", app.ReferenceNumber)
+		subject := fmt.Sprintf("Deine Beitrittserklärung wurde eingereicht (%s)", app.ReferenceNumber)
 		memberHTML := memberBuf.String()
 		memberPlain := htmlToText(memberHTML)
 		// Reply-To = EEG contact so the member's "Reply" lands at their EEG,
@@ -604,7 +604,7 @@ func (s *SMTPMailService) SendMemberConfirmation(app *shared.Application, entryp
 	}); err != nil {
 		return fmt.Errorf("render member template: %w", err)
 	}
-	subject := fmt.Sprintf("Ihre Beitrittserklärung wurde eingereicht (%s)", app.ReferenceNumber)
+	subject := fmt.Sprintf("Deine Beitrittserklärung wurde eingereicht (%s)", app.ReferenceNumber)
 	htmlBody := buf.String()
 	opts := transactionalOpts(derefString(entrypoint.ContactEmail))
 	err := s.sender.Send(opts, app.Email, subject, htmlBody, htmlToText(htmlBody))
@@ -656,7 +656,7 @@ func (s *SMTPMailService) SendRejectedNotification(app *shared.Application, entr
 		metrics.MailSentTotal.WithLabelValues("member_rejection", "failed").Inc()
 		return fmt.Errorf("render rejected template: %w", err)
 	}
-	subject := fmt.Sprintf("Ihr Beitrittsantrag wurde abgelehnt (%s)", app.ReferenceNumber)
+	subject := fmt.Sprintf("Dein Beitrittsantrag wurde abgelehnt (%s)", app.ReferenceNumber)
 	htmlBody := buf.String()
 	// Reply-To = EEG contact so the member's "Reply" goes to the EEG, not
 	// to the noreply mailbox. Same pattern as the welcome mail.
@@ -678,7 +678,7 @@ func (s *SMTPMailService) SendNeedsInfoNotification(app *shared.Application, ent
 		metrics.MailSentTotal.WithLabelValues("member_needs_info", "failed").Inc()
 		return fmt.Errorf("render needs-info template: %w", err)
 	}
-	subject := fmt.Sprintf("Rückfragen zu Ihrem Beitrittsantrag (%s)", app.ReferenceNumber)
+	subject := fmt.Sprintf("Rückfragen zu deinem Beitrittsantrag (%s)", app.ReferenceNumber)
 	htmlBody := buf.String()
 	opts := transactionalOpts(derefString(entrypoint.ContactEmail))
 	if err := s.sender.Send(opts, app.Email, subject, htmlBody, htmlToText(htmlBody)); err != nil {
@@ -738,7 +738,7 @@ func buildImportedData(app *shared.Application, ep *shared.RegistrationEntrypoin
 // failures are logged + counted but do not roll back the import.
 func (s *SMTPMailService) SendImportedNotification(app *shared.Application, ep *shared.RegistrationEntrypoint, pdfBytes []byte, pdfFailed bool, b2bMandatePDF []byte) error {
 	data := buildImportedData(app, ep, pdfFailed, len(b2bMandatePDF) > 0)
-	subject := fmt.Sprintf("Ihre Beitrittsbestätigung – Mitgliedsnummer %s", data.MemberNumber)
+	subject := fmt.Sprintf("Deine Beitrittsbestätigung – Mitgliedsnummer %s", data.MemberNumber)
 	filename := fmt.Sprintf("beitrittsbestaetigung-%s.pdf", app.ReferenceNumber)
 	b2bFilename := fmt.Sprintf("sepa-firmenlastschrift-mandat-%s.pdf", data.MemberNumber)
 
@@ -828,8 +828,8 @@ func (s *SMTPMailService) SendActivatedNotification(app *shared.Application, ep 
 		metrics.MailSentTotal.WithLabelValues("member_activated", "failed").Inc()
 		return fmt.Errorf("render activated template: %w", err)
 	}
-	subject := fmt.Sprintf("Willkommen bei %s – Ihre Mitgliedschaft ist aktiv",
-		ifEmpty(data.EEGName, "Ihrer Energiegemeinschaft"))
+	subject := fmt.Sprintf("Willkommen bei %s – Deine Mitgliedschaft ist aktiv",
+		ifEmpty(data.EEGName, "deiner Energiegemeinschaft"))
 	htmlBody := buf.String()
 	opts := transactionalOpts(derefString(ep.ContactEmail))
 	if err := s.sender.Send(opts, app.Email, subject, htmlBody, htmlToText(htmlBody)); err != nil {

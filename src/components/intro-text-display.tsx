@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-const DEFAULT_TEXT = "Füllen Sie das Formular aus, um Ihre Mitgliedschaft zu beantragen.";
+const DEFAULT_TEXT = "Fülle das Formular aus, um deine Mitgliedschaft zu beantragen.";
 
 interface Props {
   introText?: string | null;

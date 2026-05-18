@@ -34,8 +34,8 @@ export default function HomePage() {
           <CardHeader>
             <CardTitle className="text-foreground">Mitglied werden</CardTitle>
             <CardDescription className="text-muted-foreground">
-              Geben Sie Ihre Registrierungsnummer (RC-Nummer) ein, die Sie von
-              Ihrer EEG erhalten haben.
+              Gib deine Registrierungsnummer (RC-Nummer) ein, die du von
+              deiner EEG erhalten hast.
             </CardDescription>
           </CardHeader>
           <CardContent>

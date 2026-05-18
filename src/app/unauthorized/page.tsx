@@ -19,8 +19,8 @@ export default function UnauthorizedPage() {
         </div>
         <h1 className="text-2xl font-semibold text-foreground">Kein Zugriff</h1>
         <p className="text-muted-foreground">
-          Ihr Konto hat keine Berechtigung für den Admin-Bereich. Bitte wenden Sie
-          sich an Ihren Administrator.
+          Dein Konto hat keine Berechtigung für den Admin-Bereich. Bitte wende
+          dich an deinen Administrator.
         </p>
         {email && (
           <p className="text-sm text-muted-foreground bg-muted rounded px-3 py-2">

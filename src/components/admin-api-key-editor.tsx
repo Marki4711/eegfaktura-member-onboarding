@@ -170,7 +170,7 @@ export function AdminApiKeyEditor({ rcNumber }: Props) {
           <DialogHeader>
             <DialogTitle>API-Key generiert</DialogTitle>
             <DialogDescription>
-              Kopieren Sie den Key jetzt. Er wird nach dem Schließen dieses Dialogs{" "}
+              Kopiere den Key jetzt. Er wird nach dem Schließen dieses Dialogs{" "}
               <strong>nicht mehr angezeigt</strong>.
             </DialogDescription>
           </DialogHeader>
@@ -180,7 +180,7 @@ export function AdminApiKeyEditor({ rcNumber }: Props) {
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Speichern Sie den Key sicher ab (z. B. als Umgebungsvariable auf Ihrem Server).
+            Speichere den Key sicher ab (z. B. als Umgebungsvariable auf deinem Server).
             Der Key darf niemals in Browser-seitigem Code verwendet werden.
           </p>
 

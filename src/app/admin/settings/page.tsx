@@ -54,7 +54,7 @@ export default function SettingsPage() {
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground text-sm">
             Als Superuser ohne zugewiesene EEGs: Bitte zuerst eine EEG in der
-            Antragsliste auswählen, dann kehren Sie hierher zurück.
+            Antragsliste auswählen, dann kehre hierher zurück.
           </CardContent>
         </Card>
       </div>
@@ -67,7 +67,7 @@ export default function SettingsPage() {
         <h1 className="text-2xl font-bold">Einstellungen</h1>
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground text-sm">
-            Ihrem Account sind keine EEGs zugewiesen.
+            Deinem Account sind keine EEGs zugewiesen.
           </CardContent>
         </Card>
       </div>
@@ -100,7 +100,7 @@ export default function SettingsPage() {
         <div>
           <h2 className="text-xl font-semibold mb-1">EEG-Stammdaten &amp; SEPA-Mandat</h2>
           <p className="text-sm text-muted-foreground mb-4">
-            Aktivieren oder deaktivieren Sie die öffentliche Registrierung und konfigurieren Sie
+            Aktiviere oder deaktiviere die öffentliche Registrierung und konfiguriere
             das SEPA-Lastschriftmandat. Das Mandat wird je nach Einstellung als PDF-Anhang in
             der Eingangsbestätigung oder erst nach erfolgreichem Import (mit Mitgliedsnummer
             als Mandatsreferenz) versendet.
@@ -129,7 +129,7 @@ export default function SettingsPage() {
       <div>
         <h2 className="text-xl font-semibold mb-1">Formular-Felder &amp; Zählpunktfelder</h2>
         <p className="text-sm text-muted-foreground mb-4">
-          Legen Sie fest, welche optionalen Felder im Registrierungsformular für Ihre EEG angezeigt werden.
+          Lege fest, welche optionalen Felder im Registrierungsformular für deine EEG angezeigt werden.
           Felder können ausgeblendet, optional, verpflichtend oder als Admin-Vorbefüllung konfiguriert werden.
         </p>
 
@@ -162,8 +162,8 @@ export default function SettingsPage() {
           <p className="text-sm text-muted-foreground mb-4">
             EEG-spezifische Dokumente (z. B. Satzung, Nutzungsbedingungen), denen Mitglieder bei
             der Registrierung zustimmen müssen. Die zentrale Datenschutzerklärung wird global
-            vom Betreiber konfiguriert; ob sie zusätzlich im Formular angezeigt wird, steuern
-            Sie unten per Toggle.
+            vom Betreiber konfiguriert; ob sie zusätzlich im Formular angezeigt wird, steuerst
+            du unten per Toggle.
           </p>
           <AdminLegalDocumentsEditor rcNumber={selectedRc} />
         </div>
@@ -177,7 +177,7 @@ export default function SettingsPage() {
           <h2 className="text-xl font-semibold mb-1">Externe API</h2>
           <p className="text-sm text-muted-foreground mb-4">
             API-Key für die externe Registrierungs-API. Der Key ermöglicht das Einreichen von Mitgliedsanträgen
-            über eine eigene Integration (z.B. eigenes Formular auf Ihrer Website).
+            über eine eigene Integration (z.B. eigenes Formular auf deiner Website).
             Der Key darf ausschließlich server-seitig verwendet werden — niemals in Browser-seitigem Code.
           </p>
           <AdminApiKeyEditor rcNumber={selectedRc} />

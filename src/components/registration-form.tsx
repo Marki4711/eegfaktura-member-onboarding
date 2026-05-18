@@ -615,13 +615,13 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
         } else if (code === "turnstile_failed" || code === "turnstile_missing") {
           setTurnstileToken(null);
           turnstileRef.current?.reset();
-          setApiError("Sicherheitsprüfung fehlgeschlagen. Bitte lösen Sie das CAPTCHA erneut.");
+          setApiError("Sicherheitsprüfung fehlgeschlagen. Bitte löse das CAPTCHA erneut.");
         } else {
           setApiError(message || "Ein Fehler ist aufgetreten.");
         }
       } else {
         setApiError(
-          "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut."
+          "Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es erneut."
         );
       }
     } finally {
@@ -643,17 +643,17 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
         <CardContent className="space-y-4">
           <p className="text-muted-foreground">
             {config.requireEmailConfirmation
-              ? "Bitte prüfen Sie jetzt Ihr E-Mail-Postfach und bestätigen Sie Ihre E-Mail-Adresse über den zugesandten Link."
-              : "Ihr Antrag wurde übermittelt und wird nun von unserem Team geprüft."}
+              ? "Bitte prüfe jetzt dein E-Mail-Postfach und bestätige deine E-Mail-Adresse über den zugesandten Link."
+              : "Dein Antrag wurde übermittelt und wird nun von unserem Team geprüft."}
           </p>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-medium">Ihre Antragsnummer:</span>
+            <span className="text-sm font-medium">Deine Antragsnummer:</span>
             <Badge variant="secondary" className="font-mono text-sm">
               {success.referenceNumber}
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground">
-            Bitte notieren Sie diese Nummer für eventuelle Rückfragen.
+            Bitte notiere diese Nummer für eventuelle Rückfragen.
           </p>
         </CardContent>
       </Card>
@@ -1036,7 +1036,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                 })()
               ) : (
                 <p className="text-xs text-muted-foreground border-t pt-3">
-                  Der Anteilswert wird Ihnen von Ihrer Energiegemeinschaft
+                  Der Anteilswert wird dir von deiner Energiegemeinschaft
                   separat mitgeteilt.
                 </p>
               )}
@@ -1441,8 +1441,8 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
             )}
             {sepaMandateEnabled && sepaMandateAtImport && (
               <p className="text-sm text-muted-foreground pl-1">
-                Das SEPA-Lastschriftmandat erhalten Sie nach der Freigabe Ihres
-                Antrags per E-Mail — mit eingetragener Mandatsreferenz (Ihrer
+                Das SEPA-Lastschriftmandat erhältst du nach der Freigabe deines
+                Antrags per E-Mail — mit eingetragener Mandatsreferenz (deiner
                 Mitgliedsnummer) zur Unterschrift.
               </p>
             )}
@@ -1476,8 +1476,8 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
               <div className="pt-2 mt-2 border-t space-y-2">
                 <p className="text-sm font-medium">Zur Information</p>
                 <p className="text-xs text-muted-foreground">
-                  Die folgenden Dokumente werden Ihnen zur Information bereitgestellt.
-                  Mit Absenden des Antrags bestätigen Sie, sie zur Kenntnis genommen zu haben:
+                  Die folgenden Dokumente werden dir zur Information bereitgestellt.
+                  Mit Absenden des Antrags bestätigst du, sie zur Kenntnis genommen zu haben:
                 </p>
                 <ul className="list-disc pl-5 text-sm space-y-1">
                   {informationalEegDocs.map((doc) => (

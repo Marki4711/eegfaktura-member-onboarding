@@ -360,7 +360,7 @@ function MeteringPointRow({
                   <Info className="h-3.5 w-3.5 text-muted-foreground" />
                 </PopoverTrigger>
                 <PopoverContent className="max-w-72 text-sm">
-                  Die 33-stellige Zählpunktnummer (beginnt mit „AT") identifiziert Ihren Stromanschluss eindeutig. Sie finden sie auf jeder Stromrechnung sowie im Kundenportal Ihres Netzbetreibers. Wenn die EEG einen Prefix konfiguriert hat, ist dieser bereits vorbelegt — Sie tippen nur noch die restlichen Stellen.
+                  Die 33-stellige Zählpunktnummer (beginnt mit „AT") identifiziert deinen Stromanschluss eindeutig. Du findest sie auf jeder Stromrechnung sowie im Kundenportal deines Netzbetreibers. Wenn die EEG einen Prefix konfiguriert hat, ist dieser bereits vorbelegt — du tippst nur noch die restlichen Stellen.
                 </PopoverContent>
               </Popover>
             </div>
@@ -1011,7 +1011,7 @@ function BatteryBlock({
                         <Info className="h-3.5 w-3.5 text-muted-foreground" />
                       </PopoverTrigger>
                       <PopoverContent className="max-w-72 text-sm">
-                        Die EEG könnte Ihren Heimspeicher gemeinsam mit den Speichern anderer Mitglieder so steuern, dass die Erzeugung innerhalb der Gemeinschaft optimal genutzt wird. Das Häkchen ist nur Ihr Einverständnis im Sinne der EEG — eine konkrete Steuerung wird separat mit Ihnen abgestimmt.
+                        Die EEG könnte deinen Heimspeicher gemeinsam mit den Speichern anderer Mitglieder so steuern, dass die Erzeugung innerhalb der Gemeinschaft optimal genutzt wird. Das Häkchen ist nur dein Einverständnis im Sinne der EEG — eine konkrete Steuerung wird separat mit dir abgestimmt.
                       </PopoverContent>
                     </Popover>
                   </div>

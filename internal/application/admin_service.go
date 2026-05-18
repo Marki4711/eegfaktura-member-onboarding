@@ -207,7 +207,7 @@ func (s *AdminApplicationService) ResendEmailConfirmation(id uuid.UUID) error {
 	if lockedExpiresAt.Valid {
 		issuedAt := lockedExpiresAt.Time.Add(-emailConfirmationTokenLifetime)
 		if time.Since(issuedAt) < resendThrottle {
-			return shared.NewConflictError(fmt.Sprintf("bitte warten Sie noch %s vor dem nächsten Versand", resendThrottle))
+			return shared.NewConflictError(fmt.Sprintf("bitte warte noch %s vor dem nächsten Versand", resendThrottle))
 		}
 	}
 

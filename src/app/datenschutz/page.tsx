@@ -21,9 +21,9 @@ export default function DatenschutzPage() {
             <p>
               Verantwortlicher im Sinne der Datenschutz-Grundverordnung (DSGVO) und des
               österreichischen Datenschutzgesetzes (DSG) ist die jeweilige
-              Energiegemeinschaft (EEG), über deren Registrierungslink Sie auf dieses
-              Formular gelangt sind. Die genauen Kontaktdaten entnehmen Sie bitte dem
-              Anschreiben oder der Website Ihrer Energiegemeinschaft.
+              Energiegemeinschaft (EEG), über deren Registrierungslink du auf dieses
+              Formular gelangt bist. Die genauen Kontaktdaten entnimm bitte dem
+              Anschreiben oder der Website deiner Energiegemeinschaft.
             </p>
             <p>
               Technischer Betreiber dieser Plattform ist:
@@ -54,21 +54,21 @@ export default function DatenschutzPage() {
 
           <section className="space-y-3">
             <h2 className="text-base font-semibold">3. Zweck und Rechtsgrundlage der Verarbeitung</h2>
-            <p>Ihre Daten werden ausschließlich für folgende Zwecke verarbeitet:</p>
+            <p>Deine Daten werden ausschließlich für folgende Zwecke verarbeitet:</p>
             <ul className="list-disc pl-5 space-y-2">
               <li>
                 <span className="font-medium">Mitglieder-Aufnahme in die Energiegemeinschaft</span> —
-                Prüfung, Verwaltung und Genehmigung Ihres Beitrittsantrags
+                Prüfung, Verwaltung und Genehmigung deines Beitrittsantrags
                 (Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO – Vertragsanbahnung)
               </li>
               <li>
                 <span className="font-medium">SEPA-Lastschriftmandat</span> —
-                Einzug von Rechnungsbeträgen auf Basis Ihrer Einwilligung
+                Einzug von Rechnungsbeträgen auf Basis deiner Einwilligung
                 (Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO – Einwilligung)
               </li>
               <li>
                 <span className="font-medium">Kommunikation</span> —
-                Benachrichtigung über den Bearbeitungsstand Ihres Antrags per E-Mail
+                Benachrichtigung über den Bearbeitungsstand deines Antrags per E-Mail
                 (Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO)
               </li>
               <li>
@@ -81,9 +81,9 @@ export default function DatenschutzPage() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-base font-semibold">4. Empfänger Ihrer Daten</h2>
+            <h2 className="text-base font-semibold">4. Empfänger deiner Daten</h2>
             <p>
-              Ihre Daten werden nach Genehmigung Ihres Antrags in das Mitgliederverwaltungssystem
+              Deine Daten werden nach Genehmigung deines Antrags in das Mitgliederverwaltungssystem
               <em> eegFaktura</em> der jeweiligen Energiegemeinschaft übertragen. Eine
               Weitergabe an Dritte außerhalb der Energiegemeinschaft erfolgt nicht, sofern
               keine gesetzliche Verpflichtung besteht.
@@ -107,31 +107,31 @@ export default function DatenschutzPage() {
               Antragstellung.
             </p>
             <p>
-              Nach Aufnahme in die Energiegemeinschaft werden Ihre Stammdaten für die
+              Nach Aufnahme in die Energiegemeinschaft werden deine Stammdaten für die
               Dauer der Mitgliedschaft sowie die gesetzlich vorgeschriebenen
               Aufbewahrungsfristen (z. B. 7 Jahre für buchhalterische Unterlagen) gespeichert.
             </p>
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-base font-semibold">6. Ihre Rechte</h2>
-            <p>Sie haben folgende Rechte bezüglich Ihrer personenbezogenen Daten:</p>
+            <h2 className="text-base font-semibold">6. Deine Rechte</h2>
+            <p>Du hast folgende Rechte bezüglich deiner personenbezogenen Daten:</p>
             <ul className="list-disc pl-5 space-y-1">
-              <li><span className="font-medium">Auskunft</span> (Art. 15 DSGVO) – Sie können Auskunft über die von uns gespeicherten Daten verlangen.</li>
-              <li><span className="font-medium">Berichtigung</span> (Art. 16 DSGVO) – Sie können die Korrektur unrichtiger Daten fordern.</li>
-              <li><span className="font-medium">Löschung</span> (Art. 17 DSGVO) – Sie können die Löschung Ihrer Daten verlangen, sofern keine gesetzlichen Aufbewahrungspflichten entgegenstehen.</li>
+              <li><span className="font-medium">Auskunft</span> (Art. 15 DSGVO) – Du kannst Auskunft über die von uns gespeicherten Daten verlangen.</li>
+              <li><span className="font-medium">Berichtigung</span> (Art. 16 DSGVO) – Du kannst die Korrektur unrichtiger Daten fordern.</li>
+              <li><span className="font-medium">Löschung</span> (Art. 17 DSGVO) – Du kannst die Löschung deiner Daten verlangen, sofern keine gesetzlichen Aufbewahrungspflichten entgegenstehen.</li>
               <li><span className="font-medium">Einschränkung der Verarbeitung</span> (Art. 18 DSGVO)</li>
               <li><span className="font-medium">Datenübertragbarkeit</span> (Art. 20 DSGVO)</li>
               <li><span className="font-medium">Widerspruch</span> (Art. 21 DSGVO) – gegen die Verarbeitung auf Basis berechtigter Interessen.</li>
               <li>
                 <span className="font-medium">Widerruf einer Einwilligung</span> –
-                Sie können eine erteilte Einwilligung jederzeit mit Wirkung für die Zukunft
+                Du kannst eine erteilte Einwilligung jederzeit mit Wirkung für die Zukunft
                 widerrufen. Die Rechtmäßigkeit der bis zum Widerruf erfolgten Verarbeitung
                 bleibt unberührt.
               </li>
             </ul>
             <p>
-              Zur Ausübung Ihrer Rechte wenden Sie sich bitte an die in Abschnitt 1
+              Zur Ausübung deiner Rechte wende dich bitte an die in Abschnitt 1
               genannte Energiegemeinschaft oder an{" "}
               <a href="mailto:office@eegfaktura.at" className="underline hover:text-foreground">
                 office@eegfaktura.at
@@ -142,7 +142,7 @@ export default function DatenschutzPage() {
           <section className="space-y-3">
             <h2 className="text-base font-semibold">7. Beschwerderecht</h2>
             <p>
-              Sie haben das Recht, bei der österreichischen Datenschutzbehörde Beschwerde
+              Du hast das Recht, bei der österreichischen Datenschutzbehörde Beschwerde
               einzulegen:
             </p>
             <address className="not-italic pl-4 border-l-2 border-border text-muted-foreground space-y-0.5">
@@ -165,7 +165,7 @@ export default function DatenschutzPage() {
           <section className="space-y-3">
             <h2 className="text-base font-semibold">8. Technische Sicherheit</h2>
             <p>
-              Die Übertragung Ihrer Daten erfolgt ausschließlich über verschlüsselte
+              Die Übertragung deiner Daten erfolgt ausschließlich über verschlüsselte
               HTTPS-Verbindungen. Die Speicherung erfolgt in einer gesicherten
               PostgreSQL-Datenbank in einem europäischen Rechenzentrum.
             </p>

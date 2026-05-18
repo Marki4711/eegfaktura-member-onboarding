@@ -2,15 +2,15 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Ihre Beitrittsbestätigung</title>
+  <title>Deine Beitrittsbestätigung</title>
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 700px;">
-  <p>Sehr geehrte/r {{if .Firstname}}{{.Firstname}} {{end}}{{.Lastname}},</p>
+  <p>Hallo {{if .Firstname}}{{.Firstname}} {{end}}{{.Lastname}},</p>
 
   <p>
-    Ihr Antrag auf Mitgliedschaft bei
+    dein Antrag auf Mitgliedschaft bei
     {{if .EEGName}}<strong>{{.EEGName}}</strong>{{else}}der Energiegemeinschaft{{end}}
-    wurde aufgenommen und Sie haben die Mitgliedsnummer
+    wurde aufgenommen und du hast die Mitgliedsnummer
     <strong>{{.MemberNumber}}</strong> erhalten.
   </p>
 
@@ -28,53 +28,53 @@
   {{if .PDFFailed}}
   <p><strong>Hinweis:</strong> Die Beitrittsbestätigung konnte nicht als PDF generiert werden. Wir melden uns mit dem Dokument auf einem anderen Weg.</p>
   {{else}}
-  <p>Die Beitrittsbestätigung mit allen Details Ihres Antrags finden Sie als PDF-Anhang dieser E-Mail.</p>
+  <p>Die Beitrittsbestätigung mit allen Details deines Antrags findest du als PDF-Anhang dieser E-Mail.</p>
   {{end}}
 
   {{if .IsB2B}}
   <div style="margin-top: 20px; padding: 14px 16px; border-left: 4px solid #b58105; background-color: #fff8e6;">
-    <p style="margin: 0 0 8px; font-weight: bold;">Wichtiger Hinweis zu Ihrem B2B-SEPA-Lastschriftmandat</p>
+    <p style="margin: 0 0 8px; font-weight: bold;">Wichtiger Hinweis zu deinem B2B-SEPA-Lastschriftmandat</p>
     <p style="margin: 0 0 8px;">
-      Sie haben das B2B-SEPA-Firmenlastschriftverfahren gewählt. Dieses Verfahren
-      verlangt, dass Sie Ihre Hausbank vorab über das Mandat informieren —
+      Du hast das B2B-SEPA-Firmenlastschriftverfahren gewählt. Dieses Verfahren
+      verlangt, dass du deine Hausbank vorab über das Mandat informierst —
       ohne diese Pre-Notification dürfen keine Lastschriften eingezogen werden.
     </p>
     <p style="margin: 0 0 8px;">
-      <strong>Was wir von Ihnen brauchen:</strong> Bitte hinterlegen Sie das beiliegende
-      Mandat bei Ihrer Bank (oder über das Online-Portal Ihrer Bank) und melden Sie
-      sich danach kurz bei
-      {{if .EEGName}}{{.EEGName}}{{else}}Ihrer Energiegemeinschaft{{end}}.
-      Erst nach Ihrer Rückmeldung schalten wir Ihre Mitgliedschaft endgültig frei.
+      <strong>Was wir von dir brauchen:</strong> Bitte hinterlege das beiliegende
+      Mandat bei deiner Bank (oder über das Online-Portal deiner Bank) und melde dich
+      danach kurz bei
+      {{if .EEGName}}{{.EEGName}}{{else}}deiner Energiegemeinschaft{{end}}.
+      Erst nach deiner Rückmeldung schalten wir deine Mitgliedschaft endgültig frei.
     </p>
     <p style="margin: 0 0 8px;">
-      Mandatsreferenz: <strong>{{.MemberNumber}}</strong> (entspricht Ihrer Mitgliedsnummer)
+      Mandatsreferenz: <strong>{{.MemberNumber}}</strong> (entspricht deiner Mitgliedsnummer)
     </p>
     <p style="margin: 0;">
       <strong>Anhang dieser E-Mail:</strong> die druckbare Firmenlastschrift-Mandats-PDF
       (Dateiname „sepa-firmenlastschrift-mandat-{{.MemberNumber}}.pdf") mit eingedruckter
-      Mandatsreferenz — bitte unterschreiben und Ihrer Hausbank vorlegen.
+      Mandatsreferenz — bitte unterschreiben und deiner Hausbank vorlegen.
     </p>
   </div>
   {{else if .HasMandateAttachment}}
   <div style="margin-top: 20px; padding: 14px 16px; border-left: 4px solid #2e7d32; background-color: #f1f8e9;">
-    <p style="margin: 0 0 8px; font-weight: bold;">Ihr SEPA-Lastschriftmandat</p>
+    <p style="margin: 0 0 8px; font-weight: bold;">Dein SEPA-Lastschriftmandat</p>
     <p style="margin: 0 0 8px;">
-      Beiliegend finden Sie Ihr SEPA-Lastschriftmandat (Basislastschrift) als PDF
+      Beiliegend findest du dein SEPA-Lastschriftmandat (Basislastschrift) als PDF
       mit eingedruckter Mandatsreferenz <strong>{{.MemberNumber}}</strong>
-      (entspricht Ihrer Mitgliedsnummer). Bitte
-      <strong>unterschreiben Sie das Dokument und senden Sie es an
-      {{if .EEGName}}{{.EEGName}}{{else}}Ihre Energiegemeinschaft{{end}} zurück</strong>,
+      (entspricht deiner Mitgliedsnummer). Bitte
+      <strong>unterschreibe das Dokument und sende es an
+      {{if .EEGName}}{{.EEGName}}{{else}}deine Energiegemeinschaft{{end}} zurück</strong>,
       damit Lastschriften eingezogen werden können.
     </p>
-    <p style="margin: 0 0 4px; font-weight: bold;">Sie haben zwei Möglichkeiten zur Unterschrift:</p>
+    <p style="margin: 0 0 4px; font-weight: bold;">Du hast zwei Möglichkeiten zur Unterschrift:</p>
     <ol style="margin: 0; padding-left: 20px;">
       <li style="margin-bottom: 4px;">
-        <strong>Ausdruck &amp; händische Unterschrift:</strong> Drucken Sie das PDF aus,
-        unterschreiben Sie es, und senden Sie ein Foto oder einen Scan an Ihre Energiegemeinschaft.
+        <strong>Ausdruck &amp; händische Unterschrift:</strong> Drucke das PDF aus,
+        unterschreibe es, und sende ein Foto oder einen Scan an deine Energiegemeinschaft.
       </li>
       <li>
         <strong>Digitale Signatur mit der ID Austria App:</strong>
-        Signieren Sie das PDF direkt am Smartphone mit der ID Austria App.
+        Signiere das PDF direkt am Smartphone mit der ID Austria App.
         <br>
         <a href="https://www.oesterreich.gv.at/dam/jcr:0cf432cd-fc6e-4020-9787-0944a7061245/Anleitung_PDF-Signaturservice_Android_v1.1.pdf">
           Anleitung: PDF signieren mit ID Austria (PDF)
@@ -84,20 +84,20 @@
   </div>
   {{else}}
   <p style="margin-top: 20px;">
-    Sie werden in Kürze in die Energiegemeinschaft aufgenommen.
-    Sobald Ihre Mitgliedschaft aktiv ist, erhalten Sie eine separate Bestätigung.
+    Du wirst in Kürze in die Energiegemeinschaft aufgenommen.
+    Sobald deine Mitgliedschaft aktiv ist, erhältst du eine separate Bestätigung.
   </p>
   {{end}}
 
   <p style="margin-top: 24px;">Mit freundlichen Grüßen<br>
-    {{if .EEGName}}Ihr Team von {{.EEGName}}{{else}}Ihre Energiegemeinschaft{{end}}
+    {{if .EEGName}}Dein Team von {{.EEGName}}{{else}}Deine Energiegemeinschaft{{end}}
   </p>
 
   <hr style="border: none; border-top: 1px solid #ddd; margin: 32px 0 16px;">
   <p style="font-size: 12px; color: #777; line-height: 1.5;">
     Diese Nachricht wurde automatisch durch <strong>eegFaktura Mitglieder-Onboarding</strong> erzeugt
     {{if .EEGName}} für {{.EEGName}}{{end}}.
-    Eine Antwort auf diese E-Mail geht direkt an Ihre Energiegemeinschaft.
+    Eine Antwort auf diese E-Mail geht direkt an deine Energiegemeinschaft.
   </p>
 </body>
 </html>

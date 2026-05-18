@@ -101,7 +101,7 @@ export function AdminStatusActions({ applicationId, rcNumber, status, targetPart
       setError(
         serverMessage && serverMessage.length > 0
           ? serverMessage
-          : "Diese Aktion ist nicht mehr gültig. Bitte laden Sie die Seite neu, um den aktuellen Status zu sehen.",
+          : "Diese Aktion ist nicht mehr gültig. Bitte lade die Seite neu, um den aktuellen Status zu sehen.",
       );
     } else {
       setIsConflict(false);

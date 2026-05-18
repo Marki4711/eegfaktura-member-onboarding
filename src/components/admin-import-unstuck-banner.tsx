@@ -123,7 +123,7 @@ export function AdminImportUnstuckBanner({
             <strong>Import-Vorgang hängt fest.</strong>{" "}
             Der letzte Import-Versuch
             {importStartedAt && <> wurde um <strong>{formatDateTime(importStartedAt)}</strong> gestartet</>}
-            {" "}und nicht sauber abgeschlossen. Bitte wählen Sie eine
+            {" "}und nicht sauber abgeschlossen. Bitte wähle eine
             der folgenden Aktionen, um den Antrag zu reparieren:
           </p>
           <div className="flex flex-wrap gap-2 pt-1">
@@ -166,7 +166,7 @@ export function AdminImportUnstuckBanner({
             <DialogTitle>Als importiert markieren</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Tragen Sie die Teilnehmer-UUID und die Mitgliedsnummer ein, wie sie
+            Trage die Teilnehmer-UUID und die Mitgliedsnummer ein, wie sie
             in eegFaktura beim importierten Mitglied angezeigt werden. Der
             Antrag wechselt anschließend auf „Importiert".
           </p>
@@ -224,9 +224,9 @@ export function AdminImportUnstuckBanner({
             <AlertDescription className="text-xs">
               <strong>Achtung:</strong> Wenn der vorige Import-Versuch im eegFaktura-Core
               bereits einen Teilnehmer angelegt hat, entsteht beim nächsten Import-Klick
-              ein <strong>Duplikat</strong>. Verwenden Sie diese Aktion nur, wenn Sie
-              sicher sind, dass im Core kein Teilnehmer existiert (oder Sie diesen vorher
-              manuell gelöscht haben).
+              ein <strong>Duplikat</strong>. Verwende diese Aktion nur, wenn du
+              sicher bist, dass im Core kein Teilnehmer existiert (oder du diesen vorher
+              manuell gelöscht hast).
             </AlertDescription>
           </Alert>
           <div className="space-y-1.5 pt-2">

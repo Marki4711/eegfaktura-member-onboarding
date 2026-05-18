@@ -347,7 +347,7 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
                     <AlertDescription className="text-xs space-y-1">
                       <p>
                         <strong>Stammdaten weichen von eegFaktura ab.</strong>{" "}
-                        Klicken Sie „Aus eegFaktura aktualisieren", um die Daten zu übernehmen.
+                        Klicke „Aus eegFaktura aktualisieren", um die Daten zu übernehmen.
                       </p>
                       <button
                         type="button"
@@ -399,7 +399,7 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
             {comparisonLoaded && comparison?.coreReachable && !comparison.lastSyncedAt && (
               <Alert className="py-2">
                 <AlertDescription className="text-xs">
-                  Stammdaten wurden noch nicht aus eegFaktura geladen. Klicken Sie
+                  Stammdaten wurden noch nicht aus eegFaktura geladen. Klicke
                   „Aus eegFaktura aktualisieren" oben rechts, um sie zu übernehmen.
                 </AlertDescription>
               </Alert>
@@ -583,9 +583,9 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
             <div>
               <p className="text-sm font-medium">Zählpunkt-Prefixes</p>
               <p className="text-xs text-muted-foreground mt-0.5 max-w-2xl">
-                Je mehr Stellen Sie hier festlegen, desto weniger müssen Mitglieder
+                Je mehr Stellen du hier festlegst, desto weniger müssen Mitglieder
                 selbst eintippen. Die sinnvolle Länge hängt davon ab, ab welcher
-                Stelle die Zählpunkte Ihres Netzbetreibers individuell werden.
+                Stelle die Zählpunkte deines Netzbetreibers individuell werden.
                 Beide Felder sind optional; leer lassen heißt „nur AT als fixer
                 Bestandteil".
               </p>
@@ -654,7 +654,7 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
               </Label>
               <p className="text-xs text-muted-foreground mt-1 max-w-xl">
                 Wenn aktiviert, erhält das neue Mitglied in der Eingangsbestätigung einen Button
-                „E-Mail-Adresse bestätigen". Erst nach dem Klick wird der Antrag für Sie zur
+                „E-Mail-Adresse bestätigen". Erst nach dem Klick wird der Antrag für dich zur
                 Prüfung freigegeben. Empfohlen als Schutz vor Müll-Anträgen und Tippfehlern bei
                 der E-Mail-Adresse.
               </p>
