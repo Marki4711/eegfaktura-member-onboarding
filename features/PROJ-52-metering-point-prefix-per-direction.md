@@ -1,8 +1,22 @@
 # PROJ-52: Konfigurierbarer Zählpunkt-Prefix pro Richtung + Auto-Pad + Alphanumerik
 
-**Status:** Planned
+**Status:** In Review
 **Created:** 2026-05-17
-**Last Updated:** 2026-05-17
+**Last Updated:** 2026-05-18
+
+## Implementierungs-Notiz (2026-05-18)
+
+Implementiert in vier Commits:
+
+- `e84317f` Backend — Migration 000045, Repo-Erweiterung, Submit-Prefix-Match-Validation, Alphanumerik-Regex (`^AT\d{11}[A-Z0-9]{20}$`), Public-Config + Admin-Settings GET/PUT mit Patch-Semantik (`meteringPointPrefixesPresent`).
+- `7bd8f78` Admin-UI — zwei Prefix-Inputs in der EEG-Settings-Seite mit Live-Vorschau und Auto-Normalisierung (Whitespace/Dots/Hyphens entfernt, uppercase). `PrefixPreview`-Helper zeigt „AT + N Stellen frei".
+- `8771a80` Public-Form — Felder-Reihenfolge umgestellt (Richtung+Faktor in Zeile 1, Zählpunkt full-width in Zeile 2), dynamische Mask mit `S=[A-Z0-9]`-Definition, Prefix-Prefill bei Direction-Wechsel, `padToMeteringPointLength`-Helper für Auto-Pad onBlur, `MeteringPointRow`-Subkomponente extrahiert.
+- (dieser Commit) Docs — api-spec + domain-model + INDEX-Status.
+
+Bewusste Abweichungen von der Skizze:
+- **Mask-Lock des Prefixes nicht implementiert.** imask kann literale Digits/Letters in der Mask-Definition nicht trivial behandeln. Stattdessen wird der Prefix beim Direction-Wechsel vorbelegt und der Backend validiert das Match beim Submit. UX-Vorteil: Mitglied sieht den Prefix, kann ihn aber theoretisch überschreiben — Backend fängt das ab.
+- **Trennzeichen-Normalisierung** auch Hyphens (`-`) zusätzlich zu Whitespace + Dots — Tester benutzen alle drei austauschbar.
+- `mandate_reference`-Format-Anker (Spec-Detailfrage 5) bleibt out-of-scope — wird im Approval-PDF unverändert als 33-stellige Rohform gerendert.
 
 ## Hintergrund
 

@@ -45,6 +45,8 @@ Fields:
 - `show_central_policy` — boolean, default true; when false, the central operator privacy policy is not shown in the public registration form (for EEGs that configure their own policy as a legal document)
 - `member_number_start` — INT NOT NULL DEFAULT 1; starting value for the per-EEG member number auto-increment counter; the first member number assigned for this EEG will be this value
 - `require_email_confirmation` — boolean, default false (PROJ-31); when true, members must click the link in the confirmation mail before the application becomes reviewable; admin `/status` endpoint rejects `submitted → under_review|needs_info|approved` with 409 until confirmed
+- `metering_point_prefix_consumption` *(PROJ-52)* — VARCHAR(33) NULL; pro-EEG konfigurierbarer Zählpunkt-Prefix für CONSUMPTION-Anschlüsse. DB-CHECK `^AT[0-9A-Z]{0,31}$`. Service-Layer normalisiert vor dem Save (Whitespace + Dots + Hyphens entfernen, uppercase). NULL ⇒ heutiges Verhalten (nur „AT" ist fix). Submit-Validation prüft Match (`HasPrefix`) für jeden CONSUMPTION-Zählpunkt.
+- `metering_point_prefix_production` *(PROJ-52)* — analog für PRODUCTION-Anschlüsse. Fällt zurück auf reines AT-Pattern wenn nur eine Richtung konfiguriert ist (Fallback-Regel 2a).
 - `cooperative_shares_enabled` *(PROJ-37)* — boolean, default false; aktiviert die Genossenschaftsanteile-Erfassung im Mitgliederformular. Wenn TRUE, müssen die beiden folgenden Felder gesetzt sein.
 - `cooperative_required_shares` *(PROJ-37)* — INT NULL, CHECK `> 0`; Pflichtanteils-Mindestmaß pro Mitglied. NULL wenn Feature deaktiviert.
 - `cooperative_share_amount_cents` *(PROJ-37)* — BIGINT NULL, CHECK `> 0`; Preis pro Anteil in Cent. NULL wenn Feature deaktiviert. Speicherung als Integer-Cents vermeidet Float-Drift.

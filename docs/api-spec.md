@@ -105,6 +105,9 @@ No direct access to eegFaktura core tables takes place.
   "sepaMandateEnabled": true,
   "sepaMandateAtImport": false,
   "showCentralPolicy": true,
+  "requireEmailConfirmation": false,
+  "meteringPointPrefixConsumption": "AT00060010001",
+  "meteringPointPrefixProduction": "AT00060010001",
   "legalDocuments": [
     {
       "id": "3f8c8c2d-...",
@@ -136,6 +139,10 @@ No direct access to eegFaktura core tables takes place.
 `sepaMandateEnabled` is `false` by default. When `true`, SEPA mandate checkboxes and PDF generation are activated.
 
 `sepaMandateAtImport` (PROJ-48) is `false` by default. When `true`, the registration form shows an explanatory hint that the SEPA mandate will be sent later (at import time) with the Mitgliedsnummer printed as Mandatsreferenz, instead of being attached to the welcome mail. Only meaningful when `sepaMandateEnabled = true`.
+
+`requireEmailConfirmation` (PROJ-31): when `true`, the registration success view shows the „Bitte E-Mail-Postfach prüfen"-Hinweis instead of the default „wird nun von unserem Team geprüft"-Text. Backend also gates the admin status transitions accordingly.
+
+`meteringPointPrefixConsumption` / `meteringPointPrefixProduction` (PROJ-52): optional per-direction Zählpunkt-Prefix. `null` ⇒ no EEG-specific prefill (mask shows only „AT" as fixed). When set, the form prefills the Zählpunkt-Field on Richtung-Wechsel and auto-pads with leading zeros at onBlur to 33 characters total. Backend submit-validation enforces `HasPrefix` per direction (defense-in-depth). Format ist garantiert `^AT[0-9A-Z]{0,31}$` (DB CHECK + Service-Layer-Normalisierung).
 
 `showCentralPolicy` controls whether the central operator privacy policy is included in `legalDocuments`. Defaults to `true`. When `false`, the central policy entry is omitted from the list even if env vars are set — intended for EEGs that configure their own privacy policy as a custom document.
 
@@ -1167,6 +1174,8 @@ Returns the EEG settings — the eight Core-mastered fields (PROJ-32) plus the o
   "showCentralPolicy": true,
   "memberNumberStart": 1,
   "requireEmailConfirmation": false,
+  "meteringPointPrefixConsumption": "AT00060010001",
+  "meteringPointPrefixProduction": null,
   "cooperativeSharesEnabled": true,
   "cooperativeRequiredShares": 1,
   "cooperativeShareAmountCents": 10000
@@ -1201,6 +1210,9 @@ Writes the onboarding-only editable fields. The Core-mastered fields (`eegId`, `
   "showCentralPolicy": true,
   "memberNumberStart": 1,
   "requireEmailConfirmation": false,
+  "meteringPointPrefixesPresent": true,
+  "meteringPointPrefixConsumption": "AT00060010001",
+  "meteringPointPrefixProduction": null,
   "cooperativeSharesEnabled": true,
   "cooperativeRequiredShares": 1,
   "cooperativeShareAmountCents": 10000
@@ -1218,6 +1230,8 @@ Writes the onboarding-only editable fields. The Core-mastered fields (`eegId`, `
 `memberNumberStart`: starting value for the per-EEG member number auto-increment counter. Defaults to `1` when not explicitly set.
 
 `requireEmailConfirmation` (PROJ-31): when `true`, members must click the confirmation link in the welcome mail before the application becomes reviewable. While pending, the admin `/status` endpoint rejects `submitted → under_review|needs_info|approved` with 409.
+
+`meteringPointPrefixesPresent` + `meteringPointPrefixConsumption` + `meteringPointPrefixProduction` (PROJ-52): **Patch-Semantik** — die zwei Prefix-Spalten werden nur dann persistiert, wenn `meteringPointPrefixesPresent: true` mitgeschickt wird. Sonst lässt der Handler die Spalten unberührt (sodass andere Editoren, die `saveEEGSettings` ohne Prefix-Felder aufrufen, keine bestehenden Werte clobbern). Beim Save: leerer String oder `null` ⇒ Backend cleart die Spalte, Wert ⇒ Backend normalisiert (Whitespace + Dots + Hyphens entfernen, uppercase) und validiert gegen `^AT[0-9A-Z]{0,31}$`. Bei Validierungsfehler 400 mit Field-Level-Message.
 
 `cooperativeSharesEnabled` (PROJ-37): when `true`, the registration form renders a "Genossenschaftsanteile" block with a mandatory share count input; `cooperativeRequiredShares` (≥1) is the minimum, `cooperativeShareAmountCents` (>0) is the price per share. **Both must be present and positive when `cooperativeSharesEnabled=true`** — otherwise the request fails with a 400 carrying field-level error messages. When `false`, both value fields are server-side reset to `null` (cleanup). Config changes apply prospectively only — existing applications keep their stored count even if it now falls below the new minimum.
 

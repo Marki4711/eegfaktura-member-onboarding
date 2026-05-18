@@ -65,6 +65,6 @@ Central tracking for all features.
 | PROJ-49 | Energie-Felder pro Zählpunkt (Refactoring + Einspeiselimit) | In Review | `features/PROJ-49-energy-fields-on-metering-point.md` | 2026-05-17 |
 | PROJ-50 | Zugang Online-Portal Netzbetreiber + bedingte Anleitungs-Mail | Planned | `features/PROJ-50-network-operator-portal-access.md` | 2026-05-17 |
 | PROJ-51 | Anzeige offener Nutzungsgebühren im Admin-UI | On Hold | `features/PROJ-51-usage-fee-status-display.md` | 2026-05-17 |
-| PROJ-52 | Konfigurierbarer Zählpunkt-Prefix pro Richtung + Auto-Pad + Alphanumerik | Planned | `features/PROJ-52-metering-point-prefix-per-direction.md` | 2026-05-17 |
+| PROJ-52 | Konfigurierbarer Zählpunkt-Prefix pro Richtung + Auto-Pad + Alphanumerik | In Review | `features/PROJ-52-metering-point-prefix-per-direction.md` | 2026-05-17 |
 
 ## Next Available ID: PROJ-53
