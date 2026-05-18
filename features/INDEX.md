@@ -40,7 +40,7 @@ Central tracking for all features.
 | PROJ-23 | Stammdaten-Import aus eegFaktura-Excel | On Hold | `features/PROJ-23-stammdaten-import.md` | 2026-04-26 |
 | PROJ-24 | OpenAPI/Swagger Dokumentation | Deployed | `features/PROJ-24-openapi-documentation.md` | 2026-04-29 |
 | PROJ-25 | Bulk-Aktionen im Admin | Deployed | `features/PROJ-25-bulk-actions.md` | 2026-04-29 |
-| PROJ-26 | Eigener Mailserver pro EEG | Planned | `features/PROJ-26-per-eeg-smtp-override.md` | 2026-05-08 |
+| PROJ-26 | Eigener Mailserver pro EEG | On Hold | `features/PROJ-26-per-eeg-smtp-override.md` | 2026-05-08 |
 | PROJ-27 | Tarif-Auswahl beim Import | Approved | `features/PROJ-27-tariff-selection-on-import.md` | 2026-05-09 |
 | PROJ-28 | Trennung Privat / Kleinunternehmer | Approved | `features/PROJ-28-split-private-and-kleinunternehmer.md` | 2026-05-12 |
 | PROJ-29 | IBAN-Eingabe mit visueller Gruppierung | Approved | `features/PROJ-29-iban-visual-grouping.md` | 2026-05-12 |
@@ -63,7 +63,7 @@ Central tracking for all features.
 | PROJ-47 | B2B-SEPA-Firmenlastschrift-Mandat mit Mandatsreferenz beim Import | In Review | `features/PROJ-47-b2b-sepa-mandate-at-import.md` | 2026-05-17 |
 | PROJ-48 | SEPA-Default-Core + konfigurierbares Mandat-Timing + B2B-Hinweis | In Review | `features/PROJ-48-sepa-default-core-and-import-timing.md` | 2026-05-17 |
 | PROJ-49 | Energie-Felder pro Zählpunkt (Refactoring + Einspeiselimit) | In Review | `features/PROJ-49-energy-fields-on-metering-point.md` | 2026-05-17 |
-| PROJ-50 | Zugang Online-Portal Netzbetreiber + bedingte Anleitungs-Mail | Planned | `features/PROJ-50-network-operator-portal-access.md` | 2026-05-17 |
+| PROJ-50 | Zugang Online-Portal Netzbetreiber + bedingte Anleitungs-Mail | On Hold | `features/PROJ-50-network-operator-portal-access.md` | 2026-05-17 |
 | PROJ-51 | Anzeige offener Nutzungsgebühren im Admin-UI | On Hold | `features/PROJ-51-usage-fee-status-display.md` | 2026-05-17 |
 | PROJ-52 | Konfigurierbarer Zählpunkt-Prefix pro Richtung + Auto-Pad + Alphanumerik | In Review | `features/PROJ-52-metering-point-prefix-per-direction.md` | 2026-05-17 |
 
