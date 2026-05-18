@@ -276,8 +276,10 @@ func TestSendSubmissionEmails_EEGSentWhenContactEmailSet(t *testing.T) {
 	if spy.calls[1].to != contactEmail {
 		t.Errorf("eeg email sent to wrong address: %s", spy.calls[1].to)
 	}
-	if !strings.Contains(spy.calls[1].body, "AT0031000000000000000000990022105") {
-		t.Error("eeg email body missing metering point")
+	// PROJ-52: Zählpunkte werden in der 2-6-5-20-Gruppierung gerendert
+	// (siehe shared.FormatMeteringPoint).
+	if !strings.Contains(spy.calls[1].body, "AT 003100 00000 00000000000990022105") {
+		t.Error("eeg email body missing metering point (in 2-6-5-20 grouping)")
 	}
 }
 

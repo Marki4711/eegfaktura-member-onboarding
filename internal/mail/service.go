@@ -385,7 +385,10 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 			dir = "Einspeisung"
 		}
 		memberMpViews[i] = meteringPointView{
-			MeteringPoint:       mp.MeteringPoint,
+			// PROJ-52: in der offiziellen 2-6-5-20-Gruppierung anzeigen
+			// (gleiche Logik wie im Approval-PDF) — Mitglieder können die
+			// Nummer so leichter mit Stromrechnung/Netzbetreiber abgleichen.
+			MeteringPoint:       shared.FormatMeteringPoint(mp.MeteringPoint),
 			Direction:           dir,
 			ParticipationFactor: mp.ParticipationFactor,
 			AddressLine:         formatMeteringPointAddress(&meteringPoints[i]),
@@ -490,7 +493,7 @@ func (s *SMTPMailService) SendEEGNotification(app *shared.Application, meteringP
 			dir = "Einspeisung"
 		}
 		mpViews[i] = meteringPointView{
-			MeteringPoint:       mp.MeteringPoint,
+			MeteringPoint:       shared.FormatMeteringPoint(mp.MeteringPoint),
 			Direction:           dir,
 			ParticipationFactor: mp.ParticipationFactor,
 			AddressLine:         formatMeteringPointAddress(&meteringPoints[i]),

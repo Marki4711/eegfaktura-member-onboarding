@@ -271,7 +271,11 @@ func (g *FPDFApprovalGenerator) GenerateApproval(data ApprovalPDFData) ([]byte, 
 	f.CellFormat(col3, 6, w1252("Teilnahmefaktor"), "B", 1, "R", false, 0, "")
 	setFont("", 9)
 	for _, mp := range data.MeteringPoints {
-		f.CellFormat(col1, 5, w1252(mp.MeteringPoint), "0", 0, "L", false, 0, "")
+		// PROJ-52: Zählpunkte werden in der offiziellen E-Control-Gruppierung
+		// 2-6-5-20 ausgegeben, damit Mitglieder die Nummer auf der
+		// Beitrittsbestätigung leichter mit Stromrechnung/Netzbetreiber-
+		// Portal abgleichen können.
+		f.CellFormat(col1, 5, w1252(shared.FormatMeteringPoint(mp.MeteringPoint)), "0", 0, "L", false, 0, "")
 		f.CellFormat(col2, 5, w1252(mp.Direction), "0", 0, "L", false, 0, "")
 		f.CellFormat(col3, 5, w1252(fmt.Sprintf("%d %%", mp.ParticipationFactor)), "0", 1, "R", false, 0, "")
 		// PROJ-39: zusätzliche Zeile bei abweichender Adresse, eingerückt
