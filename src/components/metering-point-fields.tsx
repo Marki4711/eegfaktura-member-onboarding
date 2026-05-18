@@ -600,7 +600,7 @@ function GenerationBlock({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  Nennleistung PV-Wechselrichter (kW){inverterPowerRequired ? " *" : ""}
+                  Leistung PV-Wechselrichter (kW){inverterPowerRequired ? " *" : ""}
                 </FormLabel>
                 <FormControl>
                   <Input

@@ -1238,7 +1238,7 @@ func validateConfigurableMeteringPointFields(points []shared.MeteringPoint, fiel
 				errs[fmt.Sprintf("meteringPoints.%d.pvPowerKwp", i)] = "PV-Leistung ist erforderlich"
 			}
 			if effectiveState(fieldConfig, "inverter_power_kw") == "required" && mp.InverterPowerKw == nil {
-				errs[fmt.Sprintf("meteringPoints.%d.inverterPowerKw", i)] = "Nennleistung PV-Wechselrichter ist erforderlich"
+				errs[fmt.Sprintf("meteringPoints.%d.inverterPowerKw", i)] = "Leistung PV-Wechselrichter ist erforderlich"
 			}
 			// feed_in_limit_kw ist nur Pflicht wenn FeedInLimitPresent=true.
 			if effectiveState(fieldConfig, "feed_in_limit_kw") == "required" &&

@@ -92,7 +92,7 @@ export const CONFIGURABLE_FIELDS: {
     { name: "pv_power_kwp",              label: "PV-Leistung (kWp)", defaultState: "hidden",
       visibilityTags: ["production", "pv"],
       visibilityHint: "Wird nur bei Einspeise-Zählpunkten mit Erzeugungsform PV angezeigt." },
-    { name: "inverter_power_kw",         label: "Nennleistung PV-Wechselrichter (kW)", defaultState: "hidden",
+    { name: "inverter_power_kw",         label: "Leistung PV-Wechselrichter (kW)", defaultState: "hidden",
       visibilityTags: ["production", "pv"],
       visibilityHint: "Wird nur bei Einspeise-Zählpunkten mit Erzeugungsform PV angezeigt." },
     { name: "feed_in_limit_kw",          label: "Einspeiselimit (kW)", defaultState: "hidden",
