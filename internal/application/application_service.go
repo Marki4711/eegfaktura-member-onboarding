@@ -639,6 +639,20 @@ func (s *ApplicationService) SubmitApplication(id uuid.UUID, consents []shared.C
 		return nil, err
 	}
 
+	// PROJ-52 Mini-Lücke 3: wenn der Mandat-PDF beim Submit verschickt
+	// wird (Default-Pfad: sepa_mandate_at_import=false UND EEG hat die
+	// nötigen Felder UND Mitglied hat zugestimmt), persistieren wir das
+	// Mandatsdatum hier im selben Commit. Im Import-Pfad
+	// (sepa_mandate_at_import=true oder B2B) setzt SendPostImportNotification
+	// das Feld später nochmal.
+	if !entrypoint.SEPAMandateAtImport && app.SepaMandateAccepted &&
+		buildSEPAMandateData(app, entrypoint) != nil {
+		if err = s.appRepo.SetMandateDateTx(tx, id, now); err != nil {
+			return nil, err
+		}
+		app.MandateDate = &now
+	}
+
 	statusLog := &shared.StatusLogEntry{
 		ApplicationID: id,
 		FromStatus:    &oldStatus,
@@ -1459,7 +1473,7 @@ func buildSEPAMandateData(app *shared.Application, ep *shared.RegistrationEntryp
 	if name == "" && app.CompanyName != nil {
 		name = *app.CompanyName
 	}
-	return &pdf.SEPAMandateData{
+	data := &pdf.SEPAMandateData{
 		EEGName:            *ep.EEGName,
 		EEGStreet:          *ep.EEGStreet,
 		EEGStreetNumber:    *ep.EEGStreetNumber,
@@ -1473,6 +1487,15 @@ func buildSEPAMandateData(app *shared.Application, ep *shared.RegistrationEntryp
 		MemberCity:         app.ResidentCity,
 		IBAN:               derefStr(app.IBAN),
 	}
+	// PROJ-52 Mini-Lücke 3: Tag der Mandat-Übermittlung im Unterschriftsfeld
+	// vorbefüllen. app.MandateDate ist beim Submit/Import vom Service-Layer
+	// auf time.Now() gesetzt worden (siehe SubmitApplication +
+	// SendPostImportNotification) und entspricht damit dem tatsächlichen
+	// Versanddatum des PDFs.
+	if app.MandateDate != nil {
+		data.MandateDate = *app.MandateDate
+	}
+	return data
 }
 
 func derefStr(s *string) string {

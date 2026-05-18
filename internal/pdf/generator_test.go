@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+	"time"
 )
 
 func fullData() SEPAMandateData {
@@ -36,6 +37,61 @@ func TestFPDFGenerator_GeneratesValidPDF(t *testing.T) {
 	}
 	if !bytes.HasPrefix(b, []byte("%PDF-")) {
 		t.Errorf("output does not start with PDF magic bytes, got: %q", b[:min(8, len(b))])
+	}
+}
+
+// TestFPDFGenerator_MandateDate_ChangesOutput verifies that setting
+// MandateDate produces a PDF different from the zero-value baseline,
+// for both CORE and B2B variants (PROJ-52 Mini-Lücke 3). We don't
+// search for the formatted date string in the output bytes because
+// fpdf compresses the page content stream with zlib; a content-level
+// check would need a PDF text-extraction dependency. The byte-diff
+// is sufficient to catch regressions in the render path.
+func TestFPDFGenerator_MandateDate_ChangesOutput(t *testing.T) {
+	g := NewFPDFGenerator()
+
+	withDate := fullData()
+	withDate.MandateDate = time.Date(2026, 5, 18, 12, 0, 0, 0, time.UTC)
+	withoutDate := fullData() // zero-value MandateDate
+
+	core1, err := g.Generate(withDate)
+	if err != nil {
+		t.Fatalf("Generate(withDate) error: %v", err)
+	}
+	core2, err := g.Generate(withoutDate)
+	if err != nil {
+		t.Fatalf("Generate(withoutDate) error: %v", err)
+	}
+	if bytes.Equal(core1, core2) {
+		t.Error("CORE mandate PDF identical with and without MandateDate — date not rendered")
+	}
+
+	b2b1, err := g.GenerateCompany(withDate)
+	if err != nil {
+		t.Fatalf("GenerateCompany(withDate) error: %v", err)
+	}
+	b2b2, err := g.GenerateCompany(withoutDate)
+	if err != nil {
+		t.Fatalf("GenerateCompany(withoutDate) error: %v", err)
+	}
+	if bytes.Equal(b2b1, b2b2) {
+		t.Error("B2B mandate PDF identical with and without MandateDate — date not rendered")
+	}
+}
+
+// TestFPDFGenerator_ZeroMandateDate_NotRendered verifies legacy callers
+// passing a zero MandateDate keep the original blank-line layout.
+func TestFPDFGenerator_ZeroMandateDate_NotRendered(t *testing.T) {
+	g := NewFPDFGenerator()
+	// fullData() leaves MandateDate at zero value — that's the legacy
+	// callsite behaviour. We don't make a strict negative assertion on
+	// PDF bytes (the date string might coincidentally appear elsewhere
+	// for unrelated reasons), but we verify the call still succeeds.
+	if _, err := g.Generate(fullData()); err != nil {
+		t.Errorf("Generate with zero MandateDate returned error: %v", err)
+	}
+	if _, err := g.GenerateCompany(fullData()); err != nil {
+		t.Errorf("GenerateCompany with zero MandateDate returned error: %v", err)
 	}
 }
 

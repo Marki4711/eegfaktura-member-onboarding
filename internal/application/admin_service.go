@@ -856,6 +856,16 @@ func (s *AdminApplicationService) SendPostImportNotification(appID uuid.UUID) {
 	wantsB2B := reloadedApp.Einzugsart == "b2b"
 	wantsCoreAtImport := reloadedApp.Einzugsart == "core" && entrypoint.SEPAMandateAtImport
 	if wantsB2B || wantsCoreAtImport {
+		// PROJ-52 Mini-Lücke 3: Mandatsdatum auf den Tag der Übermittlung
+		// (= jetzt) setzen, bevor das PDF gebaut wird. Persist im selben
+		// Schritt, damit das Datum auch im Admin-Detail + Excel-Export
+		// sichtbar ist und beim Faktura-Import stimmt.
+		now := time.Now()
+		if err := s.appRepo.SetMandateDate(appID, now); err != nil {
+			slog.Warn("imported mail: failed to persist mandate_date", "application_id", appID, "error", err)
+		} else {
+			reloadedApp.MandateDate = &now
+		}
 		if mandate := buildSEPAMandateData(reloadedApp, entrypoint); mandate != nil {
 			if reloadedApp.MemberNumber != nil {
 				mandate.MandateReference = *reloadedApp.MemberNumber

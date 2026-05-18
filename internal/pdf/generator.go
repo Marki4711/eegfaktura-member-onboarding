@@ -3,9 +3,12 @@ package pdf
 import (
 	"bytes"
 	"fmt"
+	"time"
 
 	"github.com/go-pdf/fpdf"
 	"golang.org/x/text/encoding/charmap"
+
+	"github.com/your-org/eegfaktura-member-onboarding/internal/shared"
 )
 
 // SEPAMandateData holds all data required to fill a SEPA direct debit mandate.
@@ -28,6 +31,12 @@ type SEPAMandateData struct {
 	// reference is already known (e.g. the Mitgliedsnummer after import for
 	// B2B-SEPA-Firmenlastschrift).
 	MandateReference string
+	// MandateDate ist der Tag, an dem das Mandat-PDF erzeugt und an das
+	// Mitglied übermittelt wird (PROJ-52 Mini-Lücke 3). Wird im Unter-
+	// schriftsfeld als „Datum" vorbefüllt. Default in der Service-Layer
+	// auf time.Now() — bleibt im PDF leer, wenn hier Zero-Time übergeben
+	// wird (defensiv für Legacy-Tests).
+	MandateDate time.Time
 	// LogoBytes is the EEG logo cached from the eegFaktura-billing service
 	// (PROJ-33). Empty = no logo embedded; the PDF renders without it.
 	LogoBytes []byte
@@ -199,6 +208,14 @@ func (g *FPDFGenerator) Generate(data SEPAMandateData) ([]byte, error) {
 	boxTop = f.GetY()
 	f.Ln(15) // space for signature
 	sigY := f.GetY()
+	// PROJ-52 Mini-Lücke 3: Datum wird oberhalb der Linie vorbefüllt
+	// (Tag der Übermittlung). Mitglied trägt nur noch Ort + Unterschrift
+	// ein. Bei Zero-Time bleibt die Zeile leer (defensiv für Legacy-Tests).
+	if !data.MandateDate.IsZero() {
+		setFont("", 9)
+		f.SetXY(lm, sigY-5)
+		f.CellFormat(70, 5, w1252(shared.FmtDate(data.MandateDate)), "0", 0, "L", false, 0, "")
+	}
 	// Datum/Ort line
 	f.Line(lm, sigY, lm+70, sigY)
 	setFont("", 8)
@@ -358,6 +375,13 @@ func (g *FPDFGenerator) GenerateCompany(data SEPAMandateData) ([]byte, error) {
 	boxTop = f.GetY()
 	f.Ln(15)
 	sigY := f.GetY()
+	// PROJ-52 Mini-Lücke 3: Datum wird vorbefüllt, Mitglied trägt nur noch
+	// Ort + Unterschrift ein.
+	if !data.MandateDate.IsZero() {
+		setFont("", 9)
+		f.SetXY(lm, sigY-5)
+		f.CellFormat(70, 5, w1252(shared.FmtDate(data.MandateDate)), "0", 0, "L", false, 0, "")
+	}
 	f.Line(lm, sigY, lm+70, sigY)
 	setFont("", 8)
 	f.SetXY(lm, sigY+1)

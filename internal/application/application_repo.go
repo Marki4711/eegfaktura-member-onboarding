@@ -383,6 +383,35 @@ func (r *ApplicationRepository) UpdateStatusTx(tx *sql.Tx, id uuid.UUID, status 
 	return nil
 }
 
+// SetMandateDateTx schreibt das mandate_date innerhalb der gegebenen
+// Transaktion (PROJ-52 Mini-Lücke 3). Genutzt vom Submit-Pfad, um den
+// Tag der Mandat-Übermittlung im selben Commit zu persistieren wie den
+// Status-Wechsel auf submitted.
+func (r *ApplicationRepository) SetMandateDateTx(tx *sql.Tx, id uuid.UUID, mandateDate time.Time) error {
+	_, err := tx.Exec(`
+		UPDATE member_onboarding.application SET
+			mandate_date = $1, updated_at = NOW()
+		WHERE id = $2`, mandateDate, id)
+	if err != nil {
+		return fmt.Errorf("failed to set mandate_date: %w", err)
+	}
+	return nil
+}
+
+// SetMandateDate schreibt das mandate_date ohne Transaktion (PROJ-52
+// Mini-Lücke 3). Genutzt vom Import-Pfad in admin_service, weil dort
+// der Mandat-Versand außerhalb einer offenen Transaktion läuft.
+func (r *ApplicationRepository) SetMandateDate(id uuid.UUID, mandateDate time.Time) error {
+	_, err := r.db.Exec(`
+		UPDATE member_onboarding.application SET
+			mandate_date = $1, updated_at = NOW()
+		WHERE id = $2`, mandateDate, id)
+	if err != nil {
+		return fmt.Errorf("failed to set mandate_date: %w", err)
+	}
+	return nil
+}
+
 // List returns a paginated, filtered list of applications for the admin view.
 func (r *ApplicationRepository) List(filters ApplicationListFilters, page, pageSize int) ([]shared.ApplicationListItem, int, error) {
 	conditions := []string{}
