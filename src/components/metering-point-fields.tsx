@@ -32,9 +32,40 @@ import type { RegistrationFormValues } from "./registration-form";
 interface MeteringPointFieldsProps {
   form: UseFormReturn<RegistrationFormValues>;
   fieldConfig?: FieldConfig;
+  // PROJ-52: pro-Richtung Zählpunkt-Prefix aus der EEG-Config. NULL ⇒
+  // kein Prefill, Mitglied tippt alles ab "AT" selbst. Wenn gesetzt,
+  // wird die Mask beim Direction-Wechsel mit dem Prefix vorbelegt und
+  // der onBlur-Auto-Pad füllt den Rest mit führenden Nullen auf 33 auf.
+  prefixConsumption?: string | null;
+  prefixProduction?: string | null;
 }
 
-export function MeteringPointFields({ form, fieldConfig }: MeteringPointFieldsProps) {
+// PROJ-52: imask definitions — `0` ist Default-Digit, `S` neue Klasse
+// für die alphanumerischen Stellen 14–33 (E-Control-Spec).
+const MP_MASK_DEFINITIONS = { S: /[A-Z0-9]/ } as const;
+const MP_MASK = "AT 000000 00000 SSSSSSSSSSSSSSSSSSSS";
+
+// padToMeteringPointLength (PROJ-52): füllt zwischen Prefix und
+// Mitglieds-Anteil mit führenden Nullen auf 33 Stellen auf. Lässt
+// Eingaben, die bereits voll sind oder nicht mit AT/Prefix beginnen,
+// unverändert.
+function padToMeteringPointLength(raw: string, activePrefix: string | null): string {
+  const stripped = raw.replace(/\s/g, "").toUpperCase();
+  if (!stripped.startsWith("AT")) return stripped;
+  if (stripped.length >= 33) return stripped.substring(0, 33);
+  const locked = activePrefix && stripped.startsWith(activePrefix) ? activePrefix : "AT";
+  const rest = stripped.substring(locked.length);
+  const needed = 33 - locked.length - rest.length;
+  if (needed <= 0) return stripped;
+  return locked + "0".repeat(needed) + rest;
+}
+
+export function MeteringPointFields({
+  form,
+  fieldConfig,
+  prefixConsumption,
+  prefixProduction,
+}: MeteringPointFieldsProps) {
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "meteringPoints",
@@ -64,243 +95,28 @@ export function MeteringPointFields({ form, fieldConfig }: MeteringPointFieldsPr
   return (
     <div className="space-y-4">
       {fields.map((field, index) => (
-        <div key={field.id} className="border border-border rounded-md p-3 space-y-3">
-          <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
-            <div className="w-full sm:flex-1 sm:min-w-0">
-              <FormField
-                control={form.control}
-                name={`meteringPoints.${index}.meteringPoint`}
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center gap-1">
-                      <FormLabel>Zählpunkt {index + 1}</FormLabel>
-                      <Popover>
-                        <PopoverTrigger type="button" className="cursor-help">
-                          <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                        </PopoverTrigger>
-                        <PopoverContent className="max-w-72 text-sm">
-                          Die 33-stellige Zählpunktnummer (beginnt mit „AT") identifiziert Ihren Stromanschluss eindeutig. Sie finden sie auf jeder Stromrechnung sowie im Kundenportal Ihres Netzbetreibers.
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    <FormControl>
-                      <MaskedInput
-                        // Offizielle Gruppierung nach E-Control / MeteringCode
-                        // (2-6-5-20): Ländercode | Netzbetreibernummer | PLZ |
-                        // Zählpunktnummer. Volle 33 Stellen unverändert,
-                        // Validierung im Backend (^AT\d{31}$) bleibt gleich.
-                        mask="AT 000000 00000 00000000000000000000"
-                        lazy={false}
-                        prepareChar={(str: string) => str.toUpperCase()}
-                        value={field.value}
-                        onAccept={(value: string) => field.onChange(value)}
-                        onBlur={field.onBlur}
-                        inputRef={field.ref}
-                        name={field.name}
-                        // 37 sichtbare Stellen (AT + 31 Ziffern + 4 Spaces) müssen
-                        // in eine Zeile passen, ohne Richtung/Faktor zu verdrängen.
-                        // Default-Sans ist ~25% schmaler als font-mono; mit
-                        // tabular-nums bleiben die Ziffern sauber ausgerichtet.
-                        // 2026-05-15 Tester-Feedback (Apple-Geräte): Safari/macOS
-                        // rendert San-Francisco-Glyphen ~10% breiter als die
-                        // Windows/Android-Defaults — letzte 4-5 Zeichen wurden
-                        // abgeschnitten. Daher:
-                        //   - text-[11px] statt text-xs (12px → 11px = -8.3%)
-                        //   - tracking-[-0.06em] statt tracking-tighter
-                        //     (Tailwind-Default -0.05em → -0.06em, etwas enger)
-                        //   - px-2 reduziert das Input-Padding gegenüber dem
-                        //     Default (px-3) für zusätzliche Innenbreite.
-                        className="text-[11px] tabular-nums tracking-[-0.06em] px-2"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="flex gap-2 items-end">
-              <div className="w-36 shrink-0">
-                <FormField
-                  control={form.control}
-                  name={`meteringPoints.${index}.direction`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Richtung</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="CONSUMPTION">Verbraucher</SelectItem>
-                          <SelectItem value="PRODUCTION">Erzeuger</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="w-24">
-                <FormField
-                  control={form.control}
-                  name={`meteringPoints.${index}.participationFactor`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex items-center gap-1">
-                        <FormLabel>Faktor</FormLabel>
-                        <Popover>
-                          <PopoverTrigger type="button" className="cursor-help">
-                            <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                          </PopoverTrigger>
-                          <PopoverContent className="max-w-60 text-sm">
-                            Der Teilnahmefaktor gibt an, mit welchem prozentualen Anteil dieser Zählpunkt an der Energiegemeinschaft teilnimmt. Standardmäßig 100 %.
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                      <FormControl>
-                        <div className="relative">
-                          <Input
-                            type="number"
-                            min={1}
-                            max={100}
-                            className="pr-7"
-                            value={field.value}
-                            onChange={(e) => field.onChange(isNaN(e.target.valueAsNumber) ? 100 : e.target.valueAsNumber)}
-                            onBlur={field.onBlur}
-                            name={field.name}
-                            ref={field.ref}
-                          />
-                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
-                            %
-                          </span>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => remove(index)}
-                disabled={fields.length === 1}
-                aria-label={`Zählpunkt ${index + 1} entfernen`}
-                className="shrink-0 mb-0.5"
-              >
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
-            </div>
-          </div>
-
-          <DeviatingAddressBlock form={form} index={index} />
-
-          <GenerationBlock
-            form={form}
-            index={index}
-            showFeedInForecast={showFeedInForecast}
-            feedInForecastRequired={mpfs("feed_in_forecast") === "required"}
-            showPvPower={showPvPower}
-            pvPowerRequired={mpfs("pv_power_kwp") === "required"}
-            showFeedInLimit={showFeedInLimit}
-            feedInLimitRequired={mpfs("feed_in_limit_kw") === "required"}
-          />
-
-          <BatteryBlock
-            form={form}
-            index={index}
-            showBatterySize={showBatterySize}
-            showInverter={showInverter}
-            showControl={showBatteryControl}
-            batteryRequired={mpfs("battery_size_kwh") === "required"}
-            inverterRequired={mpfs("inverter_manufacturer") === "required"}
-            controlRequired={mpfs("battery_control_acceptable") === "required"}
-          />
-
-          <ConsumptionDetailsBlock
-            form={form}
-            index={index}
-            showPrev={showConsumptionPrev}
-            showFc={showConsumptionFc}
-            prevRequired={mpfs("consumption_previous_year") === "required"}
-            fcRequired={mpfs("consumption_forecast") === "required"}
-          />
-
-          {hasExtraMpFields && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-              {showTransformer && (
-                <FormField
-                  control={form.control}
-                  name={`meteringPoints.${index}.transformer`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        Transformator{mpfs("transformer") === "required" ? " *" : ""}
-                      </FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value ?? ""} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-              {showInstallationNumber && (
-                <FormField
-                  control={form.control}
-                  name={`meteringPoints.${index}.installationNumber`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        Anlagen-Nr.{mpfs("installation_number") === "required" ? " *" : ""}
-                      </FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value ?? ""} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-              {showInstallationName && (
-                <FormField
-                  control={form.control}
-                  name={`meteringPoints.${index}.installationName`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex items-center gap-1">
-                        <FormLabel>
-                          Anlagenname{mpfs("installation_name") === "required" ? " *" : ""}
-                        </FormLabel>
-                        <Popover>
-                          <PopoverTrigger type="button" className="cursor-help">
-                            <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                          </PopoverTrigger>
-                          <PopoverContent className="max-w-60 text-sm">
-                            Der Anlagenname ist eine Bezeichnung des Zählpunkts und wird auch auf der Rechnung ausgewiesen, z. B. Hauptanlage, Nebengebäude, Warmwasser, …
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                      <FormControl>
-                        <Input {...field} value={field.value ?? ""} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-            </div>
-          )}
-        </div>
+        <MeteringPointRow
+          key={field.id}
+          form={form}
+          index={index}
+          canRemove={fields.length > 1}
+          onRemove={() => remove(index)}
+          prefixConsumption={prefixConsumption ?? null}
+          prefixProduction={prefixProduction ?? null}
+          showTransformer={showTransformer}
+          showInstallationNumber={showInstallationNumber}
+          showInstallationName={showInstallationName}
+          hasExtraMpFields={hasExtraMpFields}
+          showFeedInForecast={showFeedInForecast}
+          showPvPower={showPvPower}
+          showFeedInLimit={showFeedInLimit}
+          showBatterySize={showBatterySize}
+          showInverter={showInverter}
+          showBatteryControl={showBatteryControl}
+          showConsumptionPrev={showConsumptionPrev}
+          showConsumptionFc={showConsumptionFc}
+          requiredOf={mpfs}
+        />
       ))}
 
       {fields.length < 10 && (
@@ -313,6 +129,329 @@ export function MeteringPointFields({ form, fieldConfig }: MeteringPointFieldsPr
           <PlusCircle className="h-4 w-4 mr-2" />
           Zählpunkt hinzufügen
         </Button>
+      )}
+    </div>
+  );
+}
+
+// MeteringPointRow renders the layout of a single Zählpunkt:
+//   Zeile 1: Richtung + Faktor + Lösch-Button
+//   Zeile 2: Zählpunkt full-width (33-stellige Mask)
+//   darunter: Abweichende Adresse, Erzeugung/Batterie/Verbrauch,
+//             optionale Zusatz-Felder (Transformator, Anlagen-Nr., …)
+//
+// Eigener useEffect: bei Direction-Wechsel wird die Zählpunkt-Mask mit
+// dem passenden Prefix vorbelegt (PROJ-52). Erst-Mount-Befüllung wird
+// nicht überschrieben — der Effekt greift nur, wenn das Feld noch
+// keinen Inhalt hat (Mitglied hat noch nichts eingegeben) ODER wenn
+// die Direction sich tatsächlich ändert.
+function MeteringPointRow({
+  form,
+  index,
+  canRemove,
+  onRemove,
+  prefixConsumption,
+  prefixProduction,
+  showTransformer,
+  showInstallationNumber,
+  showInstallationName,
+  hasExtraMpFields,
+  showFeedInForecast,
+  showPvPower,
+  showFeedInLimit,
+  showBatterySize,
+  showInverter,
+  showBatteryControl,
+  showConsumptionPrev,
+  showConsumptionFc,
+  requiredOf,
+}: {
+  form: UseFormReturn<RegistrationFormValues>;
+  index: number;
+  canRemove: boolean;
+  onRemove: () => void;
+  prefixConsumption: string | null;
+  prefixProduction: string | null;
+  showTransformer: boolean;
+  showInstallationNumber: boolean;
+  showInstallationName: boolean;
+  hasExtraMpFields: boolean;
+  showFeedInForecast: boolean;
+  showPvPower: boolean;
+  showFeedInLimit: boolean;
+  showBatterySize: boolean;
+  showInverter: boolean;
+  showBatteryControl: boolean;
+  showConsumptionPrev: boolean;
+  showConsumptionFc: boolean;
+  requiredOf: (name: string) => string;
+}) {
+  const direction = form.watch(`meteringPoints.${index}.direction`);
+  const activePrefix =
+    direction === "PRODUCTION" ? prefixProduction : prefixConsumption;
+
+  // PROJ-52: bei Direction-Wechsel die Zählpunkt-Mask mit dem passenden
+  // Prefix vorbelegen — aber nur, wenn der bisherige Wert leer ist oder
+  // mit dem ALTEN Prefix anfing (sonst würden manuell eingegebene
+  // Zählpunkte überschrieben). Da wir die alte Direction hier nicht
+  // tracken, ist das Heuristik: leerer Wert ⇒ prefill mit neuem Prefix.
+  useEffect(() => {
+    const current = form.getValues(`meteringPoints.${index}.meteringPoint`) ?? "";
+    if (current === "" && activePrefix) {
+      form.setValue(`meteringPoints.${index}.meteringPoint`, activePrefix, {
+        shouldValidate: false,
+      });
+    }
+    // Direction is the trigger; activePrefix mit drin damit Stale-Closure-
+    // Warnungen ausbleiben. form.* ist stabil aus useForm.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [direction, activePrefix]);
+
+  return (
+    <div className="border border-border rounded-md p-3 space-y-3">
+      {/* Zeile 1: Richtung + Faktor + Trash. Richtung muss VOR der
+          Zählpunkt-Eingabe stehen, weil sie die Mask bestimmt. */}
+      <div className="flex gap-2 items-end">
+        <div className="w-40 shrink-0">
+          <FormField
+            control={form.control}
+            name={`meteringPoints.${index}.direction`}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Richtung</FormLabel>
+                <Select
+                  onValueChange={(v) => {
+                    // PROJ-52: Direction-Wechsel cleart das Zählpunkt-Feld,
+                    // damit der useEffect oben mit dem neuen Prefix neu
+                    // prefillen kann (sonst bliebe der alte Wert mit dem
+                    // alten Prefix stehen und das Mitglied müsste manuell
+                    // korrigieren).
+                    field.onChange(v);
+                    form.setValue(`meteringPoints.${index}.meteringPoint`, "", {
+                      shouldValidate: false,
+                    });
+                  }}
+                  value={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="CONSUMPTION">Verbraucher</SelectItem>
+                    <SelectItem value="PRODUCTION">Erzeuger</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="w-28">
+          <FormField
+            control={form.control}
+            name={`meteringPoints.${index}.participationFactor`}
+            render={({ field }) => (
+              <FormItem>
+                <div className="flex items-center gap-1">
+                  <FormLabel>Faktor</FormLabel>
+                  <Popover>
+                    <PopoverTrigger type="button" className="cursor-help">
+                      <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                    </PopoverTrigger>
+                    <PopoverContent className="max-w-60 text-sm">
+                      Der Teilnahmefaktor gibt an, mit welchem prozentualen Anteil dieser Zählpunkt an der Energiegemeinschaft teilnimmt. Standardmäßig 100 %.
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <FormControl>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={100}
+                      className="pr-7"
+                      value={field.value}
+                      onChange={(e) =>
+                        field.onChange(
+                          isNaN(e.target.valueAsNumber) ? 100 : e.target.valueAsNumber,
+                        )
+                      }
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
+                    />
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                      %
+                    </span>
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={onRemove}
+          disabled={!canRemove}
+          aria-label={`Zählpunkt ${index + 1} entfernen`}
+          className="shrink-0 mb-0.5 ml-auto"
+        >
+          <Trash2 className="h-4 w-4 text-destructive" />
+        </Button>
+      </div>
+
+      {/* Zeile 2: Zählpunkt full-width (33-stellige Mask, dynamisch). */}
+      <FormField
+        control={form.control}
+        name={`meteringPoints.${index}.meteringPoint`}
+        render={({ field }) => (
+          <FormItem>
+            <div className="flex items-center gap-1">
+              <FormLabel>Zählpunkt {index + 1}</FormLabel>
+              <Popover>
+                <PopoverTrigger type="button" className="cursor-help">
+                  <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                </PopoverTrigger>
+                <PopoverContent className="max-w-72 text-sm">
+                  Die 33-stellige Zählpunktnummer (beginnt mit „AT") identifiziert Ihren Stromanschluss eindeutig. Sie finden sie auf jeder Stromrechnung sowie im Kundenportal Ihres Netzbetreibers. Wenn die EEG einen Prefix konfiguriert hat, ist dieser bereits vorbelegt — Sie tippen nur noch die restlichen Stellen.
+                </PopoverContent>
+              </Popover>
+            </div>
+            <FormControl>
+              <MaskedInput
+                // PROJ-52: Mask-Definition Konsolidierung — Stellen 3–13
+                // weiter Ziffern, Stellen 14–33 alphanumerisch (S=[A-Z0-9]).
+                // Offizielle Gruppierung 2-6-5-20.
+                mask={MP_MASK}
+                definitions={MP_MASK_DEFINITIONS}
+                lazy={false}
+                prepareChar={(str: string) => str.toUpperCase()}
+                value={field.value}
+                onAccept={(value: string) => field.onChange(value)}
+                onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
+                  // PROJ-52: Auto-Pad mit führenden Nullen zwischen Prefix
+                  // (oder reinem "AT") und Mitglieds-Anteil. Greift nur,
+                  // wenn Eingabe < 33 Stellen ist und mit AT beginnt.
+                  const padded = padToMeteringPointLength(field.value ?? "", activePrefix);
+                  if (padded !== (field.value ?? "").replace(/\s/g, "").toUpperCase()) {
+                    field.onChange(padded);
+                  }
+                  field.onBlur();
+                }}
+                inputRef={field.ref}
+                name={field.name}
+                className="font-mono text-sm tabular-nums tracking-tight"
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <DeviatingAddressBlock form={form} index={index} />
+
+      <GenerationBlock
+        form={form}
+        index={index}
+        showFeedInForecast={showFeedInForecast}
+        feedInForecastRequired={requiredOf("feed_in_forecast") === "required"}
+        showPvPower={showPvPower}
+        pvPowerRequired={requiredOf("pv_power_kwp") === "required"}
+        showFeedInLimit={showFeedInLimit}
+        feedInLimitRequired={requiredOf("feed_in_limit_kw") === "required"}
+      />
+
+      <BatteryBlock
+        form={form}
+        index={index}
+        showBatterySize={showBatterySize}
+        showInverter={showInverter}
+        showControl={showBatteryControl}
+        batteryRequired={requiredOf("battery_size_kwh") === "required"}
+        inverterRequired={requiredOf("inverter_manufacturer") === "required"}
+        controlRequired={requiredOf("battery_control_acceptable") === "required"}
+      />
+
+      <ConsumptionDetailsBlock
+        form={form}
+        index={index}
+        showPrev={showConsumptionPrev}
+        showFc={showConsumptionFc}
+        prevRequired={requiredOf("consumption_previous_year") === "required"}
+        fcRequired={requiredOf("consumption_forecast") === "required"}
+      />
+
+      {hasExtraMpFields && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+          {showTransformer && (
+            <FormField
+              control={form.control}
+              name={`meteringPoints.${index}.transformer`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Transformator{requiredOf("transformer") === "required" ? " *" : ""}
+                  </FormLabel>
+                  <FormControl>
+                    <Input {...field} value={field.value ?? ""} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+          {showInstallationNumber && (
+            <FormField
+              control={form.control}
+              name={`meteringPoints.${index}.installationNumber`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Anlagen-Nr.{requiredOf("installation_number") === "required" ? " *" : ""}
+                  </FormLabel>
+                  <FormControl>
+                    <Input {...field} value={field.value ?? ""} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+          {showInstallationName && (
+            <FormField
+              control={form.control}
+              name={`meteringPoints.${index}.installationName`}
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-center gap-1">
+                    <FormLabel>
+                      Anlagenname{requiredOf("installation_name") === "required" ? " *" : ""}
+                    </FormLabel>
+                    <Popover>
+                      <PopoverTrigger type="button" className="cursor-help">
+                        <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                      </PopoverTrigger>
+                      <PopoverContent className="max-w-60 text-sm">
+                        Der Anlagenname ist eine Bezeichnung des Zählpunkts und wird auch auf der Rechnung ausgewiesen, z. B. Hauptanlage, Nebengebäude, Warmwasser, …
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <FormControl>
+                    <Input {...field} value={field.value ?? ""} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+        </div>
       )}
     </div>
   );

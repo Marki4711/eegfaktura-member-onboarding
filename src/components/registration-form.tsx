@@ -74,8 +74,11 @@ const meteringPointSchema = z
       .string()
       .transform((v) => v.replace(/\s/g, "").toUpperCase())
       .refine((v) => v.length >= 1, { message: "Zählpunkt ist erforderlich" })
-      .refine((v) => /^AT\d{31}$/.test(v), {
-        message: "Zählpunkt muss mit AT beginnen und 31 Ziffern enthalten (33 Zeichen gesamt)",
+      // PROJ-52: Stellen 3–13 müssen Ziffern bleiben (Netzbetreibernummer + PLZ
+      // nach E-Control-Spec), die letzten 20 Stellen sind alphanumerisch.
+      // Bestandsdaten bleiben gültig (Ziffern ⊂ [A-Z0-9]).
+      .refine((v) => /^AT\d{11}[A-Z0-9]{20}$/.test(v), {
+        message: "Zählpunkt muss mit AT + 11 Ziffern beginnen, gefolgt von 20 alphanumerischen Stellen (33 Zeichen gesamt)",
       }),
     direction: z.enum(["CONSUMPTION", "PRODUCTION"]),
     participationFactor: z.number().int().min(1, "Mindestens 1%").max(100, "Maximal 100%"),
@@ -1119,7 +1122,12 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
             <CardTitle className="text-base">Zählpunkte</CardTitle>
           </CardHeader>
           <CardContent>
-            <MeteringPointFields form={form} fieldConfig={fieldConfig} />
+            <MeteringPointFields
+              form={form}
+              fieldConfig={fieldConfig}
+              prefixConsumption={config.meteringPointPrefixConsumption ?? null}
+              prefixProduction={config.meteringPointPrefixProduction ?? null}
+            />
             {form.formState.errors.meteringPoints?.message && (
               <p className="text-sm font-medium text-destructive mt-3">
                 {form.formState.errors.meteringPoints.message}

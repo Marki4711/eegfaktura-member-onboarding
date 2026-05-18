@@ -176,6 +176,12 @@ export interface RegistrationConfig {
   // PROJ-31: wenn true, schaltet die Public-Form die Erfolgsmeldung nach
   // dem Einreichen auf den „E-Mail-Postfach prüfen"-Hinweis um.
   requireEmailConfirmation?: boolean;
+  // PROJ-52: pro Richtung konfigurierbarer Zählpunkt-Prefix. NULL/undefined
+  // ⇒ kein Prefill (Mask zeigt nur „AT" als fix). Wenn gesetzt, wird das
+  // Zählpunkt-Feld beim Direction-Wechsel mit dem Prefix vorbelegt und
+  // onBlur mit führenden Nullen auf 33 Stellen aufgefüllt.
+  meteringPointPrefixConsumption?: string | null;
+  meteringPointPrefixProduction?: string | null;
   legalDocuments?: LegalDocumentItem[];
   // PROJ-37: cooperative-shares config. The two value fields are only
   // present when the feature is enabled for this EEG.
