@@ -968,6 +968,10 @@ export interface EEGSettings {
   showCentralPolicy?: boolean;
   memberNumberStart?: number;
   requireEmailConfirmation?: boolean;
+  // PROJ-52: pro Richtung konfigurierbarer Zählpunkt-Prefix. NULL/undefined
+  // = keine EEG-spezifische Vorbelegung (Mask zeigt nur "AT" als fix).
+  meteringPointPrefixConsumption?: string | null;
+  meteringPointPrefixProduction?: string | null;
   // PROJ-37: Genossenschaftsanteile-Konfig pro EEG.
   cooperativeSharesEnabled?: boolean;
   cooperativeRequiredShares?: number;
@@ -986,6 +990,14 @@ export interface EEGSettingsSavePayload {
   requireEmailConfirmation?: boolean;
   showCentralPolicy?: boolean;
   memberNumberStart?: number;
+  // PROJ-52: zwei optionale Prefixes — leerer String bzw. null clearen,
+  // Wert setzt. Werden nur dann persistiert, wenn der Caller
+  // `meteringPointPrefixesPresent: true` mitschickt (Patch-Semantik —
+  // verhindert Clobbering durch andere Editoren, die saveEEGSettings
+  // ohne Prefix-Felder aufrufen).
+  meteringPointPrefixConsumption?: string | null;
+  meteringPointPrefixProduction?: string | null;
+  meteringPointPrefixesPresent?: boolean;
   // PROJ-37: Toggle + Pflichtanteils-Anzahl + Anteilswert in Cents.
   cooperativeSharesEnabled?: boolean;
   cooperativeRequiredShares?: number;

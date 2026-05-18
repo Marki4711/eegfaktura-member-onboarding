@@ -29,6 +29,43 @@ interface Props {
 // control (not just decorative text). The Lock-Icon next to the label
 // signals visually + semantically (via aria-label on the icon's parent)
 // that the value is managed by the Core.
+// PrefixPreview (PROJ-52) renders a compact visualisation of how the
+// configured prefix appears in the member-facing Zählpunkt-Mask. Empty
+// prefix ⇒ "nur AT fix, 31 Stellen frei". Prefix mit < 2 oder ohne
+// "AT"-Start ⇒ Inline-Hinweis. Sonst: Prefix in Mono + Anzahl freier
+// Stellen. Kein Format-Check über DB-Constraint hinaus — der Save
+// validiert serverseitig.
+function PrefixPreview({ prefix }: { prefix: string }) {
+  if (prefix === "") {
+    return (
+      <p className="text-xs text-muted-foreground font-mono">
+        AT + 31 Stellen frei
+      </p>
+    );
+  }
+  if (!prefix.startsWith("AT") || prefix.length < 2) {
+    return (
+      <p className="text-xs text-amber-700">
+        Prefix muss mit „AT" beginnen.
+      </p>
+    );
+  }
+  if (prefix.length > 33) {
+    return (
+      <p className="text-xs text-amber-700">
+        Prefix darf maximal 33 Stellen lang sein.
+      </p>
+    );
+  }
+  const remaining = 33 - prefix.length;
+  return (
+    <p className="text-xs text-muted-foreground">
+      <span className="font-mono font-medium text-foreground">{prefix}</span>
+      {" "}+ {remaining} Stelle{remaining === 1 ? "" : "n"} vom Mitglied
+    </p>
+  );
+}
+
 function SyncedField({ label, value }: { label: string; value: string | null | undefined }) {
   const display = value && value.length > 0 ? value : "—";
   return (
@@ -83,6 +120,11 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
   const [cooperativeSharesEnabled, setCooperativeSharesEnabled] = useState(false);
   const [cooperativeRequiredShares, setCooperativeRequiredShares] = useState<number>(1);
   const [shareAmountInput, setShareAmountInput] = useState("");
+  // PROJ-52: pro-Richtung Zählpunkt-Prefix. Leerer String = nicht
+  // konfiguriert. Input zwingt automatisch uppercase und entfernt
+  // Whitespace, damit das Eintippformat zur Backend-Normalisierung passt.
+  const [meteringPointPrefixConsumption, setMeteringPointPrefixConsumption] = useState("");
+  const [meteringPointPrefixProduction, setMeteringPointPrefixProduction] = useState("");
 
   const reloadSettings = useCallback(async () => {
     if (!rcNumber || !session?.accessToken) return;
@@ -93,6 +135,8 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
     setUseCompanySEPAMandate(s.useCompanySEPAMandate ?? false);
     setSepaMandateAtImport(s.sepaMandateAtImport ?? false);
     setRequireEmailConfirmation(s.requireEmailConfirmation ?? false);
+    setMeteringPointPrefixConsumption(s.meteringPointPrefixConsumption ?? "");
+    setMeteringPointPrefixProduction(s.meteringPointPrefixProduction ?? "");
     setCooperativeSharesEnabled(s.cooperativeSharesEnabled ?? false);
     setCooperativeRequiredShares(s.cooperativeRequiredShares ?? 1);
     setShareAmountInput(
@@ -174,6 +218,11 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
           useCompanySEPAMandate,
           sepaMandateAtImport,
           requireEmailConfirmation,
+          // PROJ-52: Patch-Semantik aktivieren — sonst lässt der Handler
+          // die Prefix-Spalten unberührt. Leerer Input ⇒ Backend cleart.
+          meteringPointPrefixesPresent: true,
+          meteringPointPrefixConsumption: meteringPointPrefixConsumption || null,
+          meteringPointPrefixProduction: meteringPointPrefixProduction || null,
           cooperativeSharesEnabled,
           cooperativeRequiredShares: cooperativeSharesEnabled ? cooperativeRequiredShares : undefined,
           cooperativeShareAmountCents: amountCents,
@@ -528,6 +577,66 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
               </p>
             </div>
           )}
+
+          {/* PROJ-52: Zählpunkt-Prefixes pro Richtung */}
+          <div className="rounded-md border bg-card p-4 space-y-3 mt-2">
+            <div>
+              <p className="text-sm font-medium">Zählpunkt-Prefixes</p>
+              <p className="text-xs text-muted-foreground mt-0.5 max-w-2xl">
+                Je mehr Stellen Sie hier festlegen, desto weniger müssen Mitglieder
+                selbst eintippen. Die sinnvolle Länge hängt davon ab, ab welcher
+                Stelle die Zählpunkte Ihres Netzbetreibers individuell werden.
+                Beide Felder sind optional; leer lassen heißt „nur AT als fixer
+                Bestandteil".
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="prefix-consumption" className="text-sm">
+                  Verbraucher-Prefix
+                </Label>
+                <Input
+                  id="prefix-consumption"
+                  type="text"
+                  inputMode="text"
+                  autoComplete="off"
+                  value={meteringPointPrefixConsumption}
+                  onChange={(e) => {
+                    const cleaned = e.target.value
+                      .replace(/[\s.\-]/g, "")
+                      .toUpperCase();
+                    setMeteringPointPrefixConsumption(cleaned);
+                    setSaveResult(null);
+                  }}
+                  maxLength={33}
+                  className="font-mono"
+                />
+                <PrefixPreview prefix={meteringPointPrefixConsumption} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="prefix-production" className="text-sm">
+                  Einspeisungs-Prefix
+                </Label>
+                <Input
+                  id="prefix-production"
+                  type="text"
+                  inputMode="text"
+                  autoComplete="off"
+                  value={meteringPointPrefixProduction}
+                  onChange={(e) => {
+                    const cleaned = e.target.value
+                      .replace(/[\s.\-]/g, "")
+                      .toUpperCase();
+                    setMeteringPointPrefixProduction(cleaned);
+                    setSaveResult(null);
+                  }}
+                  maxLength={33}
+                  className="font-mono"
+                />
+                <PrefixPreview prefix={meteringPointPrefixProduction} />
+              </div>
+            </div>
+          </div>
 
           {/* E-Mail-Bestätigung (PROJ-31) */}
           <div className="flex items-start gap-3 pt-1">
