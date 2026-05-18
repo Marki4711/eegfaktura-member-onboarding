@@ -1446,11 +1446,10 @@ func validateMemberTypeFields(app *shared.Application) error {
 				"uidNumber": "UID-Nummer ist erforderlich",
 			})
 		}
-		if app.RegisterNumber == nil || strings.TrimSpace(*app.RegisterNumber) == "" {
-			return shared.NewValidationError("Validation failed", map[string]string{
-				"registerNumber": "Firmenbuch-/Vereinsnummer ist erforderlich",
-			})
-		}
+		// Firmenbuchnummer ist optional — manche Firmen (z. B. nicht
+		// firmenbuchpflichtige Einzelunternehmer mit Firmenbezeichnung)
+		// haben keine. Vereinsnummer für `association` bleibt Pflicht
+		// (ZVR ist für Vereine in AT verpflichtend).
 	default:
 		return shared.NewValidationError("Validation failed", map[string]string{
 			"memberType": "Ungültiger Mitgliedstyp",

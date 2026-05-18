@@ -220,9 +220,8 @@ function buildFormSchema(
         if (!data.uidNumber?.trim()) {
           ctx.addIssue({ code: "custom", path: ["uidNumber"], message: "UID-Nummer ist erforderlich" });
         }
-        if (!data.registerNumber?.trim()) {
-          ctx.addIssue({ code: "custom", path: ["registerNumber"], message: "Firmenbuchnummer ist erforderlich" });
-        }
+        // Firmenbuchnummer ist optional — manche Firmen (z. B. nicht
+        // firmenbuchpflichtige Einzelunternehmer) haben keine.
       }
       if (data.memberType === "association") {
         if (!data.registerNumber?.trim()) {
@@ -831,7 +830,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>
-                            {memberType === "association" ? "Vereinsnummer *" : "Firmenbuchnummer *"}
+                            {memberType === "association" ? "Vereinsnummer *" : "Firmenbuchnummer"}
                           </FormLabel>
                           <FormControl>
                             <Input {...field} />

@@ -134,12 +134,14 @@ func TestValidateMemberTypeFields_Company_MissingUID(t *testing.T) {
 	}
 }
 
-func TestValidateMemberTypeFields_Company_MissingRegisterNumber(t *testing.T) {
+func TestValidateMemberTypeFields_Company_MissingRegisterNumberAllowed(t *testing.T) {
+	// Firmenbuchnummer ist optional (manche Firmen, z. B. nicht
+	// firmenbuchpflichtige Einzelunternehmer, haben keine).
 	app := baseApp(shared.MemberTypeCompany)
 	app.CompanyName = strPtr("Muster GmbH")
 	app.UIDNumber = strPtr("ATU12345678")
-	if err := validateMemberTypeFields(app); err == nil {
-		t.Fatal("expected validation error for missing registerNumber")
+	if err := validateMemberTypeFields(app); err != nil {
+		t.Fatalf("expected no error for missing registerNumber, got: %v", err)
 	}
 }
 

@@ -183,7 +183,7 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
       if (!companyName.trim()) return `${orgLabel} ist erforderlich.`;
       if (memberType === "company") {
         if (!uidNumber.trim()) return "UID-Nummer ist erforderlich.";
-        if (!registerNumber.trim()) return "Firmenbuchnummer ist erforderlich.";
+        // Firmenbuchnummer ist optional — siehe registration-form.tsx
       }
       if (memberType === "association") {
         if (!registerNumber.trim()) return "Vereinsnummer ist erforderlich.";
@@ -374,7 +374,7 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
                 {(memberType === "company" || memberType === "association") && (
                   <div className="space-y-1">
                     <Label htmlFor="edit-register">
-                      {memberType === "association" ? "Vereinsnummer *" : "Firmenbuchnummer *"}
+                      {memberType === "association" ? "Vereinsnummer *" : "Firmenbuchnummer"}
                     </Label>
                     <Input
                       id="edit-register"
