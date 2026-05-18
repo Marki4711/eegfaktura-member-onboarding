@@ -248,7 +248,7 @@ export function AdminStatusActions({ applicationId, rcNumber, status, targetPart
               disabled={loading || emailConfirmationPending}
               title={emailConfirmationPending ? "E-Mail-Adresse muss zuerst bestätigt werden" : undefined}
             >
-              {loading ? "Bitte warten..." : "In Prüfung nehmen"}
+              {loading ? "Bitte warten..." : "In Bearbeitung nehmen"}
             </Button>
             <Button
               variant="destructive"
@@ -265,7 +265,7 @@ export function AdminStatusActions({ applicationId, rcNumber, status, targetPart
             onClick={() => directAction("under_review")}
             disabled={loading}
           >
-            {loading ? "Bitte warten..." : "In Prüfung nehmen"}
+            {loading ? "Bitte warten..." : "In Bearbeitung nehmen"}
           </Button>
         )}
 
@@ -383,7 +383,7 @@ export function AdminStatusActions({ applicationId, rcNumber, status, targetPart
               onClick={() => directAction("under_review")}
               disabled={loading}
             >
-              Zurück in Prüfung
+              Zurück in Bearbeitung
             </Button>
             <Button
               variant="outline"
@@ -424,7 +424,7 @@ export function AdminStatusActions({ applicationId, rcNumber, status, targetPart
               onClick={() => directAction("under_review")}
               disabled={loading}
             >
-              Zurück in Prüfung
+              Zurück in Bearbeitung
             </Button>
             <Button
               variant="outline"

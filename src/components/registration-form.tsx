@@ -58,8 +58,8 @@ const PRIVACY_VERSION = "2026-01";
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
 const MEMBER_TYPE_OPTIONS: { value: MemberType; label: string; hint: string }[] = [
-  { value: "private",         label: "Privatperson",                    hint: "0 % USt." },
-  { value: "sole_proprietor", label: "Kleinunternehmer",                hint: "0 % USt." },
+  { value: "private",         label: "Privatperson",                    hint: "" },
+  { value: "sole_proprietor", label: "Kleinunternehmer",                hint: "" },
   { value: "farmer",          label: "Pauschalierter Landwirt",         hint: "13 % USt." },
   { value: "municipality",    label: "Gemeinde / öffentliche Körperschaft", hint: "variabel" },
   { value: "company",         label: "Unternehmen",                     hint: "20 % USt." },
@@ -696,7 +696,9 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                       {MEMBER_TYPE_OPTIONS.map((opt) => (
                         <SelectItem key={opt.value} value={opt.value}>
                           {opt.label}
-                          <span className="ml-2 text-xs text-muted-foreground">({opt.hint})</span>
+                          {opt.hint && (
+                            <span className="ml-2 text-xs text-muted-foreground">({opt.hint})</span>
+                          )}
                         </SelectItem>
                       ))}
                     </SelectContent>

@@ -17,7 +17,7 @@ const STATUS_OPTIONS = [
   { value: "all", label: "Alle Status" },
   { value: "draft", label: "Entwurf" },
   { value: "submitted", label: "Eingereicht" },
-  { value: "under_review", label: "In Prüfung" },
+  { value: "under_review", label: "In Bearbeitung" },
   { value: "needs_info", label: "Info benötigt" },
   { value: "approved", label: "Genehmigt" },
   { value: "rejected", label: "Abgelehnt" },

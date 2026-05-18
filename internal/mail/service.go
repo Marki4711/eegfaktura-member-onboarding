@@ -158,6 +158,9 @@ type memberTemplateData struct {
 	EEGStreetNumber string
 	EEGZip          string
 	EEGCity         string
+	// EEGContactEmail: für die Footer-Zeile „Für Rückfragen wenden Sie sich
+	// direkt an die EEG (E-Mail)". Ersetzt die frühere Postadressen-Anzeige.
+	EEGContactEmail string
 	CreditorID      string
 	// Antragsdaten zur Überprüfung durch das Mitglied
 	MemberType      string
@@ -413,6 +416,7 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 		EEGStreetNumber: derefString(entrypoint.EEGStreetNumber),
 		EEGZip:          derefString(entrypoint.EEGZip),
 		EEGCity:         derefString(entrypoint.EEGCity),
+		EEGContactEmail: derefString(entrypoint.ContactEmail),
 		CreditorID:      derefString(entrypoint.CreditorID),
 		MemberType:      memberTypeLabel,
 		CompanyName:     derefString(app.CompanyName),
@@ -592,6 +596,7 @@ func (s *SMTPMailService) SendMemberConfirmation(app *shared.Application, entryp
 		EEGStreetNumber: derefString(entrypoint.EEGStreetNumber),
 		EEGZip:          derefString(entrypoint.EEGZip),
 		EEGCity:         derefString(entrypoint.EEGCity),
+		EEGContactEmail: derefString(entrypoint.ContactEmail),
 		CreditorID:      derefString(entrypoint.CreditorID),
 	}); err != nil {
 		return fmt.Errorf("render member template: %w", err)
@@ -621,6 +626,7 @@ type statusChangeTemplateData struct {
 	EEGStreetNumber string
 	EEGZip          string
 	EEGCity         string
+	EEGContactEmail string
 }
 
 func buildStatusChangeData(app *shared.Application, ep *shared.RegistrationEntrypoint, reason string) statusChangeTemplateData {
@@ -634,6 +640,7 @@ func buildStatusChangeData(app *shared.Application, ep *shared.RegistrationEntry
 		EEGStreetNumber: derefString(ep.EEGStreetNumber),
 		EEGZip:          derefString(ep.EEGZip),
 		EEGCity:         derefString(ep.EEGCity),
+		EEGContactEmail: derefString(ep.ContactEmail),
 	}
 }
 

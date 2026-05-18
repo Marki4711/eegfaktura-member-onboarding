@@ -347,7 +347,7 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
               {application.emailConfirmedAt && (
                 <> am {formatDateTime(application.emailConfirmedAt)}</>
               )}.{" "}
-              Der Antrag liegt jetzt zur Prüfung bereit.
+              Der Antrag liegt jetzt zur Bearbeitung bereit.
             </AlertDescription>
           </Alert>
         )}

@@ -252,7 +252,7 @@
   <hr style="border: none; border-top: 1px solid #ddd; margin: 32px 0 16px;">
   <p style="font-size: 12px; color: #777; line-height: 1.5;">
     Sie erhalten diese E-Mail, weil unter Ihrer E-Mail-Adresse ein Mitgliedsantrag{{if .EEGName}} bei <strong>{{.EEGName}}</strong>{{end}} eingereicht wurde (Antragsnummer {{.ReferenceNumber}}).
-    {{if .EEGName}}Für Rückfragen wenden Sie sich bitte direkt an {{.EEGName}}{{if .EEGStreet}}, {{.EEGStreet}} {{.EEGStreetNumber}}{{end}}{{if .EEGZip}}, {{.EEGZip}} {{.EEGCity}}{{end}}{{end}} &mdash; eine Antwort auf diese E-Mail geht direkt an Ihre Energiegemeinschaft.
+    {{if .EEGName}}Für Rückfragen wenden Sie sich bitte direkt an {{.EEGName}}{{if .EEGContactEmail}} (<a href="mailto:{{.EEGContactEmail}}">{{.EEGContactEmail}}</a>){{end}}{{end}} &mdash; eine Antwort auf diese E-Mail geht direkt an Ihre Energiegemeinschaft.
   </p>
   <p style="font-size: 12px; color: #777;">
     Diese Nachricht wurde automatisch durch eegFaktura Mitglieder-Onboarding erzeugt.

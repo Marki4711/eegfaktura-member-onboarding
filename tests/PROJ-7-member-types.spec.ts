@@ -56,9 +56,10 @@ test("AC-2: default selection is 'Privatperson / Kleinunternehmer'", async ({ pa
 test("AC-3: member type options show VAT hint", async ({ page }) => {
   await page.goto(FORM_URL);
   await page.getByRole("combobox", { name: /Mitgliedstyp/i }).click();
-  // Options are shown in the open dropdown — check for partial text in the listbox
+  // Options are shown in the open dropdown — check for partial text in the listbox.
+  // private + sole_proprietor zeigen keinen USt-Hint mehr (Kleinunternehmer-
+  // Regelung ist nicht „0 %" sondern „nicht steuerbar" — UI-Vereinfachung).
   const listbox = page.getByRole("listbox");
-  await expect(listbox.getByText("0 % USt.", { exact: false }).first()).toBeVisible();
   await expect(listbox.getByText("13 % USt.", { exact: false }).first()).toBeVisible();
   await expect(listbox.getByText("20 % USt.", { exact: false }).first()).toBeVisible();
 });

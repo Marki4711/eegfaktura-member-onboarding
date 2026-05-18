@@ -8,7 +8,7 @@ const STATUS_CONFIG: Record<
   draft:           { label: "Entwurf",                className: "bg-gray-100 text-gray-700 hover:bg-gray-100" },
   submitted:       { label: "Eingereicht",            className: "bg-blue-100 text-blue-700 hover:bg-blue-100" },
   email_confirmed: { label: "E-Mail bestätigt",       className: "bg-teal-100 text-teal-700 hover:bg-teal-100" },
-  under_review:    { label: "In Prüfung",             className: "bg-yellow-100 text-yellow-700 hover:bg-yellow-100" },
+  under_review:    { label: "In Bearbeitung",         className: "bg-yellow-100 text-yellow-700 hover:bg-yellow-100" },
   needs_info:      { label: "Info benötigt",          className: "bg-orange-100 text-orange-700 hover:bg-orange-100" },
   approved:        { label: "Genehmigt",              className: "bg-green-100 text-green-700 hover:bg-green-100" },
   rejected:        { label: "Abgelehnt",              className: "bg-red-100 text-red-700 hover:bg-red-100" },

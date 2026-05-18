@@ -34,7 +34,7 @@ import {
 const BULK_ACTION_LABELS: Record<BulkActionType, string> = {
   approve: "Genehmigen",
   reject: "Ablehnen",
-  under_review: "Zur Prüfung",
+  under_review: "In Bearbeitung",
 };
 
 export function ApplicationsPageContent() {
@@ -240,7 +240,7 @@ export function ApplicationsPageContent() {
               variant="outline"
               onClick={() => setPendingAction("under_review")}
             >
-              Zur Prüfung
+              In Bearbeitung
             </Button>
             <Button
               size="sm"
@@ -306,7 +306,7 @@ export function ApplicationsPageContent() {
             <DialogDescription>
               {pendingAction === "approve" && `${selectedCount} ${selectedCount === 1 ? "Antrag" : "Anträge"} genehmigen? Anträge mit ungültiger Statusübergang werden übersprungen.`}
               {pendingAction === "reject" && `${selectedCount} ${selectedCount === 1 ? "Antrag" : "Anträge"} ablehnen? Ein Ablehnungsgrund ist erforderlich.`}
-              {pendingAction === "under_review" && `${selectedCount} ${selectedCount === 1 ? "Antrag" : "Anträge"} zur Prüfung setzen? Anträge mit ungültiger Statusübergang werden übersprungen.`}
+              {pendingAction === "under_review" && `${selectedCount} ${selectedCount === 1 ? "Antrag" : "Anträge"} in Bearbeitung setzen? Anträge mit ungültiger Statusübergang werden übersprungen.`}
             </DialogDescription>
           </DialogHeader>
 
