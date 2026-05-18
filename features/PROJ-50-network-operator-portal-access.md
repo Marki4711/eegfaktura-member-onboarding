@@ -1,8 +1,8 @@
 # PROJ-50: Frage „Zugang Online-Portal Netzbetreiber vorhanden?" + bedingte Anleitungs-Mail
 
-**Status:** Planned
+**Status:** On Hold
 **Created:** 2026-05-17
-**Last Updated:** 2026-05-17
+**Last Updated:** 2026-05-18
 
 ## Hintergrund
 

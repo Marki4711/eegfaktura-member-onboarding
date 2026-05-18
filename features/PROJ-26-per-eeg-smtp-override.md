@@ -1,8 +1,8 @@
 # PROJ-26: Eigener Mailserver pro EEG
 
-## Status: Planned
+## Status: On Hold
 **Created:** 2026-05-08
-**Last Updated:** 2026-05-08
+**Last Updated:** 2026-05-18
 
 ## Dependencies
 - Requires: PROJ-6 (E-Mail-Benachrichtigungen) — bestehende Mail-Infrastruktur
