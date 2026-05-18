@@ -96,9 +96,10 @@ func (s *RegistrationService) GetRegistrationConfig(rcNumber string) (*shared.Re
 		FieldConfig:         fieldConfig,
 		IntroText:           ep.IntroText,
 		SEPAMandateEnabled:  ep.SEPAMandateEnabled,
-		SEPAMandateAtImport: ep.SEPAMandateAtImport,
-		ShowCentralPolicy:   ep.ShowCentralPolicy,
-		LegalDocuments:      legalDocuments,
+		SEPAMandateAtImport:      ep.SEPAMandateAtImport,
+		ShowCentralPolicy:        ep.ShowCentralPolicy,
+		RequireEmailConfirmation: ep.RequireEmailConfirmation,
+		LegalDocuments:           legalDocuments,
 		// PROJ-37: only ship the two value fields when the feature is on.
 		CooperativeSharesEnabled: ep.CooperativeSharesEnabled,
 	}

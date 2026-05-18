@@ -639,7 +639,9 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-muted-foreground">
-            Ihr Antrag wurde übermittelt und wird nun von unserem Team geprüft.
+            {config.requireEmailConfirmation
+              ? "Bitte prüfen Sie jetzt Ihr E-Mail-Postfach und bestätigen Sie Ihre E-Mail-Adresse über den zugesandten Link."
+              : "Ihr Antrag wurde übermittelt und wird nun von unserem Team geprüft."}
           </p>
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium">Ihre Antragsnummer:</span>

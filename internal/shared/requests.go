@@ -165,6 +165,11 @@ type RegistrationConfig struct {
 	// mit Mitgliedsnummer als Mandatsreferenz.
 	SEPAMandateAtImport bool               `json:"sepaMandateAtImport"`
 	ShowCentralPolicy  bool                `json:"showCentralPolicy"`
+	// RequireEmailConfirmation (PROJ-31) wird in die Public-Form
+	// weitergereicht, damit die Erfolgsmeldung nach dem Einreichen den
+	// richtigen Hinweis zeigt („Bitte E-Mail bestätigen" statt
+	// „wird nun von unserem Team geprüft").
+	RequireEmailConfirmation bool          `json:"requireEmailConfirmation"`
 	LegalDocuments     []LegalDocumentItem `json:"legalDocuments"`
 	// PROJ-37: only set when CooperativeSharesEnabled=true on the EEG.
 	// Both inner values are then non-nil and > 0.

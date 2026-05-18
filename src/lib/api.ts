@@ -172,6 +172,9 @@ export interface RegistrationConfig {
   // jetzt vs. später per Mail kommt).
   sepaMandateAtImport?: boolean;
   showCentralPolicy?: boolean;
+  // PROJ-31: wenn true, schaltet die Public-Form die Erfolgsmeldung nach
+  // dem Einreichen auf den „E-Mail-Postfach prüfen"-Hinweis um.
+  requireEmailConfirmation?: boolean;
   legalDocuments?: LegalDocumentItem[];
   // PROJ-37: cooperative-shares config. The two value fields are only
   // present when the feature is enabled for this EEG.
