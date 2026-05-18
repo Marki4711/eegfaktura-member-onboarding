@@ -46,7 +46,6 @@ type ApprovalPDFData struct {
 
 	MeteringPoints     []MeteringPointPDF
 	Consents           []ConsentPDF
-	StatusLog          []StatusLogPDF
 	ConfigurableFields []ConfigurableFieldPDF
 
 	// Statutory consents stored as booleans on the application record.
@@ -58,6 +57,13 @@ type ApprovalPDFData struct {
 	SepaMandateAccepted   bool
 	SepaMandateAcceptedAt *time.Time
 	SEPAMandateEnabled    bool // true = Mandat-PDF an Willkommensmail anhängen, false = Mandat wird separat per Mail übermittelt
+	// PROJ-44: Netzbetreiber-Vollmacht. Wenn true, wird der volle
+	// Vollmachtstext (shared.NetworkOperatorAuthText) als Zustimmung
+	// im Block "ERTEILTE ZUSTIMMUNGEN" gerendert. AuthorizationAt ist
+	// der Zeitpunkt der Erteilung (NOW() beim Submit, wenn die
+	// Checkbox aktiv gesetzt wurde).
+	NetworkOperatorAuthorization   bool
+	NetworkOperatorAuthorizationAt *time.Time
 
 	MemberNumber *string
 
@@ -104,36 +110,10 @@ type ConsentPDF struct {
 	Informational bool
 }
 
-// StatusLogPDF holds one status log entry for the approval PDF.
-type StatusLogPDF struct {
-	FromStatus string
-	ToStatus   string
-	Timestamp  time.Time
-	Reason     string
-}
-
 // ConfigurableFieldPDF holds a configurable field label/value for the approval PDF.
 type ConfigurableFieldPDF struct {
 	Label string
 	Value string
-}
-
-var statusLabelsDE = map[string]string{
-	"draft":         "Entwurf",
-	"submitted":     "Eingereicht",
-	"under_review":  "In Prüfung",
-	"needs_info":    "Rückfrage",
-	"approved":      "Genehmigt",
-	"rejected":      "Abgelehnt",
-	"imported":      "Importiert",
-	"import_failed": "Import fehlgeschlagen",
-}
-
-func statusDE(s string) string {
-	if label, ok := statusLabelsDE[s]; ok {
-		return label
-	}
-	return s
 }
 
 // ApprovalPDFGenerator generates the Beitrittsbestätigung as a PDF byte slice.
@@ -326,6 +306,19 @@ func (g *FPDFApprovalGenerator) GenerateApproval(data ApprovalPDFData) ([]byte, 
 		}
 		f.MultiCell(cw, 5, w1252(line), "0", "L", false)
 	}
+	// PROJ-44: Netzbetreiber-Vollmacht als eigene Zustimmung mit
+	// vollständigem Vertragstext + Zeitstempel. Wird nur gerendert,
+	// wenn das Mitglied die Vollmacht aktiv erteilt hat.
+	if data.NetworkOperatorAuthorization {
+		header := "- Netzbetreiber-Vollmacht erteilt"
+		if data.NetworkOperatorAuthorizationAt != nil {
+			header += " am " + fmtDateTime(*data.NetworkOperatorAuthorizationAt)
+		}
+		f.MultiCell(cw, 5, w1252(header), "0", "L", false)
+		setFont("I", 8)
+		f.MultiCell(cw, 4, w1252("  „"+shared.NetworkOperatorAuthText+"\""), "0", "L", false)
+		setFont("", 9)
+	}
 	// PROJ-36: render the two consent kinds as separate blocks so the audit
 	// trail clearly distinguishes active acceptance from informational
 	// acknowledgement. Order matches the form order: explicit first.
@@ -396,30 +389,6 @@ func (g *FPDFApprovalGenerator) GenerateApproval(data ApprovalPDFData) ([]byte, 
 		dataRow("Anzahl gezeichneter Anteile:", fmt.Sprintf("%d", count))
 		dataRow("Wert je Anteil:", formatEur(amount))
 		dataRow("Gesamtbetrag:", formatEur(total))
-	}
-
-	// ── STATUSVERLAUF ─────────────────────────────────────────────────────────
-	sectionHeader("STATUSVERLAUF")
-	setFont("B", 9)
-	sc1 := cw * 0.27
-	sc2 := cw * 0.27
-	sc3 := cw * 0.25
-	sc4 := cw - sc1 - sc2 - sc3
-	f.CellFormat(sc1, 6, w1252("Von"), "B", 0, "L", false, 0, "")
-	f.CellFormat(sc2, 6, w1252("Nach"), "B", 0, "L", false, 0, "")
-	f.CellFormat(sc3, 6, w1252("Zeitpunkt"), "B", 0, "L", false, 0, "")
-	f.CellFormat(sc4, 6, w1252("Kommentar"), "B", 1, "L", false, 0, "")
-	setFont("", 9)
-	for _, sl := range data.StatusLog {
-		from := statusDE(sl.FromStatus)
-		if from == "" {
-			from = "—"
-		}
-		ts := fmtDateTime(sl.Timestamp)
-		f.CellFormat(sc1, 5, w1252(from), "0", 0, "L", false, 0, "")
-		f.CellFormat(sc2, 5, w1252(statusDE(sl.ToStatus)), "0", 0, "L", false, 0, "")
-		f.CellFormat(sc3, 5, w1252(ts), "0", 0, "L", false, 0, "")
-		f.CellFormat(sc4, 5, w1252(sl.Reason), "0", 1, "L", false, 0, "")
 	}
 
 	// ── WEITERE ANGABEN ───────────────────────────────────────────────────────

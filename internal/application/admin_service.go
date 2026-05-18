@@ -813,11 +813,6 @@ func (s *AdminApplicationService) SendPostImportNotification(appID uuid.UUID) {
 		slog.Error("imported mail: failed to load metering points", "application_id", appID, "error", err)
 		return
 	}
-	statusLog, err := s.statusLogRepo.GetByApplicationID(appID)
-	if err != nil {
-		slog.Error("imported mail: failed to load status log", "application_id", appID, "error", err)
-		return
-	}
 	consents, err := s.consentRepo.GetByApplicationID(appID)
 	if err != nil {
 		slog.Error("imported mail: failed to load consents", "application_id", appID, "error", err)
@@ -829,7 +824,7 @@ func (s *AdminApplicationService) SendPostImportNotification(appID uuid.UUID) {
 		fieldConfig = map[string]FieldConfigEntry{}
 	}
 
-	pdfData := buildApprovalPDFData(reloadedApp, mps, statusLog, consents, entrypoint, toStateMap(fieldConfig))
+	pdfData := buildApprovalPDFData(reloadedApp, mps, consents, entrypoint, toStateMap(fieldConfig))
 	if logoBytes, logoMime, logoErr := s.entrypointRepo.GetLogo(reloadedApp.RCNumber); logoErr == nil && len(logoBytes) > 0 {
 		pdfData.LogoBytes = logoBytes
 		pdfData.LogoMIME = logoMime
@@ -1248,7 +1243,6 @@ func (s *AdminApplicationService) UpdateAdminNote(id uuid.UUID, note string) err
 func buildApprovalPDFData(
 	app *shared.Application,
 	meteringPoints []shared.MeteringPoint,
-	statusLog []shared.StatusLogEntry,
 	consents []shared.DocumentConsent,
 	entrypoint *shared.RegistrationEntrypoint,
 	fieldConfig map[string]string,
@@ -1293,24 +1287,6 @@ func buildApprovalPDFData(
 		}
 	}
 
-	slPDFs := make([]pdf.StatusLogPDF, len(statusLog))
-	for i, sl := range statusLog {
-		from := ""
-		if sl.FromStatus != nil {
-			from = *sl.FromStatus
-		}
-		reason := ""
-		if sl.Reason != nil {
-			reason = *sl.Reason
-		}
-		slPDFs[i] = pdf.StatusLogPDF{
-			FromStatus: from,
-			ToStatus:   sl.ToStatus,
-			Timestamp:  sl.CreatedAt,
-			Reason:     reason,
-		}
-	}
-
 	memberTypeLabel := approvalMemberTypeLabel(app.MemberType)
 
 	return pdf.ApprovalPDFData{
@@ -1339,7 +1315,6 @@ func buildApprovalPDFData(
 		SepaMandateType:      approvalSepaMandateType(app, entrypoint),
 		MeteringPoints:       mpPDFs,
 		Consents:             consentPDFs,
-		StatusLog:            slPDFs,
 		ConfigurableFields:   buildApprovalConfigurableFields(app, fieldConfig),
 		PrivacyAccepted:       app.PrivacyAccepted,
 		PrivacyVersion:        derefStr(app.PrivacyVersion),
@@ -1350,6 +1325,11 @@ func buildApprovalPDFData(
 		SepaMandateAcceptedAt: app.SepaMandateAcceptedAt,
 		SEPAMandateEnabled:    entrypoint.SEPAMandateEnabled,
 		MemberNumber:         app.MemberNumber,
+		// PROJ-44: Netzbetreiber-Vollmacht-Snapshot. Wenn das Mitglied
+		// die Vollmacht beim Submit erteilt hat, wird sie als Zustimmung
+		// mit Volltext + Zeitstempel im PDF gerendert.
+		NetworkOperatorAuthorization:   app.NetworkOperatorAuthorization,
+		NetworkOperatorAuthorizationAt: app.NetworkOperatorAuthorizationAt,
 		// PROJ-37: only set both fields together — the PDF render skips
 		// the section if either is missing. EEG entrypoint provides the
 		// price; the application carries the count. When the EEG feature
@@ -1557,10 +1537,6 @@ func (s *AdminApplicationService) GenerateApprovalPDF(id uuid.UUID) ([]byte, str
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to fetch metering points: %w", err)
 	}
-	statusLog, err := s.statusLogRepo.GetByApplicationID(id)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to fetch status log: %w", err)
-	}
 	consents, err := s.consentRepo.GetByApplicationID(id)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to fetch consents: %w", err)
@@ -1574,7 +1550,7 @@ func (s *AdminApplicationService) GenerateApprovalPDF(id uuid.UUID) ([]byte, str
 		fieldConfig = map[string]FieldConfigEntry{}
 	}
 
-	pdfData := buildApprovalPDFData(app, mps, statusLog, consents, entrypoint, toStateMap(fieldConfig))
+	pdfData := buildApprovalPDFData(app, mps, consents, entrypoint, toStateMap(fieldConfig))
 	// PROJ-33: embed the cached EEG logo. Optional — same fallback story
 	// as in the approval-mail path: a missing logo simply renders without it.
 	if logoBytes, logoMime, logoErr := s.entrypointRepo.GetLogo(app.RCNumber); logoErr == nil && len(logoBytes) > 0 {

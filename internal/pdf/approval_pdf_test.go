@@ -2,7 +2,6 @@ package pdf
 
 import (
 	"bytes"
-	"strings"
 	"testing"
 	"time"
 )
@@ -31,10 +30,6 @@ func approvalData() ApprovalPDFData {
 		},
 		Consents: []ConsentPDF{
 			{Title: "Datenschutzerklärung", URL: "https://example.at/datenschutz", ConsentedAt: time.Date(2026, 4, 26, 9, 0, 0, 0, time.UTC)},
-		},
-		StatusLog: []StatusLogPDF{
-			{FromStatus: "", ToStatus: "submitted", Timestamp: time.Date(2026, 4, 26, 9, 0, 0, 0, time.UTC)},
-			{FromStatus: "submitted", ToStatus: "approved", Timestamp: time.Date(2026, 4, 26, 10, 0, 0, 0, time.UTC)},
 		},
 	}
 }
@@ -99,9 +94,6 @@ func TestFPDFApprovalGenerator_EmptyOptionalFields(t *testing.T) {
 		MeteringPoints: []MeteringPointPDF{
 			{MeteringPoint: "AT001234567", Direction: "Verbrauch", ParticipationFactor: 100},
 		},
-		StatusLog: []StatusLogPDF{
-			{FromStatus: "", ToStatus: "approved", Timestamp: time.Now()},
-		},
 	}
 	_, err := g.GenerateApproval(data)
 	if err != nil {
@@ -154,20 +146,29 @@ func TestFPDFApprovalGenerator_WithConfigurableFields(t *testing.T) {
 	}
 }
 
-// TestFPDFApprovalGenerator_ReApprovalStatusLog verifies a re-approval status log
-// (with import_failed entry) renders without error.
-func TestFPDFApprovalGenerator_ReApprovalStatusLog(t *testing.T) {
+// TestFPDFApprovalGenerator_NetworkOperatorAuth_ChangesOutput verifies that
+// setting NetworkOperatorAuthorization=true produces a PDF that differs from
+// the baseline (PROJ-44, Volltext-Snapshot in ERTEILTE ZUSTIMMUNGEN).
+// Content-Level-Check ist nicht möglich (fpdf komprimiert den Page-Stream
+// mit zlib) — Byte-Diff reicht als Render-Path-Regression-Test.
+func TestFPDFApprovalGenerator_NetworkOperatorAuth_ChangesOutput(t *testing.T) {
 	g := NewFPDFApprovalGenerator()
-	data := approvalData()
-	data.StatusLog = []StatusLogPDF{
-		{FromStatus: "", ToStatus: "submitted", Timestamp: time.Now().Add(-48 * 3600 * 1e9)},
-		{FromStatus: "submitted", ToStatus: "approved", Timestamp: time.Now().Add(-24 * 3600 * 1e9)},
-		{FromStatus: "approved", ToStatus: "import_failed", Timestamp: time.Now().Add(-12 * 3600 * 1e9), Reason: "Import-Fehler"},
-		{FromStatus: "import_failed", ToStatus: "approved", Timestamp: time.Now()},
-	}
-	_, err := g.GenerateApproval(data)
+	authAt := time.Date(2026, 5, 18, 12, 0, 0, 0, time.UTC)
+
+	withAuth := approvalData()
+	withAuth.NetworkOperatorAuthorization = true
+	withAuth.NetworkOperatorAuthorizationAt = &authAt
+
+	bytesWith, err := g.GenerateApproval(withAuth)
 	if err != nil {
-		t.Errorf("GenerateApproval failed with re-approval status log: %v", err)
+		t.Fatalf("GenerateApproval(withAuth) error: %v", err)
+	}
+	bytesWithout, err := g.GenerateApproval(approvalData())
+	if err != nil {
+		t.Fatalf("GenerateApproval(baseline) error: %v", err)
+	}
+	if bytes.Equal(bytesWith, bytesWithout) {
+		t.Error("approval PDF identical with and without NetworkOperatorAuthorization — Volltext nicht gerendert")
 	}
 }
 
@@ -189,21 +190,3 @@ func TestFPDFApprovalGenerator_DifferentFromSEPA(t *testing.T) {
 	}
 }
 
-// TestFPDFApprovalGenerator_LargeStatusLog verifies multi-page rendering works for long status logs.
-func TestFPDFApprovalGenerator_LargeStatusLog(t *testing.T) {
-	g := NewFPDFApprovalGenerator()
-	data := approvalData()
-	// Add enough status log entries to force a page break
-	for i := 0; i < 30; i++ {
-		data.StatusLog = append(data.StatusLog, StatusLogPDF{
-			FromStatus: "needs_info",
-			ToStatus:   strings.Repeat("under_review", 1),
-			Timestamp:  time.Now(),
-			Reason:     strings.Repeat("Rückfrage beantwortet", 1),
-		})
-	}
-	_, err := g.GenerateApproval(data)
-	if err != nil {
-		t.Errorf("GenerateApproval crashed with large status log: %v", err)
-	}
-}
