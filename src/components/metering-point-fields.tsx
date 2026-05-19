@@ -388,6 +388,13 @@ function MeteringPointRow({
                 mask={dynamicMask}
                 definitions={MP_MASK_DEFINITIONS}
                 lazy={false}
+                // Mittelpunkt statt Default-Unterstrich (2026-05-19): in
+                // langen Prefix-Konfigurationen sind die letzten 5–10
+                // Placeholder optisch von den Prefix-Ziffern (`0`) kaum
+                // zu unterscheiden. `·` sitzt mittig in der Zeile, klar
+                // abgegrenzt von Ziffern, und verschmilzt nicht mit
+                // Nachbarn (Problem von `_` bei tracking-tight).
+                placeholderChar="·"
                 prepareChar={(str: string) => str.toUpperCase()}
                 value={field.value}
                 onAccept={(value: string) => field.onChange(value)}
@@ -403,7 +410,7 @@ function MeteringPointRow({
                 }}
                 inputRef={field.ref}
                 name={field.name}
-                className="font-mono text-sm tabular-nums"
+                className="font-mono text-sm tabular-nums tracking-tight"
               />
             </FormControl>
             <FormMessage />
