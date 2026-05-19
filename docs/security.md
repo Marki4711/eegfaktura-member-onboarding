@@ -127,15 +127,15 @@ Folgende Bereiche erfordern bei Änderungen dediziertes `/security-review`:
 - `internal/http/auth.go` — JWT-Parsing, `IsSuperuser()`
 - `internal/http/admin.go` — Tenant-Zugriffskontrolle
 - `internal/http/middleware.go` — Rate Limiting, Security Headers
-- `internal/application/` — Status-Transitionen, Import-Logik, Post-Import-Übergänge (PROJ-46), Reset-Import-Erweiterung, SEPA-Mandat-Timing-Branch (PROJ-48), Zählpunkt-Prefix-Match-Validation beim Submit (PROJ-52: `validateMeteringPointPrefixMatch` — pro-Richtung HasPrefix-Check gegen `registration_entrypoint.metering_point_prefix_*`; defense-in-depth zur Frontend-Mask)
+- `internal/application/` — Status-Transitionen, Import-Logik, Post-Import-Übergänge (PROJ-46), Reset-Import-Erweiterung, SEPA-Mandat-Timing-Branch (PROJ-48), Zählpunkt-Prefix-Match-Validation beim Submit (PROJ-52: `validateMeteringPointPrefixMatch` — pro-Richtung HasPrefix-Check gegen `registration_entrypoint.metering_point_prefix_*`; defense-in-depth zur Frontend-Mask), manueller `approved → activated`-Skip (PROJ-53: `MarkActivatedSkipImport` mit Status-Vor­bedingungs-Check + Mitgliedsnummer-Pflicht + Local-Uniqueness-Check)
 - `internal/application/email_confirmation.go` — Token-Erzeugung und -Hashing (PROJ-31)
-- `internal/importing/` — Core-Calls (POST /participant, GET /participant für Activation-Check), Auto-Branch nach Import
-- `internal/mail/` — Mail-Templates für PROJ-46 (`application_imported_*`, `application_activated_*`), PROJ-47 (B2B-Mandat-Anhang) und PROJ-48 (CORE-Mandat-Anhang am Import-Zeitpunkt + B2B-Hinweis im Submit-Mail)
-- `db/migrations/` — Schema-Änderungen, insbes. CHECK-Constraint-Erweiterung bei neuen Status-Werten
+- `internal/importing/` — Core-Calls (POST /participant, GET /participant für Activation-Check inkl. PROJ-53 Modus-Switch A/B), Auto-Branch nach Import
+- `internal/mail/` — Mail-Templates für PROJ-46/PROJ-53 (`application_imported_*` jetzt Mandat-only, `application_activated_*` jetzt volle Beitrittsbestätigung; neues `application_activated_eeg.html` für EEG-Kopie), PROJ-47 (B2B-Mandat-Anhang) und PROJ-48 (CORE-Mandat-Anhang am Import-Zeitpunkt + B2B-Hinweis im Submit-Mail). Neue `SendActivationNotification` ist idempotent via `application.activation_notification_sent_at`
+- `db/migrations/` — Schema-Änderungen, insbes. CHECK-Constraint-Erweiterung bei neuen Status-Werten (zuletzt 000048 für `activation_mode`-Enum)
 - `helm/` — Kubernetes-Deployment, Secrets
 - `Dockerfile*` — Container-Images
 - `.github/workflows/` — CI/CD-Pipelines (inkl. `eol-check.yml` für proaktive Runtime-EOL-Warnung)
-- `cmd/server/main.go` — Route-Registrierung, Auth-Middleware-Konfiguration, neue Endpoints (`/check-activation`)
+- `cmd/server/main.go` — Route-Registrierung, Auth-Middleware-Konfiguration, neue Endpoints (`/check-activation`, `/mark-activated`)
 
 **Runtime-Hygiene:**
 - Frontend-Image läuft auf **Node 22 LTS** (Node 20 ist seit 2026-04-30 EOL; Bump vom 2026-05-17). Bei nächstem Runtime-Wechsel den `cycle`-Eintrag in `.github/workflows/eol-check.yml` und den `@types/node`-Ignore-Filter in `.github/dependabot.yml` nachziehen.
@@ -166,7 +166,7 @@ Anti-Abuse-Mechanismus gegen Junk-Anträge mit fremder E-Mail-Adresse. Aktivierb
 
 **Rate Limiting:**
 - `POST /api/public/applications` ist auf 10 Requests / 10 Minuten pro IP begrenzt
-- `POST /api/public/applications/confirm-email` erbt die globale Public-Rate-Limit-Pipeline
+- `POST /api/public/applications/confirm-email` hat seit 2026-05-19 **einen eigenen, deutlich großzügigeren Bucket** (30 Requests / 1 Minute pro IP, separater Bucket-Map). Begründung: das 32-Byte-Token macht Brute-Force astronomisch — der Limit ist reine Defence-in-Depth — und der frühere geteilte Bucket mit `/applications` löste „Zu viele Einreichungen"-Fehler bei Testern/Tester-Setups aus. Eigene Fehlermeldung „Zu viele Bestätigungsversuche".
 - Admin-`resend-email-confirmation` hat eine per-application-Throttle, damit ein Admin nicht in Schleife Mails versendet
 
 ---

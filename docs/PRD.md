@@ -36,7 +36,7 @@ Version 1 — all delivered:
 
 ## 4. Feature Roadmap
 
-Single source of truth for current implementation status is [`features/INDEX.md`](../features/INDEX.md). The table below mirrors that file at the time of writing (2026-05-17).
+Single source of truth for current implementation status is [`features/INDEX.md`](../features/INDEX.md). The table below mirrors that file at the time of writing (2026-05-19).
 
 ### Shipped to production
 
@@ -106,7 +106,7 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 | PROJ-50 | Zugang Online-Portal Netzbetreiber + bedingte Anleitungs-Mail | Geparkt 2026-05-18 — mehrere offene Fragen |
 | PROJ-51 | Anzeige offener Nutzungsgebühren im Admin-UI | Wartet auf Klärung des Abrechnungs- und Status-Pflege-Konzepts |
 
-> **Next available feature ID:** PROJ-53 (siehe `features/INDEX.md`).
+> **Next available feature ID:** PROJ-54 (siehe `features/INDEX.md`).
 
 ## 5. Success Metrics
 

@@ -370,11 +370,13 @@ metrics:
 
 ## 5. Bekannte Einschränkungen (zur Erwartungssetzung)
 
-Aus dem Architektur-Review 2026-05-13 — diese Punkte sind dem Team bekannt und in der Backlog-Pipeline:
+Aus dem Architektur-Review 2026-05-13 (und Updates seither) — diese Punkte sind dem Team bekannt und in der Backlog-Pipeline:
 
 - **`replicas: 1`** ist heute hart — kein HA während Rollouts. Multi-Replica-Vorarbeiten (DB-backed Rate-Limit, Mail-Outbox) sind PROJ-Items, noch nicht umgesetzt.
-- **Mail-Versand** für **Antrags-Submit + Approval** ist fire-and-forget; bei Pod-Restart während SMTP-Send kann eine Mail verloren gehen. Wird mit Mail-Outbox geschlossen. **Status-Change-Mails an Mitglied** (Ablehnung/Rückfrage, PROJ-41/43) sind seit 2026-05-17 hard-fail synchron — Mail-Fehler rollt den Statuswechsel zurück, kein stilles Verlieren.
-- **Keine NetworkPolicies** — Frontend-Pod könnte direkt auf Postgres zugreifen (architektonisch unerwünscht, technisch möglich).
-- **Keine Prometheus-Metrics** vom App-Service selbst — nur Logs. Counter wie `import_failed_total` sind heute nur durch Log-Aggregation sichtbar.
+- **Mail-Versand** für **Antrags-Submit + Mandat-bei-Import (PROJ-53) + Activation-Notification** ist best-effort async; bei Pod-Restart während SMTP-Send kann eine Mail verloren gehen. Wird mit Mail-Outbox geschlossen. **Status-Change-Mails an Mitglied** (Ablehnung/Rückfrage, PROJ-41/43) sind seit 2026-05-17 hard-fail synchron — Mail-Fehler rollt den Statuswechsel zurück, kein stilles Verlieren. **Activation-Notification** (PROJ-53) ist idempotent via `application.activation_notification_sent_at` — auch bei mehrfachem Wechsel auf `activated` wird höchstens einmal versendet.
+- **Mail-Outbox** für die nicht-Status-Mails ist noch nicht implementiert (offen, siehe OQ-3 in `docs/open-questions.md`).
+- **Activation-Check 4-MiB-Cap** — `GET /participant` im Core ist auf 4 MiB / ~2000 Teilnehmer gecappt. EEGs > 2000 Teilnehmer brauchen perspektivisch ein „thinner" Core-Endpoint oder Pagination (siehe OQ-5).
+
+> **Was nicht mehr offen ist:** NetworkPolicies sind seit Chart 1.x default-true (backend ← frontend + ingress, frontend ← ingress, postgres ← backend + migrate + seed; siehe `helm/member-onboarding/values.yaml` `networkPolicies.enabled`). Prometheus-Metrics sind seit Chart 1.9.0 live — siehe Section 4 oben.
 
 Vollständige Liste: siehe Architektur-Review-Bericht.

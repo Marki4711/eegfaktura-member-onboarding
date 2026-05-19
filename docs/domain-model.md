@@ -380,6 +380,7 @@ Allowed transitions:
 - `needs_info -> submitted`
 - `approved -> imported`
 - `approved -> import_failed`
+- `approved -> activated` *(PROJ-53, admin manuell via `POST /api/admin/applications/{id}/mark-activated` — Ausnahmefall wenn Mitglied im Core bereits existiert und manuell überschrieben wurde; Mitgliedsnummer-Pflichteingabe; Import-Pfad wird übersprungen)*
 - `import_failed -> approved`
 - `imported -> awaiting_bank_confirmation` *(PROJ-46, auto by import service when `einzugsart=b2b`. Not exposed on `/status`.)*
 - `imported -> ready_for_activation` *(PROJ-46, auto by import service for non-b2b. Not exposed on `/status`.)*

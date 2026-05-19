@@ -110,9 +110,16 @@ Onboarding-only fields (intentionally **not** sent to core):
 - `application.bank_confirmed_at` + `activated_at` *(PROJ-46)* — Audit-Timestamps für die Onboarding-Stati `awaiting_bank_confirmation` / `activated`. Nicht im Core.
 - `metering_point.generation_type` / `battery_size_kwh` / `inverter_manufacturer` *(PROJ-45)* — EEG-Optimierungs-Metadaten. Werden lokal gespeichert (Excel-Export für eegFaktura-Importer am Spalten-Ende ergänzt), gehen aber nicht über die JSON-`POST /participant`-API mit (Core kennt diese Felder noch nicht).
 
-### Activation-Check (PROJ-46 Stage D, reverse-read)
+### Activation-Check (PROJ-46 Stage D + PROJ-53, reverse-read)
 
-`POST /api/admin/applications/check-activation` ruft pro Tenant `GET /participant` im Core auf und liest dort `participant.status` (`NEW` / `PENDING` / `ACTIVE`). Trifft `ACTIVE` zu, transitioniert die Onboarding-Application von `ready_for_activation` auf `activated`. Keine Schreib-Aktion gegen den Core, nur ein Lese-Pfad zum Status-Sync.
+`POST /api/admin/applications/check-activation` ruft pro Tenant `GET /participant` im Core auf. Das Auslöse-Kriterium pro EEG ist konfigurierbar via `registration_entrypoint.activation_mode` (PROJ-53):
+
+- **`participant_active`** (Default): liest `participant.status` (`NEW` / `PENDING` / `ACTIVE`); transitioniert bei `ACTIVE` auf `activated`.
+- **`any_meter_registration_started`** (PROJ-53): liest zusätzlich `participant.meters[].processState`; transitioniert sobald mindestens ein Zählpunkt `processState ∈ {PENDING, APPROVED, ACTIVE}` hat (Netzbetreiber hat die EDA-Online-Registrierung mindestens bestätigt).
+
+Keine Schreib-Aktion gegen den Core, nur ein Lese-Pfad zum Status-Sync. Bei erfolgreichem Wechsel auf `activated` läuft asynchron `SendActivationNotification` (volle Beitrittsbestätigungs-Mail mit PDF), idempotent via `application.activation_notification_sent_at`.
+
+Der direkte Skip `approved → activated` (PROJ-53, `POST /api/admin/applications/{id}/mark-activated`) ist nicht Teil dieses Lesepfads — er ist eine reine Onboarding-Operation für den Ausnahmefall „Core-Member bereits manuell überschrieben".
 
 ### Reverse integration: EEG master data sync (PROJ-32 / PROJ-33)
 

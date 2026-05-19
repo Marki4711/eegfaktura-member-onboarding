@@ -12,8 +12,8 @@ Lebendes Dokument für Fragen, die noch nicht final entschieden sind und Archite
 Aktuell sind nur die Status-Change-Mails an das Mitglied (Ablehnung PROJ-41, Rückfrage PROJ-43) synchron + hard-fail: scheitert SMTP, wird die Statusänderung zurückgerollt und der Admin sieht den Fehler sofort. Alle anderen Mail-Pfade sind best-effort async (Goroutine + Log + Prometheus, blockiert aber nichts):
 
 - **Submit-Mails** (member-confirmation + EEG-notification) — best-effort
-- **Post-Import-Mails** (PROJ-46 Stage B + PROJ-47: Beitrittsbestätigung + ggf. B2B-Mandat-Anhang an Member + EEG-Kopie) — best-effort
-- **Activation-Mail** (PROJ-46, beim Übergang auf `activated`) — best-effort
+- **Mandat-bei-Import-Mail** (PROJ-53, schlanke Begleitmail mit SEPA-Mandat-PDF; nur bei b2b oder `sepa_mandate_at_import=true`) — best-effort
+- **Activation-Mail** (PROJ-53, volle Beitrittsbestätigung mit PDF beim Übergang auf `activated` — sowohl regulär als auch via manuellem Skip `approved → activated`) — best-effort, aber idempotent via `application.activation_notification_sent_at` (kein doppelter Versand bei mehrfachen Statuswechseln)
 
 **Offene Fragen:**
 - Sollen alle Pfade auf hard-fail umgestellt werden?
