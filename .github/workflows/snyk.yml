@@ -54,11 +54,16 @@ jobs:
       # Klassen von Findings. continue-on-error, damit ein Finding nicht
       # den ganzen Workflow rot macht — Findings landen in der GitHub-
       # Security-Tab.
+      #
+      # timeout-minutes: Snyk-Code-Test läuft normal in 1-2 min. Wenn das
+      # Snyk-Backend hängt, soll der Step nach 5 min hart abbrechen statt
+      # auf den GH-Default von 6 Stunden zu warten.
       - name: Snyk Code (SAST)
         run: snyk code test --severity-threshold=high
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         continue-on-error: true
+        timeout-minutes: 5
 
       # snyk.io-Projekt-Snapshot aktuell halten. `monitor` zählt NICHT
       # gegen die Test-Limits, daher unbedenklich pro Push.
@@ -67,3 +72,4 @@ jobs:
         run: snyk monitor --all-projects
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        timeout-minutes: 3
