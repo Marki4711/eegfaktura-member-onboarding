@@ -35,6 +35,15 @@ Snyk wird als ergänzender Scanner für folgende Bereiche eingesetzt:
 | IaC | Helm-Templates, Kubernetes-YAML | `snyk iac test helm/` |
 | Container | Docker-Images, Base-Layer-CVEs | `snyk container test` |
 
+**CI-Aufteilung seit 2026-05-19** (Free-Tier-Limits-Strategie für privates Repo):
+
+- **`.github/workflows/snyk.yml`** — schlanker Push-Trigger auf `main`. Nur Snyk Code (SAST) + Monitor-Snapshot. ~30 Code-Tests/Monat (Limit 100).
+- **`.github/workflows/snyk-weekly.yml`** — Cron sonntags 04:00 UTC + `workflow_dispatch`. Snyk Open Source (Go + npm) und Snyk Container (4 Base-Images). 8 OSS- + 16 Container-Tests/Monat (Limits 200 / ~100).
+
+Begründung der Trennung: Dependency-Updates fängt Dependabot über die PR-Pipeline ohnehin auf — der Wochen-Run ist die Sicherheits­abdeckung für „CVE zwischenzeitlich disclosed bei unveränderten deps". Base-Images ändern sich nicht zwischen Code-Pushes; der separate `weekly-rebuild.yml` hat zudem einen eigenen Trivy-Scan vor dem Push in die Registry.
+
+Pull-Request-Trigger ist bei beiden Workflows entfernt (Solo-Dev: push-to-main = Merge).
+
 ### Abdeckung der Finding-Klassen
 
 | Finding-Klasse | Abgedeckt durch |

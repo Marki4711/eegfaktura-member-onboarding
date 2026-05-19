@@ -1,14 +1,27 @@
 name: Snyk Security Scan
 
+# Schlanker Push-Trigger (Optimierung 2026-05-19): nur Snyk Code (SAST) auf
+# jedem main-Push, plus Monitor-Snapshot. Snyk Open Source und Container
+# laufen separat im wöchentlichen Workflow (`snyk-weekly.yml`), damit die
+# Free-Tier-Limits bei privatem Repo nicht gesprengt werden:
+#
+#   Free-Tier (private repo)
+#     - Snyk Code:        100 Tests/Monat
+#     - Snyk Open Source: 200 Tests/Monat
+#     - Snyk Container:   ~100 Tests/Monat
+#
+# Bei ~5 Pushes/Tag = ~30 Code-Tests/Monat — komfortabel unter dem Limit.
+#
+# Pull-Request-Trigger wurde entfernt (Solo-Dev: push-to-main ist der
+# Merge; PR-Scans wären redundant).
+
 on:
   push:
-    branches: [main]
-  pull_request:
     branches: [main]
 
 jobs:
   snyk:
-    name: Snyk SAST + Dependency Scan
+    name: Snyk SAST
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -36,74 +49,19 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
-      # SAST: static code analysis for Go + TypeScript
+      # SAST: static code analysis for Go + TypeScript. Mehrwert gegenüber
+      # CodeQL (das auch läuft): andere Regel-Engine, fängt teils andere
+      # Klassen von Findings. continue-on-error, damit ein Finding nicht
+      # den ganzen Workflow rot macht — Findings landen in der GitHub-
+      # Security-Tab.
       - name: Snyk Code (SAST)
         run: snyk code test --severity-threshold=high
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         continue-on-error: true
 
-      # SCA: Go module dependency CVE scan
-      - name: Snyk Open Source – Go
-        run: snyk test --file=go.mod --severity-threshold=high
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        continue-on-error: true
-
-      # SCA: npm dependency CVE scan
-      - name: Snyk Open Source – npm
-        run: snyk test --file=package.json --severity-threshold=high
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        continue-on-error: true
-
-      # Container: scan the runtime base images for OS-level CVEs and
-      # base-image EOL warnings (Snyk Advisor). Complements the proactive
-      # endoflife.date check in eol-check.yml — Snyk reacts to actual
-      # accumulating CVEs in the base image, endoflife.date warns ahead
-      # of the EOL date itself. Pulled directly from Docker Hub rather
-      # than building locally to keep the workflow fast; `--file=` points
-      # Snyk at the Dockerfile so it can map findings to FROM-instructions.
-      - name: Snyk Container – frontend (node:22-alpine)
-        run: |
-          docker pull node:22-alpine
-          snyk container test node:22-alpine \
-            --file=Dockerfile.frontend \
-            --severity-threshold=high
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        continue-on-error: true
-
-      - name: Snyk Container – backend builder (golang:1.26-alpine)
-        run: |
-          docker pull golang:1.26-alpine
-          snyk container test golang:1.26-alpine \
-            --file=Dockerfile.backend \
-            --severity-threshold=high
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        continue-on-error: true
-
-      - name: Snyk Container – backend runtime (alpine:3.20)
-        run: |
-          docker pull alpine:3.20
-          snyk container test alpine:3.20 \
-            --file=Dockerfile.backend \
-            --severity-threshold=high
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        continue-on-error: true
-
-      - name: Snyk Container – postgres (postgres:16-alpine)
-        run: |
-          docker pull postgres:16-alpine
-          snyk container test postgres:16-alpine \
-            --severity-threshold=high
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        continue-on-error: true
-
-      # Keep snyk.io project snapshot up to date
+      # snyk.io-Projekt-Snapshot aktuell halten. `monitor` zählt NICHT
+      # gegen die Test-Limits, daher unbedenklich pro Push.
       - name: Snyk Monitor (snapshot)
         if: github.ref == 'refs/heads/main'
         run: snyk monitor --all-projects
