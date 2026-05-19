@@ -309,13 +309,14 @@ function MeteringPointRow({
           name={`meteringPoints.${index}.meteringPoint`}
           render={({ field }) => (
             <FormItem
-              // 300 px ist Tester-Vorgabe für den Eingabe-Inhalt — knapp
-              // über dem natürlichen Bedarf von ~290 px (33 Monospace-
-              // Zeichen mit tracking-tight + Padding auf text-sm/Desktop),
-              // sodass der Text vollständig sichtbar ist ohne horizontalen
-              // Scroll. shrink-0 schützt vor Flex-Verkleinerung, wenn
-              // Faktor + Trash daneben stehen.
-              style={{ maxWidth: "300px" }}
+              // 300 px feste Breite — knapp über dem natürlichen Bedarf
+              // von ~290 px (33 Monospace-Zeichen mit tracking-tight +
+              // Padding auf text-sm/Desktop). `width` statt `maxWidth`,
+              // weil das Element im Flex-Layout sonst auf die
+              // Content-Breite des `<input>` (Browser-Default size=20,
+              // ~192 px) schrumpfen würde. shrink-0 schützt zusätzlich
+              // vor Flex-Verkleinerung, wenn Faktor + Trash daneben stehen.
+              style={{ width: "300px" }}
               className="shrink-0"
             >
               <div className="flex items-center gap-1">
