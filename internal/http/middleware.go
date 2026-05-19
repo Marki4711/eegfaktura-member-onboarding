@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -14,10 +15,15 @@ import (
 )
 
 // publicIPRateLimiter holds per-IP sliding-window buckets for the public API.
+// Two independent bucket maps so the relatively expensive submit endpoint can
+// not exhaust the quota of the cheap confirm-email endpoint (and vice versa).
 // Keys are client IP addresses; entries are evicted lazily on next access.
 var (
-	publicIPBuckets   = make(map[string]*ipBucket)
-	publicIPBucketsMu sync.Mutex
+	publicSubmitBuckets   = make(map[string]*ipBucket)
+	publicSubmitBucketsMu sync.Mutex
+
+	publicConfirmBuckets   = make(map[string]*ipBucket)
+	publicConfirmBucketsMu sync.Mutex
 )
 
 type ipBucket struct {
@@ -44,13 +50,13 @@ func (b *ipBucket) allow(limit int, window time.Duration) bool {
 	return true
 }
 
-func getIPBucket(ip string) *ipBucket {
-	publicIPBucketsMu.Lock()
-	defer publicIPBucketsMu.Unlock()
-	b, ok := publicIPBuckets[ip]
+func getIPBucket(buckets map[string]*ipBucket, mu *sync.Mutex, ip string) *ipBucket {
+	mu.Lock()
+	defer mu.Unlock()
+	b, ok := buckets[ip]
 	if !ok {
 		b = &ipBucket{}
-		publicIPBuckets[ip] = b
+		buckets[ip] = b
 	}
 	return b
 }
@@ -77,27 +83,55 @@ func realIP(r *http.Request) string {
 	return peer
 }
 
+// rateLimitMiddleware returns a per-IP sliding-window limiter for POST requests
+// against `buckets`. Non-POST requests pass through untouched. The Retry-After
+// header is set to `window` rounded up to whole seconds.
+func rateLimitMiddleware(
+	buckets map[string]*ipBucket,
+	mu *sync.Mutex,
+	limit int,
+	window time.Duration,
+	message string,
+) func(http.Handler) http.Handler {
+	retryAfter := int((window + time.Second - 1) / time.Second)
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodPost {
+				ip := realIP(r)
+				if !getIPBucket(buckets, mu, ip).allow(limit, window) {
+					metrics.RateLimitHitsTotal.Inc()
+					w.Header().Set("Retry-After", strconv.Itoa(retryAfter))
+					writeJSON(w, http.StatusTooManyRequests, map[string]string{
+						"code":    "rate_limit_exceeded",
+						"message": message,
+					})
+					return
+				}
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 // PublicSubmitRateLimitMiddleware limits POST requests to the public applications
 // endpoint to 10 per 10 minutes per IP to mitigate automated bulk submissions.
-func PublicSubmitRateLimitMiddleware(next http.Handler) http.Handler {
-	const limit = 10
-	const window = 10 * time.Minute
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost {
-			ip := realIP(r)
-			if !getIPBucket(ip).allow(limit, window) {
-				metrics.RateLimitHitsTotal.Inc()
-				w.Header().Set("Retry-After", "600")
-				writeJSON(w, http.StatusTooManyRequests, map[string]string{
-					"code":    "rate_limit_exceeded",
-					"message": "Zu viele Einreichungen. Bitte in 10 Minuten erneut versuchen.",
-				})
-				return
-			}
-		}
-		next.ServeHTTP(w, r)
-	})
-}
+var PublicSubmitRateLimitMiddleware = rateLimitMiddleware(
+	publicSubmitBuckets, &publicSubmitBucketsMu,
+	10, 10*time.Minute,
+	"Zu viele Einreichungen. Bitte in 10 Minuten erneut versuchen.",
+)
+
+// PublicConfirmEmailRateLimitMiddleware limits POST requests to the e-mail
+// confirmation endpoint. The 32-byte token already makes brute-force
+// astronomical; this limit only exists as cheap defence-in-depth and is
+// deliberately permissive (30/min/IP) so a tester behind shared NAT or a
+// user re-opening the link a few times never hits it. Separate bucket from
+// /applications so submits don't consume the confirm-email quota.
+var PublicConfirmEmailRateLimitMiddleware = rateLimitMiddleware(
+	publicConfirmBuckets, &publicConfirmBucketsMu,
+	30, 1*time.Minute,
+	"Zu viele Bestätigungsversuche. Bitte in einer Minute erneut versuchen.",
+)
 
 // MaxBodySize returns a middleware that wraps r.Body with http.MaxBytesReader.
 // Decoding a body larger than `max` bytes returns an error from the standard
@@ -133,22 +167,26 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 // StartIPBucketCleanup starts a background goroutine that evicts idle IP buckets
 // every 10 minutes to prevent unbounded memory growth. Stops when ctx is cancelled.
 func StartIPBucketCleanup(ctx context.Context) {
+	sweep := func(buckets map[string]*ipBucket, mu *sync.Mutex) {
+		mu.Lock()
+		defer mu.Unlock()
+		for ip, b := range buckets {
+			b.mu.Lock()
+			empty := len(b.timestamps) == 0
+			b.mu.Unlock()
+			if empty {
+				delete(buckets, ip)
+			}
+		}
+	}
 	go func() {
 		ticker := time.NewTicker(10 * time.Minute)
 		defer ticker.Stop()
 		for {
 			select {
 			case <-ticker.C:
-				publicIPBucketsMu.Lock()
-				for ip, b := range publicIPBuckets {
-					b.mu.Lock()
-					empty := len(b.timestamps) == 0
-					b.mu.Unlock()
-					if empty {
-						delete(publicIPBuckets, ip)
-					}
-				}
-				publicIPBucketsMu.Unlock()
+				sweep(publicSubmitBuckets, &publicSubmitBucketsMu)
+				sweep(publicConfirmBuckets, &publicConfirmBucketsMu)
 			case <-ctx.Done():
 				return
 			}

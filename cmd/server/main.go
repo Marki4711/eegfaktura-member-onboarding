@@ -194,11 +194,12 @@ func main() {
 
 		r.Route("/applications", func(r chi.Router) {
 			r.With(internalhttp.PublicSubmitRateLimitMiddleware).Post("/", applicationHandler.CreateApplication)
-			// PROJ-31: e-mail confirmation endpoint. Rate-limited via the same
-			// public-submit middleware so an attacker can't brute-force tokens
-			// (the 32-byte entropy already makes that astronomical, but the
-			// rate-limit is a cheap defence-in-depth).
-			r.With(internalhttp.PublicSubmitRateLimitMiddleware).Post("/confirm-email", applicationHandler.ConfirmEmail)
+			// PROJ-31: e-mail confirmation endpoint. Separate, more permissive
+			// limiter (30/min/IP) than the submit endpoint — the 32-byte token
+			// entropy makes brute force astronomical anyway, and a tester
+			// behind shared NAT or a user re-opening the link should never
+			// trip the gate.
+			r.With(internalhttp.PublicConfirmEmailRateLimitMiddleware).Post("/confirm-email", applicationHandler.ConfirmEmail)
 			r.Route("/{id}", func(r chi.Router) {
 				r.Put("/", applicationHandler.UpdateApplication)
 				r.Route("/submit", func(r chi.Router) {
