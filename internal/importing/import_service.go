@@ -28,11 +28,12 @@ import (
 // coverage requires either extracting repo interfaces or pulling in a
 // sqlmock dependency — tracked as a follow-up.
 type ImportService struct {
-	db            *sql.DB
-	appRepo       *application.ApplicationRepository
-	meteringRepo  *application.MeteringPointRepository
-	statusLogRepo *application.StatusLogRepository
-	coreClient    coreclient.CoreClient
+	db             *sql.DB
+	appRepo        *application.ApplicationRepository
+	meteringRepo   *application.MeteringPointRepository
+	statusLogRepo  *application.StatusLogRepository
+	entrypointRepo *application.RegistrationEntrypointRepository
+	coreClient     coreclient.CoreClient
 }
 
 // ListTariffs proxies the core's GET /eeg/tariff for the admin tariff-selection
@@ -77,6 +78,17 @@ func (s *ImportService) CheckActivations(ctx context.Context, bearerToken string
 	result := &ActivationCheckResult{Checked: len(rows)}
 
 	for tenant, tenantRows := range byTenant {
+		// PROJ-53: Aktivierungs-Modus pro EEG. Default participant_active
+		// = heutiges Verhalten (Core-Teilnehmer-Status ACTIVE).
+		mode := shared.ActivationModeParticipantActive
+		if ep, epErr := s.entrypointRepo.GetByRCNumber(tenant); epErr != nil {
+			result.Errors = append(result.Errors,
+				fmt.Sprintf("tenant %s: load entrypoint failed: %s", tenant, epErr))
+			continue
+		} else if shared.IsValidActivationMode(ep.ActivationMode) {
+			mode = ep.ActivationMode
+		}
+
 		participants, err := s.coreClient.ListParticipants(ctx, bearerToken, tenant)
 		if err != nil {
 			result.Errors = append(result.Errors,
@@ -85,9 +97,9 @@ func (s *ImportService) CheckActivations(ctx context.Context, bearerToken string
 		}
 
 		// Index by participant ID for O(1) lookup.
-		statusByID := map[string]string{}
+		participantByID := map[string]coreclient.CoreParticipantSummary{}
 		for _, p := range participants {
-			statusByID[p.ID] = p.Status
+			participantByID[p.ID] = p
 		}
 
 		for _, row := range tenantRows {
@@ -96,16 +108,16 @@ func (s *ImportService) CheckActivations(ctx context.Context, bearerToken string
 					fmt.Sprintf("app %s: target_participant_id is empty", row.ID))
 				continue
 			}
-			coreStatus, ok := statusByID[*row.TargetParticipantID]
+			p, ok := participantByID[*row.TargetParticipantID]
 			if !ok {
 				// Participant not found in core — could mean it was deleted.
 				// Skip silently; admin can reset/re-import if needed.
 				continue
 			}
-			if coreStatus != "ACTIVE" {
+			if !shouldActivate(mode, p) {
 				continue
 			}
-			if err := s.markActivated(row.ID); err != nil {
+			if err := s.markActivated(row.ID, mode); err != nil {
 				result.Errors = append(result.Errors,
 					fmt.Sprintf("app %s: mark activated failed: %s", row.ID, err))
 				continue
@@ -116,9 +128,32 @@ func (s *ImportService) CheckActivations(ctx context.Context, bearerToken string
 	return result, nil
 }
 
+// shouldActivate (PROJ-53) decides whether the given core participant
+// satisfies the per-EEG activation criterion.
+//   - participant_active: classic — participant.status == ACTIVE
+//   - any_meter_registration_started: at least one meter has processState
+//     in {PENDING, APPROVED, ACTIVE} (Netzbetreiber has at minimum
+//     bestätigt receipt of the online-registration request)
+func shouldActivate(mode string, p coreclient.CoreParticipantSummary) bool {
+	switch mode {
+	case shared.ActivationModeAnyMeterRegistrationStarted:
+		for _, m := range p.Meters {
+			switch m.ProcessState {
+			case "PENDING", "APPROVED", "ACTIVE":
+				return true
+			}
+		}
+		return false
+	default: // ActivationModeParticipantActive
+		return p.Status == "ACTIVE"
+	}
+}
+
 // markActivated transitions an application from ready_for_activation to
-// activated, stamps activated_at, and writes the status_log entry.
-func (s *ImportService) markActivated(id uuid.UUID) error {
+// activated, stamps activated_at, and writes the status_log entry. PROJ-53:
+// the activation mode is recorded in the log reason so debugging post-hoc
+// is possible ("warum hat der Batch das aktiviert?").
+func (s *ImportService) markActivated(id uuid.UUID, mode string) error {
 	now := time.Now().UTC()
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -133,11 +168,13 @@ func (s *ImportService) markActivated(id uuid.UUID) error {
 		return err
 	}
 	from := string(shared.StatusReadyForActivation)
+	reason := fmt.Sprintf("activation-check batch (mode=%s)", mode)
 	if err := s.statusLogRepo.CreateTx(tx, &shared.StatusLogEntry{
 		ApplicationID:   id,
 		FromStatus:      &from,
 		ToStatus:        string(shared.StatusActivated),
 		ChangedByUserID: &system,
+		Reason:          &reason,
 		CreatedAt:       now,
 	}); err != nil {
 		return err
@@ -254,14 +291,16 @@ func NewImportService(
 	appRepo *application.ApplicationRepository,
 	meteringRepo *application.MeteringPointRepository,
 	statusLogRepo *application.StatusLogRepository,
+	entrypointRepo *application.RegistrationEntrypointRepository,
 	coreClient coreclient.CoreClient,
 ) *ImportService {
 	return &ImportService{
-		db:            db,
-		appRepo:       appRepo,
-		meteringRepo:  meteringRepo,
-		statusLogRepo: statusLogRepo,
-		coreClient:    coreClient,
+		db:             db,
+		appRepo:        appRepo,
+		meteringRepo:   meteringRepo,
+		statusLogRepo:  statusLogRepo,
+		entrypointRepo: entrypointRepo,
+		coreClient:     coreClient,
 	}
 }
 

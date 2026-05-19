@@ -940,10 +940,62 @@ superusers operate on all EEGs, tenant admins on their own RC numbers only.
 2. Group by `rc_number`.
 3. Per tenant: call `GET /participant` (core) — bounded by 4 MiB / ~2000 participants per call.
 4. Build an in-memory index `target_participant_id → core.status`.
-5. For each candidate: if Core-Status is `ACTIVE`, transition to `activated`
+5. For each candidate: evaluate the per-EEG `activation_mode`
+   (PROJ-53). If the criterion is met, transition to `activated`
    via guarded `UpdateStatusAdminTx`, stamp `activated_at = NOW()`, write
-   `status_log` entry with actor `system:activation-check`.
+   `status_log` entry with actor `system:activation-check`. The transition
+   asynchronously triggers `SendActivationNotification` (full
+   Beitrittsbestätigungs-Mail with PDF), idempotent via
+   `activation_notification_sent_at` flag.
 6. Best-effort — per-tenant errors don't abort the whole batch.
+
+### Activation modes (PROJ-53)
+
+The per-EEG column `registration_entrypoint.activation_mode` selects the
+criterion. Default `participant_active` keeps the historical behaviour.
+
+| Mode | Criterion |
+|---|---|
+| `participant_active` (Default) | Core participant's top-level `status == ACTIVE` |
+| `any_meter_registration_started` | At least one of the participant's `meters[].processState` is in `{PENDING, APPROVED, ACTIVE}` — i.e. the network operator has at least acknowledged the EDA online-registration request |
+
+EDA-state mapping (verified 2026-05-19 against a live tenant):
+`ANFORDERUNG_ECON` keeps `processState = INVALID`,
+`ANTWORT_ECON` → `PENDING`, `ZUSTIMMUNG_ECON` → `APPROVED`,
+`ABSCHLUSS_ECON` → `ACTIVE`.
+
+### POST `/api/admin/applications/{id}/mark-activated`
+
+PROJ-53: manual `approved → activated` skip-import. The application is
+moved directly to `activated` without calling the eegFaktura core. Use
+only when the member already exists in the core (Faktura cannot delete
+members) and was manually overwritten there with the onboarding data.
+Triggers the same Beitrittsbestätigungs-Mail-with-PDF as the regular
+activation path.
+
+#### Auth
+Bearer JWT, tenant must include the application's `rc_number` or
+superuser flag.
+
+#### Request body
+```json
+{
+  "memberNumber": "0042"
+}
+```
+
+| Field | Type | Required | Note |
+|---|---|---|---|
+| `memberNumber` | string | yes | Persisted to `application.member_number`. Used as `Mitgliedsnummer` on the Beitrittsbestätigung; must be unique within the EEG (collides ⇒ 409). |
+
+#### Responses
+| Status | Body | Meaning |
+|---|---|---|
+| `200 OK` | `AdminApplicationDetailResponse` | Transition succeeded; mail dispatch is async |
+| `400 Bad Request` | `ErrorResponse` | `memberNumber` missing / empty |
+| `403 Forbidden` | `ErrorResponse` | Wrong tenant |
+| `404 Not Found` | `ErrorResponse` | Application doesn't exist |
+| `409 Conflict` | `ErrorResponse` | Application is not in `approved` status, or `memberNumber` already used by another application in the same EEG |
 
 ### Failure responses
 - `503` Core integration not configured (`CORE_BASE_URL` empty) or no admin
@@ -1176,6 +1228,7 @@ Returns the EEG settings — the eight Core-mastered fields (PROJ-32) plus the o
   "requireEmailConfirmation": false,
   "meteringPointPrefixConsumption": "AT00060010001",
   "meteringPointPrefixProduction": null,
+  "activationMode": "participant_active",
   "cooperativeSharesEnabled": true,
   "cooperativeRequiredShares": 1,
   "cooperativeShareAmountCents": 10000
@@ -1213,11 +1266,14 @@ Writes the onboarding-only editable fields. The Core-mastered fields (`eegId`, `
   "meteringPointPrefixesPresent": true,
   "meteringPointPrefixConsumption": "AT00060010001",
   "meteringPointPrefixProduction": null,
+  "activationMode": "any_meter_registration_started",
   "cooperativeSharesEnabled": true,
   "cooperativeRequiredShares": 1,
   "cooperativeShareAmountCents": 10000
 }
 ```
+
+`activationMode` (PROJ-53) is optional in the request — `null`/omitted leaves the existing value unchanged (patch semantics). Allowed values: `participant_active` (default for new EEGs — Core-Teilnehmer-Status `ACTIVE` löst Activation aus) or `any_meter_registration_started` (mind. ein Zählpunkt mit `processState ∈ {PENDING, APPROVED, ACTIVE}`). Invalid values return `400`.
 
 `registrationActive`: enables or disables the public registration form for this EEG. When `false`, `GET /api/public/registration/{rc_number}` returns `410 Gone`.
 

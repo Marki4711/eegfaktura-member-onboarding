@@ -11,9 +11,10 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { changeApplicationStatus, importApplication, resetImportApplication, reassignApplicationToEEG, ApiResponseError } from "@/lib/api";
+import { changeApplicationStatus, importApplication, resetImportApplication, reassignApplicationToEEG, markActivated, ApiResponseError } from "@/lib/api";
 import type { ApplicationStatus, MeteringPointDetail } from "@/lib/api";
 import { ImportTariffDialog } from "@/components/import-tariff-dialog";
 import {
@@ -68,6 +69,13 @@ export function AdminStatusActions({ applicationId, rcNumber, status, targetPart
   const [error, setError] = useState<string | null>(null);
   const [isConflict, setIsConflict] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  // PROJ-53: dedicated dialog for manual "approved -> activated"-Skip.
+  // Nur sinnvoll, wenn das Mitglied im Core bereits existiert und manuell
+  // mit den Onboarding-Daten überschrieben wurde — Import wird übersprungen.
+  const [markActivatedOpen, setMarkActivatedOpen] = useState(false);
+  const [markActivatedMemberNumber, setMarkActivatedMemberNumber] = useState("");
+  const [markActivatedLoading, setMarkActivatedLoading] = useState(false);
+  const [markActivatedError, setMarkActivatedError] = useState<string | null>(null);
 
   // PROJ-40: EEG-Umzuordnung. Admin sieht die Funktion nur, wenn er ≥ 2 EEGs
   // verwaltet (oder Superuser ist). Die Liste der möglichen Ziel-EEGs kommt
@@ -317,9 +325,22 @@ export function AdminStatusActions({ applicationId, rcNumber, status, targetPart
         )}
 
         {status === "approved" && (
-          <Button onClick={openImportDialog} disabled={loading}>
-            {loading ? "Import läuft..." : "In eegFaktura importieren"}
-          </Button>
+          <>
+            <Button onClick={openImportDialog} disabled={loading}>
+              {loading ? "Import läuft..." : "In eegFaktura importieren"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setMarkActivatedError(null);
+                setMarkActivatedMemberNumber("");
+                setMarkActivatedOpen(true);
+              }}
+              disabled={loading}
+            >
+              Manuell aktivieren …
+            </Button>
+          </>
         )}
 
         {status === "import_failed" && (
@@ -589,6 +610,82 @@ export function AdminStatusActions({ applicationId, rcNumber, status, targetPart
         onCancel={() => setImportDialogOpen(false)}
         onConfirm={runImport}
       />
+
+      {/* PROJ-53: Manuelle Aktivierung (Import übersprungen). */}
+      <Dialog open={markActivatedOpen} onOpenChange={setMarkActivatedOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Manuell aktivieren (Import überspringen)</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <div className="rounded-md border-l-4 border-amber-500 bg-amber-50 p-3">
+              <p className="font-medium text-amber-900">Achtung — Ausnahmefall</p>
+              <p className="text-amber-900 mt-1">
+                Nur verwenden, wenn das Mitglied im eegFaktura bereits manuell
+                mit den Onboarding-Daten überschrieben wurde. Der Import in den
+                eegFaktura-Core wird übersprungen. Die Beitrittsbestätigung mit
+                PDF wird direkt versandt.
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="mark-activated-member-number" className="text-sm">
+                Mitgliedsnummer
+              </Label>
+              <Input
+                id="mark-activated-member-number"
+                value={markActivatedMemberNumber}
+                onChange={(e) => setMarkActivatedMemberNumber(e.target.value)}
+                disabled={markActivatedLoading}
+              />
+              <p className="text-xs text-muted-foreground">
+                Die im eegFaktura hinterlegte Mitgliedsnummer — wird auf die
+                Beitrittsbestätigung gedruckt.
+              </p>
+            </div>
+            {markActivatedError && (
+              <p className="text-sm text-destructive">{markActivatedError}</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setMarkActivatedOpen(false)}
+              disabled={markActivatedLoading}
+            >
+              Abbrechen
+            </Button>
+            <Button
+              onClick={async () => {
+                const mn = markActivatedMemberNumber.trim();
+                if (!mn) {
+                  setMarkActivatedError("Mitgliedsnummer ist erforderlich.");
+                  return;
+                }
+                setMarkActivatedLoading(true);
+                setMarkActivatedError(null);
+                try {
+                  await markActivated(applicationId, { memberNumber: mn }, session?.accessToken);
+                  toast.success("Antrag wurde manuell aktiviert. Beitrittsbestätigung wird versandt.");
+                  setMarkActivatedOpen(false);
+                  onRefresh();
+                } catch (err) {
+                  const msg = err instanceof ApiResponseError
+                    ? err.message
+                    : err instanceof Error
+                    ? err.message
+                    : "Manuelle Aktivierung fehlgeschlagen";
+                  setMarkActivatedError(msg);
+                } finally {
+                  setMarkActivatedLoading(false);
+                }
+              }}
+              disabled={markActivatedLoading || !markActivatedMemberNumber.trim()}
+            >
+              {markActivatedLoading ? "Wird aktiviert…" : "Manuell aktivieren"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

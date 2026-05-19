@@ -10,6 +10,78 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### PROJ-53 — Aktivierungs-Modus pro EEG + Beitrittsbestätigung erst bei `activated` + manueller `approved → activated`-Skip *(2026-05-19)*
+
+Drei zusammenhängende Änderungen am Activation-/Mail-Lifecycle:
+
+**1. Beitrittsbestätigung wandert von `imported` nach `activated`**
+- `SendImportedNotification` (volle Beitrittsbestätigung + PDF + optional Mandat) entfällt.
+- Neue Funktion `SendMandateAtImportNotification` (schlank, nur Mandat-Anlage)
+  läuft beim Wechsel auf `imported` — und auch nur dann, wenn überhaupt ein
+  Mandat zu versenden ist (b2b oder `sepa_mandate_at_import=true`).
+- Neue Funktion `SendActivationNotification` (volle Beitrittsbestätigung mit
+  PDF an Member + EEG-Contact) läuft beim Wechsel auf `activated`.
+- Templates: `application_imported_*.html` umgeschrieben auf "Anlage Mandat —
+  Beitrittsbestätigung folgt"; `application_activated_member.html` enthält
+  jetzt die volle Beitrittsbestätigung; neues `application_activated_eeg.html`.
+- Alte kurze `SendActivatedNotification`-Welcome-Mail entfällt (war Funktion
+  mit identischem Auslöser, aber dünnerem Inhalt — wird durch die volle
+  Beitrittsbestätigungs-Mail abgelöst).
+- **Idempotenz:** neue Spalte `application.activation_notification_sent_at`
+  speichert den Sendetag. Wird beim erfolgreichen Versand gesetzt; mehrfache
+  Aktivierungen schicken nicht doppelt.
+- **Hartes Cut-off für Bestandsanträge:** Migration 047 setzt das Flag
+  retrospektiv für alle Anträge in `imported/ready_for_activation/
+  awaiting_bank_confirmation/activated` auf `updated_at`. So bekommen
+  Mitglieder, die schon eine "alte" Beitrittsbestätigung beim Import erhalten
+  haben, beim Übergang auf activated keine zweite.
+
+**2. Aktivierungs-Kriterium pro EEG konfigurierbar**
+- Neue Spalte `registration_entrypoint.activation_mode` (Default
+  `participant_active`, alternativ `any_meter_registration_started`).
+  Migration 048 inkl. DB-CHECK.
+- `CoreParticipantSummary` um `Meters []CoreMeterSummary{MeteringPoint, Status, ProcessState}`
+  erweitert — die nötigen Felder lieferte das deployed Core-Endpoint
+  `GET /api/participant` schon, wurden bisher nur weggeworfen
+  (verifiziert am 2026-05-19 gegen RC101294).
+- `ImportService.CheckActivations` evaluiert pro EEG den `activation_mode`:
+  - `participant_active`: heutige Logik — `participant.status == ACTIVE`
+  - `any_meter_registration_started`: min. ein Zählpunkt mit
+    `processState ∈ {PENDING, APPROVED, ACTIVE}` (Netzbetreiber hat
+    EDA-Online-Registrierung mindestens bestätigt)
+- Admin-Settings-Editor: Radio-Block "Aktivierungs-Kriterium" mit Erklärtexten
+  zu beiden Varianten.
+- API: `GET/PUT /api/admin/settings/eeg` um `activationMode` erweitert
+  (Patch-Semantik, Enum-Validation).
+- Default ist rückwärtskompatibel — kein Bestands-EEG kippt ungewollt um.
+
+**3. Manueller `approved → activated`-Skip-Import (Ausnahmefall)**
+- Neue Transition `approved → activated` (zusätzlich zu `approved → imported`
+  und `approved → import_failed`). NICHT über generisches `/status` zugänglich
+  — nur über dedizierten Endpoint.
+- Use-case: Mitglied existiert im eegFaktura-Core bereits (Faktura erlaubt
+  kein Löschen) und wurde dort manuell mit den Onboarding-Daten
+  überschrieben. Der Onboarding-Antrag muss trotzdem zu `activated` kommen.
+- Neuer Endpoint `POST /api/admin/applications/{id}/mark-activated` mit
+  Pflicht-Body `{"memberNumber": "..."}`. Validiert: Status muss `approved`
+  sein, Mitgliedsnummer muss frei sein (kein Konflikt in der EEG).
+- Triggert dieselbe `SendActivationNotification` wie der reguläre Pfad
+  (Flag-Check verhindert doppelten Versand).
+- Admin-UI: Button "Manuell aktivieren …" auf der Detailansicht einer
+  `approved`-Anwendung, öffnet Dialog mit Pflichtfeld Mitgliedsnummer und
+  deutlichem Warnhinweis "Nur verwenden wenn Core-Member bereits manuell
+  überschrieben".
+
+**Tests:** neue Unit-Tests `TestShouldActivate` (11 Cases: A/B-Modus,
+Edge-Cases inkl. Fallback bei unbekanntem Mode-Wert) und
+`TestIsValidActivationMode` (Enum-Validator als Source-of-Truth-Gate
+zwischen HTTP-Layer und DB-CHECK).
+
+**Docs:** `docs/architecture-diagram.md` (State-Diagramm + Legende),
+`CLAUDE.md` (Transitionsliste), `docs/domain-model.md` (neue Spalten),
+`docs/api-spec.md` (neues Endpoint, Activation-Modus-Tabelle, EDA-Mapping,
+`activationMode` in EEG-Settings-Beispielen).
+
 ### Docs — Audit aller `docs/` und `docs/user-guide/` *(2026-05-18)*
 
 Vollständiger Durchgang aller Top-Level-Dokumente und der User-Guide nach

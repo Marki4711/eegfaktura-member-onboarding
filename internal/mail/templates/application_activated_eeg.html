@@ -2,15 +2,14 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>SEPA-Mandat an Mitglied versandt</title>
+  <title>Mitglied aktiviert — Beitrittsbestätigung versandt</title>
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 700px;">
   <p>Hallo,</p>
 
   <p>
-    der folgende Mitgliedsantrag wurde in eegFaktura importiert und das
-    Mitglied hat das SEPA-Mandat als PDF erhalten. <strong>Die formale
-    Beitrittsbestätigung wird erst beim Übergang auf „Aktiviert" versandt.</strong>
+    das folgende Mitglied wurde auf <strong>aktiviert</strong> gesetzt und
+    hat die Beitrittsbestätigung als PDF erhalten:
   </p>
 
   <table style="border-collapse: collapse; margin: 16px 0;">
@@ -34,23 +33,10 @@
     {{end}}
   </table>
 
-  {{if .IsB2B}}
-  <div style="margin-top: 20px; padding: 14px 16px; border-left: 4px solid #b58105; background-color: #fff8e6;">
-    <p style="margin: 0 0 8px; font-weight: bold;">B2B-SEPA: auf Rückmeldung des Mitglieds warten</p>
-    <p style="margin: 0;">
-      Der Antrag ist im Status <strong>„Warte auf Bank-Bestätigung"</strong>.
-      Das Mitglied wurde gebeten, das B2B-Mandat bei seiner Hausbank zu hinterlegen
-      und sich bei dir zu melden. Sobald die Rückmeldung kommt, schalte den
-      Antrag bitte im Admin-Bereich auf <strong>„Bereit zur Aktivierung"</strong>.
-    </p>
-  </div>
+  {{if .PDFFailed}}
+  <p><strong>Hinweis:</strong> Die Beitrittsbestätigung konnte nicht als PDF generiert werden. Bitte öffne den Antrag im Adminbereich, um die Daten einzusehen.</p>
   {{else}}
-  <p style="margin-top: 20px;">
-    Der Antrag ist im Status <strong>„Bereit zur Aktivierung"</strong>.
-    Bitte warte auf das unterschriebene Basis-Lastschriftmandat (Anhang dieser Mail,
-    Mandatsreferenz = Mitgliedsnummer <strong>{{.MemberNumber}}</strong>) vom Mitglied,
-    bevor du Lastschriften einziehst.
-  </p>
+  <p>Die Beitrittsbestätigung (PDF-Anhang) ist identisch mit jener, die das Mitglied erhalten hat.</p>
   {{end}}
 
   <p style="margin-top: 24px;">Mit freundlichen Grüßen<br>Dein eegFaktura-System</p>
@@ -59,7 +45,7 @@
   <p style="font-size: 12px; color: #777; line-height: 1.5;">
     Diese Nachricht wurde automatisch durch <strong>eegFaktura Mitglieder-Onboarding</strong> erzeugt
     {{if .EEGName}} für {{.EEGName}}{{end}}.
-    Eine Antwort auf diese E-Mail geht direkt an das neue Mitglied.
+    Eine Antwort auf diese E-Mail geht direkt an das Mitglied.
   </p>
 </body>
 </html>

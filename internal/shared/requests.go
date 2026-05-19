@@ -321,6 +321,15 @@ type ClearImportLockRequest struct {
 	Reason string `json:"reason" validate:"required,min=5,max=500"`
 }
 
+// MarkActivatedRequest (PROJ-53) is the admin's manual-skip payload for
+// the rare case where the member already exists in the eegFaktura core
+// (Faktura cannot delete members) and was manually overwritten there with
+// the onboarding data. The admin supplies the Mitgliedsnummer; the import
+// path is skipped entirely.
+type MarkActivatedRequest struct {
+	MemberNumber string `json:"memberNumber" validate:"required,min=1,max=50"`
+}
+
 // ReassignEEGRequest is the admin EEG-reassign payload (PROJ-40).
 // targetRcNumber must be an existing, active EEG entrypoint; the admin
 // must be authorized for both source and target (or be a superuser).

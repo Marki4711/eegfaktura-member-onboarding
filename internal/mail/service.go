@@ -39,18 +39,17 @@ type MailService interface {
 	// PROJ-43: Mail an Mitglied bei Info-Anfrage. Reason ist die
 	// Rückfrage des EEG-Admins, geht 1:1 in den Mail-Body.
 	SendNeedsInfoNotification(app *shared.Application, entrypoint *shared.RegistrationEntrypoint, reason string) error
-	// PROJ-46 Stage B: nach erfolgreichem Import an Mitglied + EEG-Contact.
-	// Member bekommt die Beitrittsbestätigungs-PDF; bei b2b ergänzt die Mail
-	// einen Bank-Hinweis. EEG-Contact bekommt eine Kopie der Mail/PDF und
-	// einen Status-Hinweis (warten auf Bank-Bestätigung vs. ready).
-	//
-	// PROJ-47: b2bMandatePDF ist optional; wenn gesetzt (nur bei
-	// einzugsart=b2b), wird das B2B-Firmenlastschrift-Mandat mit eingedruckter
-	// Mandatsreferenz=Mitgliedsnummer als zweiter Anhang mitgeschickt, damit
-	// der Member es ausdrucken und an seine Bank weiterreichen kann.
-	SendImportedNotification(app *shared.Application, entrypoint *shared.RegistrationEntrypoint, pdfBytes []byte, pdfFailed bool, b2bMandatePDF []byte) error
-	// PROJ-46 Stage B: an Mitglied beim Übergang auf 'activated'.
-	SendActivatedNotification(app *shared.Application, entrypoint *shared.RegistrationEntrypoint) error
+	// PROJ-53: schlanke Begleitmail beim Import, wenn ein SEPA-Mandat-PDF
+	// mit Mandatsreferenz=Mitgliedsnummer mitgeliefert werden muss
+	// (einzugsart=b2b ODER einzugsart=core mit sepa_mandate_at_import=true).
+	// Die volle Beitrittsbestätigungs-Mail mit PDF folgt erst beim Übergang
+	// nach 'activated' (SendActivationNotification).
+	SendMandateAtImportNotification(app *shared.Application, entrypoint *shared.RegistrationEntrypoint, mandatePDF []byte) error
+	// PROJ-53: Beitrittsbestätigungs-Mail mit PDF beim Übergang auf
+	// 'activated'. Ablöse für SendImportedNotification (Beitrittsbestätigung
+	// wandert von 'imported' nach 'activated') und SendActivatedNotification
+	// (kurze Welcome-Mail entfällt — die Beitrittsbestätigung IST der Welcome).
+	SendActivationNotification(app *shared.Application, entrypoint *shared.RegistrationEntrypoint, pdfBytes []byte, pdfFailed bool) error
 }
 
 // NoOpMailService silently drops all mail calls. Used when SMTP is not configured.
@@ -69,10 +68,10 @@ func (n *NoOpMailService) SendRejectedNotification(_ *shared.Application, _ *sha
 func (n *NoOpMailService) SendNeedsInfoNotification(_ *shared.Application, _ *shared.RegistrationEntrypoint, _ string) error {
 	return nil
 }
-func (n *NoOpMailService) SendImportedNotification(_ *shared.Application, _ *shared.RegistrationEntrypoint, _ []byte, _ bool, _ []byte) error {
+func (n *NoOpMailService) SendMandateAtImportNotification(_ *shared.Application, _ *shared.RegistrationEntrypoint, _ []byte) error {
 	return nil
 }
-func (n *NoOpMailService) SendActivatedNotification(_ *shared.Application, _ *shared.RegistrationEntrypoint) error {
+func (n *NoOpMailService) SendActivationNotification(_ *shared.Application, _ *shared.RegistrationEntrypoint, _ []byte, _ bool) error {
 	return nil
 }
 
@@ -83,9 +82,13 @@ type SMTPMailService struct {
 	eegTpl             *template.Template
 	rejectedTpl        *template.Template
 	needsInfoTpl       *template.Template
+	// PROJ-53: imported* templates now carry the slim "Mandat-Anlage,
+	// Beitrittsbestätigung folgt"-mail; activated* templates carry the
+	// full Beitrittsbestätigung with PDF.
 	importedMemberTpl  *template.Template
 	importedEEGTpl     *template.Template
-	activatedTpl       *template.Template
+	activatedMemberTpl *template.Template
+	activatedEEGTpl    *template.Template
 	adminBaseURL       string
 }
 
@@ -123,20 +126,25 @@ func NewSMTPMailService(sender Sender, adminBaseURL string) (*SMTPMailService, e
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse imported-eeg template: %w", err)
 	}
-	activatedTpl, err := template.New("application_activated_member.html").Funcs(templateFuncs).ParseFS(templateFS, "templates/application_activated_member.html")
+	activatedMemberTpl, err := template.New("application_activated_member.html").Funcs(templateFuncs).ParseFS(templateFS, "templates/application_activated_member.html")
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse activated template: %w", err)
+		return nil, fmt.Errorf("failed to parse activated-member template: %w", err)
+	}
+	activatedEEGTpl, err := template.New("application_activated_eeg.html").Funcs(templateFuncs).ParseFS(templateFS, "templates/application_activated_eeg.html")
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse activated-eeg template: %w", err)
 	}
 	return &SMTPMailService{
-		sender:            sender,
-		memberTpl:         memberTpl,
-		eegTpl:            eegTpl,
-		rejectedTpl:       rejectedTpl,
-		needsInfoTpl:      needsInfoTpl,
-		importedMemberTpl: importedMemberTpl,
-		importedEEGTpl:    importedEEGTpl,
-		activatedTpl:      activatedTpl,
-		adminBaseURL:      adminBaseURL,
+		sender:             sender,
+		memberTpl:          memberTpl,
+		eegTpl:             eegTpl,
+		rejectedTpl:        rejectedTpl,
+		needsInfoTpl:       needsInfoTpl,
+		importedMemberTpl:  importedMemberTpl,
+		importedEEGTpl:     importedEEGTpl,
+		activatedMemberTpl: activatedMemberTpl,
+		activatedEEGTpl:    activatedEEGTpl,
+		adminBaseURL:       adminBaseURL,
 	}, nil
 }
 
@@ -696,67 +704,140 @@ func derefString(s *string) string {
 	return *s
 }
 
-// importedTemplateData backs both PROJ-46 imported mails (member + EEG).
-// Symmetric on purpose so the templates stay parallel.
-type importedTemplateData struct {
+// mandateAtImportData (PROJ-53) backs the slim mandate-only mail sent at
+// the imported transition (member + EEG copy use the same fields, templates
+// render different perspectives).
+type mandateAtImportData struct {
 	Firstname       string
 	Lastname        string
 	MemberName      string // for the EEG-side header line
 	ReferenceNumber string
 	MemberNumber    string
 	EEGName         string
-	PDFFailed       bool
 	IsB2B           bool
-	// HasMandateAttachment (PROJ-48) — true wenn ein zweiter PDF-Anhang
-	// (SEPA-Mandat) in der Mail steckt. Bei IsB2B immer true wenn das
-	// B2B-Mandat erfolgreich generiert wurde; bei einzugsart=core nur
-	// wenn EEG-Setting sepa_mandate_at_import=true ist (PROJ-48-Pfad).
-	HasMandateAttachment bool
 }
 
-func buildImportedData(app *shared.Application, ep *shared.RegistrationEntrypoint, pdfFailed bool, hasMandate bool) importedTemplateData {
-	return importedTemplateData{
-		Firstname:            derefString(app.Firstname),
-		Lastname:             derefString(app.Lastname),
-		MemberName:           memberDisplayName(app),
-		ReferenceNumber:      app.ReferenceNumber,
-		MemberNumber:         derefString(app.MemberNumber),
-		EEGName:              derefString(ep.EEGName),
-		PDFFailed:            pdfFailed,
-		IsB2B:                app.Einzugsart == "b2b",
-		HasMandateAttachment: hasMandate,
+func buildMandateAtImportData(app *shared.Application, ep *shared.RegistrationEntrypoint) mandateAtImportData {
+	return mandateAtImportData{
+		Firstname:       derefString(app.Firstname),
+		Lastname:        derefString(app.Lastname),
+		MemberName:      memberDisplayName(app),
+		ReferenceNumber: app.ReferenceNumber,
+		MemberNumber:    derefString(app.MemberNumber),
+		EEGName:         derefString(ep.EEGName),
+		IsB2B:           app.Einzugsart == "b2b",
 	}
 }
 
-// SendImportedNotification (PROJ-46 Stage B + PROJ-47) sends two emails
-// after a successful import: the Beitrittsbestätigungs-PDF goes to the
-// member (with optional b2b-Bank-Hinweis), and a copy notification goes
-// to the EEG contact (with optional b2b "warte auf Bank-Bestätigung"-
-// Hinweis). For b2b einzugsart, an additional Firmenlastschrift-Mandat-
-// PDF with eingedruckter Mandatsreferenz=Mitgliedsnummer is attached so
-// the member can hand it to their bank. Both sends are best-effort:
-// failures are logged + counted but do not roll back the import.
-func (s *SMTPMailService) SendImportedNotification(app *shared.Application, ep *shared.RegistrationEntrypoint, pdfBytes []byte, pdfFailed bool, b2bMandatePDF []byte) error {
-	data := buildImportedData(app, ep, pdfFailed, len(b2bMandatePDF) > 0)
-	subject := fmt.Sprintf("Deine Beitrittsbestätigung – Mitgliedsnummer %s", data.MemberNumber)
-	filename := fmt.Sprintf("beitrittsbestaetigung-%s.pdf", app.ReferenceNumber)
-	b2bFilename := fmt.Sprintf("sepa-firmenlastschrift-mandat-%s.pdf", data.MemberNumber)
+// activationTemplateData (PROJ-53) backs both activation mails (member +
+// EEG copy). Member sees the Beitrittsbestätigung text, EEG sees the
+// status-summary copy. PDFFailed lets the templates fall back to a
+// plain-text hint when the PDF generation failed.
+type activationTemplateData struct {
+	Firstname       string
+	Lastname        string
+	MemberName      string
+	ReferenceNumber string
+	MemberNumber    string
+	EEGName         string
+	PDFFailed       bool
+}
 
-	// Build the attachment list once; both member and EEG mail get the
-	// same files (Beitrittsbestätigung + optional B2B-Mandat).
-	attachments := []Attachment{}
-	if len(pdfBytes) > 0 {
-		attachments = append(attachments, Attachment{Name: filename, Data: pdfBytes})
+func buildActivationData(app *shared.Application, ep *shared.RegistrationEntrypoint, pdfFailed bool) activationTemplateData {
+	return activationTemplateData{
+		Firstname:       derefString(app.Firstname),
+		Lastname:        derefString(app.Lastname),
+		MemberName:      memberDisplayName(app),
+		ReferenceNumber: app.ReferenceNumber,
+		MemberNumber:    derefString(app.MemberNumber),
+		EEGName:         derefString(ep.EEGName),
+		PDFFailed:       pdfFailed,
 	}
-	if len(b2bMandatePDF) > 0 {
-		attachments = append(attachments, Attachment{Name: b2bFilename, Data: b2bMandatePDF})
+}
+
+// SendMandateAtImportNotification (PROJ-53) sends the slim "Anlage Mandat —
+// Beitrittsbestätigung folgt"-mail at the imported transition. Triggered
+// only when there's a mandate PDF to ship (einzugsart=b2b ODER
+// einzugsart=core+sepa_mandate_at_import=true). The full
+// Beitrittsbestätigungs-Mail with PDF goes out later at the activated
+// transition (SendActivationNotification). Best-effort: failures logged,
+// not propagated back to the caller (the import was already persisted).
+func (s *SMTPMailService) SendMandateAtImportNotification(app *shared.Application, ep *shared.RegistrationEntrypoint, mandatePDF []byte) error {
+	if len(mandatePDF) == 0 {
+		// Defensive: caller should only invoke when there IS a mandate.
+		slog.Warn("mandate-at-import mail: skipped (no mandate PDF)", "application_id", app.ID)
+		return nil
 	}
+	data := buildMandateAtImportData(app, ep)
+	subject := fmt.Sprintf("Dein SEPA-Mandat – Mitgliedsnummer %s", data.MemberNumber)
+	var attachmentName string
+	if data.IsB2B {
+		attachmentName = fmt.Sprintf("sepa-firmenlastschrift-mandat-%s.pdf", data.MemberNumber)
+	} else {
+		attachmentName = fmt.Sprintf("sepa-mandat-%s.pdf", data.MemberNumber)
+	}
+	attachments := []Attachment{{Name: attachmentName, Data: mandatePDF}}
 
 	// Member mail.
 	var memberBuf bytes.Buffer
 	if err := s.importedMemberTpl.Execute(&memberBuf, data); err != nil {
-		metrics.MailSentTotal.WithLabelValues("member_imported", "failed").Inc()
-		return fmt.Errorf("render imported-member template: %w", err)
+		metrics.MailSentTotal.WithLabelValues("member_mandate_at_import", "failed").Inc()
+		return fmt.Errorf("render mandate-at-import-member template: %w", err)
+	}
+	memberHTML := memberBuf.String()
+	memberOpts := transactionalOpts(derefString(ep.ContactEmail))
+	memberSendErr := s.sender.SendWithAttachments(memberOpts, app.Email, subject, memberHTML, htmlToText(memberHTML), attachments)
+	if memberSendErr != nil {
+		metrics.MailSentTotal.WithLabelValues("member_mandate_at_import", "failed").Inc()
+		slog.Error("mandate-at-import mail: member send failed", "application_id", app.ID, "error", memberSendErr)
+	} else {
+		metrics.MailSentTotal.WithLabelValues("member_mandate_at_import", "success").Inc()
+	}
+
+	// EEG copy (same attachment so admin has the signed-version-reference).
+	if ep.ContactEmail == nil || *ep.ContactEmail == "" {
+		return memberSendErr
+	}
+	var eegBuf bytes.Buffer
+	if err := s.importedEEGTpl.Execute(&eegBuf, data); err != nil {
+		metrics.MailSentTotal.WithLabelValues("eeg_mandate_at_import", "failed").Inc()
+		return fmt.Errorf("render mandate-at-import-eeg template: %w", err)
+	}
+	eegHTML := eegBuf.String()
+	eegSubject := fmt.Sprintf("SEPA-Mandat versandt – %s (%s)", data.MemberName, app.ReferenceNumber)
+	eegOpts := transactionalOpts(app.Email)
+	eegSendErr := s.sender.SendWithAttachments(eegOpts, *ep.ContactEmail, eegSubject, eegHTML, htmlToText(eegHTML), attachments)
+	if eegSendErr != nil {
+		metrics.MailSentTotal.WithLabelValues("eeg_mandate_at_import", "failed").Inc()
+		slog.Error("mandate-at-import mail: EEG send failed", "application_id", app.ID, "error", eegSendErr)
+	} else {
+		metrics.MailSentTotal.WithLabelValues("eeg_mandate_at_import", "success").Inc()
+	}
+	if memberSendErr != nil {
+		return memberSendErr
+	}
+	return eegSendErr
+}
+
+// SendActivationNotification (PROJ-53) sends the full Beitrittsbestätigungs-
+// Mail with PDF to member + EEG copy. Triggered at the ready_for_activation
+// → activated transition (manuell oder Activation-Check-Batch) sowie beim
+// manuellen approved → activated-Skip. Best-effort.
+func (s *SMTPMailService) SendActivationNotification(app *shared.Application, ep *shared.RegistrationEntrypoint, pdfBytes []byte, pdfFailed bool) error {
+	data := buildActivationData(app, ep, pdfFailed)
+	subject := fmt.Sprintf("Deine Beitrittsbestätigung – Mitgliedsnummer %s", data.MemberNumber)
+	filename := fmt.Sprintf("beitrittsbestaetigung-%s.pdf", app.ReferenceNumber)
+
+	attachments := []Attachment{}
+	if len(pdfBytes) > 0 {
+		attachments = append(attachments, Attachment{Name: filename, Data: pdfBytes})
+	}
+
+	// Member mail.
+	var memberBuf bytes.Buffer
+	if err := s.activatedMemberTpl.Execute(&memberBuf, data); err != nil {
+		metrics.MailSentTotal.WithLabelValues("member_activated", "failed").Inc()
+		return fmt.Errorf("render activation-member template: %w", err)
 	}
 	memberHTML := memberBuf.String()
 	memberOpts := transactionalOpts(derefString(ep.ContactEmail))
@@ -767,10 +848,10 @@ func (s *SMTPMailService) SendImportedNotification(app *shared.Application, ep *
 		memberSendErr = s.sender.Send(memberOpts, app.Email, subject, memberHTML, htmlToText(memberHTML))
 	}
 	if memberSendErr != nil {
-		metrics.MailSentTotal.WithLabelValues("member_imported", "failed").Inc()
-		slog.Error("imported mail: member send failed", "application_id", app.ID, "error", memberSendErr)
+		metrics.MailSentTotal.WithLabelValues("member_activated", "failed").Inc()
+		slog.Error("activation mail: member send failed", "application_id", app.ID, "error", memberSendErr)
 	} else {
-		metrics.MailSentTotal.WithLabelValues("member_imported", "success").Inc()
+		metrics.MailSentTotal.WithLabelValues("member_activated", "success").Inc()
 	}
 
 	// EEG copy.
@@ -778,12 +859,12 @@ func (s *SMTPMailService) SendImportedNotification(app *shared.Application, ep *
 		return memberSendErr
 	}
 	var eegBuf bytes.Buffer
-	if err := s.importedEEGTpl.Execute(&eegBuf, data); err != nil {
-		metrics.MailSentTotal.WithLabelValues("eeg_imported", "failed").Inc()
-		return fmt.Errorf("render imported-eeg template: %w", err)
+	if err := s.activatedEEGTpl.Execute(&eegBuf, data); err != nil {
+		metrics.MailSentTotal.WithLabelValues("eeg_activated", "failed").Inc()
+		return fmt.Errorf("render activation-eeg template: %w", err)
 	}
 	eegHTML := eegBuf.String()
-	eegSubject := fmt.Sprintf("Antrag importiert – %s (%s)", data.MemberName, app.ReferenceNumber)
+	eegSubject := fmt.Sprintf("Antrag aktiviert – %s (%s)", data.MemberName, app.ReferenceNumber)
 	eegOpts := transactionalOpts(app.Email)
 	var eegSendErr error
 	if len(attachments) > 0 {
@@ -792,52 +873,15 @@ func (s *SMTPMailService) SendImportedNotification(app *shared.Application, ep *
 		eegSendErr = s.sender.Send(eegOpts, *ep.ContactEmail, eegSubject, eegHTML, htmlToText(eegHTML))
 	}
 	if eegSendErr != nil {
-		metrics.MailSentTotal.WithLabelValues("eeg_imported", "failed").Inc()
-		slog.Error("imported mail: EEG send failed", "application_id", app.ID, "error", eegSendErr)
+		metrics.MailSentTotal.WithLabelValues("eeg_activated", "failed").Inc()
+		slog.Error("activation mail: EEG send failed", "application_id", app.ID, "error", eegSendErr)
 	} else {
-		metrics.MailSentTotal.WithLabelValues("eeg_imported", "success").Inc()
+		metrics.MailSentTotal.WithLabelValues("eeg_activated", "success").Inc()
 	}
 	if memberSendErr != nil {
 		return memberSendErr
 	}
 	return eegSendErr
-}
-
-// activatedTemplateData is a minimal struct for the welcome-after-activation mail.
-type activatedTemplateData struct {
-	Firstname       string
-	Lastname        string
-	ReferenceNumber string
-	MemberNumber    string
-	EEGName         string
-}
-
-// SendActivatedNotification (PROJ-46 Stage B) sends a short welcome mail
-// to the member when the admin (or activation-check) moves the application
-// to 'activated'. Best-effort.
-func (s *SMTPMailService) SendActivatedNotification(app *shared.Application, ep *shared.RegistrationEntrypoint) error {
-	data := activatedTemplateData{
-		Firstname:       derefString(app.Firstname),
-		Lastname:        derefString(app.Lastname),
-		ReferenceNumber: app.ReferenceNumber,
-		MemberNumber:    derefString(app.MemberNumber),
-		EEGName:         derefString(ep.EEGName),
-	}
-	var buf bytes.Buffer
-	if err := s.activatedTpl.Execute(&buf, data); err != nil {
-		metrics.MailSentTotal.WithLabelValues("member_activated", "failed").Inc()
-		return fmt.Errorf("render activated template: %w", err)
-	}
-	subject := fmt.Sprintf("Willkommen bei %s – Deine Mitgliedschaft ist aktiv",
-		ifEmpty(data.EEGName, "deiner Energiegemeinschaft"))
-	htmlBody := buf.String()
-	opts := transactionalOpts(derefString(ep.ContactEmail))
-	if err := s.sender.Send(opts, app.Email, subject, htmlBody, htmlToText(htmlBody)); err != nil {
-		metrics.MailSentTotal.WithLabelValues("member_activated", "failed").Inc()
-		return err
-	}
-	metrics.MailSentTotal.WithLabelValues("member_activated", "success").Inc()
-	return nil
 }
 
 func ifEmpty(s, fallback string) string {

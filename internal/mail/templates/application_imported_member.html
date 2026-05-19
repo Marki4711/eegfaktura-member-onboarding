@@ -2,34 +2,23 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Deine Beitrittsbestätigung</title>
+  <title>Dein SEPA-Mandat liegt bereit</title>
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 700px;">
   <p>Hallo {{if .Firstname}}{{.Firstname}} {{end}}{{.Lastname}},</p>
 
   <p>
-    dein Antrag auf Mitgliedschaft bei
+    dein Antrag bei
     {{if .EEGName}}<strong>{{.EEGName}}</strong>{{else}}der Energiegemeinschaft{{end}}
-    wurde aufgenommen und du hast die Mitgliedsnummer
+    ist in die Bearbeitung übernommen worden. Du hast die Mitgliedsnummer
     <strong>{{.MemberNumber}}</strong> erhalten.
   </p>
 
-  <table style="border-collapse: collapse; margin: 16px 0;">
-    <tr>
-      <td style="padding: 4px 16px 4px 0; font-weight: bold;">Antragsnummer:</td>
-      <td style="padding: 4px 0;">{{.ReferenceNumber}}</td>
-    </tr>
-    <tr>
-      <td style="padding: 4px 16px 4px 0; font-weight: bold;">Mitgliedsnummer:</td>
-      <td style="padding: 4px 0;">{{.MemberNumber}}</td>
-    </tr>
-  </table>
-
-  {{if .PDFFailed}}
-  <p><strong>Hinweis:</strong> Die Beitrittsbestätigung konnte nicht als PDF generiert werden. Wir melden uns mit dem Dokument auf einem anderen Weg.</p>
-  {{else}}
-  <p>Die Beitrittsbestätigung mit allen Details deines Antrags findest du als PDF-Anhang dieser E-Mail.</p>
-  {{end}}
+  <p>
+    <strong>Die formale Beitrittsbestätigung folgt</strong>, sobald deine
+    Mitgliedschaft endgültig aktiviert ist — du bekommst dann automatisch
+    eine separate E-Mail mit dem Beitrittsbestätigungs-PDF.
+  </p>
 
   {{if .IsB2B}}
   <div style="margin-top: 20px; padding: 14px 16px; border-left: 4px solid #b58105; background-color: #fff8e6;">
@@ -55,7 +44,7 @@
       Mandatsreferenz — bitte unterschreiben und deiner Hausbank vorlegen.
     </p>
   </div>
-  {{else if .HasMandateAttachment}}
+  {{else}}
   <div style="margin-top: 20px; padding: 14px 16px; border-left: 4px solid #2e7d32; background-color: #f1f8e9;">
     <p style="margin: 0 0 8px; font-weight: bold;">Dein SEPA-Lastschriftmandat</p>
     <p style="margin: 0 0 8px;">
@@ -82,11 +71,6 @@
       </li>
     </ol>
   </div>
-  {{else}}
-  <p style="margin-top: 20px;">
-    Du wirst in Kürze in die Energiegemeinschaft aufgenommen.
-    Sobald deine Mitgliedschaft aktiv ist, erhältst du eine separate Bestätigung.
-  </p>
   {{end}}
 
   <p style="margin-top: 24px;">Mit freundlichen Grüßen<br>

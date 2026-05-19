@@ -615,31 +615,15 @@ func (s *AdminApplicationService) ChangeStatus(id uuid.UUID, toStatus shared.App
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	// PROJ-46 Stage B: the approval mail (with PDF) is no longer sent at
-	// `→ approved`. The PDF is now generated at import time when the
-	// member_number is set (required for B2B-SEPA mandate references) —
-	// see SendPostImportNotification, called from the import HTTP handler.
-
-	// PROJ-46 Stage B: welcome mail on activation.
+	// PROJ-53: Beim Übergang auf activated wird die volle
+	// Beitrittsbestätigungs-Mail mit PDF verschickt — nicht mehr die kurze
+	// Welcome-Mail. Der Send-Pfad prüft das activation_notification_sent_at-
+	// Flag, um doppelten Versand bei mehrfachem Status-Hin-und-Her zu
+	// verhindern. Best-effort und async, damit der HTTP-Response nicht
+	// auf SMTP wartet.
 	if toStatus == shared.StatusActivated {
 		appID := id
-		go func() {
-			acquireMailSem()
-			defer releaseMailSem()
-			reloadedApp, err := s.appRepo.GetByID(appID)
-			if err != nil {
-				slog.Error("activated mail: failed to reload app", "application_id", appID, "error", err)
-				return
-			}
-			entrypoint, err := s.entrypointRepo.GetByRCNumber(reloadedApp.RCNumber)
-			if err != nil {
-				slog.Error("activated mail: failed to load entrypoint", "application_id", appID, "error", err)
-				return
-			}
-			if err := s.mailService.SendActivatedNotification(reloadedApp, entrypoint); err != nil {
-				slog.Error("activated mail: send failed", "application_id", appID, "error", err)
-			}
-		}()
+		go s.SendActivationNotification(appID)
 	}
 
 	// (PROJ-41/43 member mails are sent synchronously pre-commit above.)
@@ -721,6 +705,88 @@ func (s *AdminApplicationService) MarkImportedManually(id uuid.UUID, targetParti
 	return s.appRepo.GetByID(id)
 }
 
+// MarkActivatedSkipImport (PROJ-53) transitions an application directly from
+// `approved` to `activated` without running the eegFaktura-core import. The
+// rare use-case: the member already exists in the core (Faktura cannot
+// delete members) and was manually overwritten there with the onboarding
+// data. The admin supplies the Mitgliedsnummer so the Beitrittsbestätigungs-
+// Mail (sent right after by SendActivationNotification) carries the correct
+// reference.
+//
+// Validations:
+//   - status must currently be `approved` (row-locked via FOR UPDATE)
+//   - memberNumber required, trimmed, non-empty
+//   - memberNumber must not collide with another application in the same RC
+func (s *AdminApplicationService) MarkActivatedSkipImport(id uuid.UUID, memberNumber, actorID string) (*shared.Application, error) {
+	app, err := s.appRepo.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+	if app.Status != shared.StatusApproved {
+		return nil, shared.NewConflictError(
+			fmt.Sprintf("only applications in approved status can be marked activated (current: %s)", app.Status),
+		)
+	}
+	memberNumber = strings.TrimSpace(memberNumber)
+	if memberNumber == "" {
+		return nil, shared.NewValidationError("Validation failed", map[string]string{
+			"memberNumber": "Mitgliedsnummer ist erforderlich",
+		})
+	}
+
+	usedLocally, conflictingRef, err := s.appRepo.MemberNumberUsedLocally(app.RCNumber, memberNumber, id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to verify member number against local db: %w", err)
+	}
+	if usedLocally {
+		return nil, shared.NewConflictError(
+			fmt.Sprintf("Mitgliedsnummer %q ist im Onboarding bereits dem Antrag %s zugeordnet — bitte eine andere Nummer wählen", memberNumber, conflictingRef),
+		)
+	}
+
+	now := time.Now().UTC()
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin mark-activated transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	if err := s.appRepo.MarkActivatedSkipImportTx(tx, id, memberNumber, now); err != nil {
+		return nil, err
+	}
+
+	fromStatus := string(shared.StatusApproved)
+	toStatus := string(shared.StatusActivated)
+	var actorPtr *string
+	if actorID != "" {
+		actorPtr = &actorID
+	}
+	reason := fmt.Sprintf("manuell aktiviert (Core-Member bereits vorhanden, Import übersprungen). member_number=%s", memberNumber)
+	if err := s.statusLogRepo.CreateTx(tx, &shared.StatusLogEntry{
+		ApplicationID:   id,
+		FromStatus:      &fromStatus,
+		ToStatus:        toStatus,
+		ChangedByUserID: actorPtr,
+		Reason:          &reason,
+		CreatedAt:       now,
+	}); err != nil {
+		return nil, fmt.Errorf("failed to write status log: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to commit mark-activated: %w", err)
+	}
+
+	slog.Info("admin: marked activated skip-import",
+		"application_id", id, "actor", actorID, "member_number", memberNumber)
+
+	// Async: full Beitrittsbestätigungs-Mail mit PDF — gleicher Pfad wie
+	// regulärer ready_for_activation → activated. Flag-Check verhindert
+	// doppelten Versand bei Mehrfach-Aufrufen.
+	go s.SendActivationNotification(id)
+
+	return s.appRepo.GetByID(id)
+}
+
 // ClearImportLock releases the in-flight slot on a stuck application
 // without touching its status. Risk: the original attempt may have already
 // created a participant in the core — a retry then produces a duplicate.
@@ -787,9 +853,15 @@ func (s *AdminApplicationService) ClearImportLock(id uuid.UUID, reason, actorID 
 	return s.appRepo.GetByID(id)
 }
 
-// SendPostImportNotification (PROJ-46 Stage B) loads everything needed to
-// render the Beitrittsbestätigungs-PDF, generates it (with member_number),
-// and sends the member welcome mail + EEG copy via MailService.
+// SendPostImportNotification (PROJ-46 Stage B, refactored in PROJ-53) sends
+// the slim "Anlage Mandat — Beitrittsbestätigung folgt"-mail at the imported
+// transition, but ONLY when there's a SEPA-mandate to ship:
+//   - einzugsart=b2b → Firmenlastschrift-Mandat (PROJ-47)
+//   - einzugsart=core + sepa_mandate_at_import=true → Basis-Mandat (PROJ-48)
+//
+// In all other cases (no SEPA, or core without at-import setting) no mail
+// goes out here — the full Beitrittsbestätigung with PDF is now sent later
+// at the activated transition by SendActivationNotification.
 //
 // Best-effort: errors are logged but never propagated — the import was
 // already persisted by the caller. Use this from the HTTP import handler
@@ -800,27 +872,109 @@ func (s *AdminApplicationService) SendPostImportNotification(appID uuid.UUID) {
 
 	reloadedApp, err := s.appRepo.GetByID(appID)
 	if err != nil {
-		slog.Error("imported mail: failed to reload app", "application_id", appID, "error", err)
+		slog.Error("post-import mail: failed to reload app", "application_id", appID, "error", err)
 		return
 	}
 	entrypoint, err := s.entrypointRepo.GetByRCNumber(reloadedApp.RCNumber)
 	if err != nil {
-		slog.Error("imported mail: failed to load entrypoint", "application_id", appID, "error", err)
+		slog.Error("post-import mail: failed to load entrypoint", "application_id", appID, "error", err)
+		return
+	}
+
+	wantsB2B := reloadedApp.Einzugsart == "b2b"
+	wantsCoreAtImport := reloadedApp.Einzugsart == "core" && entrypoint.SEPAMandateAtImport
+	if !wantsB2B && !wantsCoreAtImport {
+		// Nothing to send at this transition under PROJ-53. The full
+		// Beitrittsbestätigung follows at activated.
+		slog.Info("post-import mail: skipped (no mandate to ship; full notification follows at activated)",
+			"application_id", appID, "einzugsart", reloadedApp.Einzugsart)
+		return
+	}
+
+	// PROJ-52 Mini-Lücke 3: Mandatsdatum auf den Tag der Übermittlung
+	// (= jetzt) setzen, bevor das PDF gebaut wird. Persist im selben
+	// Schritt, damit das Datum auch im Admin-Detail + Excel-Export
+	// sichtbar ist und beim Faktura-Import stimmt.
+	now := time.Now()
+	if err := s.appRepo.SetMandateDate(appID, now); err != nil {
+		slog.Warn("post-import mail: failed to persist mandate_date", "application_id", appID, "error", err)
+	} else {
+		reloadedApp.MandateDate = &now
+	}
+
+	mandate := buildSEPAMandateData(reloadedApp, entrypoint)
+	if mandate == nil {
+		slog.Info("post-import mail: skipping SEPA mandate (EEG missing required fields)",
+			"application_id", appID, "rc", reloadedApp.RCNumber)
+		return
+	}
+	if reloadedApp.MemberNumber != nil {
+		mandate.MandateReference = *reloadedApp.MemberNumber
+	}
+	// Bei B2B: Debtor-Name muss der Firmenname sein.
+	if wantsB2B && reloadedApp.CompanyName != nil && *reloadedApp.CompanyName != "" {
+		mandate.MemberName = *reloadedApp.CompanyName
+	}
+	if logoBytes, logoMime, logoErr := s.entrypointRepo.GetLogo(reloadedApp.RCNumber); logoErr == nil && len(logoBytes) > 0 {
+		mandate.LogoBytes = logoBytes
+		mandate.LogoMIME = logoMime
+	}
+
+	var mandatePDF []byte
+	var mandateErr error
+	if wantsB2B {
+		mandatePDF, mandateErr = s.sepaMandateGenerator.GenerateCompany(*mandate)
+	} else {
+		mandatePDF, mandateErr = s.sepaMandateGenerator.Generate(*mandate)
+	}
+	if mandateErr != nil {
+		slog.Warn("post-import mail: failed to generate SEPA mandate",
+			"application_id", appID, "einzugsart", reloadedApp.Einzugsart, "error", mandateErr)
+		return
+	}
+
+	if err := s.mailService.SendMandateAtImportNotification(reloadedApp, entrypoint, mandatePDF); err != nil {
+		slog.Error("post-import mail: send failed", "application_id", appID, "error", err)
+	}
+}
+
+// SendActivationNotification (PROJ-53) generates the Beitrittsbestätigungs-
+// PDF and sends the full activation mail (member + EEG copy) at the
+// activated transition. Idempotent: skips when activation_notification_sent_at
+// is already set. Best-effort — failures logged, status transition has
+// already been committed by the caller.
+func (s *AdminApplicationService) SendActivationNotification(appID uuid.UUID) {
+	acquireMailSem()
+	defer releaseMailSem()
+
+	reloadedApp, err := s.appRepo.GetByID(appID)
+	if err != nil {
+		slog.Error("activation mail: failed to reload app", "application_id", appID, "error", err)
+		return
+	}
+	if reloadedApp.ActivationNotificationSentAt != nil {
+		slog.Info("activation mail: skipped (already sent)",
+			"application_id", appID, "sent_at", *reloadedApp.ActivationNotificationSentAt)
+		return
+	}
+	entrypoint, err := s.entrypointRepo.GetByRCNumber(reloadedApp.RCNumber)
+	if err != nil {
+		slog.Error("activation mail: failed to load entrypoint", "application_id", appID, "error", err)
 		return
 	}
 	mps, err := s.meteringRepo.GetByApplicationID(appID)
 	if err != nil {
-		slog.Error("imported mail: failed to load metering points", "application_id", appID, "error", err)
+		slog.Error("activation mail: failed to load metering points", "application_id", appID, "error", err)
 		return
 	}
 	consents, err := s.consentRepo.GetByApplicationID(appID)
 	if err != nil {
-		slog.Error("imported mail: failed to load consents", "application_id", appID, "error", err)
+		slog.Error("activation mail: failed to load consents", "application_id", appID, "error", err)
 		return
 	}
 	fieldConfig, fcErr := s.fieldConfigRepo.Get(reloadedApp.RCNumber)
 	if fcErr != nil {
-		slog.Warn("imported mail: failed to load field config", "application_id", appID, "error", fcErr)
+		slog.Warn("activation mail: failed to load field config", "application_id", appID, "error", fcErr)
 		fieldConfig = map[string]FieldConfigEntry{}
 	}
 
@@ -832,66 +986,17 @@ func (s *AdminApplicationService) SendPostImportNotification(appID uuid.UUID) {
 	pdfBytes, pdfErr := s.approvalPDFGenerator.GenerateApproval(pdfData)
 	pdfFailed := pdfErr != nil
 	if pdfFailed {
-		slog.Error("imported mail: failed to generate PDF", "application_id", appID, "error", pdfErr)
+		slog.Error("activation mail: failed to generate PDF", "application_id", appID, "error", pdfErr)
 	}
 
-	// PROJ-47 / PROJ-48: SEPA-Mandat als zweiter Anhang an die Import-Mail,
-	// mit ausgefüllter Mandatsreferenz = Mitgliedsnummer. Zwei Pfade:
-	//
-	//   - einzugsart=b2b → Firmenlastschrift-Mandat (PROJ-47, unverändert)
-	//   - einzugsart=core UND EEG-Setting sepa_mandate_at_import=TRUE →
-	//     Basis-Lastschriftmandat mit Mandatsreferenz (PROJ-48, neu)
-	//
-	// In allen anderen Fällen (kein_sepa, oder core ohne at-import-Setting)
-	// gibt es keinen zweiten Anhang — die Submit-Mail hat das Basis-Mandat
-	// dann bereits (ohne Mandatsreferenz) ausgeliefert.
-	//
-	// Best-effort: ein PDF-Fehler blockiert die Hauptmail nicht.
-	var mandatePDF []byte
-	wantsB2B := reloadedApp.Einzugsart == "b2b"
-	wantsCoreAtImport := reloadedApp.Einzugsart == "core" && entrypoint.SEPAMandateAtImport
-	if wantsB2B || wantsCoreAtImport {
-		// PROJ-52 Mini-Lücke 3: Mandatsdatum auf den Tag der Übermittlung
-		// (= jetzt) setzen, bevor das PDF gebaut wird. Persist im selben
-		// Schritt, damit das Datum auch im Admin-Detail + Excel-Export
-		// sichtbar ist und beim Faktura-Import stimmt.
-		now := time.Now()
-		if err := s.appRepo.SetMandateDate(appID, now); err != nil {
-			slog.Warn("imported mail: failed to persist mandate_date", "application_id", appID, "error", err)
-		} else {
-			reloadedApp.MandateDate = &now
-		}
-		if mandate := buildSEPAMandateData(reloadedApp, entrypoint); mandate != nil {
-			if reloadedApp.MemberNumber != nil {
-				mandate.MandateReference = *reloadedApp.MemberNumber
-			}
-			// Bei B2B: Debtor-Name muss der Firmenname sein.
-			if wantsB2B && reloadedApp.CompanyName != nil && *reloadedApp.CompanyName != "" {
-				mandate.MemberName = *reloadedApp.CompanyName
-			}
-			if logoBytes, logoMime, logoErr := s.entrypointRepo.GetLogo(reloadedApp.RCNumber); logoErr == nil && len(logoBytes) > 0 {
-				mandate.LogoBytes = logoBytes
-				mandate.LogoMIME = logoMime
-			}
-			var mandateBytes []byte
-			var mandateErr error
-			if wantsB2B {
-				mandateBytes, mandateErr = s.sepaMandateGenerator.GenerateCompany(*mandate)
-			} else {
-				mandateBytes, mandateErr = s.sepaMandateGenerator.Generate(*mandate)
-			}
-			if mandateErr != nil {
-				slog.Warn("imported mail: failed to generate SEPA mandate", "application_id", appID, "einzugsart", reloadedApp.Einzugsart, "error", mandateErr)
-			} else {
-				mandatePDF = mandateBytes
-			}
-		} else {
-			slog.Info("imported mail: skipping SEPA mandate (EEG missing required fields)", "application_id", appID, "rc", reloadedApp.RCNumber)
-		}
+	if err := s.mailService.SendActivationNotification(reloadedApp, entrypoint, pdfBytes, pdfFailed); err != nil {
+		slog.Error("activation mail: send failed", "application_id", appID, "error", err)
+		return
 	}
-
-	if err := s.mailService.SendImportedNotification(reloadedApp, entrypoint, pdfBytes, pdfFailed, mandatePDF); err != nil {
-		slog.Error("imported mail: send failed", "application_id", appID, "error", err)
+	// Flag setzen, damit ein späteres weiteres Wechseln nach activated
+	// (z.B. via reset-import + re-activate) nicht doppelt sendet.
+	if err := s.appRepo.SetActivationNotificationSentAt(appID, time.Now()); err != nil {
+		slog.Error("activation mail: failed to set sent-at flag", "application_id", appID, "error", err)
 	}
 }
 

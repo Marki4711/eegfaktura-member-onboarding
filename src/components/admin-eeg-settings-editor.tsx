@@ -125,6 +125,12 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
   // Whitespace, damit das Eintippformat zur Backend-Normalisierung passt.
   const [meteringPointPrefixConsumption, setMeteringPointPrefixConsumption] = useState("");
   const [meteringPointPrefixProduction, setMeteringPointPrefixProduction] = useState("");
+  // PROJ-53: Aktivierungs-Modus pro EEG. Default participant_active = heutige
+  // Lösung (Core-Teilnehmer-Status ACTIVE löst Wechsel auf activated aus);
+  // any_meter_registration_started = sobald mind. ein Zählpunkt im Core
+  // processState in PENDING/APPROVED/ACTIVE hat.
+  const [activationMode, setActivationMode] =
+    useState<"participant_active" | "any_meter_registration_started">("participant_active");
 
   const reloadSettings = useCallback(async () => {
     if (!rcNumber || !session?.accessToken) return;
@@ -137,6 +143,7 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
     setRequireEmailConfirmation(s.requireEmailConfirmation ?? false);
     setMeteringPointPrefixConsumption(s.meteringPointPrefixConsumption ?? "");
     setMeteringPointPrefixProduction(s.meteringPointPrefixProduction ?? "");
+    setActivationMode(s.activationMode ?? "participant_active");
     setCooperativeSharesEnabled(s.cooperativeSharesEnabled ?? false);
     setCooperativeRequiredShares(s.cooperativeRequiredShares ?? 1);
     setShareAmountInput(
@@ -223,6 +230,7 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
           meteringPointPrefixesPresent: true,
           meteringPointPrefixConsumption: meteringPointPrefixConsumption || null,
           meteringPointPrefixProduction: meteringPointPrefixProduction || null,
+          activationMode,
           cooperativeSharesEnabled,
           cooperativeRequiredShares: cooperativeSharesEnabled ? cooperativeRequiredShares : undefined,
           cooperativeShareAmountCents: amountCents,
@@ -658,6 +666,64 @@ export function AdminEEGSettingsEditor({ rcNumber }: Props) {
                 Prüfung freigegeben. Empfohlen als Schutz vor Müll-Anträgen und Tippfehlern bei
                 der E-Mail-Adresse.
               </p>
+            </div>
+          </div>
+
+          {/* PROJ-53: Aktivierungs-Modus */}
+          <div className="rounded-md border bg-card p-4 space-y-3 mt-2">
+            <div>
+              <p className="text-sm font-medium">Aktivierungs-Kriterium</p>
+              <p className="text-xs text-muted-foreground mt-0.5 max-w-2xl">
+                Wann gilt eine Anwendung als <strong>aktiviert</strong>? Beim Übergang
+                auf „aktiviert" wird automatisch die Beitrittsbestätigung mit PDF
+                an das Mitglied versandt.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="activationMode"
+                  value="participant_active"
+                  checked={activationMode === "participant_active"}
+                  onChange={() => {
+                    setActivationMode("participant_active");
+                    setSaveResult(null);
+                  }}
+                  className="mt-1"
+                />
+                <span className="text-sm">
+                  <span className="font-medium">Variante A:</span>{" "}
+                  Mitglied wurde laut eegFaktura in die EEG aufgenommen
+                  <span className="block text-xs text-muted-foreground mt-0.5">
+                    Teilnehmer-Status im Core ist „ACTIVE". Klassisches Verhalten,
+                    empfohlen wenn die EEG die formale Aufnahme erst nach Aktivierung
+                    des Mitglieds beim Netzbetreiber sieht.
+                  </span>
+                </span>
+              </label>
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="activationMode"
+                  value="any_meter_registration_started"
+                  checked={activationMode === "any_meter_registration_started"}
+                  onChange={() => {
+                    setActivationMode("any_meter_registration_started");
+                    setSaveResult(null);
+                  }}
+                  className="mt-1"
+                />
+                <span className="text-sm">
+                  <span className="font-medium">Variante B:</span>{" "}
+                  Für die Mitgliedschaft im EEG ist die Online-Registrierung gestartet
+                  <span className="block text-xs text-muted-foreground mt-0.5">
+                    Mindestens ein Zählpunkt im Core hat <code>processState</code> in
+                    PENDING / APPROVED / ACTIVE — sprich der Netzbetreiber hat zumindest
+                    auf die EDA-Meldung geantwortet. Frühere Aktivierung beim Mitglied.
+                  </span>
+                </span>
+              </label>
             </div>
           </div>
 

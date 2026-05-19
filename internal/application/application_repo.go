@@ -81,6 +81,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		SELECT id, reference_number, rc_number, status, started_at, submitted_at,
 		       approved_at, rejected_at, imported_at,
 		       bank_confirmed_at, activated_at,
+		       activation_notification_sent_at,
 		       member_type, titel, titel_nach, firstname, lastname, birth_date,
 		       company_name, uid_number, register_number,
 		       email, phone,
@@ -107,6 +108,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	var bankName, mandateReference sql.NullString
 	var birthDate, startedAt, submittedAt, approvedAt, rejectedAt, importedAt, privacyAcceptedAt, sepaMandateAcceptedAt, importStartedAt, importFinishedAt sql.NullTime
 	var bankConfirmedAt, activatedAt sql.NullTime
+	var activationNotificationSentAt sql.NullTime
 	var membershipStartDate, mandateDate sql.NullTime
 	var personsInHousehold sql.NullInt64
 	var heatPump, electricVehicle, electricHotWater sql.NullBool
@@ -121,6 +123,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		&app.ID, &app.ReferenceNumber, &app.RCNumber, &app.Status, &startedAt,
 		&submittedAt, &approvedAt, &rejectedAt, &importedAt,
 		&bankConfirmedAt, &activatedAt,
+		&activationNotificationSentAt,
 		&app.MemberType, &titel, &titelNach, &firstname, &lastname, &birthDate,
 		&companyName, &uidNumber, &registerNumber,
 		&app.Email, &phone,
@@ -224,6 +227,9 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	}
 	if activatedAt.Valid {
 		app.ActivatedAt = &activatedAt.Time
+	}
+	if activationNotificationSentAt.Valid {
+		app.ActivationNotificationSentAt = &activationNotificationSentAt.Time
 	}
 	if privacyAcceptedAt.Valid {
 		app.PrivacyAcceptedAt = &privacyAcceptedAt.Time
@@ -408,6 +414,21 @@ func (r *ApplicationRepository) SetMandateDate(id uuid.UUID, mandateDate time.Ti
 		WHERE id = $2`, mandateDate, id)
 	if err != nil {
 		return fmt.Errorf("failed to set mandate_date: %w", err)
+	}
+	return nil
+}
+
+// SetActivationNotificationSentAt (PROJ-53) markiert die Anwendung als
+// "Beitrittsbestätigung versandt", so dass ein späterer Wechsel
+// nach activated nicht erneut sendet. Best-effort vom Send-Pfad
+// aufgerufen, nachdem die Mail erfolgreich rausging.
+func (r *ApplicationRepository) SetActivationNotificationSentAt(id uuid.UUID, sentAt time.Time) error {
+	_, err := r.db.Exec(`
+		UPDATE member_onboarding.application SET
+			activation_notification_sent_at = $1, updated_at = NOW()
+		WHERE id = $2`, sentAt, id)
+	if err != nil {
+		return fmt.Errorf("failed to set activation_notification_sent_at: %w", err)
 	}
 	return nil
 }
@@ -921,6 +942,50 @@ func (r *ApplicationRepository) MarkImportedManuallyTx(tx *sql.Tx, id uuid.UUID,
 	_, err := tx.Exec(query, shared.StatusImported, finishedAt, targetParticipantID, memberNumber, id)
 	if err != nil {
 		return fmt.Errorf("failed to mark imported manually: %w", err)
+	}
+	return nil
+}
+
+// MarkActivatedSkipImportTx (PROJ-53) transitions an application directly
+// from `approved` to `activated` without going through the import path.
+// Used for the rare case where the member already exists in the eegFaktura
+// core (because Faktura cannot delete members) and was manually overwritten
+// by the admin with the onboarding data.
+//
+// Persists:
+//   - status = activated
+//   - activated_at = now
+//   - member_number = caller-supplied value (no Core round-trip)
+//
+// Locks the row via SELECT FOR UPDATE; rejects with conflict if the row
+// isn't currently in `approved` (so a concurrent action can't silently
+// override a status change in flight).
+func (r *ApplicationRepository) MarkActivatedSkipImportTx(tx *sql.Tx, id uuid.UUID, memberNumber string, activatedAt time.Time) error {
+	var status string
+	if err := tx.QueryRow(`
+		SELECT status
+		FROM member_onboarding.application
+		WHERE id = $1
+		FOR UPDATE`, id).Scan(&status); err != nil {
+		if err == sql.ErrNoRows {
+			return shared.ErrNotFound
+		}
+		return fmt.Errorf("failed to lock application for mark-activated: %w", err)
+	}
+	if status != string(shared.StatusApproved) {
+		return shared.NewConflictError("only applications in approved status can be marked activated via this endpoint")
+	}
+
+	_, err := tx.Exec(`
+		UPDATE member_onboarding.application SET
+			status        = $1,
+			activated_at  = $2,
+			member_number = $3,
+			updated_at    = NOW()
+		WHERE id = $4`,
+		shared.StatusActivated, activatedAt, memberNumber, id)
+	if err != nil {
+		return fmt.Errorf("failed to mark activated skip-import: %w", err)
 	}
 	return nil
 }

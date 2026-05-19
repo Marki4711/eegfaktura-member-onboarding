@@ -63,11 +63,32 @@ type CoreClient interface {
 // Status (PROJ-46 Stage D) is the participant's lifecycle state in the core:
 // `NEW` (just created), `PENDING` (waiting for confirmation), or `ACTIVE`
 // (live in the EEG). Only `ACTIVE` triggers an auto-transition to
-// `activated` in the onboarding's activation-check.
+// `activated` in the onboarding's activation-check, mode `participant_active`.
+//
+// Meters (PROJ-53) carries the per-meter EDA process state. Empty if the
+// core deserialization didn't include the array (older core versions) or
+// the participant has no meters yet. Used by activation-check mode
+// `any_meter_registration_started`.
 type CoreParticipantSummary struct {
-	ID                string  `json:"id"`
-	ParticipantNumber *string `json:"participantNumber,omitempty"`
-	Status            string  `json:"status,omitempty"`
+	ID                string               `json:"id"`
+	ParticipantNumber *string              `json:"participantNumber,omitempty"`
+	Status            string               `json:"status,omitempty"`
+	Meters            []CoreMeterSummary   `json:"meters,omitempty"`
+}
+
+// CoreMeterSummary holds the per-meter fields PROJ-53's activation-check
+// needs. processState is the EDA state at the network operator:
+//   - INVALID  — not yet registered, or rejected
+//   - PENDING  — Netzbetreiber bestätigt Empfang (ANTWORT_ECON, Code 99)
+//   - APPROVED — Netzbetreiber stimmt zu (ZUSTIMMUNG_ECON)
+//   - ACTIVE   — Online-Registrierung abgeschlossen (ABSCHLUSS_ECON)
+//   - INACTIVE — deaktiviert
+//
+// "Anmeldung gestartet" = processState in {PENDING, APPROVED, ACTIVE}.
+type CoreMeterSummary struct {
+	MeteringPoint string `json:"meteringPoint,omitempty"`
+	Status        string `json:"status,omitempty"`
+	ProcessState  string `json:"processState,omitempty"`
 }
 
 // CoreTariff is the subset of fields PROJ-27 needs from the eegFaktura core's

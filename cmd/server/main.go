@@ -134,7 +134,7 @@ func main() {
 	var importService *importing.ImportService
 	if cfg.Core.BaseURL != "" {
 		coreHTTPClient = coreclient.NewHTTPCoreClient(cfg.Core.BaseURL, time.Duration(cfg.Core.TimeoutSeconds)*time.Second)
-		importService = importing.NewImportService(db, appRepo, meteringRepo, statusLogRepo, coreHTTPClient)
+		importService = importing.NewImportService(db, appRepo, meteringRepo, statusLogRepo, entrypointRepo, coreHTTPClient)
 		slog.Info("core integration enabled", "core_base_url", cfg.Core.BaseURL)
 	}
 
@@ -233,6 +233,7 @@ func main() {
 				r.Post("/reset-import", adminHandler.ResetImport)
 				r.Post("/mark-imported-manually", adminHandler.MarkImportedManually)
 				r.Post("/clear-import-lock", adminHandler.ClearImportLock)
+				r.Post("/mark-activated", adminHandler.MarkActivated)
 				r.Post("/reassign-eeg", adminHandler.ReassignEEG)
 				r.Patch("/admin-note", adminHandler.UpdateAdminNote)
 				r.Get("/next-member-number", adminHandler.SuggestNextMemberNumber)

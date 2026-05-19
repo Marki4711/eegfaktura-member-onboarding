@@ -40,6 +40,14 @@ type RegistrationEntrypoint struct {
 	// vor dem Speichern (Whitespace + Dots entfernen, uppercase).
 	MeteringPointPrefixConsumption *string `json:"meteringPointPrefixConsumption,omitempty" db:"metering_point_prefix_consumption"`
 	MeteringPointPrefixProduction  *string `json:"meteringPointPrefixProduction,omitempty"  db:"metering_point_prefix_production"`
+	// PROJ-53: Aktivierungs-Modus. Steuert, woran der Activation-Check-Batch
+	// erkennt, dass eine Anwendung von ready_for_activation auf activated
+	// wechseln darf. Default 'participant_active' = heutige Lösung
+	// (Core-Teilnehmer-Status ACTIVE). 'any_meter_registration_started' =
+	// mindestens ein Zählpunkt im Core mit processState in
+	// PENDING/APPROVED/ACTIVE — frühere Aktivierung sobald der
+	// Netzbetreiber die Online-Registrierung bestätigt hat.
+	ActivationMode string `json:"activationMode" db:"activation_mode"`
 	// LastSyncedFromCoreAt is NULL until the admin has triggered the first
 	// sync (PROJ-32). After that, every successful sync stamps it with NOW().
 	LastSyncedFromCoreAt       *time.Time `json:"lastSyncedFromCoreAt,omitempty" db:"last_synced_from_core_at"`
@@ -78,6 +86,18 @@ const (
 	StatusActivated                 ApplicationStatus = "activated"
 )
 
+// ActivationMode (PROJ-53) selects how the activation-check decides
+// when an application moves from ready_for_activation to activated.
+const (
+	ActivationModeParticipantActive          = "participant_active"
+	ActivationModeAnyMeterRegistrationStarted = "any_meter_registration_started"
+)
+
+// IsValidActivationMode returns true for the two known modes.
+func IsValidActivationMode(s string) bool {
+	return s == ActivationModeParticipantActive || s == ActivationModeAnyMeterRegistrationStarted
+}
+
 // MemberType represents the type of EEG member
 type MemberType string
 
@@ -115,6 +135,11 @@ type Application struct {
 	// ready_for_activation → activated (Admin manuell oder Activation-Check).
 	BankConfirmedAt      *time.Time        `json:"bankConfirmedAt,omitempty" db:"bank_confirmed_at"`
 	ActivatedAt          *time.Time        `json:"activatedAt,omitempty"     db:"activated_at"`
+	// PROJ-53: Zeitpunkt des Versands der Beitrittsbestätigungs-Mail
+	// (Move von 'imported' auf 'activated'). NULL = noch nicht versandt.
+	// Verhindert doppelten Versand bei mehrfachem Statuswechsel und
+	// markiert Bestandsanträge per Migration als "schon versandt".
+	ActivationNotificationSentAt *time.Time `json:"activationNotificationSentAt,omitempty" db:"activation_notification_sent_at"`
 	MemberType           MemberType        `json:"memberType" db:"member_type"`
 	Titel                *string           `json:"titel,omitempty" db:"titel"`
 	TitelNach            *string           `json:"titelNach,omitempty" db:"titel_nach"`

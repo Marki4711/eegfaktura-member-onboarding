@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Du bist jetzt aktiv in der EEG</title>
+  <title>Deine Beitrittsbestätigung</title>
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 700px;">
   <p>Hallo {{if .Firstname}}{{.Firstname}} {{end}}{{.Lastname}},</p>
@@ -10,9 +10,8 @@
   <p>
     deine Mitgliedschaft bei
     {{if .EEGName}}<strong>{{.EEGName}}</strong>{{else}}der Energiegemeinschaft{{end}}
-    ist nun <strong>formal aktiv</strong>. Die organisatorische Anlage ist
-    abgeschlossen — die tatsächliche Teilnahme am Energie-Sharing startet,
-    sobald dein Zählpunkt vom Netzbetreiber freigeschaltet wurde.
+    ist nun <strong>formal aktiv</strong>. Die organisatorische Anlage und die
+    Anmeldung beim Netzbetreiber sind abgeschlossen.
   </p>
 
   <table style="border-collapse: collapse; margin: 16px 0;">
@@ -25,6 +24,13 @@
       <td style="padding: 4px 0;">{{.MemberNumber}}</td>
     </tr>
   </table>
+
+  {{if .PDFFailed}}
+  <p><strong>Hinweis:</strong> Die Beitrittsbestätigung konnte nicht als PDF generiert werden. Wir melden uns mit dem Dokument auf einem anderen Weg.</p>
+  {{else}}
+  <p>Die <strong>Beitrittsbestätigung</strong> mit allen Details deines Antrags
+  findest du als PDF-Anhang dieser E-Mail.</p>
+  {{end}}
 
   <p style="margin-top: 16px;">
     Die erste Abrechnung erhältst du nach Ende des jeweiligen Abrechnungszeitraums.

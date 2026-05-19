@@ -1535,6 +1535,58 @@ func (h *AdminHandler) MarkImportedManually(w http.ResponseWriter, r *http.Reque
 	h.writeJSON(w, http.StatusOK, detail)
 }
 
+// MarkActivated handles POST /api/admin/applications/{id}/mark-activated (PROJ-53)
+//
+// @Summary      Manuelle Aktivierung (Import übersprungen)
+// @Description  Setzt eine Anwendung direkt von `approved` auf `activated`, ohne den eegFaktura-Core-Import. Ausnahmefall: das Mitglied existiert im Core bereits (Faktura kann Mitglieder nicht löschen) und wurde dort manuell mit den Onboarding-Daten überschrieben. Der Admin gibt die Mitgliedsnummer mit, damit die Beitrittsbestätigungs-Mail (wird hier ebenfalls versandt) die korrekte Referenz enthält. Nur aus Status `approved` zulässig.
+// @Tags         Admin
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id    path  string                       true  "Application UUID"
+// @Param        body  body  shared.MarkActivatedRequest  true  "Mitgliedsnummer"
+// @Success      200   {object}  shared.AdminApplicationDetailResponse
+// @Failure      400   {object}  shared.ErrorResponse  "Validation failed"
+// @Failure      401   {object}  shared.ErrorResponse
+// @Failure      403   {object}  shared.ErrorResponse
+// @Failure      404   {object}  shared.ErrorResponse
+// @Failure      409   {object}  shared.ErrorResponse  "Application not in approved status, or member-number conflict"
+// @Router       /api/admin/applications/{id}/mark-activated [post]
+func (h *AdminHandler) MarkActivated(w http.ResponseWriter, r *http.Request) {
+	id, err := h.parseID(w, r)
+	if err != nil {
+		return
+	}
+	if !h.checkTenantAccess(w, r, id) {
+		return
+	}
+	var req shared.MarkActivatedRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Invalid JSON", nil)))
+		return
+	}
+	if err := h.validate.Struct(req); err != nil {
+		h.writeValidationError(w, err)
+		return
+	}
+	actorID := ""
+	if claims := ClaimsFromContext(r.Context()); claims != nil {
+		actorID = claims.Subject
+	}
+	if _, err := h.adminService.MarkActivatedSkipImport(id, req.MemberNumber, actorID); err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+	detail, err := h.adminService.GetApplicationDetail(id)
+	if err != nil {
+		slog.Warn("admin: mark-activated succeeded but detail fetch failed",
+			"application_id", id, "error", err)
+		h.writeJSON(w, http.StatusOK, map[string]string{"status": "activated"})
+		return
+	}
+	h.writeJSON(w, http.StatusOK, detail)
+}
+
 // ClearImportLock handles POST /api/admin/applications/{id}/clear-import-lock
 //
 // @Summary      Release a stuck import lock for retry (PROJ-34)
@@ -1671,6 +1723,8 @@ func (h *AdminHandler) GetEEGSettings(w http.ResponseWriter, r *http.Request) {
 		// PROJ-52: pro Richtung konfigurierbarer Zählpunkt-Prefix.
 		"meteringPointPrefixConsumption": ep.MeteringPointPrefixConsumption,
 		"meteringPointPrefixProduction":  ep.MeteringPointPrefixProduction,
+		// PROJ-53 Aktivierungs-Modus
+		"activationMode":                 ep.ActivationMode,
 		// PROJ-37 Genossenschaftsanteile
 		"cooperativeSharesEnabled":    ep.CooperativeSharesEnabled,
 		"cooperativeRequiredShares":   ep.CooperativeRequiredShares,
@@ -1703,6 +1757,9 @@ func (h *AdminHandler) SaveEEGSettings(w http.ResponseWriter, r *http.Request) {
 		// nicht unterscheiden kann — also macht der Frontend ein explizites
 		// Mitsenden (nil ⇒ clear, leerer String ⇒ clear, Wert ⇒ set).
 		MeteringPointPrefixesPresent bool `json:"meteringPointPrefixesPresent"`
+		// PROJ-53: Aktivierungs-Modus. nil = unverändert lassen,
+		// "participant_active" oder "any_meter_registration_started" = setzen.
+		ActivationMode *string `json:"activationMode"`
 		// PROJ-37 Genossenschaftsanteile
 		CooperativeSharesEnabled    bool   `json:"cooperativeSharesEnabled"`
 		CooperativeRequiredShares   *int   `json:"cooperativeRequiredShares"`
@@ -1799,6 +1856,23 @@ func (h *AdminHandler) SaveEEGSettings(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if err := h.entrypointRepo.SaveMeteringPointPrefixes(rcNumber, consumption, production); err != nil {
+			h.handleServiceError(w, err)
+			return
+		}
+	}
+
+	// PROJ-53: Aktivierungs-Modus. Patch-Semantik wie bei den anderen
+	// optionalen Settings — nur speichern, wenn der Frontend das Feld
+	// explizit mitsendet. Validierung gegen das Enum, sonst 400.
+	if body.ActivationMode != nil {
+		mode := *body.ActivationMode
+		if !shared.IsValidActivationMode(mode) {
+			h.writeError(w, shared.NewErrorResponse(shared.NewValidationError("Validation failed", map[string]string{
+				"activationMode": "ungültiger Wert (erlaubt: participant_active, any_meter_registration_started)",
+			})))
+			return
+		}
+		if err := h.entrypointRepo.SaveActivationMode(rcNumber, mode); err != nil {
 			h.handleServiceError(w, err)
 			return
 		}

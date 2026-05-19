@@ -640,6 +640,26 @@ export function clearImportLock(
   );
 }
 
+// PROJ-53: payload for POST /api/admin/applications/{id}/mark-activated.
+// Setzt einen Antrag direkt von 'approved' auf 'activated', ohne Core-Import.
+// Ausnahmefall: Core-Mitglied existiert bereits und wurde dort manuell mit
+// den Onboarding-Daten überschrieben.
+export interface MarkActivatedRequest {
+  memberNumber: string;
+}
+
+export function markActivated(
+  id: string,
+  body: MarkActivatedRequest,
+  token?: string,
+): Promise<AdminApplicationDetail> {
+  return adminRequest<AdminApplicationDetail>(
+    `/api/admin/applications/${id}/mark-activated`,
+    token,
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
 export interface AdminUpdateApplicationRequest {
   memberType?: MemberType;
   titel?: string;
@@ -984,11 +1004,18 @@ export interface EEGSettings {
   // = keine EEG-spezifische Vorbelegung (Mask zeigt nur "AT" als fix).
   meteringPointPrefixConsumption?: string | null;
   meteringPointPrefixProduction?: string | null;
+  // PROJ-53: Aktivierungs-Modus. participant_active = Core-Teilnehmer ACTIVE
+  // (Default, heutiges Verhalten); any_meter_registration_started = mind. ein
+  // Zählpunkt mit processState in PENDING/APPROVED/ACTIVE.
+  activationMode?: ActivationMode;
   // PROJ-37: Genossenschaftsanteile-Konfig pro EEG.
   cooperativeSharesEnabled?: boolean;
   cooperativeRequiredShares?: number;
   cooperativeShareAmountCents?: number;
 }
+
+// PROJ-53
+export type ActivationMode = "participant_active" | "any_meter_registration_started";
 
 // Editable subset accepted by PUT /api/admin/settings/eeg. Everything
 // else is either Core-mastered (synced fields) or written via a
@@ -1010,6 +1037,8 @@ export interface EEGSettingsSavePayload {
   meteringPointPrefixConsumption?: string | null;
   meteringPointPrefixProduction?: string | null;
   meteringPointPrefixesPresent?: boolean;
+  // PROJ-53: optional — undefined lässt Wert unverändert.
+  activationMode?: ActivationMode;
   // PROJ-37: Toggle + Pflichtanteils-Anzahl + Anteilswert in Cents.
   cooperativeSharesEnabled?: boolean;
   cooperativeRequiredShares?: number;

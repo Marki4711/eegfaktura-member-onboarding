@@ -43,6 +43,7 @@ func (r *RegistrationEntrypointRepository) GetByRCNumber(rcNumber string) (*shar
 		       sepa_mandate_at_import,
 		       show_central_policy, member_number_start, require_email_confirmation,
 		       metering_point_prefix_consumption, metering_point_prefix_production,
+		       activation_mode,
 		       last_synced_from_core_at, eeg_logo_synced_at,
 		       cooperative_shares_enabled, cooperative_required_shares,
 		       cooperative_share_amount_cents,
@@ -58,6 +59,7 @@ func (r *RegistrationEntrypointRepository) GetByRCNumber(rcNumber string) (*shar
 		&ep.SEPAMandateAtImport,
 		&ep.ShowCentralPolicy, &ep.MemberNumberStart, &ep.RequireEmailConfirmation,
 		&ep.MeteringPointPrefixConsumption, &ep.MeteringPointPrefixProduction,
+		&ep.ActivationMode,
 		&ep.LastSyncedFromCoreAt, &ep.EEGLogoSyncedAt,
 		&ep.CooperativeSharesEnabled, &ep.CooperativeRequiredShares,
 		&ep.CooperativeShareAmountCents,
@@ -321,6 +323,27 @@ func (r *RegistrationEntrypointRepository) SaveMeteringPointPrefixes(rcNumber st
 		WHERE rc_number = $3`, consumption, production, rcNumber)
 	if err != nil {
 		return fmt.Errorf("failed to save metering-point prefixes for %s: %w", rcNumber, err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check rows affected: %w", err)
+	}
+	if rows == 0 {
+		return shared.ErrNotFound
+	}
+	return nil
+}
+
+// SaveActivationMode (PROJ-53) persists the per-EEG activation_mode setting.
+// Caller must validate that mode is one of the constants in shared.IsValidActivationMode
+// before calling (the DB CHECK constraint catches it as a safety net).
+func (r *RegistrationEntrypointRepository) SaveActivationMode(rcNumber, mode string) error {
+	result, err := r.db.Exec(`
+		UPDATE member_onboarding.registration_entrypoint
+		SET activation_mode = $1, updated_at = NOW()
+		WHERE rc_number = $2`, mode, rcNumber)
+	if err != nil {
+		return fmt.Errorf("failed to save activation_mode for %s: %w", rcNumber, err)
 	}
 	rows, err := result.RowsAffected()
 	if err != nil {
