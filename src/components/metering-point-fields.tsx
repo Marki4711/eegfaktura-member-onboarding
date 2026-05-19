@@ -262,9 +262,11 @@ function MeteringPointRow({
 
   return (
     <div className="border border-border rounded-md p-3 space-y-3">
-      {/* Zeile 1: Richtung + Faktor + Trash. Richtung muss VOR der
-          Zählpunkt-Eingabe stehen, weil sie die Mask bestimmt. */}
-      <div className="flex gap-2 items-end">
+      {/* Eine einzige Zeile: Richtung → Zählpunkt → (Faktor) → Trash.
+          Richtung muss VOR der Zählpunkt-Eingabe stehen, weil sie die
+          Mask bestimmt. flex-wrap, damit das Layout auf schmalen
+          Viewports sauber bricht. */}
+      <div className="flex flex-wrap gap-2 items-end">
         <div className="w-40 shrink-0">
           <FormField
             control={form.control}
@@ -301,6 +303,68 @@ function MeteringPointRow({
             )}
           />
         </div>
+
+        <FormField
+          control={form.control}
+          name={`meteringPoints.${index}.meteringPoint`}
+          render={({ field }) => (
+            <FormItem
+              // 250 px ist Tester-Vorgabe für den Eingabe-Inhalt.
+              // Inkl. Label-Zeile darüber. shrink-0 schützt vor
+              // Flex-Verkleinerung, wenn Faktor + Trash daneben stehen.
+              style={{ maxWidth: "250px" }}
+              className="shrink-0"
+            >
+              <div className="flex items-center gap-1">
+                <FormLabel>Zählpunkt {index + 1}</FormLabel>
+                <Popover>
+                  <PopoverTrigger type="button" className="cursor-help">
+                    <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                  </PopoverTrigger>
+                  <PopoverContent className="max-w-72 text-sm">
+                    Die 33-stellige Zählpunktnummer (beginnt mit „AT") identifiziert deinen Stromanschluss eindeutig. Du findest sie auf jeder Stromrechnung sowie im Kundenportal deines Netzbetreibers. Wenn die EEG einen Prefix konfiguriert hat, ist dieser bereits vorbelegt — du tippst nur noch die restlichen Stellen.
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <FormControl>
+                <MaskedInput
+                  // PROJ-52: dynamische Mask — Prefix-Stellen sind literal
+                  // gelockt (Mitglied kann sie nicht überschreiben), Reststellen
+                  // sind Placeholder (`0` für Stellen 3–13, `S` für 14–33).
+                  // Offizielle Gruppierung 2-6-5-20.
+                  mask={dynamicMask}
+                  definitions={MP_MASK_DEFINITIONS}
+                  lazy={false}
+                  // Punkt-Placeholder (2026-05-19): in langen Prefix-
+                  // Konfigurationen sind die letzten 5–10 Placeholder
+                  // optisch von den Prefix-Ziffern (`0`) kaum zu
+                  // unterscheiden. Normaler Punkt `.` sitzt auf der
+                  // Grundlinie, klar abgegrenzt von Ziffern, und
+                  // verschmilzt nicht mit Nachbarn (Problem von `_`
+                  // bei tracking-tight).
+                  placeholderChar="."
+                  prepareChar={(str: string) => str.toUpperCase()}
+                  value={field.value}
+                  onAccept={(value: string) => field.onChange(value)}
+                  onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
+                    // PROJ-52: Auto-Pad mit führenden Nullen zwischen Prefix
+                    // (oder reinem "AT") und Mitglieds-Anteil. Greift nur,
+                    // wenn Eingabe < 33 Stellen ist und mit AT beginnt.
+                    const padded = padToMeteringPointLength(field.value ?? "", activePrefix);
+                    if (padded !== (field.value ?? "").replace(/\s/g, "").toUpperCase()) {
+                      field.onChange(padded);
+                    }
+                    field.onBlur();
+                  }}
+                  inputRef={field.ref}
+                  name={field.name}
+                  className="font-mono text-xs md:text-sm tabular-nums tracking-tight"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         {showParticipationFactor && (
           <div className="w-28">
@@ -361,70 +425,6 @@ function MeteringPointRow({
           <Trash2 className="h-4 w-4 text-destructive" />
         </Button>
       </div>
-
-      {/* Zeile 2: Zählpunkt full-width (33-stellige Mask, dynamisch). */}
-      <FormField
-        control={form.control}
-        name={`meteringPoints.${index}.meteringPoint`}
-        render={({ field }) => (
-          <FormItem
-            // FormItem ist ein normaler <div>, kein Radix-Slot. Hier
-            // greift max-w direkt und sicher. 250 px ist Tester-Vorgabe
-            // (kein Leerraum hinter dem letzten Punkt-Placeholder). Bei
-            // text-sm auf Desktop scrollt der Inhalt horizontal um wenige
-            // Pixel — falls das stört, auf ~300 px erhöhen.
-            style={{ maxWidth: "250px" }}
-          >
-            <div className="flex items-center gap-1">
-              <FormLabel>Zählpunkt {index + 1}</FormLabel>
-              <Popover>
-                <PopoverTrigger type="button" className="cursor-help">
-                  <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                </PopoverTrigger>
-                <PopoverContent className="max-w-72 text-sm">
-                  Die 33-stellige Zählpunktnummer (beginnt mit „AT") identifiziert deinen Stromanschluss eindeutig. Du findest sie auf jeder Stromrechnung sowie im Kundenportal deines Netzbetreibers. Wenn die EEG einen Prefix konfiguriert hat, ist dieser bereits vorbelegt — du tippst nur noch die restlichen Stellen.
-                </PopoverContent>
-              </Popover>
-            </div>
-            <FormControl>
-              <MaskedInput
-                // PROJ-52: dynamische Mask — Prefix-Stellen sind literal
-                // gelockt (Mitglied kann sie nicht überschreiben), Reststellen
-                // sind Placeholder (`0` für Stellen 3–13, `S` für 14–33).
-                // Offizielle Gruppierung 2-6-5-20.
-                mask={dynamicMask}
-                definitions={MP_MASK_DEFINITIONS}
-                lazy={false}
-                // Punkt-Placeholder (2026-05-19): in langen Prefix-
-                // Konfigurationen sind die letzten 5–10 Placeholder
-                // optisch von den Prefix-Ziffern (`0`) kaum zu
-                // unterscheiden. Normaler Punkt `.` sitzt auf der
-                // Grundlinie, klar abgegrenzt von Ziffern, und
-                // verschmilzt nicht mit Nachbarn (Problem von `_`
-                // bei tracking-tight).
-                placeholderChar="."
-                prepareChar={(str: string) => str.toUpperCase()}
-                value={field.value}
-                onAccept={(value: string) => field.onChange(value)}
-                onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
-                  // PROJ-52: Auto-Pad mit führenden Nullen zwischen Prefix
-                  // (oder reinem "AT") und Mitglieds-Anteil. Greift nur,
-                  // wenn Eingabe < 33 Stellen ist und mit AT beginnt.
-                  const padded = padToMeteringPointLength(field.value ?? "", activePrefix);
-                  if (padded !== (field.value ?? "").replace(/\s/g, "").toUpperCase()) {
-                    field.onChange(padded);
-                  }
-                  field.onBlur();
-                }}
-                inputRef={field.ref}
-                name={field.name}
-                className="font-mono text-xs md:text-sm tabular-nums tracking-tight"
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
 
       <DeviatingAddressBlock form={form} index={index} />
 
