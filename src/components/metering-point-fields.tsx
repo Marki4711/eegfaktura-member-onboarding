@@ -369,9 +369,11 @@ function MeteringPointRow({
         render={({ field }) => (
           <FormItem
             // FormItem ist ein normaler <div>, kein Radix-Slot. Hier
-            // greift max-w direkt und sicher. 28rem ≈ 448 px, passt
-            // für 33 Monospace-Zeichen + Padding + etwas Reserve.
-            style={{ maxWidth: "28rem" }}
+            // greift max-w direkt und sicher. 250 px ist Tester-Vorgabe
+            // (kein Leerraum hinter dem letzten Punkt-Placeholder). Bei
+            // text-sm auf Desktop scrollt der Inhalt horizontal um wenige
+            // Pixel — falls das stört, auf ~300 px erhöhen.
+            style={{ maxWidth: "250px" }}
           >
             <div className="flex items-center gap-1">
               <FormLabel>Zählpunkt {index + 1}</FormLabel>
