@@ -380,38 +380,46 @@ function MeteringPointRow({
               </Popover>
             </div>
             <FormControl>
-              <MaskedInput
-                // PROJ-52: dynamische Mask — Prefix-Stellen sind literal
-                // gelockt (Mitglied kann sie nicht überschreiben), Reststellen
-                // sind Placeholder (`0` für Stellen 3–13, `S` für 14–33).
-                // Offizielle Gruppierung 2-6-5-20.
-                mask={dynamicMask}
-                definitions={MP_MASK_DEFINITIONS}
-                lazy={false}
-                // Mittelpunkt statt Default-Unterstrich (2026-05-19): in
-                // langen Prefix-Konfigurationen sind die letzten 5–10
-                // Placeholder optisch von den Prefix-Ziffern (`0`) kaum
-                // zu unterscheiden. `·` sitzt mittig in der Zeile, klar
-                // abgegrenzt von Ziffern, und verschmilzt nicht mit
-                // Nachbarn (Problem von `_` bei tracking-tight).
-                placeholderChar="·"
-                prepareChar={(str: string) => str.toUpperCase()}
-                value={field.value}
-                onAccept={(value: string) => field.onChange(value)}
-                onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
-                  // PROJ-52: Auto-Pad mit führenden Nullen zwischen Prefix
-                  // (oder reinem "AT") und Mitglieds-Anteil. Greift nur,
-                  // wenn Eingabe < 33 Stellen ist und mit AT beginnt.
-                  const padded = padToMeteringPointLength(field.value ?? "", activePrefix);
-                  if (padded !== (field.value ?? "").replace(/\s/g, "").toUpperCase()) {
-                    field.onChange(padded);
-                  }
-                  field.onBlur();
-                }}
-                inputRef={field.ref}
-                name={field.name}
-                className="font-mono text-xs md:text-sm tabular-nums tracking-tight max-w-md"
-              />
+              {/* Wrapper begrenzt die Feld-Breite auf max-w-md (~448 px) —
+                  der MaskedInput hat selbst w-full im Wrapper-Klassenset,
+                  daher wird die Begrenzung hier oben statt am Input
+                  appliziert (cn/tailwind-merge meldet `w-full` + `max-w-md`
+                  am selben Element als Konflikt und droppt eines). */}
+              <div className="max-w-md">
+                <MaskedInput
+                  // PROJ-52: dynamische Mask — Prefix-Stellen sind literal
+                  // gelockt (Mitglied kann sie nicht überschreiben), Reststellen
+                  // sind Placeholder (`0` für Stellen 3–13, `S` für 14–33).
+                  // Offizielle Gruppierung 2-6-5-20.
+                  mask={dynamicMask}
+                  definitions={MP_MASK_DEFINITIONS}
+                  lazy={false}
+                  // Punkt-Placeholder (2026-05-19): in langen Prefix-
+                  // Konfigurationen sind die letzten 5–10 Placeholder
+                  // optisch von den Prefix-Ziffern (`0`) kaum zu
+                  // unterscheiden. Normaler Punkt `.` sitzt auf der
+                  // Grundlinie, klar abgegrenzt von Ziffern, und
+                  // verschmilzt nicht mit Nachbarn (Problem von `_`
+                  // bei tracking-tight).
+                  placeholderChar="."
+                  prepareChar={(str: string) => str.toUpperCase()}
+                  value={field.value}
+                  onAccept={(value: string) => field.onChange(value)}
+                  onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
+                    // PROJ-52: Auto-Pad mit führenden Nullen zwischen Prefix
+                    // (oder reinem "AT") und Mitglieds-Anteil. Greift nur,
+                    // wenn Eingabe < 33 Stellen ist und mit AT beginnt.
+                    const padded = padToMeteringPointLength(field.value ?? "", activePrefix);
+                    if (padded !== (field.value ?? "").replace(/\s/g, "").toUpperCase()) {
+                      field.onChange(padded);
+                    }
+                    field.onBlur();
+                  }}
+                  inputRef={field.ref}
+                  name={field.name}
+                  className="font-mono text-xs md:text-sm tabular-nums tracking-tight"
+                />
+              </div>
             </FormControl>
             <FormMessage />
           </FormItem>
