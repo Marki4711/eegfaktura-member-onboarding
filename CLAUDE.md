@@ -219,12 +219,13 @@ Allowed transitions:
 - `needs_info -> submitted`
 - `approved -> imported`
 - `approved -> import_failed`
+- `approved -> activated` *(PROJ-53, admin manuell als Ausnahmefall — Mitglied existiert im Core bereits und wurde dort manuell mit den Onboarding-Daten überschrieben; überspringt den Import-Pfad. Mitgliedsnummer-Eingabe im Admin-UI erforderlich.)*
 - `import_failed -> approved`
 - `imported -> awaiting_bank_confirmation` *(PROJ-46, auto-transition by import service when `einzugsart=b2b`. Not exposed on `/status`.)*
 - `imported -> ready_for_activation` *(PROJ-46, auto-transition by import service for non-b2b einzugsarten. Not exposed on `/status`.)*
 - `awaiting_bank_confirmation -> ready_for_activation` *(PROJ-46, admin manuell after member confirms bank coordination)*
 - `awaiting_bank_confirmation -> under_review` *(PROJ-46, admin rückwärts-Übergang)*
-- `ready_for_activation -> activated` *(PROJ-46, admin manually OR via activation-check button — Stage D)*
+- `ready_for_activation -> activated` *(PROJ-46, admin manually OR via activation-check batch. Seit PROJ-53 entscheidet die per-EEG-Einstellung `activation_mode` über das Batch-Kriterium: `participant_active` (Default — Core-Teilnehmer-Status `ACTIVE`) oder `any_meter_registration_started` (min. ein Zählpunkt mit `processState ∈ PENDING/APPROVED/ACTIVE`). Beim Übergang wird die Beitrittsbestätigungs-Mail mit PDF versandt.)*
 - `ready_for_activation -> under_review` *(PROJ-46, admin rückwärts-Übergang)*
 - `imported -> approved` *(PROJ-30, only via dedicated `POST /reset-import` endpoint, never via generic `/status`)*
 - `awaiting_bank_confirmation -> approved` *(PROJ-46, via `POST /reset-import`)*

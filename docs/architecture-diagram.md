@@ -142,6 +142,7 @@ stateDiagram-v2
 
     approved --> imported: Import erfolgreich
     approved --> import_failed: Import-Fehler
+    approved --> activated: Admin Ausnahmefall\n(PROJ-53 — Core-Member\nmanuell überschrieben)
 
     import_failed --> approved: Admin retry
 
@@ -153,7 +154,7 @@ stateDiagram-v2
     awaiting_bank_confirmation --> ready_for_activation: Admin\n(Bank-Bestätigung erhalten)
     awaiting_bank_confirmation --> under_review: Admin (rückwärts)
 
-    ready_for_activation --> activated: Admin manuell\nODER Batch-Check
+    ready_for_activation --> activated: Admin manuell\nODER Batch-Check\n(PROJ-53 Variante A/B)
     ready_for_activation --> under_review: Admin (rückwärts)
 
     activated --> [*]
@@ -167,11 +168,26 @@ stateDiagram-v2
       Strikter Endzustand
       kein Reset
       Deaktivierung im Core
+      Beitrittsbestätigungs-Mail
+      mit PDF (PROJ-53)
     end note
 
     note right of imported
       Transient (ms)
       Auto-Branch sofort danach
+      Bei b2b/sepa@import:
+      schlanke Mandat-Mail
+      (PROJ-53)
+    end note
+
+    note left of approved
+      approved → activated nur
+      als Ausnahmefall, wenn das
+      Mitglied im Core schon
+      existiert und manuell mit
+      den Onboarding-Daten
+      überschrieben wurde
+      (PROJ-53)
     end note
 ```
 
@@ -184,7 +200,8 @@ stateDiagram-v2
 | **Mitglied-Aktion** | Vom Mitglied ausgelöst — `draft → submitted`, `submitted → email_confirmed` (Klick), `needs_info → submitted` (Re-Submit) |
 | **hard-fail mail** | Synchron-blockierender Mail-Versand (PROJ-41 + PROJ-43) — schlägt SMTP fehl, wird der Statuswechsel rückgängig gemacht |
 | **Reset-Import** | Dedizierte `POST /reset-import`-Route (PROJ-30 + PROJ-46 expansion); NICHT erreichbar aus `activated` |
-| **Batch-Check** | Optional via `POST /api/admin/applications/check-activation` (PROJ-46 Stage D); fragt Core ob Mitglied ACTIVE und setzt automatisch |
+| **Batch-Check** | Optional via `POST /api/admin/applications/check-activation` (PROJ-46 Stage D); fragt Core ab und setzt je nach EEG-Einstellung `activation_mode` (PROJ-53): `participant_active` (Teilnehmer-Status `ACTIVE`) oder `any_meter_registration_started` (min. ein Zählpunkt mit `processState ∈ PENDING/APPROVED/ACTIVE`). Bei Übergang nach `activated` wird die Beitrittsbestätigungs-Mail mit PDF versandt |
+| **Manueller Ausnahme-Skip** | `approved → activated` (PROJ-53). Nur erforderlich, wenn das Mitglied im Core bereits existiert und manuell mit den Onboarding-Daten überschrieben wurde — Faktura unterstützt kein Löschen von Mitgliedern. Admin muss die Mitgliedsnummer im UI eingeben; Import-Pfad wird übersprungen |
 
 ---
 
