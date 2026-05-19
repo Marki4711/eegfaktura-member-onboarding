@@ -410,7 +410,7 @@ function MeteringPointRow({
                 }}
                 inputRef={field.ref}
                 name={field.name}
-                className="font-mono text-sm tabular-nums tracking-tight max-w-md"
+                className="font-mono text-xs md:text-sm tabular-nums tracking-tight max-w-md"
               />
             </FormControl>
             <FormMessage />
