@@ -80,6 +80,20 @@ Mitglieder müssen heute eine 33-stellige Zählpunktnummer eintippen. Wenn die Z
 - Beim Verlassen des Eingabefelds werden fehlende Stellen zwischen Prefix und Mitglieds-Eingabe mit führenden Nullen aufgefüllt (z. B. tippt das Mitglied `12345` und bekommt nach dem Klick weg `[Prefix]000000000012345`).
 - Backend prüft beim Submit zusätzlich, dass jeder Zählpunkt mit dem konfigurierten Prefix der jeweiligen Richtung beginnt (defense-in-depth).
 
+### Aktivierungs-Kriterium (PROJ-53)
+
+Steuert, wann eine Anwendung von **„Bereit zur Aktivierung"** auf **„Aktiviert"** wechselt. Beim Übergang auf „Aktiviert" wird automatisch die volle Beitrittsbestätigungs-Mail mit PDF an das Mitglied versandt (und eine Kopie an den EEG-Contact).
+
+Zwei Optionen:
+
+- **Variante A — „Mitglied wurde laut eegFaktura in die EEG aufgenommen"** (Default, rückwärtskompatibel):
+  Der Teilnehmer im eegFaktura-Core hat den Status `ACTIVE`. Klassisches Verhalten — empfohlen für EEGs, die die formale Aufnahme erst nach Abschluss der Netzbetreiber-Anmeldung sehen wollen.
+
+- **Variante B — „Für die Mitgliedschaft ist die Online-Registrierung gestartet"**:
+  Mindestens ein Zählpunkt im Core hat den `processState` in PENDING / APPROVED / ACTIVE — sprich der Netzbetreiber hat auf die EDA-Online-Registrierung mindestens geantwortet. Damit aktivierst du Mitglieder bereits, sobald die Anmeldung beim Netzbetreiber **läuft**, ohne den Abschluss abzuwarten.
+
+Der Wechsel selbst wird in beiden Fällen entweder **per Antrag manuell** ausgelöst (Button „Als aktiv markieren") oder über den Batch-Button **„Aktivierung im Core prüfen"** in der Antragsübersicht — der nimmt das hier gewählte Kriterium dann automatisch für deine ganze EEG.
+
 ### E-Mail-Adresse bestätigen
 
 - **E-Mail-Adresse bestätigen**: Wenn aktiv, erhält das neue Mitglied in der Bestätigungs-Mail einen Button „E-Mail-Adresse bestätigen". Erst nach dem Klick wechselt der Antrag in den Status **„E-Mail bestätigt"** und ist für deine Bearbeitung freigegeben. Solange die Bestätigung aussteht, siehst du den Antrag mit dem Status „Eingereicht" und einer Warnung in der Detail-Ansicht.

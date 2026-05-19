@@ -264,7 +264,7 @@ Standalone build and standalone migrations in repository `eegfaktura-member-onbo
 - `(rc_number, member_number) WHERE member_number IS NOT NULL` — partial UNIQUE for duplicate-detection
 - Deep pagination is capped at `page = 10000` in the admin list handler so no OFFSET scan can run away.
 
-### Mail Flow (post-PROJ-46 / PROJ-47 / PROJ-48)
+### Mail Flow (post-PROJ-46 / PROJ-47 / PROJ-48 / PROJ-53)
 
 | Übergang | Member-Mail | Member-Anhänge | EEG-Mail | Modus |
 |---|---|---|---|---|
@@ -273,12 +273,15 @@ Standalone build and standalone migrations in repository `eegfaktura-member-onbo
 | `submitted → email_confirmed` (PROJ-31) | ❌ | — | ✅ aufgeschobene Notification | best-effort async |
 | `→ needs_info` (PROJ-43) | ✅ Rückfrage 1:1 | — | ❌ | **hard-fail sync** |
 | `→ rejected` (PROJ-41) | ✅ Ablehnungs-Text 1:1 | — | ❌ | **hard-fail sync** |
-| `→ imported` (`einzugsart=b2b` auto → `awaiting_bank_confirmation`) | ✅ Beitrittsbestätigung + b2b-Bank-Hinweis | **PDF 1** Beitrittsbestätigung (Mitgliedsnummer) **PDF 2** Firmenlastschrift-Mandat mit Mandatsref = Mitgliedsnummer (PROJ-47) | ✅ Kopie + „warte auf Bank-Bestätigung" | best-effort async |
-| `→ imported` (`einzugsart=core` + `sepa_mandate_at_import=true`, PROJ-48 → `ready_for_activation`) | ✅ Beitrittsbestätigung + Hinweis zur Mandat-Signatur | **PDF 1** Beitrittsbestätigung **PDF 2** Basislastschrift-Mandat mit Mandatsref = Mitgliedsnummer | ✅ Kopie + „bereit zur Aktivierung" | best-effort async |
-| `→ imported` (sonst → `ready_for_activation`) | ✅ Beitrittsbestätigung | Beitrittsbestätigung | ✅ Kopie + „bereit zur Aktivierung" | best-effort async |
-| `→ activated` (PROJ-46) | ✅ „Willkommen — formal aktiv in der EEG" | — | ❌ | best-effort async |
+| `→ imported` (`einzugsart=b2b` auto → `awaiting_bank_confirmation`) — PROJ-53 | ✅ schlank: „Anlage Mandat — Beitrittsbestätigung folgt" + b2b-Bank-Hinweis | **PDF** Firmenlastschrift-Mandat mit Mandatsref = Mitgliedsnummer (PROJ-47) | ✅ Kopie + „warte auf Bank-Bestätigung" | best-effort async |
+| `→ imported` (`einzugsart=core` + `sepa_mandate_at_import=true` → `ready_for_activation`) — PROJ-53 | ✅ schlank: „Anlage Mandat — Beitrittsbestätigung folgt" + Hinweis zur Mandat-Signatur | **PDF** Basislastschrift-Mandat mit Mandatsref = Mitgliedsnummer | ✅ Kopie + „bereit zur Aktivierung" | best-effort async |
+| `→ imported` (sonst → `ready_for_activation`) — PROJ-53 | ❌ (keine Mail — die volle Beitrittsbestätigung folgt bei `activated`) | — | ❌ | — |
+| `→ activated` (PROJ-46/PROJ-53) — Default-Modus `participant_active` ODER alternativ `any_meter_registration_started` | ✅ **volle Beitrittsbestätigung** mit PDF | **PDF** Beitrittsbestätigung (Mitgliedsnummer) | ✅ Kopie der Beitrittsbestätigungs-Mail mit PDF | best-effort async; idempotent via `activation_notification_sent_at` |
+| `approved → activated` (PROJ-53 manueller Skip-Import via `POST /mark-activated`) | ✅ **volle Beitrittsbestätigung** mit PDF (gleicher Code-Pfad wie regulär) | **PDF** Beitrittsbestätigung | ✅ Kopie | best-effort async; idempotent |
 
 **Wichtige Änderung seit PROJ-46 Stage B:** die Approval-PDF wird **nicht mehr** beim `→ approved`-Übergang generiert/versendet (`SendApprovalEmail` und das Template `application_approved_eeg.html` wurden im Mail-Audit-Cleanup **entfernt**). Sie wird beim Import erzeugt (mit Mitgliedsnummer) und geht an Member + EEG-Kopie.
+
+**Wichtige Änderung seit PROJ-53 (2026-05-19):** die volle Beitrittsbestätigung wandert vom `imported`- auf den `activated`-Übergang. Beim `imported` läuft jetzt **nur** noch eine schlanke Mandat-Begleitmail (und auch nur dann, wenn überhaupt ein Mandat versendet werden muss). Die alte kurze `SendActivatedNotification`-Welcome-Mail entfällt — sie wird durch die volle Beitrittsbestätigung abgelöst. Bestandsanträge haben per Migration 047 das Flag `activation_notification_sent_at` gesetzt bekommen, damit sie nicht doppelt eine Mail erhalten.
 
 **PROJ-48 Mandat-Timing:** Standardmäßig wird das SEPA-Mandat beim Submit erzeugt (ohne Mandatsreferenz). EEGs mit digitalem Signatur-Workflow setzen `sepa_mandate_at_import=true`, dann entfällt der Mandat-Anhang beim Submit und das Mandat wird beim Import mit eingedruckter Mandatsreferenz = Mitgliedsnummer ausgegeben (gilt für `einzugsart=core` und `b2b`).
 

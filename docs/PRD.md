@@ -61,7 +61,7 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 | PROJ-18 | Datenschutzerklärung + Central Policy Toggle | Operator-weit konfigurierbar |
 | PROJ-19 | Manuelle Aktivierung der Registrierung | Per-EEG-On/Off |
 | PROJ-20 | Vollständige Antragsdaten in EEG-Mail | Volltext-Notification |
-| PROJ-21 | Beitrittsbestätigung als PDF | Originally → approved, since PROJ-46 Stage B → imported |
+| PROJ-21 | Beitrittsbestätigung als PDF | Originally → approved, PROJ-46 Stage B → imported, PROJ-53 → activated |
 | PROJ-24 | OpenAPI/Swagger Dokumentation | `/api/swagger` |
 | PROJ-25 | Bulk-Aktionen im Admin | Multi-Select-Operationen |
 | PROJ-31 | E-Mail-Adresse-Bestätigung (Anti-Abuse) | Per EEG opt-in |
@@ -84,6 +84,7 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 | PROJ-48 | SEPA-Default-Core + konfigurierbares Mandat-Timing | Submit- vs. Import-Time-Mandat |
 | PROJ-49 | Energie-Felder pro Zählpunkt + Einspeiselimit | Refactoring von app-level zu meter-level |
 | PROJ-52 | Konfigurierbarer Zählpunkt-Prefix pro Richtung | Mask-Lock + Auto-Pad + 2-6-5-20-Format + Alphanumerik + SEPA-Mandat-Datum |
+| PROJ-53 | Aktivierungs-Modus pro EEG + Beitrittsbestätigung erst bei `activated` + manueller `approved → activated`-Skip | Modus A/B konfigurierbar, Mail-Verschiebung, Skip-Endpoint |
 
 ### Approved (wartet auf Deployment-Bündelung)
 

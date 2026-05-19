@@ -130,8 +130,16 @@ Wenn der EEG fachlich eine lückenlose Nummerierung erwartet: Fall mit EEG-Admin
 
 **Was passiert**: Verhalten unterscheidet sich je nach Mail-Typ:
 - **Antrags-Submit-Mails** (member-confirmation + EEG-notification) sind fire-and-forget → Submit klappt, Mail kann verloren gehen
-- **Post-Import-Mails** (PROJ-46 Stage B + PROJ-47 + PROJ-48): Beitrittsbestätigungs-PDF an Member + EEG-Kopie + ggf. zweiter SEPA-Mandat-Anhang (B2B mit Mandatsreferenz oder bei `sepa_mandate_at_import=true` auch CORE) ebenfalls best-effort async — schlagen Mails fehl, bleibt der Antrag korrekt importiert, Admin kann nachfassen
-- **Activation-Mail** (PROJ-46, beim Übergang auf `activated`) best-effort async
+- **Post-Import-Mails (seit PROJ-53)**: nur eine schlanke Mandat-Begleitmail
+  ("Anlage Mandat — Beitrittsbestätigung folgt") an Member + EEG-Kopie, und
+  **nur dann**, wenn überhaupt ein Mandat zu versenden ist (b2b oder
+  `sepa_mandate_at_import=true`). Best-effort async. Bei `kein_sepa` oder
+  Core ohne at-import-Setting wird beim `imported`-Übergang keine Mail mehr
+  versendet — die volle Beitrittsbestätigung folgt erst bei `activated`.
+- **Activation-Mail (PROJ-46 + PROJ-53)**: beim Übergang auf `activated`
+  (regulär via Batch/Admin-Klick ODER via manueller `approved → activated`-Skip)
+  geht die volle Beitrittsbestätigungs-Mail mit PDF an Member + EEG-Kopie.
+  Best-effort async, idempotent über `activation_notification_sent_at`-Flag.
 - **Status-Change-Mails an Mitglied** (Ablehnung PROJ-41, Rückfrage PROJ-43) sind seit 2026-05-17 **hard-fail synchron**: scheitert der SMTP-Versand, bekommt der Admin im Dialog HTTP 500 mit Fehlermeldung, der Statuswechsel wird zurückgerollt — kein stilles Versagen
 - **Approval-Mail an EEG (legacy)**: existiert seit PROJ-46 Stage B nicht mehr — der `→ approved`-Übergang sendet keine Mail mehr; die Beitrittsbestätigungs-PDF wird erst beim Import erzeugt (mit Mitgliedsnummer)
 
@@ -227,14 +235,30 @@ SQL `WHERE status='imported'`. Recovery: Admin klickt „Import zurücksetzen"
 im Detail — die Reset-Logik (PROJ-30 + PROJ-46) räumt member_number +
 Audit-Timestamps. Danach kann der Admin re-importieren.
 
-### Activation-Check-Button (PROJ-46 Stage D)
+### Activation-Check-Button (PROJ-46 Stage D, erweitert in PROJ-53)
 
 `POST /api/admin/applications/check-activation` — Admin-Button in der
 Antragsliste. Iteriert alle eigenen `ready_for_activation`-Anträge, fragt
-pro Tenant einmal `GET /participant` im Core, transitioniert Anträge mit
-Core-Status `ACTIVE` automatisch auf `activated` (Audit-Actor:
-`system:activation-check`). Best-effort — Per-Tenant-Fehler werden im
-Response gesammelt zurückgemeldet, abortet aber den Batch nicht.
+pro Tenant einmal `GET /participant` im Core und transitioniert nach
+EEG-Einstellung **`activation_mode`** (PROJ-53):
+- `participant_active` (Default): Core-Teilnehmer-Status `ACTIVE` löst aus.
+- `any_meter_registration_started`: mind. ein Zählpunkt mit
+  `processState ∈ {PENDING, APPROVED, ACTIVE}` löst aus (sprich der
+  Netzbetreiber hat auf die EDA-Online-Registrierung mindestens geantwortet).
+
+Audit-Actor: `system:activation-check`, Reason im Status-Log enthält den
+verwendeten Modus. Bei erfolgreichem Wechsel auf `activated` läuft
+asynchron die volle Beitrittsbestätigungs-Mail mit PDF
+(`SendActivationNotification`, idempotent via
+`activation_notification_sent_at`). Best-effort — Per-Tenant-Fehler werden
+im Response gesammelt zurückgemeldet, abortet aber den Batch nicht.
+
+**Manueller Skip-Pfad (PROJ-53, Ausnahmefall):** Für Mitglieder, die im
+Core bereits existieren und manuell mit den Onboarding-Daten überschrieben
+wurden (Faktura erlaubt kein Löschen), kann der Admin im Detail einer
+`approved`-Anwendung „Manuell aktivieren …" klicken — Pflichtfeld
+Mitgliedsnummer. Endpoint `POST /api/admin/applications/{id}/mark-activated`,
+schickt dieselbe Beitrittsbestätigungs-Mail wie der reguläre Pfad.
 
 Operativ:
 - **Wann ausführen?** Nach jedem Aktivierungs-Schub seitens des EEG-Cores

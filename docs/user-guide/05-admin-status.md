@@ -33,6 +33,11 @@ Nach erfolgreichem Import (PROJ-46, automatisch):
   imported  ──→  ready_for_activation  (bei nicht-b2b, Auto-Skip)
                        ↓
                   activated
+
+Ausnahmefall (PROJ-53, manueller Skip-Import):
+  approved  ──→  activated   (Admin: „Manuell aktivieren …" — überspringt
+                              den Core-Import, wenn das Mitglied im
+                              Faktura bereits manuell überschrieben wurde)
 ```
 
 * `import_failed → approved`: nach Fehlerbehebung kann der Import erneut versucht werden.
@@ -59,6 +64,8 @@ Klicke auf die gewünschte Aktion. Je nach aktuellem Status stehen unterschiedli
 | `awaiting_bank_confirmation` | **Bank-Bestätigung erhalten**, Zurück in Bearbeitung, Import zurücksetzen |
 | `ready_for_activation` | **Als aktiv markieren**, Zurück in Bearbeitung, Import zurücksetzen *(oder via Batch-Button „Aktivierung im Core prüfen" in der Liste)* |
 | `activated` | — (Endzustand, keine Aktionen möglich) |
+
+Bei `approved` gibt es seit PROJ-53 zwei Buttons: **„In eegFaktura importieren"** (Standard) und **„Manuell aktivieren …"** (Ausnahmefall — überspringt den Import, falls das Mitglied im Faktura bereits manuell überschrieben wurde; siehe unten).
 
 Zusätzlich verfügbar in allen Review-Stati (`submitted` / `email_confirmed` / `under_review` / `needs_info`) für Admins mit Zugriff auf ≥ 2 EEGs:
 
@@ -162,7 +169,7 @@ Nach erfolgreichem Import läuft der Antrag automatisch in einen der beiden Wart
 
 ### `awaiting_bank_confirmation` — nur bei B2B-SEPA-Firmenlastschrift
 
-Der Antrag landet hier, wenn `einzugsart=b2b` gesetzt ist. Das Mitglied hat per E-Mail die Beitrittsbestätigung **plus** ein separates B2B-Firmenlastschrift-Mandat (mit eingedruckter Mandatsreferenz = Mitgliedsnummer, PROJ-47) bekommen — und wurde aufgefordert, das Mandat seiner Hausbank vorzulegen. Im Antrags-Detail erscheint eine prominente amber Hinweisbox „Warte auf Bank-Bestätigung".
+Der Antrag landet hier, wenn `einzugsart=b2b` gesetzt ist. Das Mitglied hat per E-Mail das B2B-Firmenlastschrift-Mandat (mit eingedruckter Mandatsreferenz = Mitgliedsnummer, PROJ-47) bekommen — und wurde aufgefordert, das Mandat seiner Hausbank vorzulegen. **Seit PROJ-53** kommt mit dem Mandat eine schlanke Begleitmail („Anlage Mandat — Beitrittsbestätigung folgt") statt der vollen Beitrittsbestätigung; die volle Beitrittsbestätigungs-Mail mit PDF erhält das Mitglied erst, wenn der Antrag auf `activated` wechselt. Im Antrags-Detail erscheint eine prominente amber Hinweisbox „Warte auf Bank-Bestätigung".
 
 > **Hinweis (seit 2026-05-18):** Beide SEPA-Mandate (Basislastschrift CORE und B2B-Firmenlastschrift) zeigen im Unterschriftsfeld jetzt das **Datum der Übermittlung** als vorbefülltes „Datum". Das Mitglied trägt nur noch Ort + Unterschrift ein. Das gleiche Datum wird im Antrags-Detail unter „Mandatsdatum" angezeigt und beim Faktura-Import als Mandate-Date mitgeführt.
 
@@ -174,13 +181,31 @@ Der Antrag wird auf diesen Status gesetzt, sobald entweder (a) die Bank-Bestäti
 
 **Zwei Wege zur Aktivierung:**
 1. **Per Antrag manuell** — Klick auf **„Als aktiv markieren"** im Detail. Setzt den Status auf `activated` und stempelt `activated_at = NOW()`.
-2. **Per Batch im Core prüfen** — Klick auf **„Aktivierung im Core prüfen"** in der Antragsübersicht (siehe Datei `04-admin-applications.md`). Iteriert alle eigenen `ready_for_activation`-Anträge, fragt pro Tenant einmal beim Core nach (`GET /participant`), und transitioniert diejenigen Anträge automatisch auf `activated`, deren Teilnehmer im Core bereits ACTIVE ist.
+2. **Per Batch im Core prüfen** — Klick auf **„Aktivierung im Core prüfen"** in der Antragsübersicht (siehe Datei `04-admin-applications.md`). Iteriert alle eigenen `ready_for_activation`-Anträge, fragt pro Tenant einmal beim Core nach (`GET /participant`), und transitioniert diejenigen Anträge automatisch auf `activated`, deren EDA-Kriterium erfüllt ist.
 
-In beiden Fällen erhält das Mitglied eine kurze Welcome-Mail „Du bist nun aktiv in der EEG".
+**Welches EDA-Kriterium der Batch anwendet, ist pro EEG konfigurierbar (PROJ-53):**
+- **Variante A** (Default, `participant_active`): der Teilnehmer im Core hat den Status `ACTIVE`.
+- **Variante B** (`any_meter_registration_started`): mindestens ein Zählpunkt im Core hat den `processState` in PENDING/APPROVED/ACTIVE — sprich der Netzbetreiber hat auf die Online-Registrierung mindestens geantwortet. Damit aktivieren EEGs schon dann, wenn die EDA-Anmeldung läuft, ohne auf den Abschluss zu warten.
+
+Umschalten in den EEG-Einstellungen unter **„Aktivierungs-Kriterium"** (siehe `06-admin-settings.md`).
+
+In beiden Fällen erhält das Mitglied beim Wechsel auf `activated` die **volle Beitrittsbestätigungs-Mail mit PDF** (seit PROJ-53 — vorher kam beim `imported` die Beitrittsbestätigung und beim `activated` nur eine kurze Welcome-Mail; jetzt wird die volle Bestätigung erst hier versandt).
 
 ### `activated` — Endzustand
 
 Aktives Mitglied. Keine weiteren Aktionen verfügbar. Kein Reset, keine Rückwärts-Übergänge. Deaktivierung erfolgt direkt im eegFaktura-Core.
+
+### Ausnahmefall: `approved → activated` (manueller Skip-Import, PROJ-53)
+
+In seltenen Fällen existiert das Mitglied im eegFaktura-Core bereits (etwa weil ein altes Mitglied seinen Antrag erneuert hat — Faktura erlaubt kein Löschen von Mitgliedern). Wenn du das Core-Mitglied dort manuell mit den Onboarding-Daten überschrieben hast, fehlt im Onboarding noch der Statuswechsel.
+
+Im Detail einer `approved`-Anwendung erscheint dafür neben „In eegFaktura importieren" ein zweiter Button **„Manuell aktivieren …"**:
+
+1. Klick öffnet einen Dialog mit Warnhinweis „Nur verwenden, wenn das Mitglied im eegFaktura bereits manuell überschrieben wurde".
+2. Pflichtfeld **Mitgliedsnummer** — die im Faktura hinterlegte Nummer wird auf die Beitrittsbestätigung gedruckt.
+3. Bestätigen → der Antrag wechselt direkt von `approved` auf `activated`. Der Import in den Core wird übersprungen. Es geht **dieselbe** Beitrittsbestätigungs-Mail mit PDF raus wie beim regulären Pfad.
+
+Der Status-Log enthält den Eintrag „manuell aktiviert (Core-Member bereits vorhanden, Import übersprungen)" mit der gesetzten Mitgliedsnummer.
 
 ## EEG umzuordnen (PROJ-40)
 
