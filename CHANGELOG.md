@@ -10,6 +10,29 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Teilnahmefaktor pro EEG konfigurierbar *(2026-05-19)*
+
+Das Feld `participation_factor` (Teilnahmefaktor in %) ist jetzt über die
+PROJ-8-Field-Config pro EEG ein-/ausblendbar:
+
+- Neu in `knownConfigurableFields` (Backend) + `CONFIGURABLE_FIELDS.meteringPoint`
+  (Frontend) mit Default `optional` — heutiges Verhalten bleibt erhalten.
+- Bei `hidden` oder `admin_only` rendert das Public-Formular kein Eingabefeld;
+  der Wert wird serverseitig automatisch auf **100 %** defaulted
+  (`defaultParticipationFactor` in `application_service.go`).
+- Bei `optional` oder `required` ist das Feld sichtbar und mit 100 % vorbelegt —
+  das Mitglied kann ändern oder den Default beibehalten.
+- Validate-Tag von `required,min=1,max=100` auf `min=0,max=100` gelockert,
+  damit das Frontend bei `hidden` einen 0er-Submit machen kann (Service
+  mappt 0 → 100).
+- **PDF, Mail und Excel-Export zeigen den Teilnahmefaktor in allen Modi
+  unverändert** — der Toggle steuert nur die Public-Form-Sichtbarkeit, nicht
+  die Render-Pfade. Der Core-Import (`partFact` = Mitglied-Wert) bleibt
+  unverändert.
+
+Docs: `docs/user-guide/06-admin-settings.md` Abschnitt „Spezielle
+konfigurierbare Felder" um den neuen Toggle ergänzt.
+
 ### PROJ-53 — Aktivierungs-Modus pro EEG + Beitrittsbestätigung erst bei `activated` + manueller `approved → activated`-Skip *(2026-05-19)*
 
 Drei zusammenhängende Änderungen am Activation-/Mail-Lifecycle:

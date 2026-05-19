@@ -79,6 +79,12 @@ export const CONFIGURABLE_FIELDS: {
     { name: "transformer",        label: "Transformator", defaultState: "hidden" },
     { name: "installation_number", label: "Anlagen-Nr.",  defaultState: "hidden" },
     { name: "installation_name",  label: "Anlagenname",  defaultState: "hidden" },
+    // Teilnahmefaktor: bis 2026-05-19 fix sichtbar im Formular. Seit der
+    // Erweiterung pro EEG konfigurierbar. Default `optional` bewahrt das
+    // heutige Verhalten. Bei `hidden` oder `admin_only` wird der Wert
+    // serverseitig auf 100 % defaulted; PDF, Mail und Excel zeigen den
+    // Teilnahmefaktor in allen Modi unverändert.
+    { name: "participation_factor", label: "Teilnahmefaktor (%)", defaultState: "optional" },
     // PROJ-49: Energie-Felder pro Zählpunkt.
     { name: "consumption_previous_year", label: "Verbrauch Vorjahr (kWh)", defaultState: "hidden",
       visibilityTags: ["consumption"],

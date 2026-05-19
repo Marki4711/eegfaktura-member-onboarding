@@ -106,7 +106,7 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 		meteringPoints = append(meteringPoints, shared.MeteringPoint{
 			MeteringPoint:       normalized,
 			Direction:           shared.MeterDirection(mpReq.Direction),
-			ParticipationFactor: mpReq.ParticipationFactor,
+			ParticipationFactor: defaultParticipationFactor(mpReq.ParticipationFactor),
 			Transformer:          trimStringPtr(mpReq.Transformer),
 			InstallationNumber:   trimStringPtr(mpReq.InstallationNumber),
 			InstallationName:     trimStringPtr(mpReq.InstallationName),
@@ -399,7 +399,7 @@ func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateAp
 				ApplicationID:        id,
 				MeteringPoint:        normalized,
 				Direction:            shared.MeterDirection(mpReq.Direction),
-				ParticipationFactor:  mpReq.ParticipationFactor,
+				ParticipationFactor:  defaultParticipationFactor(mpReq.ParticipationFactor),
 				Transformer:          trimStringPtr(mpReq.Transformer),
 				InstallationNumber:   trimStringPtr(mpReq.InstallationNumber),
 				InstallationName:     trimStringPtr(mpReq.InstallationName),
@@ -899,6 +899,24 @@ func trimStringPtr(s *string) *string {
 	}
 	trimmed := strings.TrimSpace(*s)
 	return &trimmed
+}
+
+// defaultParticipationFactor (Teilnahmefaktor, Erweiterung 2026-05-19) maps the
+// raw request value to a usable percentage. The field is per-EEG configurable
+// via field_config: when set to `hidden` or `admin_only`, the public form does
+// not collect a value and the request arrives with ParticipationFactor=0; in
+// that case we default to 100. When the field IS visible but the member tries
+// to submit 0, we also default to 100 — the value should never end up below
+// the historical default, and the core-side `partFact` is integer-percent.
+// Caps at 100 as a defence (validator already enforces min=0,max=100).
+func defaultParticipationFactor(v int) int {
+	if v <= 0 {
+		return 100
+	}
+	if v > 100 {
+		return 100
+	}
+	return v
 }
 
 // normalizeIBAN strips whitespace, uppercases, and reformats an IBAN into groups of 4.

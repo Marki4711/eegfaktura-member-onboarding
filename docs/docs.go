@@ -2888,8 +2888,7 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "direction",
-                "meteringPoint",
-                "participationFactor"
+                "meteringPoint"
             ],
             "properties": {
                 "addressCity": {
@@ -2975,9 +2974,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "participationFactor": {
+                    "description": "ParticipationFactor (Teilnahmefaktor in Prozent).\nSeit der PROJ-8-Erweiterung am 2026-05-19 ist das Feld per EEG via\n` + "`" + `field_config` + "`" + ` ein-/ausblendbar. Wenn das Frontend es ausblendet\noder das Mitglied es nicht angegeben hat, kommt der Wert als ` + "`" + `0` + "`" + `\nhier an — der Service-Layer setzt dann Default 100. Validate\n` + "`" + `min=0,max=100` + "`" + ` lässt 0 explizit zu (Service normalisiert).",
                     "type": "integer",
                     "maximum": 100,
-                    "minimum": 1
+                    "minimum": 0
                 },
                 "pvPowerKwp": {
                     "type": "number",

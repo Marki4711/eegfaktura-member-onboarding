@@ -60,7 +60,13 @@ type CreateApplicationRequest struct {
 type CreateMeteringPointRequest struct {
 	MeteringPoint       string  `json:"meteringPoint" validate:"required,len=33,startswith=AT"`
 	Direction           string  `json:"direction" validate:"required,oneof=CONSUMPTION PRODUCTION"`
-	ParticipationFactor int     `json:"participationFactor" validate:"required,min=1,max=100"`
+	// ParticipationFactor (Teilnahmefaktor in Prozent).
+	// Seit der PROJ-8-Erweiterung am 2026-05-19 ist das Feld per EEG via
+	// `field_config` ein-/ausblendbar. Wenn das Frontend es ausblendet
+	// oder das Mitglied es nicht angegeben hat, kommt der Wert als `0`
+	// hier an — der Service-Layer setzt dann Default 100. Validate
+	// `min=0,max=100` lässt 0 explizit zu (Service normalisiert).
+	ParticipationFactor int     `json:"participationFactor" validate:"min=0,max=100"`
 	// Configurable metering-point-level fields (PROJ-8)
 	Transformer        *string `json:"transformer,omitempty" validate:"omitempty,max=100"`
 	InstallationNumber *string `json:"installationNumber,omitempty" validate:"omitempty,max=50"`

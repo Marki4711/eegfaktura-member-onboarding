@@ -23,6 +23,12 @@ var knownConfigurableFields = map[string]string{
 	"transformer":              "hidden",
 	"installation_number":      "hidden",
 	"installation_name":        "hidden",
+	// Teilnahmefaktor (Metering-Point-Scope). Default `optional` bewahrt
+	// das heutige Verhalten (Feld sichtbar im Formular). Wenn EEG es auf
+	// `hidden` oder `admin_only` stellt, wird der Wert serverseitig auf
+	// 100 % defaulted; PDF/Mail/Excel zeigen das Feld unverändert in
+	// allen Modi.
+	"participation_factor":     "optional",
 	// PROJ-44: Netzbetreiber-Vollmacht (Application-Scope).
 	"network_operator_authorization": "hidden",
 	// PROJ-45: Batterie + Wechselrichter (Metering-Point-Scope, nur bei

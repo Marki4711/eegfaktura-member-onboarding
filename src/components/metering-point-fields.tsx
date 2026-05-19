@@ -125,6 +125,12 @@ export function MeteringPointFields({
   const showFeedInLimit     = mpfs("feed_in_limit_kw") !== "hidden";
   // PROJ-49 follow-up: „Speichersteuerung im Sinne der EEG vorstellbar?"
   const showBatteryControl  = mpfs("battery_control_acceptable") !== "hidden";
+  // Teilnahmefaktor (Erweiterung 2026-05-19): pro EEG konfigurierbar.
+  // Default `optional` ⇒ heutiges Verhalten (sichtbar). Bei `hidden` oder
+  // `admin_only` ist das Eingabefeld weg; der Wert wird serverseitig auf
+  // 100 % defaulted. PDF, Mail, Excel zeigen den Wert in allen Modi.
+  const showParticipationFactor = mpfs("participation_factor") !== "hidden"
+    && mpfs("participation_factor") !== "admin_only";
 
   return (
     <div className="space-y-4">
@@ -150,6 +156,7 @@ export function MeteringPointFields({
           showBatteryControl={showBatteryControl}
           showConsumptionPrev={showConsumptionPrev}
           showConsumptionFc={showConsumptionFc}
+          showParticipationFactor={showParticipationFactor}
           requiredOf={mpfs}
         />
       ))}
@@ -200,6 +207,7 @@ function MeteringPointRow({
   showBatteryControl,
   showConsumptionPrev,
   showConsumptionFc,
+  showParticipationFactor,
   requiredOf,
 }: {
   form: UseFormReturn<RegistrationFormValues>;
@@ -221,6 +229,7 @@ function MeteringPointRow({
   showBatteryControl: boolean;
   showConsumptionPrev: boolean;
   showConsumptionFc: boolean;
+  showParticipationFactor: boolean;
   requiredOf: (name: string) => string;
 }) {
   const direction = form.watch(`meteringPoints.${index}.direction`);
@@ -293,50 +302,52 @@ function MeteringPointRow({
           />
         </div>
 
-        <div className="w-28">
-          <FormField
-            control={form.control}
-            name={`meteringPoints.${index}.participationFactor`}
-            render={({ field }) => (
-              <FormItem>
-                <div className="flex items-center gap-1">
-                  <FormLabel>Faktor</FormLabel>
-                  <Popover>
-                    <PopoverTrigger type="button" className="cursor-help">
-                      <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                    </PopoverTrigger>
-                    <PopoverContent className="max-w-60 text-sm">
-                      Der Teilnahmefaktor gibt an, mit welchem prozentualen Anteil dieser Zählpunkt an der Energiegemeinschaft teilnimmt. Standardmäßig 100 %.
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <FormControl>
-                  <div className="relative">
-                    <Input
-                      type="number"
-                      min={1}
-                      max={100}
-                      className="pr-7"
-                      value={field.value}
-                      onChange={(e) =>
-                        field.onChange(
-                          isNaN(e.target.valueAsNumber) ? 100 : e.target.valueAsNumber,
-                        )
-                      }
-                      onBlur={field.onBlur}
-                      name={field.name}
-                      ref={field.ref}
-                    />
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
-                      %
-                    </span>
+        {showParticipationFactor && (
+          <div className="w-28">
+            <FormField
+              control={form.control}
+              name={`meteringPoints.${index}.participationFactor`}
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-center gap-1">
+                    <FormLabel>Faktor</FormLabel>
+                    <Popover>
+                      <PopoverTrigger type="button" className="cursor-help">
+                        <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                      </PopoverTrigger>
+                      <PopoverContent className="max-w-60 text-sm">
+                        Der Teilnahmefaktor gibt an, mit welchem prozentualen Anteil dieser Zählpunkt an der Energiegemeinschaft teilnimmt. Standardmäßig 100 %.
+                      </PopoverContent>
+                    </Popover>
                   </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+                  <FormControl>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        min={1}
+                        max={100}
+                        className="pr-7"
+                        value={field.value}
+                        onChange={(e) =>
+                          field.onChange(
+                            isNaN(e.target.valueAsNumber) ? 100 : e.target.valueAsNumber,
+                          )
+                        }
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                      />
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                        %
+                      </span>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        )}
 
         <Button
           type="button"

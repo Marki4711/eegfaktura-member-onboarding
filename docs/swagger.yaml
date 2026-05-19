@@ -774,8 +774,15 @@ definitions:
       meteringPoint:
         type: string
       participationFactor:
+        description: |-
+          ParticipationFactor (Teilnahmefaktor in Prozent).
+          Seit der PROJ-8-Erweiterung am 2026-05-19 ist das Feld per EEG via
+          `field_config` ein-/ausblendbar. Wenn das Frontend es ausblendet
+          oder das Mitglied es nicht angegeben hat, kommt der Wert als `0`
+          hier an — der Service-Layer setzt dann Default 100. Validate
+          `min=0,max=100` lässt 0 explizit zu (Service normalisiert).
         maximum: 100
-        minimum: 1
+        minimum: 0
         type: integer
       pvPowerKwp:
         minimum: 0
@@ -787,7 +794,6 @@ definitions:
     required:
     - direction
     - meteringPoint
-    - participationFactor
     type: object
   shared.DocumentConsentView:
     properties:
