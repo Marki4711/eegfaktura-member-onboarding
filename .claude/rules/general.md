@@ -72,3 +72,9 @@ After completing work on any feature, you MUST update tracking files. Follow thi
 - After completing a skill, suggest the next skill to the user
 - Format: "Next step: Run `/skillname` to [action]"
 - Handoffs are always user-initiated, never automatic
+
+## Public/Private Repo-Split (PROJ-54)
+Dieses Repo ist die private Wahrheitsquelle, ein gefilterter Mirror geht auf das öffentliche Repo. Business-sensibles Material darf nie in den Mirror laufen:
+- **Pricing, Tarifkalkulationen, Vertrags-/AVV-Templates, DPIA, Pen-Test-Reports, PSP-/Anbieter-Setup mit echten Daten, Mahn-/Rechnungslogik mit Anbieter-IDs** gehören unter `private/` (eigene Unterverzeichnisse wie `private/pricing/`, `private/contracts/`, `private/pentest/`, `private/vendor-setup/`).
+- Einzelne `.md`-Dateien, die sich nicht sinnvoll unter `private/` einsortieren lassen (z. B. eine sensible PROJ-Spec), markiere mit Frontmatter `visibility: private`. Der Mirror-Filter entfernt beides zuverlässig.
+- Im Zweifel: privat ablegen. Eine nachträgliche Entfernung aus der Public-Git-Historie ist deutlich teurer als ein zu vorsichtiger Default.

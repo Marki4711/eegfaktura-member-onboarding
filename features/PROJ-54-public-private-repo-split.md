@@ -205,8 +205,10 @@ per `core.hooksPath = .githooks` Repo-Config. Hooks sind versioniert.
   und Betrieb finden im privaten Repo statt."
 - `CLAUDE.md` (beide): Hinweis auf Whitelist-Regel, dass `private/` und
   Frontmatter `visibility: private` nicht in den Mirror laufen.
-- `docs/operations.md` (private-only): Mirror-Workflow-Dokumentation +
-  Recovery-Pfad bei Mirror-Bruch.
+- `private/CUTOVER.md` (private-only): Mirror-Workflow-Dokumentation +
+  Cutover- und Recovery-Schritte. (Ursprünglich war `docs/operations.md`
+  vorgesehen, die bleibt aber bewusst public als Cluster-Runbook ohne
+  Mirror-Bezug.)
 - `.claude/rules/general.md`: Hinweis ergänzen, dass Pricing/Verträge nur
   unter `private/` landen dürfen.
 
@@ -281,7 +283,7 @@ Falls der Mirror-Workflow Probleme macht oder Sensibles "lecken" sollte:
 - [ ] README.md im Public erklärt klar, dass das Repo ein Mirror ist
 - [ ] `private/`-Verzeichnis existiert im privaten Repo, ist `.gitignore`-frei,
   taucht aber nicht im Public-Mirror auf — verifiziert per Test-Commit
-- [ ] Dokumentation des Mirror-Workflows liegt unter `docs/operations.md`
+- [ ] Dokumentation des Mirror-Workflows liegt unter `private/CUTOVER.md`
   (nur im privaten Repo) + Recovery-Pfad
 - [ ] Lokaler Workspace umgezogen auf
   `c:\opt\repos\eegfaktura-member-onboarding-private`; alter Pfad als
@@ -291,4 +293,32 @@ Falls der Mirror-Workflow Probleme macht oder Sensibles "lecken" sollte:
 
 ## Implementierungs-Notizen
 
-(Wird ergänzt, sobald die Implementierung beginnt.)
+**Cutover am 2026-05-20 abgeschlossen.**
+
+Shipped:
+- Privates Repo `Marki4711/eegfaktura-member-onboarding-private` (visibility private),
+  Public-Repo `Marki4711/eegfaktura-member-onboarding` als gefilterter Mirror.
+- Mirror-Infrastruktur: `.github/workflows/mirror-to-public.yml`,
+  `.github/mirror-whitelist.txt`, `.github/scripts/apply-mirror-filter.sh`,
+  `.github/scripts/strip-private-frontmatter.sh`.
+- Defensive Hooks: `.githooks/pre-commit`, `.githooks/pre-push`, aktiviert per
+  `core.hooksPath = .githooks`.
+- Lokaler Workspace umgezogen nach `c:\opt\repos\eegfaktura-member-onboarding-private`,
+  alter Pfad als `eegfaktura-member-onboarding-archived` behalten.
+
+Abweichungen vom Spec:
+- **Mirror-Doku in `private/CUTOVER.md` statt `docs/operations.md`.**
+  `operations.md` bleibt bewusst public — sie dokumentiert den Cluster-Runbook
+  (Velero/Ceph/Wasabi, Postgres-Backup, Restore) und hat keinen Bezug zum
+  Mirror-Workflow. Mirror-Cutover-/Recovery-Schritte leben unter `private/CUTOVER.md`.
+- **Public-Mirror hat keinerlei `.github/workflows/`** (kein Smoke-Build, kein
+  CodeQL via Workflow). Begründung: PAT-Scope minimal halten (kein `workflow`-
+  Permission nötig), keine doppelten Findings, keine Dependabot-Loops gegen
+  einen Mirror, der beim nächsten Sync überschrieben würde. CI/Snyk/EOL-Check/
+  Docker-Publish/Dependabot laufen ausschließlich privat.
+
+Stolperfallen während Cutover (für Retrospektive):
+- `set -e` + `((counter++))` im Filter-Skript bricht ab, sobald der Counter 0
+  ist — Fix in 04ccc85.
+- Erste Whitelist-Iteration zog `ci.yml` mit ins Public; korrigiert in 6c06c3d /
+  08ba8f5.
