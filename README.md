@@ -2,6 +2,11 @@
 
 [![Sponsor](https://img.shields.io/github/sponsors/Marki4711?label=Sponsor&logo=GitHub&color=ea4aaa)](https://github.com/sponsors/Marki4711)
 
+> **ℹ This GitHub repo is a public mirror.** Active development, CI/CD and
+> security scans run in a separate private main repo. Issues + Pull Requests
+> opened here may not be actively monitored. The mirror is updated automatically
+> on each push to the private main branch (see `features/PROJ-54-*.md`).
+
 > Self-service registration system for EEG members with admin review workflow.
 
 This repository contains the **eegfaktura Member Onboarding** component, enabling potential EEG members to register themselves through a web form. Submitted data is stored in a dedicated onboarding schema and reviewed by admins before import into the eegFaktura core system.
