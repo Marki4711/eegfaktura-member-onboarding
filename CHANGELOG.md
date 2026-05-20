@@ -10,6 +10,17 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Optionales UID-Feld für Verein im Public-Form *(2026-05-20)*
+
+Mitgliedstyp `association` zeigt im öffentlichen Registrierungsformular jetzt
+zusätzlich zur (Pflicht-) Vereinsnummer ein **optionales UID-Nummer-Feld** —
+analog zur bereits vorhandenen Umsetzung bei `municipality` (Gemeinde).
+
+Backend, Admin-Edit-Form, Mail/PDF/Excel und der Core-Payload-Mapper kannten
+das Feld bereits für `association` (kein Nullen in `clearMemberTypeFields`,
+kein Required-Check); reines Frontend-Rendering-Gap geschlossen
+(`src/components/registration-form.tsx`).
+
 ### Teilnahmefaktor pro EEG konfigurierbar *(2026-05-19)*
 
 Das Feld `participation_factor` (Teilnahmefaktor in %) ist jetzt über die

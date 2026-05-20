@@ -842,7 +842,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                       )}
                     />
                   )}
-                  {(memberType === "company" || memberType === "municipality") && (
+                  {(memberType === "company" || memberType === "municipality" || memberType === "association") && (
                     <FormField
                       control={form.control}
                       name="uidNumber"
