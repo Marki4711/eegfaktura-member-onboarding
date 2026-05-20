@@ -1,7 +1,8 @@
 # PROJ-53 — Aktivierungs-Modus pro EEG + Beitrittsbestätigung erst bei `activated` + manueller `approved → activated`-Skip
 
-**Status:** In Progress
+**Status:** Deployed
 **Erstellt:** 2026-05-19
+**Deployed:** 2026-05-19
 **Abhängigkeiten:** PROJ-46 (Post-Import-Stati), PROJ-47 (B2B-Mandat-Import), PROJ-48 (SEPA-Timing)
 
 ---
