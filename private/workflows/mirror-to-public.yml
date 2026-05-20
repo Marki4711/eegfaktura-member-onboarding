@@ -1,0 +1,146 @@
+name: Mirror to Public
+
+# Läuft NUR im privaten Repo (eegfaktura-member-onboarding-private).
+# Pusht eine gefilterte Snapshot-Kopie ins öffentliche Mirror-Repo
+# (eegfaktura-member-onboarding).
+#
+# Fehlerverhalten: bricht ab und pusht NICHT, wenn Whitelist-Filter oder
+# Smoke-Build fehlschlagen. Public bleibt dann einen Mirror-Zyklus hinten,
+# bis das Problem behoben ist — bewusst gewollt (kein sensibler Leak).
+#
+# Voraussetzungen:
+#   - Secret PUBLIC_REPO_TOKEN: PAT mit `repo`-Scope auf das Public-Repo
+#   - Whitelist liegt unter .github/mirror-whitelist.txt
+#   - Filter-Skripte liegen unter .github/scripts/
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    # Manuell anstoßbar via Actions-UI
+
+concurrency:
+  # Nur eine Mirror-Operation gleichzeitig — verhindert Race-Conditions
+  # auf der Public-Seite bei schnell aufeinanderfolgenden Pushes.
+  group: mirror-to-public
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    name: Filter and push to public mirror
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    env:
+      PUBLIC_REPO: Marki4711/eegfaktura-member-onboarding
+      PRIVATE_REPO: Marki4711/eegfaktura-member-onboarding-private
+      MIRROR_BOT_NAME: "Mirror Bot"
+      MIRROR_BOT_EMAIL: "mirror-bot@vfeeg.org"
+
+    steps:
+      - name: Checkout private repo (full history)
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+          path: private-src
+
+      - name: Verify whitelist + scripts present
+        run: |
+          set -e
+          [[ -f private-src/.github/mirror-whitelist.txt ]] || { echo "Whitelist missing"; exit 1; }
+          [[ -x private-src/.github/scripts/apply-mirror-filter.sh ]] || chmod +x private-src/.github/scripts/apply-mirror-filter.sh
+          [[ -x private-src/.github/scripts/strip-private-frontmatter.sh ]] || chmod +x private-src/.github/scripts/strip-private-frontmatter.sh
+          echo "✓ Whitelist + scripts present"
+
+      - name: Apply mirror filter (whitelist + frontmatter strip)
+        run: |
+          mkdir -p filtered
+          bash private-src/.github/scripts/apply-mirror-filter.sh \
+              "$PWD/private-src" \
+              "$PWD/filtered" \
+              "$PWD/private-src/.github/mirror-whitelist.txt"
+
+      - name: Sanity-check filtered output
+        run: |
+          set -e
+          # Hard-Fail wenn private/ oder bekannte Blacklist-Pfade durchgerutscht sind
+          if [[ -d filtered/private ]]; then
+            echo "ERROR: filtered output contains private/ — filter broken"
+            exit 1
+          fi
+          if [[ -d filtered/docs/internal ]]; then
+            echo "ERROR: filtered output contains docs/internal/ — filter broken"
+            exit 1
+          fi
+          # Hard-Fail wenn essentielle Pfade fehlen
+          [[ -f filtered/README.md ]] || { echo "README.md missing"; exit 1; }
+          [[ -d filtered/internal ]] || { echo "internal/ missing"; exit 1; }
+          [[ -d filtered/src ]] || { echo "src/ missing"; exit 1; }
+          echo "✓ Filtered output sane"
+
+      - name: Set up Go (smoke build)
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: filtered/go.mod
+
+      - name: Set up Node (smoke build)
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: '22'
+
+      - name: Smoke build — Go
+        working-directory: filtered
+        run: |
+          go vet ./... || { echo "go vet failed on filtered output"; exit 1; }
+          go build ./... || { echo "go build failed on filtered output"; exit 1; }
+
+      - name: Smoke build — Node
+        working-directory: filtered
+        run: |
+          npm ci --no-audit --no-fund || { echo "npm ci failed"; exit 1; }
+          npm run build || { echo "npm build failed on filtered output"; exit 1; }
+        # Hinweis: die Build-Outputs landen NICHT im Public-Push — nur Source.
+
+      - name: Checkout public repo (for push target)
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          repository: ${{ env.PUBLIC_REPO }}
+          token: ${{ secrets.PUBLIC_REPO_TOKEN }}
+          path: public-target
+          fetch-depth: 0
+
+      - name: Apply filtered snapshot to public-target
+        run: |
+          set -e
+          # Aus public-target alles entfernen, was nicht .git ist
+          find public-target -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          # Filtered Inhalt rüber kopieren
+          rsync -a --exclude='.git/' filtered/ public-target/
+
+      - name: Commit + push if changed
+        working-directory: public-target
+        env:
+          PRIVATE_SHA: ${{ github.sha }}
+          PRIVATE_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          set -e
+          git config user.name "${MIRROR_BOT_NAME}"
+          git config user.email "${MIRROR_BOT_EMAIL}"
+
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No changes after filter — nothing to mirror."
+            exit 0
+          fi
+
+          # Short-Hash + erste Zeile der originalen Commit-Message
+          SHORT_SHA="${PRIVATE_SHA:0:7}"
+          FIRST_LINE="$(echo "$PRIVATE_MSG" | head -n1)"
+
+          git commit -m "Mirror sync from private @ ${SHORT_SHA}" \
+                     -m "Source commit: ${FIRST_LINE}"
+
+          git push origin HEAD:main
+          echo "✓ Mirror pushed"

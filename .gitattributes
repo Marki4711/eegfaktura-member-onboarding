@@ -1,0 +1,8 @@
+# Bash-Skripte und Git-Hooks MÜSSEN LF-Line-Endings haben — sonst
+# scheitert die Ausführung auf Linux-CI-Runnern (z. B. /usr/bin/env: bash\r).
+*.sh        text eol=lf
+private/githooks/* text eol=lf
+
+# YAML-Workflows: LF, sonst murrt GitHub Actions teils.
+*.yml       text eol=lf
+*.yaml      text eol=lf

@@ -1,0 +1,92 @@
+# Mirror-Whitelist für PROJ-54 (Public Schaufenster)
+#
+# Format: rsync-Include-Patterns, ein Pattern pro Zeile.
+# Lines beginning with '#' are comments. Empty lines are ignored.
+#
+# Auswertungs-Logik (siehe scripts/apply-mirror-filter.sh):
+#   1. Im gefilterten Zielbaum wird zuerst ALLES kopiert
+#   2. Dann werden alle Pfade gelöscht, die NICHT mindestens einem
+#      der untenstehenden Patterns entsprechen
+#   3. Anschließend werden Dateien mit `visibility: private`-Frontmatter
+#      separat entfernt (Frontmatter-Filter)
+#
+# Patterns: Glob-Style. Slash-separator, '/**' für rekursive Verzeichnisse.
+
+# --- Code ---
+cmd/**
+internal/**
+src/**
+tests/**
+scripts/**
+
+# --- Datenbank ---
+db/migrations/**
+db/seed/**
+
+# --- Docs (öffentlich) ---
+docs/architecture.md
+docs/api-spec.md
+docs/domain-model.md
+docs/import-mapping.md
+docs/operations.md
+docs/security.md
+docs/PRD.md
+docs/open-questions.md
+docs/docs.go
+docs/swagger.json
+docs/swagger.yaml
+docs/user-guide/**
+docs/images/**
+
+# --- Features ---
+# Einzelne PROJ-Specs können per Frontmatter `visibility: private` einzeln
+# ausgeschlossen werden — gilt ZUSÄTZLICH zum hier definierten Whitelist-Pattern.
+features/**
+
+# --- Helm / Infrastruktur ---
+helm/**
+Dockerfile.*
+docker-compose*.yml
+
+# --- CI / Tooling ---
+# Achtung: Nur die public-tauglichen Workflows einschließen.
+# Workflows mit privaten Tokens / Deploy-Schlüsseln NICHT.
+.github/workflows/build.yml
+.github/workflows/test.yml
+.github/workflows/codeql.yml
+.github/workflows/eol-check.yml
+.github/workflows/weekly-rebuild.yml
+.github/dependabot.yml
+# Snyk + Mirror-Workflows bewusst NICHT in der Whitelist —
+# laufen nur im privaten Repo.
+
+# --- Claude / Repo-Tooling ---
+CLAUDE.md
+.claude/rules/**
+.claude/skills/**
+
+# --- Root-Configs ---
+README.md
+LICENSE
+.gitignore
+.dockerignore
+.editorconfig
+.prettierrc*
+.eslintrc*
+package.json
+package-lock.json
+go.mod
+go.sum
+tsconfig.json
+next.config.*
+tailwind.config.*
+postcss.config.*
+playwright.config.*
+vitest.config.*
+Makefile
+
+# --- CHANGELOG ---
+# Achtung: vor jedem Mirror prüfen, dass keine business-sensitive
+# Einträge enthalten sind. Pricing / Anbieter / Verträge gehören
+# ohnehin nicht in CHANGELOG (Memory-Regel).
+CHANGELOG.md
