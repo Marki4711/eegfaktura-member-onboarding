@@ -27,11 +27,11 @@ ingress:
 images:
   backend:
     repository: ""
-    tag: sha-c31d7b6
+    tag: sha-7c61e38
     pullPolicy: IfNotPresent
   frontend:
     repository: ""
-    tag: sha-c31d7b6
+    tag: sha-7c61e38
     pullPolicy: IfNotPresent
 # ── PostgreSQL ─────────────────────────────────────────────────────────────────
 postgres:
@@ -78,6 +78,9 @@ backend:
   # Leer = Import-Endpoint + Stammdaten-Sync-Endpoints liefern 503.
   coreBaseUrl: "" # z.B. https://eegfaktura.example.at
   coreTimeoutSeconds: 30
+  # Admin-UI Basis-URL — wird in EEG-Submission-Mails (PROJ-20) als Admin-
+  # Detail-Link eingebettet. Leer = kein Link in der Mail (graceful fallback).
+  adminBaseUrl: "" # z.B. https://admin.member-onboarding.example.at
   # Trusted-Proxy-CIDRs: aus diesen IP-Bereichen werden X-Real-IP /
   # X-Forwarded-For-Header akzeptiert. Alles andere wird ignoriert und
   # r.RemoteAddr verwendet → kein Bypass des per-IP Rate-Limits durch

@@ -109,6 +109,10 @@ backend:
   coreBaseUrl: "https://eegfaktura.example.at"
   coreTimeoutSeconds: 30
 
+  # Admin-UI Basis-URL — eingebettet als Admin-Detail-Link in EEG-Submission-
+  # Mails (PROJ-20). Leer = kein Link in der Mail.
+  adminBaseUrl: "https://admin.member-onboarding.example.at"
+
   # Trusted-Proxy-CIDRs: aus diesen IP-Bereichen werden X-Real-IP /
   # X-Forwarded-For-Header akzeptiert; alles andere wird ignoriert. Schützt
   # das per-IP Rate-Limit gegen Spoofing durch direkte Pod-Calls. Leer = nur
