@@ -76,7 +76,11 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ## Repository
 
-- Repository name: `eegfaktura-member-onboarding`
+- Repository name (private main): `eegfaktura-member-onboarding-private`
+- Public mirror: `eegfaktura-member-onboarding` (read-only, gefiltert via Mirror-Workflow)
+- Beim Commit von business-sensiblem Material: unter `private/` ablegen ODER
+  Frontmatter `visibility: private` in der Datei setzen — der Mirror-Filter
+  schließt beides aus.
 
 ## Project Structure
 

@@ -1,7 +1,8 @@
 # PROJ-54 — Aufteilung in öffentliches Schaufenster + privates Hauptrepo
 
-**Status:** Planned
+**Status:** In Progress
 **Erstellt:** 2026-05-20
+**Cutover begonnen:** 2026-05-20
 **Abhängigkeiten:** keine
 
 ---
