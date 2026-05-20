@@ -10,6 +10,32 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### PROJ-54 — Repo-Split: privates Hauptrepo + öffentlicher Mirror *(2026-05-20)*
+
+Aktive Entwicklung läuft ab sofort im privaten Repo
+`Marki4711/eegfaktura-member-onboarding-private`; der öffentliche Repo
+`Marki4711/eegfaktura-member-onboarding` wird via GitHub-Action-Mirror
+auf jeden Push automatisch aktualisiert.
+
+Eckdaten:
+
+- **Whitelist** (`.github/mirror-whitelist.txt`): definiert was im
+  Public-Mirror erscheint. `private/` und alle `.github/`-Inhalte sind
+  ausgeschlossen.
+- **Frontmatter-Filter**: einzelne Markdown-Dateien mit YAML-Frontmatter
+  `visibility: private` werden zusätzlich aus dem Mirror entfernt.
+- **CI/CD-Verteilung**: Snyk, EOL-Check, Docker-Publish, Dependabot, CI
+  Build & Test laufen nur im privaten Repo. Public hat keine Actions.
+- **Git-Hooks** (`.githooks/pre-commit`, `pre-push`): defensive Schicht,
+  blockt direkten Push aufs Public-Repo + warnt bei `private/`-Pfaden.
+- **Smoke-Build** (Go + Node) auf dem gefilterten Output: schlägt fehl,
+  bricht Mirror ab (kein Public-Push).
+- **Mirror-Lag**: ~80–90 s pro Push.
+
+Sensible Bereiche (Pricing, Verträge, DPIA, Pen-Test-Reports,
+Anbieter-Setups, eigenes Rechnungsmodul) landen ab sofort unter
+`private/` und werden nicht öffentlich gespiegelt.
+
 ### Optionales UID-Feld für Verein im Public-Form *(2026-05-20)*
 
 Mitgliedstyp `association` zeigt im öffentlichen Registrierungsformular jetzt
