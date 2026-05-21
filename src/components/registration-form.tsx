@@ -249,7 +249,13 @@ function buildFormSchema(
     };
 
     requireText("phone", "phone", "Telefonnummer");
-    requireText("birth_date", "birthDate", "Geburtsdatum");
+    // Geburtsdatum-Feld wird im UI nur für isPerson-Typen gerendert;
+    // für Organisationen (sole_proprietor, company, municipality, association)
+    // existiert kein Eingabefeld — die Validierung muss daher ebenfalls
+    // auf isPerson begrenzt sein, sonst schlägt der Submit unsichtbar fehl.
+    if (isPerson) {
+      requireText("birth_date", "birthDate", "Geburtsdatum");
+    }
     requireText("bank_name", "bankName", "Bankname");
     requireText("membership_start_date", "membershipStartDate", "Beitrittsdatum");
     requireNum("persons_in_household", "personsInHousehold", "Anzahl Personen im Haushalt");
