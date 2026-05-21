@@ -326,7 +326,7 @@ func (g *FPDFApprovalGenerator) GenerateApproval(data ApprovalPDFData) ([]byte, 
 		if c.Informational {
 			continue
 		}
-		line := fmt.Sprintf("- %s — Zugestimmt am %s", c.Title, fmtDateTime(c.ConsentedAt))
+		line := fmt.Sprintf("- %s zugestimmt am %s", c.Title, fmtDateTime(c.ConsentedAt))
 		f.MultiCell(cw, 5, w1252(line), "0", "L", false)
 		if c.URL != "" {
 			setFont("", 8)
