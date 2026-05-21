@@ -83,12 +83,18 @@ export const CONFIGURABLE_FIELDS: {
     { name: "meter_inventory_number",           label: "Inventarnummer eines Zählers", defaultState: "hidden",
       visibilityTags: ["network_authorization"],
       visibilityHint: "Wird nur angezeigt, wenn die Netzbetreiber-Vollmacht aktiv erteilt wird." },
-    // PROJ-57: Ansprechperson-Block (Toggle + 3 Felder) für Org-Mitgliedstypen.
-    // Single-Switch konfiguriert den ganzen Block, gefilterung des
-    // Mitgliedstyps läuft im Code (nur company/association/municipality).
-    { name: "contact_person", label: "Ansprechperson (Org-Typen)", defaultState: "hidden",
+    // PROJ-57: Ansprechperson-Block für Org-Mitgliedstypen. Master-Switch
+    // steuert die Sichtbarkeit des ganzen Blocks (Checkbox + Name).
+    // Email + Telefon werden seit PROJ-57 v2 fein gesteuert (siehe unten).
+    { name: "contact_person", label: "Ansprechperson — Master-Switch", defaultState: "hidden",
       visibilityTags: ["organization"],
-      visibilityHint: "Aktiviert die Ansprechperson-Checkbox + Name/E-Mail/Telefon-Felder für Unternehmen, Vereine und Gemeinden. Bei Privatperson/Kleinunternehmer/Landwirt unsichtbar — dort gibt es nur eine Kontaktperson." },
+      visibilityHint: "Aktiviert den Ansprechperson-Block bei Unternehmen, Vereinen und Gemeinden. Bei Privatperson/Kleinunternehmer/Landwirt immer unsichtbar." },
+    { name: "contact_person_email", label: "Ansprechperson E-Mail", defaultState: "required",
+      visibilityTags: ["organization"],
+      visibilityHint: "Steuert das E-Mail-Feld der Ansprechperson. Greift nur, wenn der Master-Switch aktiv ist UND das Mitglied die Ansprechperson-Checkbox setzt. Default required = bisheriges Verhalten." },
+    { name: "contact_person_phone", label: "Ansprechperson Telefon", defaultState: "required",
+      visibilityTags: ["organization"],
+      visibilityHint: "Steuert das Telefon-Feld der Ansprechperson. Greift nur, wenn der Master-Switch aktiv ist UND das Mitglied die Ansprechperson-Checkbox setzt. Default required = bisheriges Verhalten." },
   ],
   meteringPoint: [
     { name: "transformer",        label: "Transformator", defaultState: "hidden" },

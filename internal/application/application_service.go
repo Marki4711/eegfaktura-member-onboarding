@@ -1214,19 +1214,21 @@ func validateConfigurableRequiredFields(app *shared.Application, fieldConfig map
 	requiredIfMissing("network_operator_customer_number", "networkOperatorCustomerNumber", "Netzbetreiber Kundennummer", app.NetworkOperatorAuthorization && missingStr(app.NetworkOperatorCustomerNumber))
 	requiredIfMissing("meter_inventory_number", "meterInventoryNumber", "Inventarnummer eines Zählers", app.NetworkOperatorAuthorization && missingStr(app.MeterInventoryNumber))
 
-	// PROJ-57: Ansprechperson. Wenn der Toggle aktiv ist, müssen alle drei
-	// Felder befüllt sein — unabhängig vom EEG-field_config-State, weil
-	// die UI die Felder dann sowieso anzeigt. Wenn der Toggle inaktiv ist,
-	// werden die Werte serverseitig auf NULL geclearted — kein Validations-
-	// Fehler. (Analog zur EV-Detail-Logik.)
+	// PROJ-57: Ansprechperson. Wenn der Toggle aktiv ist, ist Name immer
+	// Pflicht (ohne Name keine sinnvolle Ansprechperson). Email und
+	// Telefon werden seit PROJ-57 v2 pro EEG fein gesteuert:
+	//   - hidden: Feld nicht angezeigt → keine Required-Validierung
+	//     (clearContactPersonIfDisabled setzt zudem auf NULL)
+	//   - optional: Feld angezeigt, leer absendbar
+	//   - required: Feld Pflicht (bisheriges Verhalten, Default)
 	if app.HasContactPerson {
 		if missingStr(app.ContactPersonName) {
 			errs["contactPersonName"] = "Name der Ansprechperson ist erforderlich"
 		}
-		if missingStr(app.ContactPersonEmail) {
+		if effectiveState(fieldConfig, "contact_person_email") == "required" && missingStr(app.ContactPersonEmail) {
 			errs["contactPersonEmail"] = "E-Mail der Ansprechperson ist erforderlich"
 		}
-		if missingStr(app.ContactPersonPhone) {
+		if effectiveState(fieldConfig, "contact_person_phone") == "required" && missingStr(app.ContactPersonPhone) {
 			errs["contactPersonPhone"] = "Telefon der Ansprechperson ist erforderlich"
 		}
 	}
@@ -1466,6 +1468,16 @@ func clearContactPersonIfDisabled(app *shared.Application, fieldConfig map[strin
 	if !app.HasContactPerson {
 		app.ContactPersonName = nil
 		app.ContactPersonEmail = nil
+		app.ContactPersonPhone = nil
+		return
+	}
+	// Feinere Steuerung (PROJ-57 v2): wenn EEG das jeweilige Detail-Feld
+	// auf "hidden" stellt, wird der Wert auf NULL geclearted — auch wenn
+	// der User-Submit etwas geliefert hat. Schützt gegen forged Clients.
+	if effectiveState(fieldConfig, "contact_person_email") == "hidden" {
+		app.ContactPersonEmail = nil
+	}
+	if effectiveState(fieldConfig, "contact_person_phone") == "hidden" {
 		app.ContactPersonPhone = nil
 	}
 }

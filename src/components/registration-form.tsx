@@ -304,20 +304,27 @@ function buildFormSchema(
       requireText("meter_inventory_number", "meterInventoryNumber", "Inventarnummer eines Zählers");
     }
 
-    // PROJ-57: Ansprechperson. Wenn die Checkbox aktiv ist, sind alle drei
-    // Felder Pflicht — unabhängig vom field_config-State (UI zeigt sie ja
-    // dann). Email-Format wird zusätzlich geprüft.
+    // PROJ-57: Ansprechperson. Name ist immer Pflicht wenn Toggle aktiv
+    // (ohne Name keine sinnvolle Ansprechperson). Email + Telefon werden
+    // seit PROJ-57 v2 pro EEG fein gesteuert:
+    //   - hidden:   Feld nicht angezeigt, keine Required-Validierung
+    //   - optional: Feld angezeigt, leer absendbar
+    //   - required: Feld Pflicht (Default)
+    // Email-Format wird auch bei optional geprüft, falls Wert eingegeben.
     if (data.hasContactPerson) {
       if (!data.contactPersonName?.trim()) {
         ctx.addIssue({ code: "custom", path: ["contactPersonName"], message: "Name der Ansprechperson ist erforderlich" });
       }
+      const emailState = resolve("contact_person_email");
       const emailRaw = data.contactPersonEmail?.trim() ?? "";
-      if (!emailRaw) {
-        ctx.addIssue({ code: "custom", path: ["contactPersonEmail"], message: "E-Mail der Ansprechperson ist erforderlich" });
-      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailRaw)) {
-        ctx.addIssue({ code: "custom", path: ["contactPersonEmail"], message: "Ungültige E-Mail-Adresse" });
+      if (emailState !== "hidden") {
+        if (emailState === "required" && !emailRaw) {
+          ctx.addIssue({ code: "custom", path: ["contactPersonEmail"], message: "E-Mail der Ansprechperson ist erforderlich" });
+        } else if (emailRaw && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailRaw)) {
+          ctx.addIssue({ code: "custom", path: ["contactPersonEmail"], message: "Ungültige E-Mail-Adresse" });
+        }
       }
-      if (!data.contactPersonPhone?.trim()) {
+      if (resolve("contact_person_phone") === "required" && !data.contactPersonPhone?.trim()) {
         ctx.addIssue({ code: "custom", path: ["contactPersonPhone"], message: "Telefon der Ansprechperson ist erforderlich" });
       }
     }
@@ -594,11 +601,13 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
           // aber Payload bleibt sauber und kleiner).
           networkOperatorCustomerNumber: values.networkOperatorAuthorization ? (values.networkOperatorCustomerNumber || undefined) : undefined,
           meterInventoryNumber: values.networkOperatorAuthorization ? (values.meterInventoryNumber || undefined) : undefined,
-          // PROJ-57: Ansprechperson nur senden bei Org-Mitgliedstyp UND aktivem Toggle.
+          // PROJ-57: Ansprechperson nur senden bei aktivem Toggle.
+          // Email/Phone zusätzlich nur, wenn das jeweilige Feld nicht hidden
+          // ist — sonst cleart Backend ohnehin, aber wir halten den Payload sauber.
           hasContactPerson: values.hasContactPerson || undefined,
           contactPersonName: values.hasContactPerson ? (values.contactPersonName || undefined) : undefined,
-          contactPersonEmail: values.hasContactPerson ? (values.contactPersonEmail || undefined) : undefined,
-          contactPersonPhone: values.hasContactPerson ? (values.contactPersonPhone || undefined) : undefined,
+          contactPersonEmail: values.hasContactPerson && fs("contact_person_email") !== "hidden" ? (values.contactPersonEmail || undefined) : undefined,
+          contactPersonPhone: values.hasContactPerson && fs("contact_person_phone") !== "hidden" ? (values.contactPersonPhone || undefined) : undefined,
           meteringPoints: values.meteringPoints.map((mp) => {
             const isProduction = mp.direction === "PRODUCTION";
             const isPv = isProduction && (mp.generationType ?? "pv") === "pv";
@@ -1072,32 +1081,36 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                             </FormItem>
                           )}
                         />
-                        <FormField
-                          control={form.control}
-                          name="contactPersonEmail"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>E-Mail *</FormLabel>
-                              <FormControl>
-                                <Input type="email" autoComplete="email" {...field} value={field.value ?? ""} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="contactPersonPhone"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Telefon *</FormLabel>
-                              <FormControl>
-                                <Input type="tel" autoComplete="tel" {...field} value={field.value ?? ""} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        {fs("contact_person_email") !== "hidden" && (
+                          <FormField
+                            control={form.control}
+                            name="contactPersonEmail"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>E-Mail{req("contact_person_email")}</FormLabel>
+                                <FormControl>
+                                  <Input type="email" autoComplete="email" {...field} value={field.value ?? ""} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
+                        {fs("contact_person_phone") !== "hidden" && (
+                          <FormField
+                            control={form.control}
+                            name="contactPersonPhone"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Telefon{req("contact_person_phone")}</FormLabel>
+                                <FormControl>
+                                  <Input type="tel" autoComplete="tel" {...field} value={field.value ?? ""} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
                       </div>
                     )}
                   </>

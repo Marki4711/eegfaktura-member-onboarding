@@ -36,10 +36,16 @@ var knownConfigurableFields = map[string]string{
 	// Vollmacht-Checkbox aktiv ist. Service-Layer cleart sonst auf NULL.
 	"network_operator_customer_number": "hidden",
 	"meter_inventory_number":           "hidden",
-	// PROJ-57: Ansprechperson-Block (Toggle + 3 Detail-Felder) für die
-	// Org-Mitgliedstypen company/association/municipality. Single-Switch
-	// für den ganzen Block.
+	// PROJ-57: Ansprechperson-Block (Toggle + Name-Pflicht) für die Org-
+	// Mitgliedstypen company/association/municipality. Master-Switch:
+	//   - hidden: ganzer Block (Checkbox + alle Felder) verschwindet
+	//   - optional/required: Block sichtbar; Toggle aktiviert Name-Pflicht
 	"contact_person": "hidden",
+	// Feinere Steuerung der Email/Telefon-Pflicht pro EEG. Greifen nur,
+	// wenn contact_person != hidden UND HasContactPerson=true.
+	// Default required = bisheriges Verhalten (alle 3 Felder Pflicht).
+	"contact_person_email": "required",
+	"contact_person_phone": "required",
 	// PROJ-45: Batterie + Wechselrichter (Metering-Point-Scope, nur bei
 	// generation_type='pv' rendern — Service cleart sonst).
 	"battery_size_kwh":      "hidden",

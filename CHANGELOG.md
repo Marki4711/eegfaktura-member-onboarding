@@ -10,6 +10,26 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### PROJ-57 v2 — feiner steuerbare Ansprechperson-Pflichtigkeit *(2026-05-21)*
+
+Erweiterung der Ansprechperson-Logik aus PROJ-57: Email und Telefon
+können seit dieser Version pro EEG einzeln auf `hidden | optional |
+required` gestellt werden. Name bleibt fix Pflicht wenn Toggle aktiv
+(ohne Name keine sinnvolle Ansprechperson).
+
+- Zwei neue field_config-Einträge: `contact_person_email` und
+  `contact_person_phone`, beide Default `required` (= bisheriges
+  Verhalten unverändert für bereits konfigurierte EEGs)
+- Im Admin-Field-Config-Editor mit „Org-Typen"-Badge sichtbar
+- Public-Form rendert das jeweilige Feld nur, wenn nicht hidden,
+  und passt Pflicht-Marker (*) dynamisch an
+- Server-Cleanup in `clearContactPersonIfDisabled` setzt das Detail-
+  Feld auf NULL, wenn der EEG-State `hidden` ist — Schutz vor
+  forged Clients
+- Email-Format wird auch bei `optional` geprüft, falls Wert da
+- Admin-Edit-Form sieht weiterhin alle drei Felder durchgehend
+  (Admin-Korrektur-Pfad nicht eingeschränkt; Backend cleart bei hidden)
+
 ### PROJ-57 — Ansprechperson für Org-Mitgliedstypen *(2026-05-21)*
 
 Optionale Ansprechperson für Unternehmen, Vereine und Gemeinden. Toggle-

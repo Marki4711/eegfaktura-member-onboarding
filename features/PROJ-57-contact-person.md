@@ -110,3 +110,25 @@ Stammdaten der Org, wenn Ansprechperson gesetzt.
 - Excel-Export (explizit ausgeschlossen)
 - Rolle/Funktion der Ansprechperson (z. B. „Obmann", „Geschäftsführer")
 - Bestätigungs-E-Mail an die Ansprechperson selbst
+
+## v2 — Feiner steuerbare Pflichtigkeit (Update 2026-05-21)
+
+Erweiterung der Pflicht-Logik: Email und Telefon werden seit v2 pro EEG
+einzeln auf `hidden | optional | required` gestellt werden können.
+
+**Status:** Implementiert.
+
+**Änderungen:**
+
+- Zwei neue field_config-Einträge `contact_person_email` und
+  `contact_person_phone`, beide Default `required` (= identisches
+  Verhalten zu V1 für alle Bestand-EEGs).
+- `clearContactPersonIfDisabled` cleart das jeweilige Detail-Feld
+  serverseitig, wenn der State `hidden` ist.
+- Required-Validierung gegated auf `hasContactPerson && state == "required"`.
+- Frontend-Render konditional pro Feld; Pflicht-Marker dynamisch.
+- Email-Format-Check läuft auch bei `optional`, falls Wert eingegeben.
+- Admin-Edit-Form bleibt unverändert — Admin sieht alle drei Felder.
+
+**Name bleibt fix Pflicht** wenn Toggle aktiv: ohne Name ist eine
+Ansprechperson semantisch sinnlos, daher kein eigener field_config.
