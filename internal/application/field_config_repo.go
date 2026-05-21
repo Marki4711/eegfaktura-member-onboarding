@@ -36,16 +36,14 @@ var knownConfigurableFields = map[string]string{
 	// Vollmacht-Checkbox aktiv ist. Service-Layer cleart sonst auf NULL.
 	"network_operator_customer_number": "hidden",
 	"meter_inventory_number":           "hidden",
-	// PROJ-57: Ansprechperson-Block (Toggle + Name-Pflicht) für die Org-
-	// Mitgliedstypen company/association/municipality. Master-Switch:
-	//   - hidden: ganzer Block (Checkbox + alle Felder) verschwindet
-	//   - optional/required: Block sichtbar; Toggle aktiviert Name-Pflicht
-	"contact_person": "hidden",
-	// Feinere Steuerung der Email/Telefon-Pflicht pro EEG. Greifen nur,
-	// wenn contact_person != hidden UND HasContactPerson=true.
-	// Default required = bisheriges Verhalten (alle 3 Felder Pflicht).
-	"contact_person_email": "required",
-	"contact_person_phone": "required",
+	// PROJ-57 v3: Ansprechperson-Felder einzeln steuerbar. Es gibt keinen
+	// separaten Master-Switch mehr — die Checkbox im Public-Formular wird
+	// AUTOMATISCH angezeigt, sobald mindestens eines der drei Felder
+	// (name, email, phone) nicht hidden ist. Default aller drei = hidden,
+	// d. h. ohne aktive Konfiguration durch die EEG ist das Feature aus.
+	"contact_person_name":  "hidden",
+	"contact_person_email": "hidden",
+	"contact_person_phone": "hidden",
 	// PROJ-58: Abweichende Rechnungs-E-Mail. Per-EEG steuerbar.
 	// Default hidden — neue EEGs müssen explizit aktivieren.
 	"billing_email": "hidden",

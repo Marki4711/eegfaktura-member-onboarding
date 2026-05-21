@@ -132,3 +132,35 @@ einzeln auf `hidden | optional | required` gestellt werden können.
 
 **Name bleibt fix Pflicht** wenn Toggle aktiv: ohne Name ist eine
 Ansprechperson semantisch sinnlos, daher kein eigener field_config.
+
+## v3 — Master-Switch entfällt, alle drei Felder einzeln steuerbar (2026-05-21 abends)
+
+Vereinfachung des Modells: der separate `contact_person`-Master-Switch
+entfällt. Stattdessen werden alle drei Felder (Name, Email, Telefon)
+einzeln per field_config konfigurierbar. Die Sichtbarkeit der Checkbox
+im Public-Formular wird aus den drei Sub-Feldern abgeleitet.
+
+**Status:** Implementiert.
+
+**Änderungen:**
+
+- `contact_person` als field_config-Eintrag entfernt
+- Neuer Eintrag `contact_person_name` (Default hidden, analog zu
+  Email + Telefon)
+- Default aller drei Subfelder ist jetzt `hidden` — Feature aus, bis
+  EEG aktiv konfiguriert (vorher: Email + Phone Default required,
+  Master-Switch Default hidden — Verhalten identisch, weil Master-
+  Switch hidden alles ausblendete)
+- Backend-Helper `contactPersonEnabled(fieldConfig)`: liefert true,
+  wenn mindestens eines der drei != hidden
+- `clearContactPersonIfDisabled`: cleart bei „alle drei hidden" ODER
+  nicht-Org-Mitgliedstyp
+- Required-Validierung für jedes Feld nur bei state=required (Name
+  also nicht mehr automatisch Pflicht — wenn EEG Name auf optional
+  stellt, kann er leer bleiben)
+- Frontend: Sichtbarkeit der gesamten Sektion + jedes einzelnen Felds
+  konditional auf nicht-hidden; Pflicht-Marker dynamisch
+
+**Migration:** EEGs, die zuvor `contact_person=optional` gesetzt hatten,
+müssen die drei Subfelder neu konfigurieren. Da das Feature heute
+frisch eingeführt wurde, ist der Migrations-Aufwand minimal.

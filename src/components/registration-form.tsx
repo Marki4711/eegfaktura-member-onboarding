@@ -315,7 +315,10 @@ function buildFormSchema(
     //   - required: Feld Pflicht (Default)
     // Email-Format wird auch bei optional geprüft, falls Wert eingegeben.
     if (data.hasContactPerson) {
-      if (!data.contactPersonName?.trim()) {
+      // PROJ-57 v3: alle drei Felder werden einzeln per field_config
+      // gesteuert. Required-Validierung gilt nur, wenn state=required.
+      // Email-Format-Check läuft auch bei optional, falls Wert eingegeben.
+      if (resolve("contact_person_name") === "required" && !data.contactPersonName?.trim()) {
         ctx.addIssue({ code: "custom", path: ["contactPersonName"], message: "Name der Ansprechperson ist erforderlich" });
       }
       const emailState = resolve("contact_person_email");
@@ -624,7 +627,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
           // Email/Phone zusätzlich nur, wenn das jeweilige Feld nicht hidden
           // ist — sonst cleart Backend ohnehin, aber wir halten den Payload sauber.
           hasContactPerson: values.hasContactPerson || undefined,
-          contactPersonName: values.hasContactPerson ? (values.contactPersonName || undefined) : undefined,
+          contactPersonName: values.hasContactPerson && fs("contact_person_name") !== "hidden" ? (values.contactPersonName || undefined) : undefined,
           contactPersonEmail: values.hasContactPerson && fs("contact_person_email") !== "hidden" ? (values.contactPersonEmail || undefined) : undefined,
           contactPersonPhone: values.hasContactPerson && fs("contact_person_phone") !== "hidden" ? (values.contactPersonPhone || undefined) : undefined,
           // PROJ-58: Rechnungs-E-Mail nur senden bei aktivem Toggle.
@@ -1063,11 +1066,16 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                     />
                   )}
                 </div>
-                {/* PROJ-57: Ansprechperson-Block. Sichtbar nur für die drei
-                    Org-Mitgliedstypen UND wenn EEG das field_config nicht auf
-                    hidden gestellt hat. */}
+                {/* PROJ-57 v3: Ansprechperson-Block. Sichtbar nur für die drei
+                    Org-Mitgliedstypen UND wenn die EEG mindestens eines der
+                    drei Sub-Felder (name/email/phone) nicht auf hidden
+                    gestellt hat. Es gibt keinen separaten Master-Switch
+                    mehr — die Sichtbarkeit wird aus den Sub-Field-States
+                    abgeleitet. */}
                 {(memberType === "company" || memberType === "association" || memberType === "municipality") &&
-                  fs("contact_person") !== "hidden" && (
+                  (fs("contact_person_name") !== "hidden" ||
+                   fs("contact_person_email") !== "hidden" ||
+                   fs("contact_person_phone") !== "hidden") && (
                   <>
                     <FormField
                       control={form.control}
@@ -1090,19 +1098,21 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                     />
                     {form.watch("hasContactPerson") === true && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-7">
-                        <FormField
-                          control={form.control}
-                          name="contactPersonName"
-                          render={({ field }) => (
-                            <FormItem className="sm:col-span-2">
-                              <FormLabel>Name *</FormLabel>
-                              <FormControl>
-                                <Input autoComplete="name" {...field} value={field.value ?? ""} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        {fs("contact_person_name") !== "hidden" && (
+                          <FormField
+                            control={form.control}
+                            name="contactPersonName"
+                            render={({ field }) => (
+                              <FormItem className="sm:col-span-2">
+                                <FormLabel>Name{req("contact_person_name")}</FormLabel>
+                                <FormControl>
+                                  <Input autoComplete="name" {...field} value={field.value ?? ""} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
                         {fs("contact_person_email") !== "hidden" && (
                           <FormField
                             control={form.control}

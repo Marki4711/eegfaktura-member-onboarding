@@ -10,6 +10,33 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### PROJ-57 v3 — Ansprechperson ohne Master-Switch, drei Felder einzeln steuerbar *(2026-05-21)*
+
+Vereinfachung des Konfigurations-Modells: der separate
+`contact_person`-Master-Switch entfällt. Stattdessen werden alle drei
+Felder (`contact_person_name`, `contact_person_email`,
+`contact_person_phone`) einzeln per field_config konfigurierbar
+(hidden/optional/required). Die Ansprechperson-Checkbox im Public-
+Formular erscheint automatisch, sobald mindestens eines der drei
+Felder nicht hidden ist.
+
+- field_config: `contact_person` entfernt; neuer Eintrag
+  `contact_person_name`; Defaults aller drei Felder = hidden
+  (Feature aus, bis EEG aktiv konfiguriert)
+- Backend: neuer Helper `contactPersonEnabled(fieldConfig)`,
+  `clearContactPersonIfDisabled` cleart bei allen-drei-hidden,
+  Required-Validierung pro Feld nur bei state=required
+- Public-Formular: Checkbox-Sichtbarkeit aus den drei Sub-Feldern
+  abgeleitet; Name-Feld auch konditional renderbar; Pflicht-Marker
+  dynamisch
+- Admin-Field-Config-Editor: zeigt jetzt drei Org-Typen-Einträge
+  statt vier (Master-Switch + 2). Die Reihenfolge folgt der
+  natürlichen Form-Reihenfolge (Name → Email → Telefon).
+
+Hinweis für bestehende Konfiguration: alte EEGs mit `contact_person`-
+Eintrag in der DB werden vom System ignoriert. Sie müssen die drei
+Subfelder neu konfigurieren, um das Feature wieder zu aktivieren.
+
 ### PROJ-58 — Abweichende Rechnungs-E-Mail für Org-Mitgliedstypen *(2026-05-21)*
 
 Bei Unternehmen, Vereinen und Gemeinden kann jetzt eine separate

@@ -1229,15 +1229,14 @@ func validateConfigurableRequiredFields(app *shared.Application, fieldConfig map
 	requiredIfMissing("network_operator_customer_number", "networkOperatorCustomerNumber", "Netzbetreiber Kundennummer", app.NetworkOperatorAuthorization && missingStr(app.NetworkOperatorCustomerNumber))
 	requiredIfMissing("meter_inventory_number", "meterInventoryNumber", "Inventarnummer eines Zählers", app.NetworkOperatorAuthorization && missingStr(app.MeterInventoryNumber))
 
-	// PROJ-57: Ansprechperson. Wenn der Toggle aktiv ist, ist Name immer
-	// Pflicht (ohne Name keine sinnvolle Ansprechperson). Email und
-	// Telefon werden seit PROJ-57 v2 pro EEG fein gesteuert:
-	//   - hidden: Feld nicht angezeigt → keine Required-Validierung
-	//     (clearContactPersonIfDisabled setzt zudem auf NULL)
-	//   - optional: Feld angezeigt, leer absendbar
-	//   - required: Feld Pflicht (bisheriges Verhalten, Default)
+	// PROJ-57 v3: Ansprechperson — alle drei Felder werden seit dieser
+	// Version einzeln per field_config gesteuert (hidden/optional/required).
+	// Wenn der Toggle aktiv ist, wird jedes Feld geprüft, aber required
+	// gilt nur bei state=required. Bei state=optional ist das Feld
+	// sichtbar aber leer absendbar; bei state=hidden ist es weder
+	// sichtbar noch validiert (clearContactPersonIfDisabled cleart zudem).
 	if app.HasContactPerson {
-		if missingStr(app.ContactPersonName) {
+		if effectiveState(fieldConfig, "contact_person_name") == "required" && missingStr(app.ContactPersonName) {
 			errs["contactPersonName"] = "Name der Ansprechperson ist erforderlich"
 		}
 		if effectiveState(fieldConfig, "contact_person_email") == "required" && missingStr(app.ContactPersonEmail) {
@@ -1471,17 +1470,26 @@ func clearMeteringPointEnergyByType(points []shared.MeteringPoint) {
 	}
 }
 
+// contactPersonEnabled liefert true, wenn die EEG mindestens eines der drei
+// Ansprechperson-Felder (Name, Email, Telefon) nicht auf hidden gestellt
+// hat. Ersetzt seit PROJ-57 v3 den ehemaligen Master-Switch `contact_person`:
+// die Sichtbarkeit des Blocks wird aus den drei Sub-Field-States abgeleitet.
+// Mindestens ein Feld != hidden → Checkbox im Public-Form sichtbar.
+func contactPersonEnabled(fieldConfig map[string]FieldConfigEntry) bool {
+	return effectiveState(fieldConfig, "contact_person_name") != "hidden" ||
+		effectiveState(fieldConfig, "contact_person_email") != "hidden" ||
+		effectiveState(fieldConfig, "contact_person_phone") != "hidden"
+}
+
 // clearContactPersonIfDisabled handles the PROJ-57 contact-person fields.
 // Cleared zu false/NULL, wenn:
-//   - die EEG die Konfiguration auf "hidden" gestellt hat, oder
-//   - der Mitgliedstyp nicht in der Org-Liste (company/association/municipality)
-//     liegt — eine Ansprechperson ist nur dort semantisch sinnvoll, und
-//     ein forged client soll die Felder bei Privatperson/Farmer nicht
-//     einschleusen können, oder
-//   - HasContactPerson=false ist — die drei Detail-Felder gehören nur
-//     zum Toggle-aktiv-Kontext.
+//   - alle drei Sub-Field-States auf "hidden" stehen (kein Block sichtbar)
+//   - der Mitgliedstyp nicht in der Org-Liste liegt
+//   - HasContactPerson=false ist
+// Plus: einzelne Sub-Felder werden geclearted, wenn ihr State hidden ist —
+// Schutz gegen forged Clients.
 func clearContactPersonIfDisabled(app *shared.Application, fieldConfig map[string]FieldConfigEntry) {
-	disabled := effectiveState(fieldConfig, "contact_person") == "hidden" ||
+	disabled := !contactPersonEnabled(fieldConfig) ||
 		!isOrgMemberType(app.MemberType)
 	if disabled {
 		app.HasContactPerson = false
@@ -1492,9 +1500,9 @@ func clearContactPersonIfDisabled(app *shared.Application, fieldConfig map[strin
 		app.ContactPersonPhone = nil
 		return
 	}
-	// Feinere Steuerung (PROJ-57 v2): wenn EEG das jeweilige Detail-Feld
-	// auf "hidden" stellt, wird der Wert auf NULL geclearted — auch wenn
-	// der User-Submit etwas geliefert hat. Schützt gegen forged Clients.
+	if effectiveState(fieldConfig, "contact_person_name") == "hidden" {
+		app.ContactPersonName = nil
+	}
 	if effectiveState(fieldConfig, "contact_person_email") == "hidden" {
 		app.ContactPersonEmail = nil
 	}
