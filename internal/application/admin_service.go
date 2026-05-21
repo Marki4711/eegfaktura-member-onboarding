@@ -1548,12 +1548,12 @@ func buildApprovalConfigurableFields(app *shared.Application, fieldConfig map[st
 	if app.MembershipStartDate != nil {
 		add("membership_start_date", "Beitrittsdatum", app.MembershipStartDate.Format("02.01.2006"))
 	}
-	// PROJ-44: Netzbetreiber-Vollmacht. Wir rendern nur "Ja" (erteilt) —
-	// "Nein" wird unterdrückt, weil das Feld bei Bestandsanträgen per
-	// Default FALSE ist und nicht auf der Genehmigungs-PDF auftauchen soll.
-	if app.NetworkOperatorAuthorization {
-		add("network_operator_authorization", "Netzbetreiber-Vollmacht erteilt", "Ja")
-	}
+	// PROJ-44: Netzbetreiber-Vollmacht. KEIN Eintrag in WEITERE ANGABEN —
+	// der Vollmachtsblock wird im PDF bereits in der Sektion "Erteilte
+	// Zustimmungen" mit vollständigem Wortlaut und Timestamp gerendert
+	// (siehe approval_pdf.go). Eine zweite Erwähnung in WEITERE ANGABEN
+	// wäre ein Duplikat — wurde 2026-05-21 vom Tester gemeldet und hier
+	// entfernt.
 	return result
 }
 
