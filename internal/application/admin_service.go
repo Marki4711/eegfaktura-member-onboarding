@@ -1457,6 +1457,10 @@ func buildApprovalPDFData(
 		ContactPersonName:  derefStr(app.ContactPersonName),
 		ContactPersonEmail: derefStr(app.ContactPersonEmail),
 		ContactPersonPhone: derefStr(app.ContactPersonPhone),
+		// PROJ-58: Rechnungs-E-Mail-Snapshot für die Bankverbindungs-
+		// Sektion des Beitritts-PDFs.
+		HasBillingEmail: app.HasBillingEmail,
+		BillingEmail:    derefStr(app.BillingEmail),
 		// PROJ-37: only set both fields together — the PDF render skips
 		// the section if either is missing. EEG entrypoint provides the
 		// price; the application carries the count. When the EEG feature

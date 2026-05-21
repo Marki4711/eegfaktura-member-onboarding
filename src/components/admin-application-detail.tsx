@@ -460,6 +460,9 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
               <Field label="Kontoinhaber:in" value={application.accountHolder} />
               <BoolField label="SEPA-Mandat akzeptiert" value={application.sepaMandateAccepted} />
               <Field label="SEPA-Mandat akzeptiert am" value={formatDateTime(application.sepaMandateAcceptedAt)} />
+              {application.hasBillingEmail && application.billingEmail && (
+                <Field label="Rechnungs-E-Mail" value={application.billingEmail} />
+              )}
             </dl>
             <Separator className="my-4" />
             <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">

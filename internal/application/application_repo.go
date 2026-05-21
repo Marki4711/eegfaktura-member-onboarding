@@ -38,6 +38,7 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 			network_operator_authorization, network_operator_authorization_at,
 			network_operator_customer_number, meter_inventory_number,
 			has_contact_person, contact_person_name, contact_person_email, contact_person_phone,
+			has_billing_email, billing_email,
 			created_at, updated_at
 		) VALUES (
 			$1, $2, $3, $4,
@@ -53,7 +54,8 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 			$37, $38,
 			$39, $40,
 			$41, $42, $43, $44,
-			$45, $46
+			$45, $46,
+			$47, $48
 		) RETURNING id`
 
 	now := app.CreatedAt
@@ -71,6 +73,7 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 		app.NetworkOperatorAuthorization, app.NetworkOperatorAuthorizationAt,
 		app.NetworkOperatorCustomerNumber, app.MeterInventoryNumber,
 		app.HasContactPerson, app.ContactPersonName, app.ContactPersonEmail, app.ContactPersonPhone,
+		app.HasBillingEmail, app.BillingEmail,
 		app.CreatedAt, app.UpdatedAt,
 	}
 
@@ -104,6 +107,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		       network_operator_authorization, network_operator_authorization_at,
 		       network_operator_customer_number, meter_inventory_number,
 		       has_contact_person, contact_person_name, contact_person_email, contact_person_phone,
+		       has_billing_email, billing_email,
 		       email_confirmed_at, email_confirmation_used_at,
 		       email_confirmation_token_hash, email_confirmation_token_expires_at,
 		       created_at, updated_at
@@ -126,6 +130,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	var networkOperatorAuthorizationAt sql.NullTime
 	var networkOperatorCustomerNumber, meterInventoryNumber sql.NullString
 	var contactPersonName, contactPersonEmail, contactPersonPhone sql.NullString
+	var billingEmail sql.NullString
 	var emailConfirmedAt, emailConfirmationUsedAt, emailConfirmationTokenExpiresAt sql.NullTime
 	var emailConfirmationTokenHash sql.NullString
 
@@ -150,6 +155,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		&app.NetworkOperatorAuthorization, &networkOperatorAuthorizationAt,
 		&networkOperatorCustomerNumber, &meterInventoryNumber,
 		&app.HasContactPerson, &contactPersonName, &contactPersonEmail, &contactPersonPhone,
+		&app.HasBillingEmail, &billingEmail,
 		&emailConfirmedAt, &emailConfirmationUsedAt,
 		&emailConfirmationTokenHash, &emailConfirmationTokenExpiresAt,
 		&app.CreatedAt, &app.UpdatedAt,
@@ -312,6 +318,10 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		v := contactPersonPhone.String
 		app.ContactPersonPhone = &v
 	}
+	if billingEmail.Valid {
+		v := billingEmail.String
+		app.BillingEmail = &v
+	}
 	if emailConfirmedAt.Valid {
 		app.EmailConfirmedAt = &emailConfirmedAt.Time
 	}
@@ -388,8 +398,10 @@ func (r *ApplicationRepository) UpdateTx(tx *sql.Tx, app *shared.Application) er
 			contact_person_name = $36,
 			contact_person_email = $37,
 			contact_person_phone = $38,
+			has_billing_email = $39,
+			billing_email = $40,
 			updated_at = NOW()
-		WHERE id = $39`
+		WHERE id = $41`
 
 	_, err := tx.Exec(query,
 		app.MemberType,
@@ -407,6 +419,7 @@ func (r *ApplicationRepository) UpdateTx(tx *sql.Tx, app *shared.Application) er
 		app.NetworkOperatorAuthorization, app.NetworkOperatorAuthorizationAt,
 		app.NetworkOperatorCustomerNumber, app.MeterInventoryNumber,
 		app.HasContactPerson, app.ContactPersonName, app.ContactPersonEmail, app.ContactPersonPhone,
+		app.HasBillingEmail, app.BillingEmail,
 		app.ID,
 	)
 	if err != nil {

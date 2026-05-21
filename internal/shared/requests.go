@@ -64,6 +64,9 @@ type CreateApplicationRequest struct {
 	ContactPersonName  *string `json:"contactPersonName,omitempty"  validate:"omitempty,max=150"`
 	ContactPersonEmail *string `json:"contactPersonEmail,omitempty" validate:"omitempty,email,max=200"`
 	ContactPersonPhone *string `json:"contactPersonPhone,omitempty" validate:"omitempty,max=50"`
+	// PROJ-58: Abweichende Rechnungs-E-Mail für Org-Mitgliedstypen.
+	HasBillingEmail *bool   `json:"hasBillingEmail,omitempty"`
+	BillingEmail    *string `json:"billingEmail,omitempty" validate:"omitempty,email,max=200"`
 	// Cloudflare Turnstile token (PROJ-16) — optional, verified server-side when TURNSTILE_SECRET_KEY is set
 	TurnstileToken *string `json:"turnstileToken,omitempty"`
 }
@@ -151,6 +154,9 @@ type UpdateApplicationRequest struct {
 	ContactPersonName  *string `json:"contactPersonName,omitempty"  validate:"omitempty,max=150"`
 	ContactPersonEmail *string `json:"contactPersonEmail,omitempty" validate:"omitempty,email,max=200"`
 	ContactPersonPhone *string `json:"contactPersonPhone,omitempty" validate:"omitempty,max=50"`
+	// PROJ-58: Abweichende Rechnungs-E-Mail.
+	HasBillingEmail *bool   `json:"hasBillingEmail,omitempty"`
+	BillingEmail    *string `json:"billingEmail,omitempty" validate:"omitempty,email,max=200"`
 }
 
 // Response models

@@ -94,6 +94,10 @@ type ApprovalPDFData struct {
 	ContactPersonName   string
 	ContactPersonEmail  string
 	ContactPersonPhone  string
+	// PROJ-58: Abweichende Rechnungs-E-Mail. Wird in der Bankverbindungs-
+	// Sektion als zusätzliche Zeile gerendert, wenn HasBillingEmail=true.
+	HasBillingEmail bool
+	BillingEmail    string
 
 	MemberNumber *string
 
@@ -284,6 +288,12 @@ func (g *FPDFApprovalGenerator) GenerateApproval(data ApprovalPDFData) ([]byte, 
 			dataRow("Bankname:", data.BankName)
 		}
 		dataRow("SEPA-Ermächtigung:", data.SepaMandateType)
+		// PROJ-58: abweichende Rechnungs-E-Mail. Nur gerendert wenn gesetzt
+		// (Backend stellt sicher, dass BillingEmail nur befüllt ist, wenn
+		// HasBillingEmail=true).
+		if data.HasBillingEmail && data.BillingEmail != "" {
+			dataRow("Rechnungs-E-Mail:", data.BillingEmail)
+		}
 	}
 
 	// ── ZÄHLPUNKTE ───────────────────────────────────────────────────────────

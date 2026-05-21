@@ -176,6 +176,9 @@ const baseSchema = z.object({
   contactPersonName: z.string().optional(),
   contactPersonEmail: z.string().optional(),
   contactPersonPhone: z.string().optional(),
+  // PROJ-58: Abweichende Rechnungs-E-Mail (Org-Mitgliedstypen).
+  hasBillingEmail: z.boolean().optional(),
+  billingEmail: z.string().optional(),
   meteringPoints: z
     .array(meteringPointSchema)
     .min(1, "Mindestens ein Zählpunkt ist erforderlich")
@@ -329,6 +332,20 @@ function buildFormSchema(
       }
     }
 
+    // PROJ-58: Abweichende Rechnungs-E-Mail. Wenn die Checkbox aktiv ist,
+    // ist Email Pflicht + Format-Check. Bei field_config=required UND
+    // Checkbox inaktiv wird die Checkbox bewusst NICHT als Pflicht
+    // gefordert — required steuert das Feld-Pflichtigkeits-Verhalten,
+    // nicht die Checkbox.
+    if (data.hasBillingEmail) {
+      const beRaw = data.billingEmail?.trim() ?? "";
+      if (!beRaw) {
+        ctx.addIssue({ code: "custom", path: ["billingEmail"], message: "Rechnungs-E-Mail ist erforderlich" });
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(beRaw)) {
+        ctx.addIssue({ code: "custom", path: ["billingEmail"], message: "Ungültige E-Mail-Adresse" });
+      }
+    }
+
     // PROJ-37: Genossenschaftsanteile required when the EEG has enabled
     // it. Count must be at least cooperativeRequiredShares; voluntary
     // higher is fine.
@@ -462,6 +479,8 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
       contactPersonName: "",
       contactPersonEmail: "",
       contactPersonPhone: "",
+      hasBillingEmail: false,
+      billingEmail: "",
     },
   });
 
@@ -608,6 +627,9 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
           contactPersonName: values.hasContactPerson ? (values.contactPersonName || undefined) : undefined,
           contactPersonEmail: values.hasContactPerson && fs("contact_person_email") !== "hidden" ? (values.contactPersonEmail || undefined) : undefined,
           contactPersonPhone: values.hasContactPerson && fs("contact_person_phone") !== "hidden" ? (values.contactPersonPhone || undefined) : undefined,
+          // PROJ-58: Rechnungs-E-Mail nur senden bei aktivem Toggle.
+          hasBillingEmail: values.hasBillingEmail || undefined,
+          billingEmail: values.hasBillingEmail ? (values.billingEmail || undefined) : undefined,
           meteringPoints: values.meteringPoints.map((mp) => {
             const isProduction = mp.direction === "PRODUCTION";
             const isPv = isProduction && (mp.generationType ?? "pv") === "pv";
@@ -1375,6 +1397,49 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                 />
               )}
             </div>
+            {/* PROJ-58: Abweichende Rechnungs-E-Mail. Sichtbar nur bei
+                Org-Mitgliedstypen UND field_config != hidden. */}
+            {(memberType === "company" || memberType === "association" || memberType === "municipality") &&
+              fs("billing_email") !== "hidden" && (
+              <>
+                <FormField
+                  control={form.control}
+                  name="hasBillingEmail"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start gap-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value ?? false}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel className="font-normal cursor-pointer">
+                          Abweichende Rechnungs-E-Mail{fs("billing_email") === "required" ? " *" : ""}
+                        </FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+                {form.watch("hasBillingEmail") === true && (
+                  <div className="pl-7">
+                    <FormField
+                      control={form.control}
+                      name="billingEmail"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Rechnungs-E-Mail *</FormLabel>
+                          <FormControl>
+                            <Input type="email" autoComplete="email" {...field} value={field.value ?? ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
+              </>
+            )}
           </CardContent>
         </Card>
 

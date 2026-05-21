@@ -228,11 +228,18 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 	app.ContactPersonName = req.ContactPersonName
 	app.ContactPersonEmail = req.ContactPersonEmail
 	app.ContactPersonPhone = req.ContactPersonPhone
+	// PROJ-58: Abweichende Rechnungs-E-Mail. Toggle + Email. Service-
+	// Layer cleart, wenn Toggle aus oder Mitgliedstyp nicht in Org-Liste.
+	if req.HasBillingEmail != nil {
+		app.HasBillingEmail = *req.HasBillingEmail
+	}
+	app.BillingEmail = req.BillingEmail
 	applyAdminValues(app, fieldConfig)
 	clearMemberTypeFields(app)
 	clearEVDetailsIfDisabled(app)
 	clearNetworkAuthIfHidden(app, fieldConfig)
 	clearContactPersonIfDisabled(app, fieldConfig)
+	clearBillingEmailIfDisabled(app, fieldConfig)
 	if err = validateMemberTypeFields(app); err != nil {
 		return nil, err
 	}
@@ -411,6 +418,13 @@ func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateAp
 	if req.ContactPersonPhone != nil {
 		app.ContactPersonPhone = trimStringPtr(req.ContactPersonPhone)
 	}
+	// PROJ-58: Rechnungs-E-Mail-Felder im Update-Path.
+	if req.HasBillingEmail != nil {
+		app.HasBillingEmail = *req.HasBillingEmail
+	}
+	if req.BillingEmail != nil {
+		app.BillingEmail = trimStringPtr(req.BillingEmail)
+	}
 
 	fieldConfig, fcErr := s.fieldConfigRepo.Get(strings.ToUpper(app.RCNumber))
 	if fcErr != nil {
@@ -421,6 +435,7 @@ func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateAp
 	clearEVDetailsIfDisabled(app)
 	clearNetworkAuthIfHidden(app, fieldConfig)
 	clearContactPersonIfDisabled(app, fieldConfig)
+	clearBillingEmailIfDisabled(app, fieldConfig)
 	if err = validateMemberTypeFields(app); err != nil {
 		return nil, err
 	}
@@ -1233,6 +1248,12 @@ func validateConfigurableRequiredFields(app *shared.Application, fieldConfig map
 		}
 	}
 
+	// PROJ-58: Rechnungs-E-Mail. Wenn Toggle aktiv, Email Pflicht
+	// (Format-Validation läuft via validate-Tag im Request-Schema).
+	if app.HasBillingEmail && missingStr(app.BillingEmail) {
+		errs["billingEmail"] = "Rechnungs-E-Mail ist erforderlich"
+	}
+
 	if len(errs) > 0 {
 		return shared.NewValidationError("Validation failed", errs)
 	}
@@ -1490,6 +1511,20 @@ func isOrgMemberType(mt shared.MemberType) bool {
 	return mt == shared.MemberTypeCompany ||
 		mt == shared.MemberTypeAssociation ||
 		mt == shared.MemberTypeMunicipality
+}
+
+// clearBillingEmailIfDisabled handles the PROJ-58 billing-email fields.
+// Analog zu clearContactPersonIfDisabled: Toggle + Email gehören nur zum
+// Org-Mitgliedstyp + aktivem Toggle + nicht-hidden field_config.
+func clearBillingEmailIfDisabled(app *shared.Application, fieldConfig map[string]FieldConfigEntry) {
+	disabled := effectiveState(fieldConfig, "billing_email") == "hidden" ||
+		!isOrgMemberType(app.MemberType)
+	if disabled {
+		app.HasBillingEmail = false
+	}
+	if !app.HasBillingEmail {
+		app.BillingEmail = nil
+	}
 }
 
 // clearNetworkAuthIfHidden resets the PROJ-44 authorization when the EEG has

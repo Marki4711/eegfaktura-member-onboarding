@@ -46,6 +46,9 @@ var knownConfigurableFields = map[string]string{
 	// Default required = bisheriges Verhalten (alle 3 Felder Pflicht).
 	"contact_person_email": "required",
 	"contact_person_phone": "required",
+	// PROJ-58: Abweichende Rechnungs-E-Mail. Per-EEG steuerbar.
+	// Default hidden — neue EEGs müssen explizit aktivieren.
+	"billing_email": "hidden",
 	// PROJ-45: Batterie + Wechselrichter (Metering-Point-Scope, nur bei
 	// generation_type='pv' rendern — Service cleart sonst).
 	"battery_size_kwh":      "hidden",

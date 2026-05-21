@@ -111,6 +111,9 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
   const [contactPersonName, setContactPersonName] = useState(application.contactPersonName ?? "");
   const [contactPersonEmail, setContactPersonEmail] = useState(application.contactPersonEmail ?? "");
   const [contactPersonPhone, setContactPersonPhone] = useState(application.contactPersonPhone ?? "");
+  // PROJ-58: Rechnungs-E-Mail-Felder.
+  const [hasBillingEmail, setHasBillingEmail] = useState(application.hasBillingEmail ?? false);
+  const [billingEmail, setBillingEmail] = useState(application.billingEmail ?? "");
   const isOrgType = memberType === "company" || memberType === "association" || memberType === "municipality";
   const [meteringPoints, setMeteringPoints] = useState<FormMeteringPoint[]>(
     application.meteringPoints.map((mp) => ({
@@ -290,6 +293,10 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
         contactPersonName: isOrgType && hasContactPerson ? (contactPersonName.trim() || undefined) : undefined,
         contactPersonEmail: isOrgType && hasContactPerson ? (contactPersonEmail.trim() || undefined) : undefined,
         contactPersonPhone: isOrgType && hasContactPerson ? (contactPersonPhone.trim() || undefined) : undefined,
+        // PROJ-58: Rechnungs-E-Mail. Backend cleart bei Toggle aus oder
+        // nicht-Org-Mitgliedstyp.
+        hasBillingEmail: isOrgType ? hasBillingEmail : undefined,
+        billingEmail: isOrgType && hasBillingEmail ? (billingEmail.trim() || undefined) : undefined,
         meteringPoints: payload,
       }, session?.accessToken);
       toast.success("Änderungen gespeichert");
@@ -694,6 +701,38 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
                         />
                       </div>
                     </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* PROJ-58: Abweichende Rechnungs-E-Mail — nur für Org-Mitgliedstypen.
+              Admin kann Toggle umschalten und Email editieren. */}
+          {isOrgType && (
+            <>
+              <Separator />
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="edit-has-billing-email"
+                    checked={hasBillingEmail}
+                    onCheckedChange={(v) => setHasBillingEmail(v === true)}
+                  />
+                  <Label htmlFor="edit-has-billing-email" className="cursor-pointer">
+                    Abweichende Rechnungs-E-Mail
+                  </Label>
+                </div>
+                {hasBillingEmail && (
+                  <div className="pl-6 space-y-1">
+                    <Label htmlFor="edit-billing-email">Rechnungs-E-Mail *</Label>
+                    <Input
+                      id="edit-billing-email"
+                      type="email"
+                      autoComplete="email"
+                      value={billingEmail}
+                      onChange={(e) => setBillingEmail(e.target.value)}
+                    />
                   </div>
                 )}
               </div>

@@ -95,6 +95,11 @@ export const CONFIGURABLE_FIELDS: {
     { name: "contact_person_phone", label: "Ansprechperson Telefon", defaultState: "required",
       visibilityTags: ["organization"],
       visibilityHint: "Steuert das Telefon-Feld der Ansprechperson. Greift nur, wenn der Master-Switch aktiv ist UND das Mitglied die Ansprechperson-Checkbox setzt. Default required = bisheriges Verhalten." },
+    // PROJ-58: Abweichende Rechnungs-E-Mail. Wird in der Bankverbindungs-
+    // Card als Checkbox + Email-Feld gerendert, nur bei Org-Mitgliedstypen.
+    { name: "billing_email", label: "Abweichende Rechnungs-E-Mail", defaultState: "hidden",
+      visibilityTags: ["organization"],
+      visibilityHint: "Aktiviert die Checkbox „Abweichende Rechnungs-E-Mail“ in der Bankverbindungs-Card. Nur bei Unternehmen, Verein und Gemeinde. Bei required muss das Mitglied die Checkbox aktivieren und eine Email eingeben." },
   ],
   meteringPoint: [
     { name: "transformer",        label: "Transformator", defaultState: "hidden" },
@@ -319,6 +324,9 @@ export interface CreateApplicationRequest {
   contactPersonName?: string;
   contactPersonEmail?: string;
   contactPersonPhone?: string;
+  // PROJ-58: Abweichende Rechnungs-E-Mail für Org-Mitgliedstypen.
+  hasBillingEmail?: boolean;
+  billingEmail?: string;
   turnstileToken?: string;
 }
 
@@ -649,6 +657,9 @@ export interface AdminApplicationDetail {
   contactPersonName?: string | null;
   contactPersonEmail?: string | null;
   contactPersonPhone?: string | null;
+  // PROJ-58: Abweichende Rechnungs-E-Mail.
+  hasBillingEmail?: boolean;
+  billingEmail?: string | null;
 }
 
 // PROJ-34: payload for POST /api/admin/applications/{id}/mark-imported-manually
@@ -738,6 +749,9 @@ export interface AdminUpdateApplicationRequest {
   contactPersonName?: string;
   contactPersonEmail?: string;
   contactPersonPhone?: string;
+  // PROJ-58: Abweichende Rechnungs-E-Mail.
+  hasBillingEmail?: boolean;
+  billingEmail?: string;
   meteringPoints: MeteringPointRequest[];
 }
 

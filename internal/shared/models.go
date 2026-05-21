@@ -212,6 +212,11 @@ type Application struct {
 	ContactPersonName   *string `json:"contactPersonName,omitempty"   db:"contact_person_name"`
 	ContactPersonEmail  *string `json:"contactPersonEmail,omitempty"  db:"contact_person_email"`
 	ContactPersonPhone  *string `json:"contactPersonPhone,omitempty"  db:"contact_person_phone"`
+	// PROJ-58: Abweichende Rechnungs-E-Mail für Org-Mitgliedstypen.
+	// Toggle + Email. Service-Layer cleart auf NULL, wenn Toggle aus
+	// oder Mitgliedstyp nicht in der Org-Liste.
+	HasBillingEmail bool    `json:"hasBillingEmail"            db:"has_billing_email"`
+	BillingEmail    *string `json:"billingEmail,omitempty"     db:"billing_email"`
 	// E-Mail-Bestätigung (PROJ-31). Token-Hash + Expiry sind interne Felder
 	// und werden nicht in API-Responses serialisiert (JSON-Tag "-").
 	EmailConfirmedAt                 *time.Time `json:"emailConfirmedAt,omitempty"      db:"email_confirmed_at"`

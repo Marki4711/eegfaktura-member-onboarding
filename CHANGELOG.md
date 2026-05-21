@@ -10,6 +10,30 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### PROJ-58 — Abweichende Rechnungs-E-Mail für Org-Mitgliedstypen *(2026-05-21)*
+
+Bei Unternehmen, Vereinen und Gemeinden kann jetzt eine separate
+E-Mail-Adresse für den Rechnungsversand angegeben werden. Per
+Checkbox in der Bankverbindungs-Sektion aktivierbar.
+
+- Zwei neue Spalten auf `application` (Migration 000051):
+  `has_billing_email` (BOOL) + `billing_email` (TEXT)
+- field_config-Eintrag `billing_email` (Default `hidden`,
+  per-EEG konfigurierbar)
+- Public-Form: Checkbox + Input in Bankverbindungs-Card, nur bei
+  Org-Mitgliedstypen UND field_config != hidden. Required bei
+  aktivem Toggle + Email-Format-Check.
+- Admin-Detail-View + Admin-Edit-Form: Toggle + Email editierbar
+  für Org-Mitgliedstypen
+- Beitritts-PDF: zusätzliche Zeile „Rechnungs-E-Mail:" in der
+  Bankverbindungs-Sektion, wenn gesetzt
+- Server-Side-Cleanup: `clearBillingEmailIfDisabled` cleart die
+  Felder auf NULL bei Toggle-off, nicht-Org-Mitgliedstyp oder
+  field_config=hidden
+
+Vorbereitung für das künftige eigene Rechnungsmodul. Versand-Logik
+folgt mit dem Billing-Modul, kein automatischer Mail-Versand jetzt.
+
 ### PROJ-57 v2 — feiner steuerbare Ansprechperson-Pflichtigkeit *(2026-05-21)*
 
 Erweiterung der Ansprechperson-Logik aus PROJ-57: Email und Telefon
