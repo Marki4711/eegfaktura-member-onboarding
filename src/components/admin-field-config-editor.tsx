@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -179,12 +179,35 @@ export function AdminFieldConfigEditor({ rcNumber, initialConfig }: Props) {
         <CardContent>
           <div className="divide-y divide-border">
             {CONFIGURABLE_FIELDS.application.map((field) => (
-              <FieldRow
-                key={field.name}
-                field={field}
-                entry={config[field.name] ?? { state: field.defaultState }}
-                onChange={(e) => setField(field.name, e)}
-              />
+              <Fragment key={field.name}>
+                {/* PROJ-57 v3: Banner vor dem Ansprechperson-Block. Macht
+                    dem EEG-Admin sichtbar, dass die drei Felder zusammen
+                    eine Gruppe bilden und im Public-Formular hinter einer
+                    Checkbox liegen (Mitglied muss „Ansprechperson angeben"
+                    aktivieren). */}
+                {field.name === "contact_person_name" && (
+                  <div className="my-2 rounded-md border-l-4 border-rose-400 bg-rose-50 dark:bg-rose-950/30 px-3 py-2 text-xs text-rose-900 dark:text-rose-100">
+                    <div className="flex items-start gap-2">
+                      <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                      <span>
+                        <strong>Ansprechperson-Block:</strong> Die folgenden
+                        drei Felder erscheinen im Formular hinter einer
+                        Checkbox „Ansprechperson angeben". Der Antragsteller
+                        muss die Checkbox aktiv setzen, damit die Felder
+                        sichtbar werden. Sobald hier mindestens ein Feld auf
+                        „Optional" oder „Pflichtfeld" steht, ist die Checkbox
+                        verfügbar (nur bei Mitgliedstyp Unternehmen, Verein,
+                        Gemeinde).
+                      </span>
+                    </div>
+                  </div>
+                )}
+                <FieldRow
+                  field={field}
+                  entry={config[field.name] ?? { state: field.defaultState }}
+                  onChange={(e) => setField(field.name, e)}
+                />
+              </Fragment>
             ))}
           </div>
         </CardContent>
