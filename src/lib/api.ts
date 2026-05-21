@@ -74,6 +74,13 @@ export const CONFIGURABLE_FIELDS: {
     // liegt in NETWORK_OPERATOR_AUTH_TEXT (unten in dieser Datei) — Single
     // Source of Truth, damit Spec und UI nicht driften können.
     { name: "network_operator_authorization", label: "Netzbetreiber-Vollmacht erteilen", defaultState: "hidden" },
+    // PROJ-56: Netzbetreiber-Info-Felder. Werden im Public-Formular nur
+    // angezeigt, wenn die Vollmacht-Checkbox aktiv ist UND der Status hier
+    // nicht hidden ist (siehe Conditional-Render-Logik in registration-form.tsx).
+    { name: "network_operator_customer_number", label: "Netzbetreiber Kundennummer", defaultState: "hidden",
+      visibilityHint: "Wird nur angezeigt, wenn die Netzbetreiber-Vollmacht aktiv erteilt wird." },
+    { name: "meter_inventory_number",           label: "Inventarnummer eines Zählers", defaultState: "hidden",
+      visibilityHint: "Wird nur angezeigt, wenn die Netzbetreiber-Vollmacht aktiv erteilt wird." },
   ],
   meteringPoint: [
     { name: "transformer",        label: "Transformator", defaultState: "hidden" },
@@ -288,6 +295,11 @@ export interface CreateApplicationRequest {
   // beim ersten true. Frontend sendet das Flag nur, wenn die EEG das
   // Feld konfiguriert hat.
   networkOperatorAuthorization?: boolean;
+  // PROJ-56: Netzbetreiber-Info-Felder. Werden nur gesendet, wenn das
+  // Mitglied die Vollmacht aktiv erteilt UND die Felder eingegeben hat.
+  // Backend cleart sonst auf NULL.
+  networkOperatorCustomerNumber?: string;
+  meterInventoryNumber?: string;
   turnstileToken?: string;
 }
 
@@ -608,6 +620,10 @@ export interface AdminApplicationDetail {
   // die EEG es als optional/required konfiguriert hat.
   networkOperatorAuthorization?: boolean;
   networkOperatorAuthorizationAt?: string | null;
+  // PROJ-56: Netzbetreiber-Info-Felder. Werden vom Backend nur befüllt, wenn
+  // die Vollmacht aktiv erteilt UND die Felder eingegeben wurden.
+  networkOperatorCustomerNumber?: string | null;
+  meterInventoryNumber?: string | null;
 }
 
 // PROJ-34: payload for POST /api/admin/applications/{id}/mark-imported-manually
@@ -689,6 +705,9 @@ export interface AdminUpdateApplicationRequest {
   bankName?: string;
   mandateReference?: string;
   mandateDate?: string;
+  // PROJ-56: Netzbetreiber-Info-Felder. Admin kann sie nachpflegen.
+  networkOperatorCustomerNumber?: string;
+  meterInventoryNumber?: string;
   meteringPoints: MeteringPointRequest[];
 }
 

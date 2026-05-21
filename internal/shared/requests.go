@@ -52,6 +52,11 @@ type CreateApplicationRequest struct {
 	// PROJ-44: Netzbetreiber-Vollmacht. Nur relevant wenn EEG das Feld als
 	// optional/required konfiguriert hat.
 	NetworkOperatorAuthorization *bool `json:"networkOperatorAuthorization,omitempty"`
+	// PROJ-56: Netzbetreiber-Info-Felder. Im Public-Formular sichtbar, wenn
+	// die Vollmacht-Checkbox aktiv ist. Werden serverseitig auf NULL geclearted,
+	// wenn die Vollmacht nicht erteilt wurde.
+	NetworkOperatorCustomerNumber *string `json:"networkOperatorCustomerNumber,omitempty" validate:"omitempty,max=100"`
+	MeterInventoryNumber          *string `json:"meterInventoryNumber,omitempty"          validate:"omitempty,max=100"`
 	// Cloudflare Turnstile token (PROJ-16) — optional, verified server-side when TURNSTILE_SECRET_KEY is set
 	TurnstileToken *string `json:"turnstileToken,omitempty"`
 }
@@ -129,6 +134,11 @@ type UpdateApplicationRequest struct {
 	CooperativeSharesCount *int `json:"cooperativeSharesCount,omitempty" validate:"omitempty,min=1"`
 	// PROJ-44: Netzbetreiber-Vollmacht (Update durch Member im needs_info-Flow).
 	NetworkOperatorAuthorization *bool `json:"networkOperatorAuthorization,omitempty"`
+	// PROJ-56: Netzbetreiber-Info-Felder. Update durch Member im needs_info-Flow
+	// oder durch Admin via Admin-Edit. Service-Layer cleart auf NULL, wenn die
+	// Vollmacht nicht (mehr) erteilt ist oder die EEG die Felder hidden hat.
+	NetworkOperatorCustomerNumber *string `json:"networkOperatorCustomerNumber,omitempty" validate:"omitempty,max=100"`
+	MeterInventoryNumber          *string `json:"meterInventoryNumber,omitempty"          validate:"omitempty,max=100"`
 }
 
 // Response models

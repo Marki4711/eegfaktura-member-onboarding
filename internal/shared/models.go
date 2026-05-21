@@ -198,6 +198,12 @@ type Application struct {
 	// Service auf NOW() gesetzt, wenn der Wert von FALSE auf TRUE wechselt.
 	NetworkOperatorAuthorization   bool       `json:"networkOperatorAuthorization" db:"network_operator_authorization"`
 	NetworkOperatorAuthorizationAt *time.Time `json:"networkOperatorAuthorizationAt,omitempty" db:"network_operator_authorization_at"`
+	// PROJ-56: Zwei optionale Netzbetreiber-Info-Felder, die im Public-
+	// Formular sichtbar werden, sobald die Vollmacht-Checkbox aktiv ist.
+	// Werden serverseitig auf NULL geclearted, wenn die Vollmacht nicht
+	// erteilt wurde — egal was der Frontend-Submit sendet.
+	NetworkOperatorCustomerNumber *string `json:"networkOperatorCustomerNumber,omitempty" db:"network_operator_customer_number"`
+	MeterInventoryNumber          *string `json:"meterInventoryNumber,omitempty"          db:"meter_inventory_number"`
 	// E-Mail-Bestätigung (PROJ-31). Token-Hash + Expiry sind interne Felder
 	// und werden nicht in API-Responses serialisiert (JSON-Tag "-").
 	EmailConfirmedAt                 *time.Time `json:"emailConfirmedAt,omitempty"      db:"email_confirmed_at"`

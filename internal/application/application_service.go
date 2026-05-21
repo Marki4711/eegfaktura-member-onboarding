@@ -214,6 +214,11 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 		app.NetworkOperatorAuthorization = true
 		app.NetworkOperatorAuthorizationAt = &now
 	}
+	// PROJ-56: Netzbetreiber-Info-Felder. Werden nur übernommen, wenn das
+	// Mitglied die Vollmacht aktiv erteilt hat — sonst stillschweigend
+	// ignoriert, auch wenn ein forged client Werte senden würde.
+	app.NetworkOperatorCustomerNumber = req.NetworkOperatorCustomerNumber
+	app.MeterInventoryNumber = req.MeterInventoryNumber
 	applyAdminValues(app, fieldConfig)
 	clearMemberTypeFields(app)
 	clearEVDetailsIfDisabled(app)
@@ -372,6 +377,16 @@ func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateAp
 			app.NetworkOperatorAuthorization = true
 			app.NetworkOperatorAuthorizationAt = &now
 		}
+	}
+	// PROJ-56: Netzbetreiber-Info-Felder werden über das Update-Path durchgereicht.
+	// Sentinel-Logik wie bei den anderen Pointer-Feldern: wenn der Client das
+	// Feld weglässt, bleibt der bestehende Wert; explicit "" überschreibt mit
+	// NULL via trimStringPtr (analog zu BankName etc.).
+	if req.NetworkOperatorCustomerNumber != nil {
+		app.NetworkOperatorCustomerNumber = trimStringPtr(req.NetworkOperatorCustomerNumber)
+	}
+	if req.MeterInventoryNumber != nil {
+		app.MeterInventoryNumber = trimStringPtr(req.MeterInventoryNumber)
 	}
 
 	fieldConfig, fcErr := s.fieldConfigRepo.Get(strings.ToUpper(app.RCNumber))
@@ -1167,6 +1182,13 @@ func validateConfigurableRequiredFields(app *shared.Application, fieldConfig map
 	// PROJ-44: required ⇒ Häkchen muss gesetzt sein. Bool default FALSE
 	// reicht nicht — die Vollmacht muss explizit erteilt werden.
 	requiredIfMissing("network_operator_authorization", "networkOperatorAuthorization", "Netzbetreiber-Vollmacht", !app.NetworkOperatorAuthorization)
+	// PROJ-56: Required gilt nur, wenn die Vollmacht erteilt wurde —
+	// sonst sind die Felder konzeptuell nicht anwendbar (analog zur
+	// EV-Count/AnnualKm-Logik oben). Sichtbar im UI sind sie nur dann,
+	// also wäre eine Required-Validierung ohne Vollmacht ein stiller
+	// Submit-Hänger (vgl. PROJ-56-Spec / Frontend-Bug-Pattern).
+	requiredIfMissing("network_operator_customer_number", "networkOperatorCustomerNumber", "Netzbetreiber Kundennummer", app.NetworkOperatorAuthorization && missingStr(app.NetworkOperatorCustomerNumber))
+	requiredIfMissing("meter_inventory_number", "meterInventoryNumber", "Inventarnummer eines Zählers", app.NetworkOperatorAuthorization && missingStr(app.MeterInventoryNumber))
 
 	if len(errs) > 0 {
 		return shared.NewValidationError("Validation failed", errs)
@@ -1387,11 +1409,28 @@ func clearMeteringPointEnergyByType(points []shared.MeteringPoint) {
 
 // clearNetworkAuthIfHidden resets the PROJ-44 authorization when the EEG has
 // the field set to "hidden". Prevents a forged client from setting the flag
-// for an EEG that doesn't collect it.
+// for an EEG that doesn't collect it. Auch PROJ-56-Felder werden hier
+// geclearted: zum einen wenn die EEG sie versteckt hat, zum anderen wenn
+// die Vollmacht selbst nicht erteilt wurde (die Felder gehören semantisch
+// nur zum Vollmachts-Kontext).
 func clearNetworkAuthIfHidden(app *shared.Application, fieldConfig map[string]FieldConfigEntry) {
 	if effectiveState(fieldConfig, "network_operator_authorization") == "hidden" {
 		app.NetworkOperatorAuthorization = false
 		app.NetworkOperatorAuthorizationAt = nil
+	}
+	// PROJ-56: ohne erteilte Vollmacht keine Netzbetreiber-Info-Felder.
+	if !app.NetworkOperatorAuthorization {
+		app.NetworkOperatorCustomerNumber = nil
+		app.MeterInventoryNumber = nil
+	}
+	// Zusätzlich: wenn die EEG die Info-Felder versteckt hat, ebenfalls
+	// auf NULL setzen — verhindert dass ein forged client sie an einer
+	// EEG ohne entsprechende Konfiguration einschleust.
+	if effectiveState(fieldConfig, "network_operator_customer_number") == "hidden" {
+		app.NetworkOperatorCustomerNumber = nil
+	}
+	if effectiveState(fieldConfig, "meter_inventory_number") == "hidden" {
+		app.MeterInventoryNumber = nil
 	}
 }
 

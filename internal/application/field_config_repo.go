@@ -31,6 +31,11 @@ var knownConfigurableFields = map[string]string{
 	"participation_factor":     "optional",
 	// PROJ-44: Netzbetreiber-Vollmacht (Application-Scope).
 	"network_operator_authorization": "hidden",
+	// PROJ-56: Netzbetreiber-Info-Felder (Application-Scope). Im Public-
+	// Formular nur sichtbar, wenn (a) hier nicht hidden UND (b) die
+	// Vollmacht-Checkbox aktiv ist. Service-Layer cleart sonst auf NULL.
+	"network_operator_customer_number": "hidden",
+	"meter_inventory_number":           "hidden",
 	// PROJ-45: Batterie + Wechselrichter (Metering-Point-Scope, nur bei
 	// generation_type='pv' rendern — Service cleart sonst).
 	"battery_size_kwh":      "hidden",

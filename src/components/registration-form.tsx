@@ -164,6 +164,11 @@ const baseSchema = z.object({
   sepaMandateAccepted: z.boolean(),
   // PROJ-44: required-Validierung via buildFormSchema, abhängig vom field_config
   networkOperatorAuthorization: z.boolean().optional(),
+  // PROJ-56: Netzbetreiber-Info-Felder. Konditional sichtbar, wenn Vollmacht
+  // aktiv. Required-Validierung läuft via buildFormSchema gegated auf
+  // networkOperatorAuthorization === true (siehe weiter unten).
+  networkOperatorCustomerNumber: z.string().optional(),
+  meterInventoryNumber: z.string().optional(),
   meteringPoints: z
     .array(meteringPointSchema)
     .min(1, "Mindestens ein Zählpunkt ist erforderlich")
@@ -282,6 +287,14 @@ function buildFormSchema(
         path: ["networkOperatorAuthorization"],
         message: "Netzbetreiber-Vollmacht muss erteilt werden",
       });
+    }
+    // PROJ-56: Required der Netzbetreiber-Info-Felder NUR wenn die
+    // Vollmacht aktiv erteilt wurde. Sonst sind die Felder im UI nicht
+    // gerendert → eine Required-Validierung würde einen stillen
+    // Submit-Hänger erzeugen (analog Geburtsdatum-Fix in Commit 72d380b).
+    if (data.networkOperatorAuthorization) {
+      requireText("network_operator_customer_number", "networkOperatorCustomerNumber", "Netzbetreiber Kundennummer");
+      requireText("meter_inventory_number", "meterInventoryNumber", "Inventarnummer eines Zählers");
     }
 
     // PROJ-37: Genossenschaftsanteile required when the EEG has enabled
@@ -411,6 +424,8 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
         : undefined,
       // PROJ-44: ungesetzt — Mitglied muss aktiv das Häkchen setzen.
       networkOperatorAuthorization: false,
+      networkOperatorCustomerNumber: "",
+      meterInventoryNumber: "",
     },
   });
 
@@ -546,6 +561,10 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
           electricHotWater: values.electricHotWater ?? null,
           cooperativeSharesCount: values.cooperativeSharesCount,
           networkOperatorAuthorization: values.networkOperatorAuthorization || undefined,
+          // PROJ-56: nur senden, wenn Vollmacht aktiv (Backend cleart sonst sowieso,
+          // aber Payload bleibt sauber und kleiner).
+          networkOperatorCustomerNumber: values.networkOperatorAuthorization ? (values.networkOperatorCustomerNumber || undefined) : undefined,
+          meterInventoryNumber: values.networkOperatorAuthorization ? (values.meterInventoryNumber || undefined) : undefined,
           meteringPoints: values.meteringPoints.map((mp) => {
             const isProduction = mp.direction === "PRODUCTION";
             const isPv = isProduction && (mp.generationType ?? "pv") === "pv";
@@ -1134,6 +1153,13 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
             <CardTitle className="text-base">Bankverbindung</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {sepaMandateEnabled && sepaMandateAtImport && (
+              <p className="text-sm text-muted-foreground">
+                Das SEPA-Lastschriftmandat erhältst du nach der Freigabe deines
+                Antrags per E-Mail — mit eingetragener Mandatsreferenz (deiner
+                Mitgliedsnummer) zur Unterschrift.
+              </p>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -1523,13 +1549,10 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                 )}
               />
             )}
-            {sepaMandateEnabled && sepaMandateAtImport && (
-              <p className="text-sm text-muted-foreground pl-1">
-                Das SEPA-Lastschriftmandat erhältst du nach der Freigabe deines
-                Antrags per E-Mail — mit eingetragener Mandatsreferenz (deiner
-                Mitgliedsnummer) zur Unterschrift.
-              </p>
-            )}
+            {/* PROJ-48: SEPA-Mandat-Hinweis bei "Versand per E-Mail" wandert
+                in die Bankverbindungs-Box (siehe unten) — dort ist er nah an
+                der IBAN-Eingabe und wirkt nicht versehentlich wie eine
+                weitere Einwilligungsbox. */}
             {fs("network_operator_authorization") !== "hidden" && (
               <FormField
                 control={form.control}
@@ -1552,6 +1575,50 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                   </FormItem>
                 )}
               />
+            )}
+            {/* PROJ-56: Netzbetreiber-Info-Felder. Erscheinen nur, wenn das
+                Mitglied die Vollmacht aktiv erteilt UND die EEG das jeweilige
+                Feld nicht auf hidden gestellt hat. */}
+            {form.watch("networkOperatorAuthorization") === true && (
+              fs("network_operator_customer_number") !== "hidden" ||
+              fs("meter_inventory_number") !== "hidden"
+            ) && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-7">
+                {fs("network_operator_customer_number") !== "hidden" && (
+                  <FormField
+                    control={form.control}
+                    name="networkOperatorCustomerNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Netzbetreiber Kundennummer{req("network_operator_customer_number")}
+                        </FormLabel>
+                        <FormControl>
+                          <Input {...field} value={field.value ?? ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                {fs("meter_inventory_number") !== "hidden" && (
+                  <FormField
+                    control={form.control}
+                    name="meterInventoryNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Inventarnummer eines Zählers{req("meter_inventory_number")}
+                        </FormLabel>
+                        <FormControl>
+                          <Input {...field} value={field.value ?? ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
             )}
             {/* PROJ-36: informational documents are visually separated from
                 the required-confirmation checkboxes so the user clearly
