@@ -704,7 +704,74 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
               name="memberType"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Mitgliedstyp *</FormLabel>
+                  <div className="flex items-center gap-1">
+                    <FormLabel>Mitgliedstyp *</FormLabel>
+                    <Popover>
+                      <PopoverTrigger type="button" className="cursor-help">
+                        <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                      </PopoverTrigger>
+                      <PopoverContent className="max-w-md text-sm">
+                        <dl className="space-y-3">
+                          <div>
+                            <dt className="font-semibold">Als Privatperson beitreten</dt>
+                            <dd className="text-muted-foreground">
+                              Ich trete als Privatperson bei und unterliege nicht der Umsatzsteuerpflicht.
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="font-semibold">Als Unternehmen beitreten</dt>
+                            <dd className="text-muted-foreground">
+                              Ich trete als umsatzsteuerpflichtiges Unternehmen bei und betreibe meine
+                              Erzeugungsanlage im unternehmerischen Sinn. Meine UID-Nummer wird im Zuge
+                              der Anmeldung abgefragt und ist zwingend einzugeben. Die Umsatzsteuer
+                              meiner Einspeisegutschrift wird im Sinne der Reverse-Charge-Regelung von
+                              der EEG an das Finanzamt abgeführt.
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="font-semibold">Als Kleinunternehmen beitreten</dt>
+                            <dd className="text-muted-foreground">
+                              Ich trete als Kleinunternehmen bei, betreibe meine Erzeugungsanlage
+                              überwiegend privat oder als Kleinunternehmen und unterliege nicht der
+                              Umsatzsteuerpflicht (Kleinunternehmerregelung).
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="font-semibold">Als Landwirtschaft beitreten</dt>
+                            <dd className="text-muted-foreground">
+                              Ich trete mit meiner Landwirtschaft bei und betreibe meine Erzeugungs­anlage
+                              im Rahmen einer pauschalierten Land- oder Forstwirtschaft und unterliege
+                              der Umsatzsteuerpflicht im Sinne des § 22 UStG.
+                              <p className="mt-1">
+                                <strong>Achtung:</strong> Diese Option gilt nur, wenn der von der
+                                Erzeugungsanlage produzierte Strom überwiegend in der eigenen,
+                                namensgleich betriebenen Landwirtschaft verbraucht und nur ein
+                                untergeordneter Anteil ins Netz eingespeist bzw. der EEG zur Verfügung
+                                gestellt wird.
+                              </p>
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="font-semibold">Als Gemeinde beitreten</dt>
+                            <dd className="text-muted-foreground">
+                              Hier sind die USt-spezifischen Vorgaben ausschlaggebend und eventuell
+                              2 Anmeldungen nötig:
+                              <ul className="mt-1 list-disc pl-4 space-y-1">
+                                <li>
+                                  <strong>BgA:</strong> bitte die USt-Pflicht angeben. Die Umsatzsteuer
+                                  der Einspeisegutschrift wird im Sinne der Reverse-Charge-Regelung von
+                                  der EEG an das Finanzamt abgeführt.
+                                </li>
+                                <li>
+                                  <strong>hoheitlich:</strong> bitte die Steuerbefreiung angeben.
+                                </li>
+                              </ul>
+                            </dd>
+                          </div>
+                        </dl>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                   <Select
                     value={field.value}
                     onValueChange={(v) => onMemberTypeChange(v as MemberType)}
