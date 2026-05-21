@@ -949,7 +949,20 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                       name="uidNumber"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>UID-Nummer{memberType === "company" ? " *" : ""}</FormLabel>
+                          <div className="flex items-center gap-1">
+                            <FormLabel>UID-Nummer{memberType === "company" ? " *" : ""}</FormLabel>
+                            <Popover>
+                              <PopoverTrigger type="button" className="cursor-help" aria-label="Hinweis zur UID-Nummer">
+                                <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                              </PopoverTrigger>
+                              <PopoverContent className="w-[28rem] max-w-[90vw] text-sm">
+                                Wenn du <strong>umsatzsteuerpflichtig</strong> bist, musst du
+                                deine UID-Nummer hier angeben. Ohne UID-Nummer wirst du als{" "}
+                                <strong>nicht umsatzsteuerpflichtig</strong> erfasst — die
+                                Einspeisegutschriften werden dann ohne Umsatzsteuer ausgestellt.
+                              </PopoverContent>
+                            </Popover>
+                          </div>
                           <FormControl>
                             <Input {...field} />
                           </FormControl>
