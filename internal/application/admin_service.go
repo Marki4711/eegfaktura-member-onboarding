@@ -1366,18 +1366,27 @@ func buildApprovalPDFData(
 			dir = "Einspeisung"
 		}
 		addrLine := ""
+		// PROJ-56: zwei separate Adress-Zeilen für die Netzbetreiber-Info-
+		// Seite. Default = Mitglieder-Hauptsitz; wenn der Zählpunkt eine
+		// abweichende Adresse hat (PROJ-39), wird diese verwendet.
+		streetLine := strings.TrimSpace(app.ResidentStreet + " " + app.ResidentStreetNumber)
+		cityLine := strings.TrimSpace(app.ResidentZip + " " + app.ResidentCity)
 		if mp.HasDeviatingAddress() {
 			street := derefStr(mp.AddressStreet)
 			streetNumber := derefStr(mp.AddressStreetNumber)
 			zip := derefStr(mp.AddressZip)
 			city := derefStr(mp.AddressCity)
 			addrLine = strings.TrimSpace(street+" "+streetNumber) + ", " + strings.TrimSpace(zip+" "+city)
+			streetLine = strings.TrimSpace(street + " " + streetNumber)
+			cityLine = strings.TrimSpace(zip + " " + city)
 		}
 		mpPDFs[i] = pdf.MeteringPointPDF{
 			MeteringPoint:       mp.MeteringPoint,
 			Direction:           dir,
 			ParticipationFactor: mp.ParticipationFactor,
 			AddressLine:         addrLine,
+			AddressStreetLine:   streetLine,
+			AddressCityLine:     cityLine,
 			GenerationLine:      mail.FormatGenerationLine(&meteringPoints[i]),
 		}
 	}
@@ -1435,6 +1444,13 @@ func buildApprovalPDFData(
 		// mit Volltext + Zeitstempel im PDF gerendert.
 		NetworkOperatorAuthorization:   app.NetworkOperatorAuthorization,
 		NetworkOperatorAuthorizationAt: app.NetworkOperatorAuthorizationAt,
+		// PROJ-56: Daten für die Netzbetreiber-Info-Seite. SubmittedAt
+		// wird im PDF als "Vollmacht erteilt am ..."-Timestamp gerendert
+		// (klare semantische Bedeutung — der Vollmachts-Akt liegt zum
+		// Submit-Zeitpunkt vor, nicht zum Approval-Zeitpunkt).
+		NetworkOperatorCustomerNumber: derefStr(app.NetworkOperatorCustomerNumber),
+		MeterInventoryNumber:          derefStr(app.MeterInventoryNumber),
+		SubmittedAt:                   app.SubmittedAt,
 		// PROJ-37: only set both fields together — the PDF render skips
 		// the section if either is missing. EEG entrypoint provides the
 		// price; the application carries the count. When the EEG feature

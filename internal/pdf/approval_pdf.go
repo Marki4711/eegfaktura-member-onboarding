@@ -15,6 +15,21 @@ import (
 func fmtDateTime(t time.Time) string { return shared.FmtDateTime(t) }
 func fmtDate(t time.Time) string     { return shared.FmtDate(t) }
 
+// formatMeteringPointNumber gruppiert einen 33-stelligen AT-Zählpunkt für
+// die lesbare Anzeige auf der Netzbetreiber-Info-Seite (PROJ-56). Beispiel:
+//
+//	AT0090000000000000000000000351391
+//	→ AT 003000 00000 0000000000 0000409072
+//
+// Format: AT (2) + 6 + 5 + 10 + 10 = 33 Zeichen. Bei abweichender Länge
+// wird der Wert unformatiert zurückgegeben (defensiver Fallback).
+func formatMeteringPointNumber(zp string) string {
+	if len(zp) != 33 {
+		return zp
+	}
+	return zp[0:2] + " " + zp[2:8] + " " + zp[8:13] + " " + zp[13:23] + " " + zp[23:33]
+}
+
 // ApprovalPDFData holds all data required for the Beitrittsbestätigung PDF.
 type ApprovalPDFData struct {
 	EEGName         string
@@ -64,6 +79,14 @@ type ApprovalPDFData struct {
 	// Checkbox aktiv gesetzt wurde).
 	NetworkOperatorAuthorization   bool
 	NetworkOperatorAuthorizationAt *time.Time
+	// PROJ-56: Daten für die zusätzliche Netzbetreiber-Info-Seite.
+	// Werden nur ausgewertet, wenn NetworkOperatorAuthorization=true ist.
+	// Customer-Number + Inventory-Number sind optional (Empty-String =
+	// Label ohne Wert anzeigen). SubmittedAt ist der Vollmachts-
+	// Zeitpunkt für die Seite ("Vollmacht erteilt am ...").
+	NetworkOperatorCustomerNumber string
+	MeterInventoryNumber          string
+	SubmittedAt                   *time.Time
 
 	MemberNumber *string
 
@@ -92,6 +115,12 @@ type MeteringPointPDF struct {
 	// PROJ-39: pre-formatted address line ("Straße Nr, PLZ Ort"). Empty
 	// when the metering point uses the member's primary address.
 	AddressLine string
+	// PROJ-56: zwei separat befüllte Adress-Zeilen für die Netzbetreiber-
+	// Info-Seite (Tabellen-Layout zeigt Straße + PLZ Ort in zwei Cell-
+	// Zeilen). Werden aus PROJ-39-Daten oder dem Mitglieder-Hauptsitz
+	// abgeleitet. Beispiel: "Frau Elster-Straße 1" / "1234 Märchenwald".
+	AddressStreetLine string
+	AddressCityLine   string
 	// PROJ-45: pre-formatted "Erzeugung"-Zeile für PRODUCTION-Zählpunkte.
 	// Beispiele: "PV", "PV, Speicher 10,5 kWh (Fronius)". Leer für
 	// CONSUMPTION oder wenn nichts darzustellen ist.
@@ -397,6 +426,104 @@ func (g *FPDFApprovalGenerator) GenerateApproval(data ApprovalPDFData) ([]byte, 
 		for _, cf := range data.ConfigurableFields {
 			dataRow(cf.Label+":", cf.Value)
 		}
+	}
+
+	// ── PROJ-56: NETZBETREIBER-INFO-SEITE ────────────────────────────────────
+	// Eigene Seite, gerendert nur wenn die Vollmacht erteilt wurde.
+	// Enthält: Kundennummer + Inventarnummer + Vollmachts-Block + Zählpunkt-
+	// Tabelle mit Adresse / Typ / Teilnahmefaktor — als Hilfe für die
+	// Netzbetreiber-Korrespondenz der EEG-Verwaltung.
+	if data.NetworkOperatorAuthorization {
+		f.AddPage()
+
+		// Überschrift
+		setFont("B", 14)
+		f.CellFormat(cw, 10, w1252("Informationen für den Netzbetreiber"), "0", 1, "L", false, 0, "")
+		// Trennlinie unter dem Titel
+		curY := f.GetY()
+		f.Line(f.GetX(), curY, f.GetX()+cw, curY)
+		f.Ln(4)
+
+		// Zwei-Spalten-Header: Kundennummer + Inventarnummer
+		setFont("B", 9)
+		f.CellFormat(cw/2, 5, w1252("Netzbetreiber Kundennummer:"), "0", 0, "L", false, 0, "")
+		f.CellFormat(cw/2, 5, w1252("Inventarnummer eines Zählers"), "0", 1, "L", false, 0, "")
+		setFont("", 9)
+		f.CellFormat(cw/2, 5, w1252(data.NetworkOperatorCustomerNumber), "0", 0, "L", false, 0, "")
+		f.CellFormat(cw/2, 5, w1252(data.MeterInventoryNumber), "0", 1, "L", false, 0, "")
+		f.Ln(4)
+
+		// Vollmachtsblock: [X]-Box + Volltext + Timestamp
+		// Box vor dem Text — manuell als Linien gezeichnet, plus "X" drin.
+		boxX := f.GetX()
+		boxY := f.GetY()
+		boxSize := 4.0
+		f.Rect(boxX, boxY, boxSize, boxSize, "D")
+		// X-Symbol mittig
+		setFont("B", 9)
+		f.SetXY(boxX, boxY-0.5)
+		f.CellFormat(boxSize, boxSize+1, w1252("X"), "0", 0, "C", false, 0, "")
+		setFont("", 9)
+		// Vollmachtstext rechts neben der Box, eingerückt
+		textX := boxX + boxSize + 2
+		f.SetXY(textX, boxY)
+		f.MultiCell(cw-(boxSize+2), 4, w1252(shared.NetworkOperatorAuthText), "0", "L", false)
+		f.Ln(1)
+		setFont("B", 9)
+		// Timestamp eingerückt unter dem Text
+		f.SetX(textX)
+		grantedAt := ""
+		if data.SubmittedAt != nil {
+			grantedAt = fmtDateTime(*data.SubmittedAt)
+		} else if data.NetworkOperatorAuthorizationAt != nil {
+			grantedAt = fmtDateTime(*data.NetworkOperatorAuthorizationAt)
+		}
+		f.CellFormat(cw-(boxSize+2), 5, w1252("Vollmacht erteilt am "+grantedAt), "0", 1, "L", false, 0, "")
+		setFont("", 9)
+		f.Ln(4)
+
+		// Zählpunkt-Tabelle: 4 Spalten (ZP / Adresse / Typ / TF)
+		// Spaltenbreiten in mm, Summe = cw
+		colZP := cw * 0.50
+		colAddr := cw * 0.30
+		colTyp := cw * 0.10
+		colTF := cw - (colZP + colAddr + colTyp)
+
+		// Tabellen-Header mit dunklem Background
+		setFont("B", 9)
+		f.SetFillColor(220, 230, 240)
+		f.CellFormat(colZP, 6, w1252("Zählpunktnummer"), "1", 0, "L", true, 0, "")
+		f.CellFormat(colAddr, 6, w1252("Adresse"), "1", 0, "L", true, 0, "")
+		f.CellFormat(colTyp, 6, w1252("Typ"), "1", 0, "C", true, 0, "")
+		f.CellFormat(colTF, 6, w1252("TF"), "1", 1, "C", true, 0, "")
+		setFont("", 8)
+		f.SetFillColor(245, 248, 252)
+
+		// Datenzeilen — jede ZP-Row 10mm hoch (2× 5mm).
+		// ZP, Typ, TF werden auf der ersten 5mm-Zeile gerendert mit
+		// Border-Top+Left+Right; auf der zweiten 5mm-Zeile mit
+		// Border-Bottom+Left+Right (= ein Block aus Sicht des Lesers).
+		// Adresse trägt auf jeder 5mm-Zeile eine Adressezeile.
+		for _, mp := range data.MeteringPoints {
+			typeCode := "CNSM"
+			if mp.Direction == "Einspeisung" {
+				typeCode = "GNRT"
+			}
+			zpFormatted := formatMeteringPointNumber(mp.MeteringPoint)
+			tfStr := fmt.Sprintf("%d%%", mp.ParticipationFactor)
+
+			// Erste 5mm-Zeile
+			f.CellFormat(colZP, 5, w1252(zpFormatted), "LTR", 0, "L", true, 0, "")
+			f.CellFormat(colAddr, 5, w1252(mp.AddressStreetLine), "LTR", 0, "L", true, 0, "")
+			f.CellFormat(colTyp, 5, w1252(typeCode), "LTR", 0, "C", true, 0, "")
+			f.CellFormat(colTF, 5, w1252(tfStr), "LTR", 1, "C", true, 0, "")
+			// Zweite 5mm-Zeile (Adresse Line 2, sonst leer)
+			f.CellFormat(colZP, 5, w1252(""), "LBR", 0, "L", true, 0, "")
+			f.CellFormat(colAddr, 5, w1252(mp.AddressCityLine), "LBR", 0, "L", true, 0, "")
+			f.CellFormat(colTyp, 5, w1252(""), "LBR", 0, "C", true, 0, "")
+			f.CellFormat(colTF, 5, w1252(""), "LBR", 1, "C", true, 0, "")
+		}
+		setFont("", 9)
 	}
 
 	if f.Error() != nil {
