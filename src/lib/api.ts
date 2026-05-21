@@ -39,7 +39,7 @@ export interface ConfigurableField {
 // PROJ-45: visibility-condition tag taxonomy. Each value renders as a
 // coloured badge in the admin field-config editor. Keep the set small —
 // new tags require a label + colour mapping in admin-field-config-editor.
-export type VisibilityTag = "consumption" | "production" | "pv" | "ev" | "battery" | "network_authorization" | "organization";
+export type VisibilityTag = "consumption" | "production" | "pv" | "ev" | "battery" | "network_authorization" | "organization" | "contact_person" | "billing_email";
 
 export const CONFIGURABLE_FIELDS: {
   application: ConfigurableField[];
@@ -89,19 +89,19 @@ export const CONFIGURABLE_FIELDS: {
     // keinen separaten Master-Switch mehr. Default aller drei = hidden,
     // d. h. ohne aktive Konfiguration durch die EEG ist das Feature aus.
     { name: "contact_person_name", label: "Ansprechperson Name", defaultState: "hidden",
-      visibilityTags: ["organization"],
-      visibilityHint: "Steuert das Name-Feld der Ansprechperson. Nur bei Unternehmen, Vereinen und Gemeinden. Sobald hier oder bei E-Mail/Telefon der Status auf optional/required steht, erscheint die Ansprechperson-Checkbox automatisch im Formular." },
+      visibilityTags: ["organization", "contact_person"],
+      visibilityHint: "Steuert das Name-Feld der Ansprechperson. Nur bei Org-Mitgliedstypen UND wenn das Mitglied im Formular die Checkbox „Ansprechperson angeben“ aktiviert. Sobald hier oder bei E-Mail/Telefon der Status auf optional/required steht, erscheint die Checkbox automatisch." },
     { name: "contact_person_email", label: "Ansprechperson E-Mail", defaultState: "hidden",
-      visibilityTags: ["organization"],
-      visibilityHint: "Steuert das E-Mail-Feld der Ansprechperson. Nur bei Unternehmen, Vereinen und Gemeinden. Sobald hier oder bei Name/Telefon der Status auf optional/required steht, erscheint die Ansprechperson-Checkbox automatisch im Formular." },
+      visibilityTags: ["organization", "contact_person"],
+      visibilityHint: "Steuert das E-Mail-Feld der Ansprechperson. Nur bei Org-Mitgliedstypen UND wenn das Mitglied im Formular die Checkbox „Ansprechperson angeben“ aktiviert. Sobald hier oder bei Name/Telefon der Status auf optional/required steht, erscheint die Checkbox automatisch." },
     { name: "contact_person_phone", label: "Ansprechperson Telefon", defaultState: "hidden",
-      visibilityTags: ["organization"],
-      visibilityHint: "Steuert das Telefon-Feld der Ansprechperson. Nur bei Unternehmen, Vereinen und Gemeinden. Sobald hier oder bei Name/E-Mail der Status auf optional/required steht, erscheint die Ansprechperson-Checkbox automatisch im Formular." },
+      visibilityTags: ["organization", "contact_person"],
+      visibilityHint: "Steuert das Telefon-Feld der Ansprechperson. Nur bei Org-Mitgliedstypen UND wenn das Mitglied im Formular die Checkbox „Ansprechperson angeben“ aktiviert. Sobald hier oder bei Name/E-Mail der Status auf optional/required steht, erscheint die Checkbox automatisch." },
     // PROJ-58: Abweichende Rechnungs-E-Mail. Wird in der Bankverbindungs-
     // Card als Checkbox + Email-Feld gerendert, nur bei Org-Mitgliedstypen.
     { name: "billing_email", label: "Abweichende Rechnungs-E-Mail", defaultState: "hidden",
-      visibilityTags: ["organization"],
-      visibilityHint: "Aktiviert die Checkbox „Abweichende Rechnungs-E-Mail“ in der Bankverbindungs-Card. Nur bei Unternehmen, Verein und Gemeinde. Bei required muss das Mitglied die Checkbox aktivieren und eine Email eingeben." },
+      visibilityTags: ["organization", "billing_email"],
+      visibilityHint: "Aktiviert die Checkbox „Abweichende Rechnungs-E-Mail“ in der Bankverbindungs-Card. Nur bei Org-Mitgliedstypen UND wenn das Mitglied die Checkbox aktiv setzt. Bei required muss zusätzlich eine gültige E-Mail eingegeben werden." },
   ],
   meteringPoint: [
     { name: "transformer",        label: "Transformator", defaultState: "hidden" },

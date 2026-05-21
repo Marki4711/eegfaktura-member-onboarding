@@ -58,6 +58,19 @@ const TAG_META: Record<VisibilityTag, { label: string; className: string }> = {
     label: "Org-Typen",
     className: "bg-rose-100 text-rose-900 dark:bg-rose-950/60 dark:text-rose-300",
   },
+  // PROJ-57 v3: Ansprechperson-Checkbox-Gate. "+"-Prefix signalisiert
+  // die zusätzliche Abhängigkeit vom Mitglieds-Häkchen "Ansprechperson
+  // angeben" im Public-Formular.
+  contact_person: {
+    label: "+Ansprechperson",
+    className: "bg-fuchsia-100 text-fuchsia-900 dark:bg-fuchsia-950/60 dark:text-fuchsia-300",
+  },
+  // PROJ-58: Rechnungs-E-Mail-Checkbox-Gate. "+"-Prefix wie oben — nur
+  // sichtbar wenn Mitglied "Abweichende Rechnungs-E-Mail" anhakt.
+  billing_email: {
+    label: "+Rechnungs-E-Mail",
+    className: "bg-teal-100 text-teal-900 dark:bg-teal-950/60 dark:text-teal-300",
+  },
 };
 
 const STATE_OPTIONS: { value: FieldState; label: string }[] = [
