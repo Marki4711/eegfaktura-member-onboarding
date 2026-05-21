@@ -68,5 +68,6 @@ Central tracking for all features.
 | PROJ-52 | Konfigurierbarer Zählpunkt-Prefix pro Richtung + Auto-Pad + Alphanumerik | Deployed | `features/PROJ-52-metering-point-prefix-per-direction.md` | 2026-05-17 |
 | PROJ-53 | Aktivierungs-Modus pro EEG + Beitrittsbestätigung erst bei `activated` | Deployed | `features/PROJ-53-activation-mode-and-deferred-approval-mail.md` | 2026-05-19 |
 | PROJ-54 | Aufteilung in öffentliches Schaufenster + privates Hauptrepo | Deployed | `features/PROJ-54-public-private-repo-split.md` | 2026-05-20 |
+| PROJ-55 | Nachmelden von Zählpunkten anhand der Mitgliedsnummer | Planned | `features/PROJ-55-add-metering-points-by-member-number.md` | 2026-05-21 |
 
-## Next Available ID: PROJ-55
+## Next Available ID: PROJ-56
