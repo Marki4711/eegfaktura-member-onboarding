@@ -95,6 +95,15 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
   const [mandateDate, setMandateDate] = useState(
     application.mandateDate ? application.mandateDate.split("T")[0] : ""
   );
+  // PROJ-56: Admin kann die Netzbetreiber-Info-Felder editieren — werden
+  // im UI nur gerendert wenn die Vollmacht aktiv ist (semantisch ohne
+  // Vollmacht nicht sinnvoll).
+  const [networkOperatorCustomerNumber, setNetworkOperatorCustomerNumber] = useState(
+    application.networkOperatorCustomerNumber ?? ""
+  );
+  const [meterInventoryNumber, setMeterInventoryNumber] = useState(
+    application.meterInventoryNumber ?? ""
+  );
   const [meteringPoints, setMeteringPoints] = useState<FormMeteringPoint[]>(
     application.meteringPoints.map((mp) => ({
       key: ++mpKeyCounter,
@@ -261,6 +270,11 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
         bankName: bankName.trim() || undefined,
         mandateReference: mandateReference.trim() || undefined,
         mandateDate: mandateDate || undefined,
+        // PROJ-56: Backend cleart die Felder, wenn die Vollmacht nicht
+        // aktiv ist — wir senden sie aber trotzdem so wie der Admin sie
+        // gerade im UI sieht.
+        networkOperatorCustomerNumber: networkOperatorCustomerNumber.trim() || undefined,
+        meterInventoryNumber: meterInventoryNumber.trim() || undefined,
         meteringPoints: payload,
       }, session?.accessToken);
       toast.success("Änderungen gespeichert");
@@ -614,6 +628,41 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
               )}
             </div>
           </div>
+
+          {/* PROJ-56: Netzbetreiber-Info-Felder. Nur sichtbar wenn das
+              Mitglied die Vollmacht beim Submit erteilt hat — sonst
+              semantisch nicht sinnvoll. Editierbar damit Admin Tippfehler
+              korrigieren kann. */}
+          {application.networkOperatorAuthorization && (
+            <>
+              <Separator />
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold">Netzbetreiber-Informationen</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="edit-network-operator-customer-number">
+                      Netzbetreiber Kundennummer
+                    </Label>
+                    <Input
+                      id="edit-network-operator-customer-number"
+                      value={networkOperatorCustomerNumber}
+                      onChange={(e) => setNetworkOperatorCustomerNumber(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="edit-meter-inventory-number">
+                      Inventarnummer eines Zählers
+                    </Label>
+                    <Input
+                      id="edit-meter-inventory-number"
+                      value={meterInventoryNumber}
+                      onChange={(e) => setMeterInventoryNumber(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
 
           <Separator />
 

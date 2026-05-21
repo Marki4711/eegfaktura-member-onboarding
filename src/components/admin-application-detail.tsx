@@ -476,6 +476,15 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
                 <>
                   <BoolField label="Netzbetreiber-Vollmacht erteilt" value={true} />
                   <Field label="Vollmacht erteilt am" value={formatDateTime(application.networkOperatorAuthorizationAt)} />
+                  {/* PROJ-56: Zusatzfelder werden nur gerendert wenn die
+                      Vollmacht aktiv erteilt wurde (semantisch nicht
+                      sinnvoll ohne Vollmacht). */}
+                  {application.networkOperatorCustomerNumber && (
+                    <Field label="Netzbetreiber Kundennummer" value={application.networkOperatorCustomerNumber} />
+                  )}
+                  {application.meterInventoryNumber && (
+                    <Field label="Inventarnummer eines Zählers" value={application.meterInventoryNumber} />
+                  )}
                 </>
               )}
             </dl>
