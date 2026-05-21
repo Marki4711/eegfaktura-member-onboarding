@@ -58,6 +58,13 @@ const TAG_META: Record<VisibilityTag, { label: string; className: string }> = {
     label: "Org-Typen",
     className: "bg-rose-100 text-rose-900 dark:bg-rose-950/60 dark:text-rose-300",
   },
+  // Mitgliedstyp-Gate: Feld nur sichtbar bei Privatperson oder Landwirt
+  // (analog zu "organization", aber für die andere Seite). Kein "+"-Prefix,
+  // weil's eine Mitgliedstyp-Bedingung ist, keine Sub-Toggle-Abhängigkeit.
+  natural_person: {
+    label: "Privat/Landwirt",
+    className: "bg-indigo-100 text-indigo-900 dark:bg-indigo-950/60 dark:text-indigo-300",
+  },
   // PROJ-57 v3: Ansprechperson-Checkbox-Gate. "+"-Prefix signalisiert
   // die zusätzliche Abhängigkeit vom Mitglieds-Häkchen "Ansprechperson
   // angeben" im Public-Formular.

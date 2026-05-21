@@ -39,7 +39,7 @@ export interface ConfigurableField {
 // PROJ-45: visibility-condition tag taxonomy. Each value renders as a
 // coloured badge in the admin field-config editor. Keep the set small —
 // new tags require a label + colour mapping in admin-field-config-editor.
-export type VisibilityTag = "consumption" | "production" | "pv" | "ev" | "battery" | "network_authorization" | "organization" | "contact_person" | "billing_email";
+export type VisibilityTag = "consumption" | "production" | "pv" | "ev" | "battery" | "network_authorization" | "organization" | "contact_person" | "billing_email" | "natural_person";
 
 export const CONFIGURABLE_FIELDS: {
   application: ConfigurableField[];
@@ -47,7 +47,9 @@ export const CONFIGURABLE_FIELDS: {
 } = {
   application: [
     { name: "phone",                   label: "Telefonnummer",                   defaultState: "optional" },
-    { name: "birth_date",              label: "Geburtsdatum",                    defaultState: "optional" },
+    { name: "birth_date",              label: "Geburtsdatum",                    defaultState: "optional",
+      visibilityTags: ["natural_person"],
+      visibilityHint: "Wird im Formular nur bei Mitgliedstyp Privatperson oder Landwirt angezeigt. Bei Organisationen (Unternehmen, Verein, Gemeinde) wird der Wert serverseitig auf NULL gesetzt." },
     { name: "bank_name",               label: "Bankname",                        defaultState: "optional" },
     { name: "membership_start_date",   label: "Aktiv am (Beitrittsdatum)",       defaultState: "hidden"   },
     { name: "persons_in_household",    label: "Anzahl Personen im Haushalt",     defaultState: "hidden",
