@@ -710,7 +710,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                       <PopoverTrigger type="button" className="cursor-help">
                         <Info className="h-3.5 w-3.5 text-muted-foreground" />
                       </PopoverTrigger>
-                      <PopoverContent className="max-w-md text-sm">
+                      <PopoverContent className="w-[32rem] max-w-[90vw] text-sm">
                         <dl className="space-y-3">
                           <div>
                             <dt className="font-semibold">Als Privatperson beitreten</dt>
