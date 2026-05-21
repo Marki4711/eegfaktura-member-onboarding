@@ -39,7 +39,7 @@ export interface ConfigurableField {
 // PROJ-45: visibility-condition tag taxonomy. Each value renders as a
 // coloured badge in the admin field-config editor. Keep the set small —
 // new tags require a label + colour mapping in admin-field-config-editor.
-export type VisibilityTag = "consumption" | "production" | "pv" | "ev" | "battery";
+export type VisibilityTag = "consumption" | "production" | "pv" | "ev" | "battery" | "network_authorization";
 
 export const CONFIGURABLE_FIELDS: {
   application: ConfigurableField[];
@@ -78,8 +78,10 @@ export const CONFIGURABLE_FIELDS: {
     // angezeigt, wenn die Vollmacht-Checkbox aktiv ist UND der Status hier
     // nicht hidden ist (siehe Conditional-Render-Logik in registration-form.tsx).
     { name: "network_operator_customer_number", label: "Netzbetreiber Kundennummer", defaultState: "hidden",
+      visibilityTags: ["network_authorization"],
       visibilityHint: "Wird nur angezeigt, wenn die Netzbetreiber-Vollmacht aktiv erteilt wird." },
     { name: "meter_inventory_number",           label: "Inventarnummer eines Zählers", defaultState: "hidden",
+      visibilityTags: ["network_authorization"],
       visibilityHint: "Wird nur angezeigt, wenn die Netzbetreiber-Vollmacht aktiv erteilt wird." },
   ],
   meteringPoint: [

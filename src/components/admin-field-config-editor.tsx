@@ -44,6 +44,12 @@ const TAG_META: Record<VisibilityTag, { label: string; className: string }> = {
     label: "+Speicher",
     className: "bg-emerald-100 text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300",
   },
+  // PROJ-56: Netzbetreiber-Vollmacht-abhängige Felder. "+"-Prefix signalisiert
+  // die zusätzliche Abhängigkeit von der Vollmacht-Checkbox im Public-Formular.
+  network_authorization: {
+    label: "+Vollmacht",
+    className: "bg-sky-100 text-sky-900 dark:bg-sky-950/60 dark:text-sky-300",
+  },
 };
 
 const STATE_OPTIONS: { value: FieldState; label: string }[] = [
