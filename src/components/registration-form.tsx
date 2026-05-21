@@ -258,12 +258,21 @@ function buildFormSchema(
     }
     requireText("bank_name", "bankName", "Bankname");
     requireText("membership_start_date", "membershipStartDate", "Beitrittsdatum");
-    requireNum("persons_in_household", "personsInHousehold", "Anzahl Personen im Haushalt");
-    // PROJ-49: consumption_*, feed_in_forecast, pv_power_kwp werden jetzt
-    // pro Zählpunkt validiert (Backend) — keine app-level Required-Checks mehr.
-    requireNum("heat_pump", "heatPump", "Wärmepumpe vorhanden");
-    requireNum("electric_vehicle", "electricVehicle", "E-Auto vorhanden");
-    requireNum("electric_hot_water", "electricHotWater", "Warmwasser elektrisch");
+    // Konsum-bezogene Felder werden im UI nur gezeigt, wenn mindestens ein
+    // CONSUMPTION-Zählpunkt vorhanden ist (siehe shouldShow + consumptionFields
+    // weiter unten). Die Validierung muss dieselbe Bedingung tragen, sonst
+    // wäre der Submit für eine reine PRODUCTION-Anlage stumm blockiert.
+    const hasConsumption = (data.meteringPoints ?? []).some(
+      (m) => m?.direction === "CONSUMPTION",
+    );
+    if (hasConsumption) {
+      requireNum("persons_in_household", "personsInHousehold", "Anzahl Personen im Haushalt");
+      // PROJ-49: consumption_*, feed_in_forecast, pv_power_kwp werden jetzt
+      // pro Zählpunkt validiert (Backend) — keine app-level Required-Checks mehr.
+      requireNum("heat_pump", "heatPump", "Wärmepumpe vorhanden");
+      requireNum("electric_vehicle", "electricVehicle", "E-Auto vorhanden");
+      requireNum("electric_hot_water", "electricHotWater", "Warmwasser elektrisch");
+    }
 
     // PROJ-44: Netzbetreiber-Vollmacht. Wenn required, muss das Häkchen
     // explizit gesetzt sein (false zählt nicht als Erteilung).
