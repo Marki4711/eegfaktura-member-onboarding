@@ -90,13 +90,13 @@ export const CONFIGURABLE_FIELDS: {
     // d. h. ohne aktive Konfiguration durch die EEG ist das Feature aus.
     { name: "contact_person_name", label: "Ansprechperson Name", defaultState: "hidden",
       visibilityTags: ["organization", "contact_person"],
-      visibilityHint: "Steuert das Name-Feld der Ansprechperson. Nur bei Org-Mitgliedstypen UND wenn das Mitglied im Formular die Checkbox „Ansprechperson angeben“ aktiviert. Sobald hier oder bei E-Mail/Telefon der Status auf optional/required steht, erscheint die Checkbox automatisch." },
+      visibilityHint: "Teil des Ansprechperson-Blocks (Name, E-Mail, Telefon). Der Block ist nur bei Mitgliedstyp Unternehmen, Verein oder Gemeinde verfügbar. Sobald hier oder bei E-Mail/Telefon der Status auf Optional oder Pflichtfeld steht, erscheint im Formular die Checkbox „Ansprechperson angeben“; die Felder selbst werden erst nach Aktivierung der Checkbox sichtbar. Pflichtig wird das Feld nur bei Status Pflichtfeld UND aktiver Checkbox." },
     { name: "contact_person_email", label: "Ansprechperson E-Mail", defaultState: "hidden",
       visibilityTags: ["organization", "contact_person"],
-      visibilityHint: "Steuert das E-Mail-Feld der Ansprechperson. Nur bei Org-Mitgliedstypen UND wenn das Mitglied im Formular die Checkbox „Ansprechperson angeben“ aktiviert. Sobald hier oder bei Name/Telefon der Status auf optional/required steht, erscheint die Checkbox automatisch." },
+      visibilityHint: "Teil des Ansprechperson-Blocks (Name, E-Mail, Telefon). Der Block ist nur bei Mitgliedstyp Unternehmen, Verein oder Gemeinde verfügbar. Sobald hier oder bei Name/Telefon der Status auf Optional oder Pflichtfeld steht, erscheint im Formular die Checkbox „Ansprechperson angeben“; die Felder selbst werden erst nach Aktivierung der Checkbox sichtbar. Pflichtig wird das Feld nur bei Status Pflichtfeld UND aktiver Checkbox; das E-Mail-Format wird auch bei Optional geprüft, sobald ein Wert eingegeben ist." },
     { name: "contact_person_phone", label: "Ansprechperson Telefon", defaultState: "hidden",
       visibilityTags: ["organization", "contact_person"],
-      visibilityHint: "Steuert das Telefon-Feld der Ansprechperson. Nur bei Org-Mitgliedstypen UND wenn das Mitglied im Formular die Checkbox „Ansprechperson angeben“ aktiviert. Sobald hier oder bei Name/E-Mail der Status auf optional/required steht, erscheint die Checkbox automatisch." },
+      visibilityHint: "Teil des Ansprechperson-Blocks (Name, E-Mail, Telefon). Der Block ist nur bei Mitgliedstyp Unternehmen, Verein oder Gemeinde verfügbar. Sobald hier oder bei Name/E-Mail der Status auf Optional oder Pflichtfeld steht, erscheint im Formular die Checkbox „Ansprechperson angeben“; die Felder selbst werden erst nach Aktivierung der Checkbox sichtbar. Pflichtig wird das Feld nur bei Status Pflichtfeld UND aktiver Checkbox." },
     // PROJ-58: Abweichende Rechnungs-E-Mail. Wird in der Bankverbindungs-
     // Card als Checkbox + Email-Feld gerendert, nur bei Org-Mitgliedstypen.
     { name: "billing_email", label: "Abweichende Rechnungs-E-Mail", defaultState: "hidden",
