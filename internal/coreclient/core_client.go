@@ -274,17 +274,35 @@ func (c *HTTPCoreClient) ListTariffs(ctx context.Context, bearerToken, tenant st
 	}
 	defer resp.Body.Close()
 
-	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 256*1024))
+	respBody, readErr := io.ReadAll(io.LimitReader(resp.Body, 256*1024))
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, &CoreHTTPError{StatusCode: resp.StatusCode, Body: truncate(string(respBody), 1000)}
 	}
 	if isHTMLResponse(resp.Header.Get("Content-Type"), respBody) {
 		return nil, &CoreParseError{Detail: "core returned HTML instead of JSON for /eeg/tariff"}
 	}
+	// Diagnose-Hilfe analog ListParticipants — siehe Kommentar dort.
+	if len(respBody) == 0 || readErr != nil {
+		detail := fmt.Sprintf(
+			"decode /eeg/tariff: empty body — status=%d content-type=%q content-length=%q read-bytes=%d read-err=%v",
+			resp.StatusCode,
+			resp.Header.Get("Content-Type"),
+			resp.Header.Get("Content-Length"),
+			len(respBody),
+			readErr,
+		)
+		return nil, &CoreParseError{Detail: detail}
+	}
 
 	var tariffs []CoreTariff
 	if err := json.Unmarshal(respBody, &tariffs); err != nil {
-		return nil, &CoreParseError{Detail: err.Error()}
+		return nil, &CoreParseError{Detail: fmt.Sprintf(
+			"decode /eeg/tariff: %v — status=%d content-type=%q body-prefix=%q",
+			err,
+			resp.StatusCode,
+			resp.Header.Get("Content-Type"),
+			truncate(string(respBody), 200),
+		)}
 	}
 	return tariffs, nil
 }
@@ -375,17 +393,37 @@ func (c *HTTPCoreClient) ListParticipants(ctx context.Context, bearerToken, tena
 	// as a per-tenant limit — silent truncation at 1 MiB would break the
 	// JSON decode for any larger EEG. If we ever push past 2000/tenant, the
 	// right fix is a thinner core endpoint (id + participantNumber only).
-	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4*1024*1024))
+	respBody, readErr := io.ReadAll(io.LimitReader(resp.Body, 4*1024*1024))
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, &CoreHTTPError{StatusCode: resp.StatusCode, Body: truncate(string(respBody), 1000)}
 	}
 	if isHTMLResponse(resp.Header.Get("Content-Type"), respBody) {
 		return nil, &CoreParseError{Detail: "core returned HTML instead of JSON for /participant"}
 	}
+	// Diagnose-Hilfe: bei leerem oder verkürztem Body Kontext mitliefern,
+	// damit wir zwischen "Core liefert 200 + leer", "Read-Fehler" und
+	// "JSON-Schema-Drift" unterscheiden können (siehe auch ListTariffs).
+	if len(respBody) == 0 || readErr != nil {
+		detail := fmt.Sprintf(
+			"decode /participant: empty body — status=%d content-type=%q content-length=%q read-bytes=%d read-err=%v",
+			resp.StatusCode,
+			resp.Header.Get("Content-Type"),
+			resp.Header.Get("Content-Length"),
+			len(respBody),
+			readErr,
+		)
+		return nil, &CoreParseError{Detail: detail}
+	}
 
 	var participants []CoreParticipantSummary
 	if err := json.Unmarshal(respBody, &participants); err != nil {
-		return nil, &CoreParseError{Detail: fmt.Sprintf("decode /participant: %v", err)}
+		return nil, &CoreParseError{Detail: fmt.Sprintf(
+			"decode /participant: %v — status=%d content-type=%q body-prefix=%q",
+			err,
+			resp.StatusCode,
+			resp.Header.Get("Content-Type"),
+			truncate(string(respBody), 200),
+		)}
 	}
 	return participants, nil
 }
