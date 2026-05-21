@@ -10,6 +10,58 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### PROJ-56 — Netzbetreiber-Info-Seite im Beitrittsbestätigungs-PDF *(2026-05-21)*
+
+Zusätzliche PDF-Seite mit allen Daten, die die EEG-Verwaltung für die
+Netzbetreiber-Korrespondenz braucht. Wird konditional gerendert: nur
+wenn das Mitglied die Netzbetreiber-Vollmacht aktiv erteilt hat
+(PROJ-44).
+
+Eckdaten:
+
+- **Zwei neue per-Mitglied-Felder** auf `application`:
+  `network_operator_customer_number` und `meter_inventory_number`
+  (Migration 000049). Beide TEXT NULL.
+- **Conditional Rendering** im Public-Formular: erscheinen direkt
+  unter der Vollmachts-Checkbox, sobald sie aktiviert wird. Jedes Feld
+  einzeln per `field_config` ein-/ausblendbar; Required-Status pro EEG
+  konfigurierbar.
+- **Admin-UI**: zwei Felder im Detail-View (Anzeige) und im Edit-Form
+  (editierbar) — beide nur sichtbar wenn Vollmacht aktiv.
+- **PDF-Seite** (`approval_pdf.go`) mit:
+  - Überschrift "Informationen für den Netzbetreiber"
+  - Kundennummer + Inventarnummer
+  - [X]-Box mit Volltext der Vollmacht + Timestamp
+    ("Vollmacht erteilt am `<submitted_at>`")
+  - Tabelle aller Zählpunkte (Nr / Adresse zwei-zeilig / Typ CNSM-GNRT / TF)
+  - 33-stellige AT-Zählpunkt-Nummern werden in 5 Gruppen (2-6-5-10-10)
+    gruppiert dargestellt für bessere Lesbarkeit.
+- **Validierung**: Required-Check der zwei Felder läuft nur wenn die
+  Vollmacht aktiv ist — sonst Submit-Hänger-Falle wie beim Geburtsdatum
+  vermieden (vgl. Commit `72d380b`).
+- **Server-Side-Cleanup**: `clearNetworkAuthIfHidden` setzt die zwei
+  Felder auf NULL, wenn die Vollmacht nicht (mehr) erteilt ist oder
+  die EEG die Felder versteckt hat.
+
+### Bug-Fixes 2026-05-21
+
+- **Beitrittsbestätigungs-PDF**: Netzbetreiber-Vollmacht wurde sowohl
+  in „Erteilte Zustimmungen" als auch in „Weitere Angaben" gerendert.
+  Der Duplikat-Eintrag in „Weitere Angaben" wurde entfernt; der voll-
+  formulierte Block in „Erteilte Zustimmungen" bleibt.
+- **Beitrittsbestätigungs-PDF**: Format der Zustimmungs-Zeile geändert
+  von `- Statuten — Zugestimmt am …` auf `- Statuten zugestimmt am …`
+  (Gedankenstrich entfernt, klein geschrieben).
+- **Public-Formular**: Hinweis „SEPA-Mandat erhältst du per E-Mail …"
+  wandert aus der Einwilligungs-Box in die Bankverbindung-Box —
+  kontextnah am IBAN-Feld statt versehentlich wie eine weitere
+  Einwilligung wirkend.
+- **Public-Formular**: Submit-Hänger bei Mitgliedstyp `sole_proprietor`,
+  `company`, `municipality`, `association` behoben — Geburtsdatum-
+  Validierung lief unbedingt, obwohl das Feld nur für isPerson-Typen
+  gerendert wird. Selbe Falle für consumption-only-Felder
+  (`persons_in_household`, `heat_pump`, …) zusätzlich gefixt.
+
 ### PROJ-54 — Repo-Split: privates Hauptrepo + öffentlicher Mirror *(2026-05-20)*
 
 Aktive Entwicklung läuft ab sofort im privaten Repo

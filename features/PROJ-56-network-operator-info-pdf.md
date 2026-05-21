@@ -1,7 +1,8 @@
 # PROJ-56 — Netzbetreiber-Info-Seite im Beitrittsbestätigungs-PDF
 
-**Status:** Planned
+**Status:** In Review
 **Erstellt:** 2026-05-21
+**Implementiert:** 2026-05-21
 **Quelle:** Owner-Anforderung mit konkretem Layout-Bild
 **Abhängigkeiten:** PROJ-21 (Beitrittsbestätigungs-PDF), PROJ-44 (Netzbetreiber-Vollmacht), PROJ-8 (konfigurierbare Felder)
 
