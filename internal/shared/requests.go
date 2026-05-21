@@ -57,6 +57,13 @@ type CreateApplicationRequest struct {
 	// wenn die Vollmacht nicht erteilt wurde.
 	NetworkOperatorCustomerNumber *string `json:"networkOperatorCustomerNumber,omitempty" validate:"omitempty,max=100"`
 	MeterInventoryNumber          *string `json:"meterInventoryNumber,omitempty"          validate:"omitempty,max=100"`
+	// PROJ-57: Ansprechperson für Org-Mitgliedstypen. HasContactPerson ist
+	// der Toggle aus dem Formular; die drei Felder sind nur relevant wenn
+	// HasContactPerson=true. Service-Layer cleart sonst auf NULL.
+	HasContactPerson   *bool   `json:"hasContactPerson,omitempty"`
+	ContactPersonName  *string `json:"contactPersonName,omitempty"  validate:"omitempty,max=150"`
+	ContactPersonEmail *string `json:"contactPersonEmail,omitempty" validate:"omitempty,email,max=200"`
+	ContactPersonPhone *string `json:"contactPersonPhone,omitempty" validate:"omitempty,max=50"`
 	// Cloudflare Turnstile token (PROJ-16) — optional, verified server-side when TURNSTILE_SECRET_KEY is set
 	TurnstileToken *string `json:"turnstileToken,omitempty"`
 }
@@ -139,6 +146,11 @@ type UpdateApplicationRequest struct {
 	// Vollmacht nicht (mehr) erteilt ist oder die EEG die Felder hidden hat.
 	NetworkOperatorCustomerNumber *string `json:"networkOperatorCustomerNumber,omitempty" validate:"omitempty,max=100"`
 	MeterInventoryNumber          *string `json:"meterInventoryNumber,omitempty"          validate:"omitempty,max=100"`
+	// PROJ-57: Ansprechperson für Org-Mitgliedstypen.
+	HasContactPerson   *bool   `json:"hasContactPerson,omitempty"`
+	ContactPersonName  *string `json:"contactPersonName,omitempty"  validate:"omitempty,max=150"`
+	ContactPersonEmail *string `json:"contactPersonEmail,omitempty" validate:"omitempty,email,max=200"`
+	ContactPersonPhone *string `json:"contactPersonPhone,omitempty" validate:"omitempty,max=50"`
 }
 
 // Response models

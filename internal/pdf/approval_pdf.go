@@ -87,6 +87,13 @@ type ApprovalPDFData struct {
 	NetworkOperatorCustomerNumber string
 	MeterInventoryNumber          string
 	SubmittedAt                   *time.Time
+	// PROJ-57: Ansprechperson für Org-Mitgliedstypen. Wird nur gerendert,
+	// wenn HasContactPerson=true. Die drei Detail-Felder sind dann gesetzt
+	// (Backend validiert, dass alle drei befüllt sind).
+	HasContactPerson    bool
+	ContactPersonName   string
+	ContactPersonEmail  string
+	ContactPersonPhone  string
 
 	MemberNumber *string
 
@@ -255,6 +262,16 @@ func (g *FPDFApprovalGenerator) GenerateApproval(data ApprovalPDFData) ([]byte, 
 	addr := strings.TrimSpace(data.ResidentStreet+" "+data.ResidentStreetNumber) +
 		", " + data.ResidentZip + " " + data.ResidentCity
 	dataRow("Adresse:", addr)
+
+	// ── ANSPRECHPERSON (PROJ-57) ─────────────────────────────────────────────
+	// Wird nur gerendert, wenn der Toggle aktiv ist (Backend stellt sicher,
+	// dass die drei Detail-Felder dann auch befüllt sind).
+	if data.HasContactPerson {
+		sectionHeader("ANSPRECHPERSON")
+		dataRow("Name:", data.ContactPersonName)
+		dataRow("E-Mail:", data.ContactPersonEmail)
+		dataRow("Telefon:", data.ContactPersonPhone)
+	}
 
 	// ── BANKVERBINDUNG ───────────────────────────────────────────────────────
 	if data.IBAN != "" {

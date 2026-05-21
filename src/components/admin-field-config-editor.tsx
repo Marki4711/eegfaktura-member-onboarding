@@ -50,6 +50,14 @@ const TAG_META: Record<VisibilityTag, { label: string; className: string }> = {
     label: "+Vollmacht",
     className: "bg-sky-100 text-sky-900 dark:bg-sky-950/60 dark:text-sky-300",
   },
+  // PROJ-57: Ansprechperson — nur sichtbar bei Org-Mitgliedstypen (Unternehmen,
+  // Verein, Gemeinde). Kein "+"-Prefix, weil's eine Mitgliedstyp-Bedingung
+  // ist (semantisch näher an "consumption" / "production" als an einer
+  // Sub-Toggle-Abhängigkeit).
+  organization: {
+    label: "Org-Typen",
+    className: "bg-rose-100 text-rose-900 dark:bg-rose-950/60 dark:text-rose-300",
+  },
 };
 
 const STATE_OPTIONS: { value: FieldState; label: string }[] = [

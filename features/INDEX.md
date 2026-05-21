@@ -70,5 +70,6 @@ Central tracking for all features.
 | PROJ-54 | Aufteilung in öffentliches Schaufenster + privates Hauptrepo | Deployed | `features/PROJ-54-public-private-repo-split.md` | 2026-05-20 |
 | PROJ-55 | Nachmelden von Zählpunkten anhand der Mitgliedsnummer | Planned | `features/PROJ-55-add-metering-points-by-member-number.md` | 2026-05-21 |
 | PROJ-56 | Netzbetreiber-Info-Seite im Beitrittsbestätigungs-PDF | In Review | `features/PROJ-56-network-operator-info-pdf.md` | 2026-05-21 |
+| PROJ-57 | Ansprechperson für Org-Mitgliedstypen | In Review | `features/PROJ-57-contact-person.md` | 2026-05-21 |
 
-## Next Available ID: PROJ-57
+## Next Available ID: PROJ-58

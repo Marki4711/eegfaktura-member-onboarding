@@ -36,6 +36,10 @@ var knownConfigurableFields = map[string]string{
 	// Vollmacht-Checkbox aktiv ist. Service-Layer cleart sonst auf NULL.
 	"network_operator_customer_number": "hidden",
 	"meter_inventory_number":           "hidden",
+	// PROJ-57: Ansprechperson-Block (Toggle + 3 Detail-Felder) für die
+	// Org-Mitgliedstypen company/association/municipality. Single-Switch
+	// für den ganzen Block.
+	"contact_person": "hidden",
 	// PROJ-45: Batterie + Wechselrichter (Metering-Point-Scope, nur bei
 	// generation_type='pv' rendern — Service cleart sonst).
 	"battery_size_kwh":      "hidden",

@@ -169,6 +169,13 @@ const baseSchema = z.object({
   // networkOperatorAuthorization === true (siehe weiter unten).
   networkOperatorCustomerNumber: z.string().optional(),
   meterInventoryNumber: z.string().optional(),
+  // PROJ-57: Ansprechperson für Org-Mitgliedstypen. Toggle + drei Felder.
+  // Required-Validierung der drei Felder gegated auf hasContactPerson === true
+  // UND Org-Mitgliedstyp (verhindert Submit-Hänger-Bug-Pattern).
+  hasContactPerson: z.boolean().optional(),
+  contactPersonName: z.string().optional(),
+  contactPersonEmail: z.string().optional(),
+  contactPersonPhone: z.string().optional(),
   meteringPoints: z
     .array(meteringPointSchema)
     .min(1, "Mindestens ein Zählpunkt ist erforderlich")
@@ -295,6 +302,24 @@ function buildFormSchema(
     if (data.networkOperatorAuthorization) {
       requireText("network_operator_customer_number", "networkOperatorCustomerNumber", "Netzbetreiber Kundennummer");
       requireText("meter_inventory_number", "meterInventoryNumber", "Inventarnummer eines Zählers");
+    }
+
+    // PROJ-57: Ansprechperson. Wenn die Checkbox aktiv ist, sind alle drei
+    // Felder Pflicht — unabhängig vom field_config-State (UI zeigt sie ja
+    // dann). Email-Format wird zusätzlich geprüft.
+    if (data.hasContactPerson) {
+      if (!data.contactPersonName?.trim()) {
+        ctx.addIssue({ code: "custom", path: ["contactPersonName"], message: "Name der Ansprechperson ist erforderlich" });
+      }
+      const emailRaw = data.contactPersonEmail?.trim() ?? "";
+      if (!emailRaw) {
+        ctx.addIssue({ code: "custom", path: ["contactPersonEmail"], message: "E-Mail der Ansprechperson ist erforderlich" });
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailRaw)) {
+        ctx.addIssue({ code: "custom", path: ["contactPersonEmail"], message: "Ungültige E-Mail-Adresse" });
+      }
+      if (!data.contactPersonPhone?.trim()) {
+        ctx.addIssue({ code: "custom", path: ["contactPersonPhone"], message: "Telefon der Ansprechperson ist erforderlich" });
+      }
     }
 
     // PROJ-37: Genossenschaftsanteile required when the EEG has enabled
@@ -426,6 +451,10 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
       networkOperatorAuthorization: false,
       networkOperatorCustomerNumber: "",
       meterInventoryNumber: "",
+      hasContactPerson: false,
+      contactPersonName: "",
+      contactPersonEmail: "",
+      contactPersonPhone: "",
     },
   });
 
@@ -565,6 +594,11 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
           // aber Payload bleibt sauber und kleiner).
           networkOperatorCustomerNumber: values.networkOperatorAuthorization ? (values.networkOperatorCustomerNumber || undefined) : undefined,
           meterInventoryNumber: values.networkOperatorAuthorization ? (values.meterInventoryNumber || undefined) : undefined,
+          // PROJ-57: Ansprechperson nur senden bei Org-Mitgliedstyp UND aktivem Toggle.
+          hasContactPerson: values.hasContactPerson || undefined,
+          contactPersonName: values.hasContactPerson ? (values.contactPersonName || undefined) : undefined,
+          contactPersonEmail: values.hasContactPerson ? (values.contactPersonEmail || undefined) : undefined,
+          contactPersonPhone: values.hasContactPerson ? (values.contactPersonPhone || undefined) : undefined,
           meteringPoints: values.meteringPoints.map((mp) => {
             const isProduction = mp.direction === "PRODUCTION";
             const isPv = isProduction && (mp.generationType ?? "pv") === "pv";
@@ -998,6 +1032,76 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                     />
                   )}
                 </div>
+                {/* PROJ-57: Ansprechperson-Block. Sichtbar nur für die drei
+                    Org-Mitgliedstypen UND wenn EEG das field_config nicht auf
+                    hidden gestellt hat. */}
+                {(memberType === "company" || memberType === "association" || memberType === "municipality") &&
+                  fs("contact_person") !== "hidden" && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="hasContactPerson"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start gap-3 space-y-0">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value ?? false}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel className="font-normal cursor-pointer">
+                              Ansprechperson angeben
+                            </FormLabel>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                    {form.watch("hasContactPerson") === true && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-7">
+                        <FormField
+                          control={form.control}
+                          name="contactPersonName"
+                          render={({ field }) => (
+                            <FormItem className="sm:col-span-2">
+                              <FormLabel>Name *</FormLabel>
+                              <FormControl>
+                                <Input autoComplete="name" {...field} value={field.value ?? ""} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="contactPersonEmail"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>E-Mail *</FormLabel>
+                              <FormControl>
+                                <Input type="email" autoComplete="email" {...field} value={field.value ?? ""} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="contactPersonPhone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Telefon *</FormLabel>
+                              <FormControl>
+                                <Input type="tel" autoComplete="tel" {...field} value={field.value ?? ""} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    )}
+                  </>
+                )}
               </>
             )}
 

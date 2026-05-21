@@ -39,7 +39,7 @@ export interface ConfigurableField {
 // PROJ-45: visibility-condition tag taxonomy. Each value renders as a
 // coloured badge in the admin field-config editor. Keep the set small —
 // new tags require a label + colour mapping in admin-field-config-editor.
-export type VisibilityTag = "consumption" | "production" | "pv" | "ev" | "battery" | "network_authorization";
+export type VisibilityTag = "consumption" | "production" | "pv" | "ev" | "battery" | "network_authorization" | "organization";
 
 export const CONFIGURABLE_FIELDS: {
   application: ConfigurableField[];
@@ -83,6 +83,12 @@ export const CONFIGURABLE_FIELDS: {
     { name: "meter_inventory_number",           label: "Inventarnummer eines Zählers", defaultState: "hidden",
       visibilityTags: ["network_authorization"],
       visibilityHint: "Wird nur angezeigt, wenn die Netzbetreiber-Vollmacht aktiv erteilt wird." },
+    // PROJ-57: Ansprechperson-Block (Toggle + 3 Felder) für Org-Mitgliedstypen.
+    // Single-Switch konfiguriert den ganzen Block, gefilterung des
+    // Mitgliedstyps läuft im Code (nur company/association/municipality).
+    { name: "contact_person", label: "Ansprechperson (Org-Typen)", defaultState: "hidden",
+      visibilityTags: ["organization"],
+      visibilityHint: "Aktiviert die Ansprechperson-Checkbox + Name/E-Mail/Telefon-Felder für Unternehmen, Vereine und Gemeinden. Bei Privatperson/Kleinunternehmer/Landwirt unsichtbar — dort gibt es nur eine Kontaktperson." },
   ],
   meteringPoint: [
     { name: "transformer",        label: "Transformator", defaultState: "hidden" },
@@ -302,6 +308,11 @@ export interface CreateApplicationRequest {
   // Backend cleart sonst auf NULL.
   networkOperatorCustomerNumber?: string;
   meterInventoryNumber?: string;
+  // PROJ-57: Ansprechperson für Org-Mitgliedstypen.
+  hasContactPerson?: boolean;
+  contactPersonName?: string;
+  contactPersonEmail?: string;
+  contactPersonPhone?: string;
   turnstileToken?: string;
 }
 
@@ -626,6 +637,12 @@ export interface AdminApplicationDetail {
   // die Vollmacht aktiv erteilt UND die Felder eingegeben wurden.
   networkOperatorCustomerNumber?: string | null;
   meterInventoryNumber?: string | null;
+  // PROJ-57: Ansprechperson für Org-Mitgliedstypen. hasContactPerson kommt
+  // immer (default false); die drei Detail-Felder nur wenn gesetzt.
+  hasContactPerson?: boolean;
+  contactPersonName?: string | null;
+  contactPersonEmail?: string | null;
+  contactPersonPhone?: string | null;
 }
 
 // PROJ-34: payload for POST /api/admin/applications/{id}/mark-imported-manually
@@ -710,6 +727,11 @@ export interface AdminUpdateApplicationRequest {
   // PROJ-56: Netzbetreiber-Info-Felder. Admin kann sie nachpflegen.
   networkOperatorCustomerNumber?: string;
   meterInventoryNumber?: string;
+  // PROJ-57: Ansprechperson für Org-Mitgliedstypen.
+  hasContactPerson?: boolean;
+  contactPersonName?: string;
+  contactPersonEmail?: string;
+  contactPersonPhone?: string;
   meteringPoints: MeteringPointRequest[];
 }
 

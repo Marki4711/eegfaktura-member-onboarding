@@ -425,6 +425,20 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
                 <Field label="Telefon" value={application.phone} />
               </dl>
             )}
+            {/* PROJ-57: Ansprechperson-Block — nur sichtbar wenn Toggle aktiv. */}
+            {application.hasContactPerson && (
+              <>
+                <Separator className="my-4" />
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold">Ansprechperson</h3>
+                  <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <Field label="Name" value={application.contactPersonName} />
+                    <Field label="E-Mail" value={application.contactPersonEmail} />
+                    <Field label="Telefon" value={application.contactPersonPhone} />
+                  </dl>
+                </div>
+              </>
+            )}
             <Separator className="my-4" />
             <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <Field label="Straße" value={application.residentStreet} />

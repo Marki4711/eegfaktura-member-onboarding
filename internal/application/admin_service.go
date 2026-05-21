@@ -1451,6 +1451,12 @@ func buildApprovalPDFData(
 		NetworkOperatorCustomerNumber: derefStr(app.NetworkOperatorCustomerNumber),
 		MeterInventoryNumber:          derefStr(app.MeterInventoryNumber),
 		SubmittedAt:                   app.SubmittedAt,
+		// PROJ-57: Ansprechperson-Snapshot. Backend stellt sicher, dass die
+		// drei Detail-Felder nur befüllt sind, wenn HasContactPerson=true.
+		HasContactPerson:   app.HasContactPerson,
+		ContactPersonName:  derefStr(app.ContactPersonName),
+		ContactPersonEmail: derefStr(app.ContactPersonEmail),
+		ContactPersonPhone: derefStr(app.ContactPersonPhone),
 		// PROJ-37: only set both fields together — the PDF render skips
 		// the section if either is missing. EEG entrypoint provides the
 		// price; the application carries the count. When the EEG feature

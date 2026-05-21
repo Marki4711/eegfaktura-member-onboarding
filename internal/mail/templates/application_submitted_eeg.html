@@ -61,6 +61,25 @@
     </tr>
   </table>
 
+  <!-- PROJ-57: Ansprechperson -->
+  {{if .HasContactPerson}}
+  <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-top: 24px;">Ansprechperson</h3>
+  <table style="border-collapse: collapse; margin: 8px 0; width: 100%;">
+    <tr>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold; width: 40%;">Name:</td>
+      <td style="padding: 4px 0;">{{.ContactPersonName}}</td>
+    </tr>
+    <tr>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold;">E-Mail:</td>
+      <td style="padding: 4px 0;">{{.ContactPersonEmail}}</td>
+    </tr>
+    <tr>
+      <td style="padding: 4px 16px 4px 0; font-weight: bold;">Telefon:</td>
+      <td style="padding: 4px 0;">{{.ContactPersonPhone}}</td>
+    </tr>
+  </table>
+  {{end}}
+
   <!-- Bankverbindung -->
   {{if .IBAN}}
   <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-top: 24px;">Bankverbindung</h3>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -104,6 +105,13 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
   const [meterInventoryNumber, setMeterInventoryNumber] = useState(
     application.meterInventoryNumber ?? ""
   );
+  // PROJ-57: Ansprechperson — Admin kann Toggle + drei Felder editieren.
+  // Sichtbarkeit im UI: nur Org-Mitgliedstypen (company/association/municipality).
+  const [hasContactPerson, setHasContactPerson] = useState(application.hasContactPerson ?? false);
+  const [contactPersonName, setContactPersonName] = useState(application.contactPersonName ?? "");
+  const [contactPersonEmail, setContactPersonEmail] = useState(application.contactPersonEmail ?? "");
+  const [contactPersonPhone, setContactPersonPhone] = useState(application.contactPersonPhone ?? "");
+  const isOrgType = memberType === "company" || memberType === "association" || memberType === "municipality";
   const [meteringPoints, setMeteringPoints] = useState<FormMeteringPoint[]>(
     application.meteringPoints.map((mp) => ({
       key: ++mpKeyCounter,
@@ -275,6 +283,13 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
         // gerade im UI sieht.
         networkOperatorCustomerNumber: networkOperatorCustomerNumber.trim() || undefined,
         meterInventoryNumber: meterInventoryNumber.trim() || undefined,
+        // PROJ-57: Ansprechperson. Toggle + drei Felder. Backend cleart die
+        // Felder serverseitig wenn der Toggle aus ist oder der Mitgliedstyp
+        // nicht in der Org-Liste liegt.
+        hasContactPerson: isOrgType ? hasContactPerson : undefined,
+        contactPersonName: isOrgType && hasContactPerson ? (contactPersonName.trim() || undefined) : undefined,
+        contactPersonEmail: isOrgType && hasContactPerson ? (contactPersonEmail.trim() || undefined) : undefined,
+        contactPersonPhone: isOrgType && hasContactPerson ? (contactPersonPhone.trim() || undefined) : undefined,
         meteringPoints: payload,
       }, session?.accessToken);
       toast.success("Änderungen gespeichert");
@@ -628,6 +643,62 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
               )}
             </div>
           </div>
+
+          {/* PROJ-57: Ansprechperson-Block — nur für Org-Mitgliedstypen.
+              Toggle + drei Detail-Felder. Admin kann Toggle umschalten und
+              die Werte editieren. */}
+          {isOrgType && (
+            <>
+              <Separator />
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="edit-has-contact-person"
+                    checked={hasContactPerson}
+                    onCheckedChange={(v) => setHasContactPerson(v === true)}
+                  />
+                  <Label htmlFor="edit-has-contact-person" className="cursor-pointer">
+                    Ansprechperson angeben
+                  </Label>
+                </div>
+                {hasContactPerson && (
+                  <div className="space-y-3 pl-6">
+                    <div className="space-y-1">
+                      <Label htmlFor="edit-contact-person-name">Name *</Label>
+                      <Input
+                        id="edit-contact-person-name"
+                        autoComplete="name"
+                        value={contactPersonName}
+                        onChange={(e) => setContactPersonName(e.target.value)}
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label htmlFor="edit-contact-person-email">E-Mail *</Label>
+                        <Input
+                          id="edit-contact-person-email"
+                          type="email"
+                          autoComplete="email"
+                          value={contactPersonEmail}
+                          onChange={(e) => setContactPersonEmail(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="edit-contact-person-phone">Telefon *</Label>
+                        <Input
+                          id="edit-contact-person-phone"
+                          type="tel"
+                          autoComplete="tel"
+                          value={contactPersonPhone}
+                          onChange={(e) => setContactPersonPhone(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
 
           {/* PROJ-56: Netzbetreiber-Info-Felder. Nur sichtbar wenn das
               Mitglied die Vollmacht beim Submit erteilt hat — sonst

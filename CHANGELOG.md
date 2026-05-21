@@ -10,6 +10,34 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### PROJ-57 — Ansprechperson für Org-Mitgliedstypen *(2026-05-21)*
+
+Optionale Ansprechperson für Unternehmen, Vereine und Gemeinden. Toggle-
+Checkbox aktiviert drei zusätzliche Felder (Name, E-Mail, Telefon), die
+in PDF, Submission-Mail und Admin-UI durchlaufen.
+
+Eckdaten:
+
+- **Vier neue Spalten** auf `application` (Migration 000050):
+  `has_contact_person` (BOOL), plus `contact_person_name/email/phone` (TEXT).
+- **field_config-Eintrag** `contact_person` (Default hidden, per-EEG
+  konfigurierbar). Single-Switch für den ganzen Block; Mitgliedstyp-
+  Filterung im Code (nur company/association/municipality).
+- **Public-Formular**: Checkbox unter UID/Vereinsnummer. Wenn aktiv:
+  Name + E-Mail + Telefon (alle drei Pflicht). Required-Validierung
+  gegated auf Toggle-aktiv (verhindert Submit-Hänger-Bug-Pattern).
+- **Admin-UI**: Detail-View zeigt Ansprechperson-Block wenn gesetzt;
+  Edit-Form erlaubt Toggle umschalten und Werte editieren (sichtbar
+  nur bei Org-Mitgliedstypen).
+- **Beitritts-PDF**: neuer Block „Ansprechperson" zwischen
+  Mitgliedsdaten und Bankverbindung, gerendert wenn Toggle aktiv.
+- **EEG-Submission-Mail** (PROJ-20): neuer Block in
+  `application_submitted_eeg.html` zwischen Adresse und Bankverbindung.
+- **Server-Side-Cleanup**: `clearContactPersonIfDisabled` cleart die
+  drei Felder auf NULL, wenn Toggle aus oder Mitgliedstyp nicht in der
+  Org-Liste — schützt gegen forged Clients.
+- **Excel-Export** (PROJ-17) wurde bewusst NICHT erweitert.
+
 ### PROJ-56 — Netzbetreiber-Info-Seite im Beitrittsbestätigungs-PDF *(2026-05-21)*
 
 Zusätzliche PDF-Seite mit allen Daten, die die EEG-Verwaltung für die

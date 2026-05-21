@@ -37,6 +37,7 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 			cooperative_shares_count,
 			network_operator_authorization, network_operator_authorization_at,
 			network_operator_customer_number, meter_inventory_number,
+			has_contact_person, contact_person_name, contact_person_email, contact_person_phone,
 			created_at, updated_at
 		) VALUES (
 			$1, $2, $3, $4,
@@ -51,7 +52,8 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 			$36,
 			$37, $38,
 			$39, $40,
-			$41, $42
+			$41, $42, $43, $44,
+			$45, $46
 		) RETURNING id`
 
 	now := app.CreatedAt
@@ -68,6 +70,7 @@ func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) er
 		app.CooperativeSharesCount,
 		app.NetworkOperatorAuthorization, app.NetworkOperatorAuthorizationAt,
 		app.NetworkOperatorCustomerNumber, app.MeterInventoryNumber,
+		app.HasContactPerson, app.ContactPersonName, app.ContactPersonEmail, app.ContactPersonPhone,
 		app.CreatedAt, app.UpdatedAt,
 	}
 
@@ -100,6 +103,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		       cooperative_shares_count,
 		       network_operator_authorization, network_operator_authorization_at,
 		       network_operator_customer_number, meter_inventory_number,
+		       has_contact_person, contact_person_name, contact_person_email, contact_person_phone,
 		       email_confirmed_at, email_confirmation_used_at,
 		       email_confirmation_token_hash, email_confirmation_token_expires_at,
 		       created_at, updated_at
@@ -121,6 +125,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	var cooperativeSharesCount sql.NullInt64
 	var networkOperatorAuthorizationAt sql.NullTime
 	var networkOperatorCustomerNumber, meterInventoryNumber sql.NullString
+	var contactPersonName, contactPersonEmail, contactPersonPhone sql.NullString
 	var emailConfirmedAt, emailConfirmationUsedAt, emailConfirmationTokenExpiresAt sql.NullTime
 	var emailConfirmationTokenHash sql.NullString
 
@@ -144,6 +149,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		&cooperativeSharesCount,
 		&app.NetworkOperatorAuthorization, &networkOperatorAuthorizationAt,
 		&networkOperatorCustomerNumber, &meterInventoryNumber,
+		&app.HasContactPerson, &contactPersonName, &contactPersonEmail, &contactPersonPhone,
 		&emailConfirmedAt, &emailConfirmationUsedAt,
 		&emailConfirmationTokenHash, &emailConfirmationTokenExpiresAt,
 		&app.CreatedAt, &app.UpdatedAt,
@@ -294,6 +300,18 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		v := meterInventoryNumber.String
 		app.MeterInventoryNumber = &v
 	}
+	if contactPersonName.Valid {
+		v := contactPersonName.String
+		app.ContactPersonName = &v
+	}
+	if contactPersonEmail.Valid {
+		v := contactPersonEmail.String
+		app.ContactPersonEmail = &v
+	}
+	if contactPersonPhone.Valid {
+		v := contactPersonPhone.String
+		app.ContactPersonPhone = &v
+	}
 	if emailConfirmedAt.Valid {
 		app.EmailConfirmedAt = &emailConfirmedAt.Time
 	}
@@ -366,8 +384,12 @@ func (r *ApplicationRepository) UpdateTx(tx *sql.Tx, app *shared.Application) er
 			network_operator_authorization_at = $32,
 			network_operator_customer_number = $33,
 			meter_inventory_number = $34,
+			has_contact_person = $35,
+			contact_person_name = $36,
+			contact_person_email = $37,
+			contact_person_phone = $38,
 			updated_at = NOW()
-		WHERE id = $35`
+		WHERE id = $39`
 
 	_, err := tx.Exec(query,
 		app.MemberType,
@@ -384,6 +406,7 @@ func (r *ApplicationRepository) UpdateTx(tx *sql.Tx, app *shared.Application) er
 		app.ElectricHotWater,
 		app.NetworkOperatorAuthorization, app.NetworkOperatorAuthorizationAt,
 		app.NetworkOperatorCustomerNumber, app.MeterInventoryNumber,
+		app.HasContactPerson, app.ContactPersonName, app.ContactPersonEmail, app.ContactPersonPhone,
 		app.ID,
 	)
 	if err != nil {

@@ -252,6 +252,13 @@ type eegTemplateData struct {
 	ResidentZip          string
 	ResidentCity         string
 
+	// PROJ-57: Ansprechperson (Org-Mitgliedstypen). HasContactPerson gated
+	// das Template — die drei Detail-Felder sind dann garantiert befüllt.
+	HasContactPerson    bool
+	ContactPersonName   string
+	ContactPersonEmail  string
+	ContactPersonPhone  string
+
 	// Bankverbindung
 	IBAN            string
 	AccountHolder   string
@@ -564,6 +571,12 @@ func (s *SMTPMailService) SendEEGNotification(app *shared.Application, meteringP
 		ResidentStreetNumber: app.ResidentStreetNumber,
 		ResidentZip:          app.ResidentZip,
 		ResidentCity:         app.ResidentCity,
+		// PROJ-57: Ansprechperson — Backend stellt sicher, dass die drei
+		// Detail-Felder nur befüllt sind, wenn HasContactPerson=true.
+		HasContactPerson:   app.HasContactPerson,
+		ContactPersonName:  derefString(app.ContactPersonName),
+		ContactPersonEmail: derefString(app.ContactPersonEmail),
+		ContactPersonPhone: derefString(app.ContactPersonPhone),
 		IBAN:                 iban,
 		AccountHolder:        accountHolder,
 		BankName:             derefString(app.BankName),

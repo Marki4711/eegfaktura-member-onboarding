@@ -204,6 +204,14 @@ type Application struct {
 	// erteilt wurde — egal was der Frontend-Submit sendet.
 	NetworkOperatorCustomerNumber *string `json:"networkOperatorCustomerNumber,omitempty" db:"network_operator_customer_number"`
 	MeterInventoryNumber          *string `json:"meterInventoryNumber,omitempty"          db:"meter_inventory_number"`
+	// PROJ-57: Ansprechperson für Org-Mitgliedstypen (company, association,
+	// municipality). Toggle + drei TEXT-Felder. Service-Layer cleart die
+	// drei Felder auf NULL, wenn HasContactPerson=false oder der Mitgliedstyp
+	// nicht in der Org-Liste liegt.
+	HasContactPerson    bool    `json:"hasContactPerson"               db:"has_contact_person"`
+	ContactPersonName   *string `json:"contactPersonName,omitempty"   db:"contact_person_name"`
+	ContactPersonEmail  *string `json:"contactPersonEmail,omitempty"  db:"contact_person_email"`
+	ContactPersonPhone  *string `json:"contactPersonPhone,omitempty"  db:"contact_person_phone"`
 	// E-Mail-Bestätigung (PROJ-31). Token-Hash + Expiry sind interne Felder
 	// und werden nicht in API-Responses serialisiert (JSON-Tag "-").
 	EmailConfirmedAt                 *time.Time `json:"emailConfirmedAt,omitempty"      db:"email_confirmed_at"`

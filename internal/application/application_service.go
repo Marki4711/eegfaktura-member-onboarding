@@ -219,10 +219,20 @@ func (s *ApplicationService) CreateApplication(req shared.CreateApplicationReque
 	// ignoriert, auch wenn ein forged client Werte senden würde.
 	app.NetworkOperatorCustomerNumber = req.NetworkOperatorCustomerNumber
 	app.MeterInventoryNumber = req.MeterInventoryNumber
+	// PROJ-57: Ansprechperson. Toggle + drei Felder. Service-Layer cleart
+	// die drei Felder auf NULL, wenn der Toggle false ist oder der
+	// Mitgliedstyp nicht in der Org-Liste liegt (clearContactPersonIfDisabled).
+	if req.HasContactPerson != nil {
+		app.HasContactPerson = *req.HasContactPerson
+	}
+	app.ContactPersonName = req.ContactPersonName
+	app.ContactPersonEmail = req.ContactPersonEmail
+	app.ContactPersonPhone = req.ContactPersonPhone
 	applyAdminValues(app, fieldConfig)
 	clearMemberTypeFields(app)
 	clearEVDetailsIfDisabled(app)
 	clearNetworkAuthIfHidden(app, fieldConfig)
+	clearContactPersonIfDisabled(app, fieldConfig)
 	if err = validateMemberTypeFields(app); err != nil {
 		return nil, err
 	}
@@ -388,6 +398,19 @@ func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateAp
 	if req.MeterInventoryNumber != nil {
 		app.MeterInventoryNumber = trimStringPtr(req.MeterInventoryNumber)
 	}
+	// PROJ-57: Ansprechperson-Felder im Update-Path. Sentinel-Logik wie oben.
+	if req.HasContactPerson != nil {
+		app.HasContactPerson = *req.HasContactPerson
+	}
+	if req.ContactPersonName != nil {
+		app.ContactPersonName = trimStringPtr(req.ContactPersonName)
+	}
+	if req.ContactPersonEmail != nil {
+		app.ContactPersonEmail = trimStringPtr(req.ContactPersonEmail)
+	}
+	if req.ContactPersonPhone != nil {
+		app.ContactPersonPhone = trimStringPtr(req.ContactPersonPhone)
+	}
 
 	fieldConfig, fcErr := s.fieldConfigRepo.Get(strings.ToUpper(app.RCNumber))
 	if fcErr != nil {
@@ -397,6 +420,7 @@ func (s *ApplicationService) UpdateApplication(id uuid.UUID, req shared.UpdateAp
 	clearMemberTypeFields(app)
 	clearEVDetailsIfDisabled(app)
 	clearNetworkAuthIfHidden(app, fieldConfig)
+	clearContactPersonIfDisabled(app, fieldConfig)
 	if err = validateMemberTypeFields(app); err != nil {
 		return nil, err
 	}
@@ -1190,6 +1214,23 @@ func validateConfigurableRequiredFields(app *shared.Application, fieldConfig map
 	requiredIfMissing("network_operator_customer_number", "networkOperatorCustomerNumber", "Netzbetreiber Kundennummer", app.NetworkOperatorAuthorization && missingStr(app.NetworkOperatorCustomerNumber))
 	requiredIfMissing("meter_inventory_number", "meterInventoryNumber", "Inventarnummer eines Zählers", app.NetworkOperatorAuthorization && missingStr(app.MeterInventoryNumber))
 
+	// PROJ-57: Ansprechperson. Wenn der Toggle aktiv ist, müssen alle drei
+	// Felder befüllt sein — unabhängig vom EEG-field_config-State, weil
+	// die UI die Felder dann sowieso anzeigt. Wenn der Toggle inaktiv ist,
+	// werden die Werte serverseitig auf NULL geclearted — kein Validations-
+	// Fehler. (Analog zur EV-Detail-Logik.)
+	if app.HasContactPerson {
+		if missingStr(app.ContactPersonName) {
+			errs["contactPersonName"] = "Name der Ansprechperson ist erforderlich"
+		}
+		if missingStr(app.ContactPersonEmail) {
+			errs["contactPersonEmail"] = "E-Mail der Ansprechperson ist erforderlich"
+		}
+		if missingStr(app.ContactPersonPhone) {
+			errs["contactPersonPhone"] = "Telefon der Ansprechperson ist erforderlich"
+		}
+	}
+
 	if len(errs) > 0 {
 		return shared.NewValidationError("Validation failed", errs)
 	}
@@ -1405,6 +1446,38 @@ func clearMeteringPointEnergyByType(points []shared.MeteringPoint) {
 			mp.BatteryControlAcceptable = nil
 		}
 	}
+}
+
+// clearContactPersonIfDisabled handles the PROJ-57 contact-person fields.
+// Cleared zu false/NULL, wenn:
+//   - die EEG die Konfiguration auf "hidden" gestellt hat, oder
+//   - der Mitgliedstyp nicht in der Org-Liste (company/association/municipality)
+//     liegt — eine Ansprechperson ist nur dort semantisch sinnvoll, und
+//     ein forged client soll die Felder bei Privatperson/Farmer nicht
+//     einschleusen können, oder
+//   - HasContactPerson=false ist — die drei Detail-Felder gehören nur
+//     zum Toggle-aktiv-Kontext.
+func clearContactPersonIfDisabled(app *shared.Application, fieldConfig map[string]FieldConfigEntry) {
+	disabled := effectiveState(fieldConfig, "contact_person") == "hidden" ||
+		!isOrgMemberType(app.MemberType)
+	if disabled {
+		app.HasContactPerson = false
+	}
+	if !app.HasContactPerson {
+		app.ContactPersonName = nil
+		app.ContactPersonEmail = nil
+		app.ContactPersonPhone = nil
+	}
+}
+
+// isOrgMemberType returns true für die drei Mitgliedstypen, bei denen
+// die Unterscheidung zwischen Org-Konto und konkreter Ansprechperson
+// sinnvoll ist (PROJ-57). sole_proprietor (Kleinunternehmer) ist bewusst
+// nicht dabei — dort ist der Inhaber der Ansprechpartner.
+func isOrgMemberType(mt shared.MemberType) bool {
+	return mt == shared.MemberTypeCompany ||
+		mt == shared.MemberTypeAssociation ||
+		mt == shared.MemberTypeMunicipality
 }
 
 // clearNetworkAuthIfHidden resets the PROJ-44 authorization when the EEG has
