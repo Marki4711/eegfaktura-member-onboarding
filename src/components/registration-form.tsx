@@ -834,7 +834,20 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                     name="titel"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Titel vor</FormLabel>
+                        <div className="flex items-center gap-1">
+                          <FormLabel>Titel vor</FormLabel>
+                          <Popover>
+                            <PopoverTrigger type="button" className="cursor-help" aria-label="Hinweis zu Titel vor">
+                              <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[24rem] max-w-[90vw] text-sm">
+                              Akademische oder berufliche Titel, die <strong>vor</strong> dem
+                              Namen stehen — z. B. „Dr.", „Mag.", „DI", „Ing.", „DDr.".
+                              Mehrere Titel können hintereinander angegeben werden. Feld
+                              optional.
+                            </PopoverContent>
+                          </Popover>
+                        </div>
                         <FormControl>
                           <Input autoComplete="honorific-prefix" {...field} />
                         </FormControl>
@@ -877,7 +890,20 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                     name="titelNach"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Titel nach</FormLabel>
+                        <div className="flex items-center gap-1">
+                          <FormLabel>Titel nach</FormLabel>
+                          <Popover>
+                            <PopoverTrigger type="button" className="cursor-help" aria-label="Hinweis zu Titel nach">
+                              <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[24rem] max-w-[90vw] text-sm">
+                              Akademische Grade, die <strong>nach</strong> dem Namen stehen —
+                              z. B. „BSc", „MSc", „MBA", „BA", „MA", „PhD", „Dipl.-Ing.".
+                              Mehrere Grade können hintereinander angegeben werden, üblicherweise
+                              durch Komma getrennt. Feld optional.
+                            </PopoverContent>
+                          </Popover>
+                        </div>
                         <FormControl>
                           <Input autoComplete="honorific-suffix" {...field} />
                         </FormControl>
