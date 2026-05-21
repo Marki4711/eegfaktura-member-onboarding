@@ -328,7 +328,7 @@ export function AdminEditForm({ open, application, onClose, onRefresh }: Props) 
             {isPerson ? (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1 col-span-2">
-                  <Label htmlFor="edit-titel">Titel</Label>
+                  <Label htmlFor="edit-titel">Titel vor</Label>
                   <Input
                     id="edit-titel"
                     value={titel}

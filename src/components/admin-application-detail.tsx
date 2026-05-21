@@ -392,7 +392,7 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
             </dl>
             {(application.memberType === "private" || application.memberType === "farmer") ? (
               <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                {application.titel && <Field label="Titel" value={application.titel} />}
+                {application.titel && <Field label="Titel vor" value={application.titel} />}
                 <Field label="Vorname" value={application.firstname} />
                 <Field label="Nachname" value={application.lastname} />
                 {application.titelNach && <Field label="Titel nach" value={application.titelNach} />}

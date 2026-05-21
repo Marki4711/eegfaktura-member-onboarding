@@ -834,7 +834,7 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                     name="titel"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Titel</FormLabel>
+                        <FormLabel>Titel vor</FormLabel>
                         <FormControl>
                           <Input autoComplete="honorific-prefix" {...field} />
                         </FormControl>
