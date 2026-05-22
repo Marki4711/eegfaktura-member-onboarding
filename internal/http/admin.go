@@ -1312,9 +1312,13 @@ func (h *AdminHandler) ListTariffs(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		slog.Warn("admin: tariff lookup failed", "rc_number", rcNumber, "error", err)
 		// Surface as 503 so the frontend can fall back to "import without tariffs".
+		// The raw core error (HTTP status, response-header summary, parse detail)
+		// is included verbatim so the admin sees in the UI whether it was an auth
+		// problem, a proxy-rewrite, a schema drift, etc. — instead of always the
+		// same generic "Tarife konnten nicht aus dem Core geladen werden."
 		h.writeJSON(w, http.StatusServiceUnavailable, shared.ErrorResponse{
 			Code:    "service_unavailable",
-			Message: "Tarife konnten nicht aus dem Core geladen werden.",
+			Message: "Tarife konnten nicht aus dem Core geladen werden: " + err.Error(),
 		})
 		return
 	}
@@ -1372,7 +1376,7 @@ func (h *AdminHandler) SuggestNextMemberNumber(w http.ResponseWriter, r *http.Re
 		slog.Warn("admin: next-member-number lookup failed", "application_id", id, "rc_number", rcNumber, "error", err)
 		h.writeJSON(w, http.StatusServiceUnavailable, shared.ErrorResponse{
 			Code:    "service_unavailable",
-			Message: "Nächste Mitgliedsnummer konnte nicht aus dem Core ermittelt werden.",
+			Message: "Nächste Mitgliedsnummer konnte nicht aus dem Core ermittelt werden: " + err.Error(),
 		})
 		return
 	}

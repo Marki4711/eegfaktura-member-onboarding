@@ -148,7 +148,10 @@ export function ImportTariffDialog({
 
         {fetchError && (
           <div className="rounded-md border border-amber-500/50 bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
-            Tarife konnten nicht aus dem Core geladen werden ({fetchError}). Der Import läuft ohne Tarif-Zuweisung — du kannst die Tarife später in eegFaktura nachpflegen.
+            <div className="font-medium break-words">{fetchError}</div>
+            <div className="mt-1 text-xs">
+              Der Import läuft ohne Tarif-Zuweisung — du kannst die Tarife später in eegFaktura nachpflegen.
+            </div>
           </div>
         )}
 

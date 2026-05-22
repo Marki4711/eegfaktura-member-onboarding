@@ -284,12 +284,17 @@ func (c *HTTPCoreClient) ListTariffs(ctx context.Context, bearerToken, tenant st
 	// Diagnose-Hilfe analog ListParticipants — siehe Kommentar dort.
 	if len(respBody) == 0 || readErr != nil {
 		detail := fmt.Sprintf(
-			"decode /eeg/tariff: empty body — status=%d content-type=%q content-length=%q read-bytes=%d read-err=%v",
+			"decode /eeg/tariff: empty body — status=%d proto=%q content-type=%q content-length=%q read-bytes=%d read-err=%v server=%q www-authenticate=%q location=%q response-headers=[%s]",
 			resp.StatusCode,
+			resp.Proto,
 			resp.Header.Get("Content-Type"),
 			resp.Header.Get("Content-Length"),
 			len(respBody),
 			readErr,
+			resp.Header.Get("Server"),
+			resp.Header.Get("Www-Authenticate"),
+			resp.Header.Get("Location"),
+			summariseHeaders(resp.Header),
 		)
 		return nil, &CoreParseError{Detail: detail}
 	}
@@ -405,12 +410,17 @@ func (c *HTTPCoreClient) ListParticipants(ctx context.Context, bearerToken, tena
 	// "JSON-Schema-Drift" unterscheiden können (siehe auch ListTariffs).
 	if len(respBody) == 0 || readErr != nil {
 		detail := fmt.Sprintf(
-			"decode /participant: empty body — status=%d content-type=%q content-length=%q read-bytes=%d read-err=%v",
+			"decode /participant: empty body — status=%d proto=%q content-type=%q content-length=%q read-bytes=%d read-err=%v server=%q www-authenticate=%q location=%q response-headers=[%s]",
 			resp.StatusCode,
+			resp.Proto,
 			resp.Header.Get("Content-Type"),
 			resp.Header.Get("Content-Length"),
 			len(respBody),
 			readErr,
+			resp.Header.Get("Server"),
+			resp.Header.Get("Www-Authenticate"),
+			resp.Header.Get("Location"),
+			summariseHeaders(resp.Header),
 		)
 		return nil, &CoreParseError{Detail: detail}
 	}
@@ -473,4 +483,28 @@ func truncate(s string, maxRunes int) string {
 		return s
 	}
 	return string(runes[:maxRunes]) + "…"
+}
+
+// summariseHeaders renders a compact one-line representation of a response
+// header set for diagnostic logging. Used when the core returns an unexpected
+// response (empty body, wrong content-type) so we can tell whether the
+// response actually came from the core or from a proxy/auth-gate in front of
+// it. Sensitive headers (Set-Cookie, Authorization) are masked.
+func summariseHeaders(h http.Header) string {
+	if len(h) == 0 {
+		return "<none>"
+	}
+	parts := make([]string, 0, len(h))
+	for k, vs := range h {
+		val := strings.Join(vs, ",")
+		lower := strings.ToLower(k)
+		if lower == "set-cookie" || lower == "authorization" {
+			val = "<redacted>"
+		}
+		if len(val) > 200 {
+			val = val[:200] + "…"
+		}
+		parts = append(parts, k+"="+val)
+	}
+	return strings.Join(parts, "; ")
 }
