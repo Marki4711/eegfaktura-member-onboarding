@@ -100,7 +100,8 @@ Rules:
 - `(rc_number, field_name)` is unique
 - `field_name` must be one of the centrally registered configurable fields (enforced in application code)
 - `state` is constrained to `hidden`, `optional`, `required`, `admin_only` (DB CHECK constraint)
-- missing entries default to `hidden` for new fields; `optional` for `phone`, `birth_date`, `uid_number`, `bank_name`
+- missing entries default to `hidden` for new fields; `optional` for `phone`, `birth_date`, `uid_number`, `bank_name`, `participation_factor`
+- field_config entries used since PROJ-56/57/58 (alle Default `hidden`): `network_operator_customer_number`, `meter_inventory_number`, `contact_person_name`, `contact_person_email`, `contact_person_phone`, `billing_email`. Es gibt keinen Master-Switch `contact_person` mehr (PROJ-57 v3 hat ihn entfernt — die Public-Form-Checkbox „Ansprechperson angeben" erscheint automatisch, sobald mindestens eines der drei Subfelder ≠ `hidden` ist).
 - `admin_only` fields are returned as `hidden` in the public registration config — members never see them
 
 ---
@@ -132,7 +133,8 @@ Fields:
 - `rejected_at`
 - `imported_at`
 - `member_type`
-- `titel` — nullable VARCHAR(50), optional title prefix (e.g. "Mag.", "Dr.")
+- `titel` — nullable VARCHAR(50), optional title prefix (e.g. "Mag.", "Dr."); im UI als „Titel vor" gelabelt
+- `titel_nach` *(Migration 000037)* — nullable VARCHAR(50), optional title suffix (e.g. "BSc", "MSc", "MBA"); im UI als „Titel nach"
 - `firstname`
 - `lastname`
 - `birth_date`
@@ -179,6 +181,14 @@ Fields:
 - `activation_notification_sent_at` *(PROJ-53)* — nullable TIMESTAMPTZ; set when the Beitrittsbestätigungs-Mail with PDF was successfully delivered. Guards against double-send when an application transitions in/out of `activated` multiple times. Migration 047 retro-fits the flag for applications that were already in `imported/ready_for_activation/awaiting_bank_confirmation/activated` at deploy time (hard cut-off: no duplicate mail to existing members).
 - `network_operator_authorization` *(PROJ-44)* — BOOLEAN NOT NULL DEFAULT FALSE; member-granted authorisation for the EEG to coordinate with the grid operator on their behalf. Per-EEG via `field_config` (default `hidden`).
 - `network_operator_authorization_at` *(PROJ-44)* — nullable TIMESTAMPTZ; audit timestamp set on FALSE→TRUE transition.
+- `network_operator_customer_number` *(PROJ-56, Migration 000049)* — nullable TEXT; Kundennummer beim Netzbetreiber. Im Public-Formular nur sichtbar, wenn (a) `field_config` ≠ `hidden` UND (b) das Mitglied die Vollmacht-Checkbox aktiv setzt. Service-Layer cleart auf NULL, wenn `network_operator_authorization=FALSE` oder `field_config=hidden`.
+- `meter_inventory_number` *(PROJ-56, Migration 000049)* — nullable TEXT; Inventarnummer des Zählers. Gleiche Sichtbarkeits- und Cleanup-Regel wie `network_operator_customer_number`.
+- `has_contact_person` *(PROJ-57, Migration 000050)* — BOOLEAN NOT NULL DEFAULT FALSE; expliziter Toggle, damit „leer + nein" und „leer + ja" semantisch unterscheidbar bleiben. Wird im Public-Formular nur bei Org-Mitgliedstypen (`company`, `association`, `municipality`) als Checkbox „Ansprechperson angeben" gerendert; die Checkbox erscheint automatisch, sobald mindestens eines der drei Subfelder im `field_config` ≠ `hidden` ist (kein eigener Master-Switch im `field_config`, siehe PROJ-57 v3).
+- `contact_person_name` *(PROJ-57, Migration 000050)* — nullable TEXT; Ansprechperson-Name. Per-EEG via `field_config` (Default `hidden`). Service-Layer cleart auf NULL, wenn `has_contact_person=FALSE`, Mitgliedstyp nicht in der Org-Liste, oder alle drei contact_person-Felder im `field_config` auf `hidden` stehen.
+- `contact_person_email` *(PROJ-57, Migration 000050)* — nullable TEXT; gleiche Bedingungen wie `contact_person_name`. E-Mail-Format-Check läuft auch bei `field_config=optional`, falls Wert eingegeben.
+- `contact_person_phone` *(PROJ-57, Migration 000050)* — nullable TEXT; gleiche Bedingungen wie `contact_person_name`.
+- `has_billing_email` *(PROJ-58, Migration 000051)* — BOOLEAN NOT NULL DEFAULT FALSE; expliziter Toggle für „abweichende Rechnungs-E-Mail". Nur bei Org-Mitgliedstypen, in der Bankverbindungs-Section gerendert.
+- `billing_email` *(PROJ-58, Migration 000051)* — nullable TEXT; Rechnungs-E-Mail. Per-EEG via `field_config` (Default `hidden`). Service-Layer cleart auf NULL, wenn `has_billing_email=FALSE`, Mitgliedstyp nicht in der Org-Liste oder `field_config=hidden`. E-Mail-Format-Check bei nicht-leerem Wert.
 - `email_confirmed_at` — nullable TIMESTAMPTZ; set when the member clicked the link.
 - `email_confirmation_used_at` — nullable TIMESTAMPTZ; first-click timestamp (separate from `email_confirmed_at` to detect re-clicks).
 - `cooperative_shares_count` *(PROJ-37)* — INT NULL, CHECK `> 0`; Anzahl der vom Mitglied gezeichneten Genossenschaftsanteile. NULL bei EEGs ohne aktiviertes Anteils-Feature; sonst Submit-validiert `>= registration_entrypoint.cooperative_required_shares`. Gesamtbetrag wird nicht gespeichert — `count × amount` ist Render-Berechnung.

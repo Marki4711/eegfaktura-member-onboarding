@@ -221,7 +221,15 @@ Creates a new application.
   "electricVehicleAnnualKm": 12000,
   "electricHotWater": null,
   "cooperativeSharesCount": 1,
-  "networkOperatorAuthorization": true
+  "networkOperatorAuthorization": true,
+  "networkOperatorCustomerNumber": "K-998877",
+  "meterInventoryNumber": "INV-12345",
+  "hasContactPerson": true,
+  "contactPersonName": "Erika Musterfrau",
+  "contactPersonEmail": "erika@musterbetrieb.at",
+  "contactPersonPhone": "0664/2345678",
+  "hasBillingEmail": true,
+  "billingEmail": "rechnung@musterbetrieb.at"
 }
 ```
 
@@ -240,6 +248,17 @@ All fields under `meteringPoints[].transformer/installationNumber/installationNa
 `meteringPoints[].batteryControlAcceptable` (PROJ-49 follow-up) is the member's "Speichersteuerung im Sinne der EEG vorstellbar?" answer. Only stored for PRODUCTION rows with `generationType = "pv"` AND when the member has provided at least one battery parameter (`batterySizeKwh` or `inverterManufacturer`). The service nulls the field in all other cases (including the unanswered "no battery" path).
 
 `networkOperatorAuthorization` (PROJ-44) is the member's authorisation for the EEG to coordinate with the grid operator on their behalf. The configurable-field `network_operator_authorization` controls visibility — when the EEG sets it to `required`, the boolean must be `true` on submit (otherwise 400). When `hidden`, the server nulls/false-sets it. The auth timestamp `network_operator_authorization_at` is stamped automatically on the FALSE→TRUE flip.
+
+`networkOperatorCustomerNumber` and `meterInventoryNumber` (PROJ-56) are optional TEXT fields. They are only retained when (a) `networkOperatorAuthorization = true` AND (b) the matching `field_config` entry is not `hidden`. Otherwise the server nulls both. When the EEG sets either to `required`, a non-empty value is enforced — but only if the Vollmacht is also active (the field is conceptually gated behind the Vollmacht).
+
+`hasContactPerson`, `contactPersonName`, `contactPersonEmail`, `contactPersonPhone` (PROJ-57) capture the optional Ansprechperson for organisation member types (`company`, `association`, `municipality`). The toggle is explicit so that "no, no contact person" and "yes, but the fields are empty" stay distinguishable on the wire. Service-side cleanup rules (`clearContactPersonIfDisabled`):
+- `hasContactPerson=false` ⇒ all three TEXT fields nulled.
+- `memberType` not in the org list ⇒ toggle false-set, all three nulled.
+- All three subfields in `field_config` set to `hidden` (i.e. `contactPersonEnabled(fieldConfig)` is false) ⇒ toggle false-set, all three nulled.
+
+Required-validation runs per-subfield: each name/email/phone is required only when `hasContactPerson=true` AND that subfield's `field_config` state is `required`. The e-mail format check also runs at `optional` whenever a value is supplied. There is no separate `contact_person` master switch in `field_config` (PROJ-57 v3 removed it) — the Public-Form checkbox „Ansprechperson angeben" appears automatically when at least one of the three subfields is not `hidden`.
+
+`hasBillingEmail` and `billingEmail` (PROJ-58) capture an optional deviating billing e-mail for organisation member types. Same toggle semantics as Ansprechperson. Service nulls `billingEmail` and false-sets the toggle when `hasBillingEmail=false`, `memberType` is not an org type, or `field_config.billing_email = hidden`. Required-validation only fires when `hasBillingEmail=true` AND `field_config.billing_email = required`. E-mail format is validated whenever a non-empty value is supplied.
 
 `titelNach` (PROJ-39) is the optional academic title after the name (e.g. `BSc`, `MSc`). The existing `titel` field represents the title **before** the name. Both are independent.
 
@@ -598,6 +617,7 @@ Returns the admin list.
 - metering points are fully replaced
 - `einzugsart` accepts `core` | `b2b` | `kein_sepa` (PROJ-48 — admin-controlled per application, no longer auto-derived from `memberType`)
 - additional editable fields mirror the public submit body: `memberType`, `titel`, `titelNach`, `companyName`, `uidNumber`, `registerNumber`, plus the configurable energy/household fields and PROJ-37 `cooperativeSharesCount`
+- PROJ-56 / PROJ-57 / PROJ-58 fields are editable as in the public body: `networkOperatorCustomerNumber`, `meterInventoryNumber`, `hasContactPerson` + the three `contactPerson*` fields, `hasBillingEmail` + `billingEmail`. The same server-side cleanup rules apply (`clearContactPersonIfDisabled`, `clearBillingEmailIfDisabled`), so an admin edit that toggles a flag to `false` will null the dependent fields on save.
 
 ### Response 200
 ```json

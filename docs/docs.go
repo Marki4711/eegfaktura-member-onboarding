@@ -96,19 +96,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/shared.ApplicationListResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ApplicationListResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -139,7 +139,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/shared.BulkActionRequest"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.BulkActionRequest"
                         }
                     }
                 ],
@@ -147,25 +147,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/shared.BulkActionResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.BulkActionResponse"
                         }
                     },
                     "400": {
                         "description": "Validation error",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -190,13 +190,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/importing.ActivationCheckResult"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_importing.ActivationCheckResult"
                         }
                     },
                     "503": {
                         "description": "Service Unavailable",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -230,13 +230,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -270,31 +270,31 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/shared.AdminApplicationDetailResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.AdminApplicationDetailResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Tenant mismatch",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -330,7 +330,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/shared.AdminUpdateApplicationRequest"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.AdminUpdateApplicationRequest"
                         }
                     }
                 ],
@@ -338,37 +338,37 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/shared.AdminApplicationDetailResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.AdminApplicationDetailResponse"
                         }
                     },
                     "400": {
                         "description": "Validation error",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Tenant mismatch",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -400,25 +400,25 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -456,7 +456,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/shared.UpdateAdminNoteRequest"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.UpdateAdminNoteRequest"
                         }
                     }
                 ],
@@ -470,19 +470,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -522,31 +522,31 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Conflict",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -584,7 +584,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/shared.ClearImportLockRequest"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ClearImportLockRequest"
                         }
                     }
                 ],
@@ -592,37 +592,37 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/shared.AdminApplicationDetailResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.AdminApplicationDetailResponse"
                         }
                     },
                     "400": {
                         "description": "Validation failed",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Tenant mismatch",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Application not in stuck import state",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -662,25 +662,25 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -721,43 +721,43 @@ const docTemplate = `{
                     "400": {
                         "description": "Application has no metering points",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Tenant mismatch",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Application not in approved status",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Core service error or DB error",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "503": {
                         "description": "Core service not configured",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -795,7 +795,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/shared.MarkActivatedRequest"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.MarkActivatedRequest"
                         }
                     }
                 ],
@@ -803,37 +803,37 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/shared.AdminApplicationDetailResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.AdminApplicationDetailResponse"
                         }
                     },
                     "400": {
                         "description": "Validation failed",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Application not in approved status, or member-number conflict",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -871,7 +871,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/shared.MarkImportedManuallyRequest"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.MarkImportedManuallyRequest"
                         }
                     }
                 ],
@@ -879,37 +879,37 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/shared.AdminApplicationDetailResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.AdminApplicationDetailResponse"
                         }
                     },
                     "400": {
                         "description": "Validation failed",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Tenant mismatch",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Application not in stuck import state",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -952,19 +952,19 @@ const docTemplate = `{
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "503": {
                         "description": "Core not configured / lookup failed",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -1002,7 +1002,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/shared.ReassignEEGRequest"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ReassignEEGRequest"
                         }
                     }
                 ],
@@ -1010,31 +1010,31 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/shared.AdminApplicationDetailResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.AdminApplicationDetailResponse"
                         }
                     },
                     "400": {
                         "description": "Validation error",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Tenant mismatch on source or target",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Application or target RC not found",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Status not reassignable, source==target, or target inactive",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -1068,25 +1068,25 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -1120,31 +1120,31 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Throttled, wrong status, or EEG opt-out",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -1182,7 +1182,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/shared.ResetImportRequest"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ResetImportRequest"
                         }
                     }
                 ],
@@ -1190,43 +1190,43 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/shared.AdminApplicationDetailResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.AdminApplicationDetailResponse"
                         }
                     },
                     "400": {
                         "description": "Validation failed",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Tenant mismatch",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Application not in imported status",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -1264,7 +1264,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/shared.ChangeStatusRequest"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ChangeStatusRequest"
                         }
                     }
                 ],
@@ -1272,37 +1272,37 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/shared.ChangeStatusResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ChangeStatusResponse"
                         }
                     },
                     "400": {
                         "description": "Unknown status value",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Tenant mismatch",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Invalid status transition",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -1336,25 +1336,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/shared.EEGSettingsComparisonResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.EEGSettingsComparisonResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "503": {
                         "description": "Core not configured or unreachable",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -1396,19 +1396,19 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "No logo synced yet",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -1442,31 +1442,31 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/shared.EEGSettingsComparisonResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.EEGSettingsComparisonResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "502": {
                         "description": "Core returned an error",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "503": {
                         "description": "Core not configured",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -1507,25 +1507,25 @@ const docTemplate = `{
                     "400": {
                         "description": "rcNumber missing",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Tenant mismatch",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "503": {
                         "description": "Core service unavailable",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -1556,7 +1556,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/http.externalApplicationRequest"
+                            "$ref": "#/definitions/internal_http.externalApplicationRequest"
                         }
                     }
                 ],
@@ -1573,31 +1573,31 @@ const docTemplate = `{
                     "404": {
                         "description": "RC number not found",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Duplicate metering point",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "410": {
                         "description": "Registration deactivated",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "422": {
                         "description": "Validation error",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -1623,7 +1623,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/shared.CreateApplicationRequest"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.CreateApplicationRequest"
                         }
                     }
                 ],
@@ -1631,37 +1631,37 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/shared.ApplicationResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ApplicationResponse"
                         }
                     },
                     "400": {
                         "description": "Validation error",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Duplicate metering point",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "410": {
                         "description": "Registration deactivated",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "422": {
                         "description": "Turnstile verification failed",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -1687,7 +1687,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/shared.ConfirmEmailRequest"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ConfirmEmailRequest"
                         }
                     }
                 ],
@@ -1695,25 +1695,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/shared.ConfirmEmailResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ConfirmEmailResponse"
                         }
                     },
                     "400": {
                         "description": "Token invalid or expired",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Application is no longer waiting for confirmation",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -1746,7 +1746,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/shared.UpdateApplicationRequest"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.UpdateApplicationRequest"
                         }
                     }
                 ],
@@ -1754,31 +1754,31 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/shared.ApplicationResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ApplicationResponse"
                         }
                     },
                     "400": {
                         "description": "Validation error or invalid UUID",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Application not found",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Application already submitted",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -1810,7 +1810,7 @@ const docTemplate = `{
                         "name": "body",
                         "in": "body",
                         "schema": {
-                            "$ref": "#/definitions/shared.SubmitRequest"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.SubmitRequest"
                         }
                     }
                 ],
@@ -1818,31 +1818,31 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/shared.SubmitResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.SubmitResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid UUID",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Application not found",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Invalid status transition",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -1871,25 +1871,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/shared.RegistrationConfig"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.RegistrationConfig"
                         }
                     },
                     "404": {
                         "description": "RC number unknown",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "410": {
                         "description": "Registration deactivated for this EEG",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/shared.ErrorResponse"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
                         }
                     }
                 }
@@ -1984,134 +1984,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "http.externalApplicationRequest": {
-            "type": "object",
-            "required": [
-                "accountHolder",
-                "email",
-                "iban",
-                "memberType",
-                "meteringPoints",
-                "privacyAccepted",
-                "residentCity",
-                "residentStreet",
-                "residentStreetNumber",
-                "residentZip",
-                "sepaMandateAccepted"
-            ],
-            "properties": {
-                "accountHolder": {
-                    "type": "string",
-                    "maxLength": 150,
-                    "minLength": 1
-                },
-                "birthDate": {
-                    "type": "string"
-                },
-                "companyName": {
-                    "type": "string",
-                    "maxLength": 150,
-                    "minLength": 1
-                },
-                "electricHotWater": {
-                    "type": "boolean"
-                },
-                "electricVehicle": {
-                    "type": "boolean"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "firstname": {
-                    "type": "string",
-                    "maxLength": 100,
-                    "minLength": 1
-                },
-                "heatPump": {
-                    "type": "boolean"
-                },
-                "iban": {
-                    "type": "string",
-                    "maxLength": 50,
-                    "minLength": 15
-                },
-                "lastname": {
-                    "type": "string",
-                    "maxLength": 100,
-                    "minLength": 1
-                },
-                "memberType": {
-                    "type": "string",
-                    "enum": [
-                        "private",
-                        "sole_proprietor",
-                        "farmer",
-                        "municipality",
-                        "company",
-                        "association"
-                    ]
-                },
-                "membershipStartDate": {
-                    "description": "Configurable fields (PROJ-8). PROJ-49 moved consumption / feed_in /\npv_power to MeteringPoints[] sub-entries.",
-                    "type": "string"
-                },
-                "meteringPoints": {
-                    "type": "array",
-                    "maxItems": 10,
-                    "minItems": 1,
-                    "items": {
-                        "$ref": "#/definitions/shared.CreateMeteringPointRequest"
-                    }
-                },
-                "personsInHousehold": {
-                    "type": "integer",
-                    "minimum": 0
-                },
-                "phone": {
-                    "type": "string",
-                    "maxLength": 50
-                },
-                "privacyAccepted": {
-                    "type": "boolean"
-                },
-                "registerNumber": {
-                    "type": "string",
-                    "maxLength": 50
-                },
-                "residentCity": {
-                    "type": "string",
-                    "maxLength": 255,
-                    "minLength": 1
-                },
-                "residentStreet": {
-                    "type": "string",
-                    "maxLength": 255,
-                    "minLength": 1
-                },
-                "residentStreetNumber": {
-                    "type": "string",
-                    "maxLength": 50,
-                    "minLength": 1
-                },
-                "residentZip": {
-                    "type": "string",
-                    "maxLength": 20,
-                    "minLength": 1
-                },
-                "sepaMandateAccepted": {
-                    "type": "boolean"
-                },
-                "titel": {
-                    "type": "string",
-                    "maxLength": 50
-                },
-                "uidNumber": {
-                    "type": "string",
-                    "maxLength": 50
-                }
-            }
-        },
-        "importing.ActivationCheckResult": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_importing.ActivationCheckResult": {
             "type": "object",
             "properties": {
                 "activated": {
@@ -2128,7 +2001,7 @@ const docTemplate = `{
                 }
             }
         },
-        "shared.AdminApplicationDetailResponse": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.AdminApplicationDetailResponse": {
             "type": "object",
             "properties": {
                 "accountHolder": {
@@ -2157,6 +2030,9 @@ const docTemplate = `{
                 "bankName": {
                     "type": "string"
                 },
+                "billingEmail": {
+                    "type": "string"
+                },
                 "birthDate": {
                     "type": "string"
                 },
@@ -2166,8 +2042,17 @@ const docTemplate = `{
                 "consents": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/shared.DocumentConsentView"
+                        "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.DocumentConsentView"
                     }
+                },
+                "contactPersonEmail": {
+                    "type": "string"
+                },
+                "contactPersonName": {
+                    "type": "string"
+                },
+                "contactPersonPhone": {
+                    "type": "string"
                 },
                 "cooperativeRequiredShares": {
                     "type": "integer"
@@ -2216,6 +2101,14 @@ const docTemplate = `{
                 "firstname": {
                     "type": "string"
                 },
+                "hasBillingEmail": {
+                    "description": "PROJ-58: Abweichende Rechnungs-E-Mail für Org-Mitgliedstypen.\nToggle + Email. Service-Layer cleart auf NULL, wenn Toggle aus\noder Mitgliedstyp nicht in der Org-Liste.",
+                    "type": "boolean"
+                },
+                "hasContactPerson": {
+                    "description": "PROJ-57: Ansprechperson für Org-Mitgliedstypen (company, association,\nmunicipality). Toggle + drei TEXT-Felder. Service-Layer cleart die\ndrei Felder auf NULL, wenn HasContactPerson=false oder der Mitgliedstyp\nnicht in der Org-Liste liegt.",
+                    "type": "boolean"
+                },
                 "heatPump": {
                     "type": "boolean"
                 },
@@ -2254,16 +2147,19 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "memberType": {
-                    "$ref": "#/definitions/shared.MemberType"
+                    "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.MemberType"
                 },
                 "membershipStartDate": {
                     "description": "Configurable application-level fields (PROJ-8). Note: PROJ-49 moved\nconsumption/feed_in/pv_power fields to metering_point — they now live\non MeteringPoint, not here.",
                     "type": "string"
                 },
+                "meterInventoryNumber": {
+                    "type": "string"
+                },
                 "meteringPoints": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/shared.MeteringPoint"
+                        "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.MeteringPoint"
                     }
                 },
                 "needsInfoReason": {
@@ -2274,6 +2170,10 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "networkOperatorAuthorizationAt": {
+                    "type": "string"
+                },
+                "networkOperatorCustomerNumber": {
+                    "description": "PROJ-56: Zwei optionale Netzbetreiber-Info-Felder, die im Public-\nFormular sichtbar werden, sobald die Vollmacht-Checkbox aktiv ist.\nWerden serverseitig auf NULL geclearted, wenn die Vollmacht nicht\nerteilt wurde — egal was der Frontend-Submit sendet.",
                     "type": "string"
                 },
                 "personsInHousehold": {
@@ -2328,12 +2228,12 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
-                    "$ref": "#/definitions/shared.ApplicationStatus"
+                    "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ApplicationStatus"
                 },
                 "statusLog": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/shared.StatusLogEntry"
+                        "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.StatusLogEntry"
                     }
                 },
                 "submittedAt": {
@@ -2356,7 +2256,7 @@ const docTemplate = `{
                 }
             }
         },
-        "shared.AdminUpdateApplicationRequest": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.AdminUpdateApplicationRequest": {
             "type": "object",
             "properties": {
                 "accountHolder": {
@@ -2428,7 +2328,7 @@ const docTemplate = `{
                     "maxItems": 10,
                     "minItems": 1,
                     "items": {
-                        "$ref": "#/definitions/shared.CreateMeteringPointRequest"
+                        "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.CreateMeteringPointRequest"
                     }
                 },
                 "phone": {
@@ -2473,7 +2373,7 @@ const docTemplate = `{
                 }
             }
         },
-        "shared.ApplicationListItem": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.ApplicationListItem": {
             "type": "object",
             "properties": {
                 "companyName": {
@@ -2508,13 +2408,13 @@ const docTemplate = `{
                 }
             }
         },
-        "shared.ApplicationListResponse": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.ApplicationListResponse": {
             "type": "object",
             "properties": {
                 "items": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/shared.ApplicationListItem"
+                        "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ApplicationListItem"
                     }
                 },
                 "page": {
@@ -2528,7 +2428,7 @@ const docTemplate = `{
                 }
             }
         },
-        "shared.ApplicationResponse": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.ApplicationResponse": {
             "type": "object",
             "properties": {
                 "createdAt": {
@@ -2548,7 +2448,7 @@ const docTemplate = `{
                 }
             }
         },
-        "shared.ApplicationStatus": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.ApplicationStatus": {
             "type": "string",
             "enum": [
                 "draft",
@@ -2579,7 +2479,7 @@ const docTemplate = `{
                 "StatusActivated"
             ]
         },
-        "shared.BulkActionRequest": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.BulkActionRequest": {
             "type": "object",
             "required": [
                 "action",
@@ -2608,7 +2508,7 @@ const docTemplate = `{
                 }
             }
         },
-        "shared.BulkActionResponse": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.BulkActionResponse": {
             "type": "object",
             "properties": {
                 "skipped": {
@@ -2625,7 +2525,7 @@ const docTemplate = `{
                 }
             }
         },
-        "shared.ChangeStatusRequest": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.ChangeStatusRequest": {
             "type": "object",
             "required": [
                 "toStatus"
@@ -2639,7 +2539,7 @@ const docTemplate = `{
                 }
             }
         },
-        "shared.ChangeStatusResponse": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.ChangeStatusResponse": {
             "type": "object",
             "properties": {
                 "id": {
@@ -2650,7 +2550,7 @@ const docTemplate = `{
                 }
             }
         },
-        "shared.ClearImportLockRequest": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.ClearImportLockRequest": {
             "type": "object",
             "required": [
                 "reason"
@@ -2663,7 +2563,7 @@ const docTemplate = `{
                 }
             }
         },
-        "shared.ConfirmEmailRequest": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.ConfirmEmailRequest": {
             "type": "object",
             "required": [
                 "token"
@@ -2676,7 +2576,7 @@ const docTemplate = `{
                 }
             }
         },
-        "shared.ConfirmEmailResponse": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.ConfirmEmailResponse": {
             "type": "object",
             "properties": {
                 "alreadyConfirmed": {
@@ -2690,7 +2590,7 @@ const docTemplate = `{
                 }
             }
         },
-        "shared.ConsentInput": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.ConsentInput": {
             "type": "object",
             "properties": {
                 "isCentralPolicy": {
@@ -2704,7 +2604,7 @@ const docTemplate = `{
                 }
             }
         },
-        "shared.ConsentType": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.ConsentType": {
             "type": "string",
             "enum": [
                 "explicit",
@@ -2715,7 +2615,7 @@ const docTemplate = `{
                 "ConsentTypeInformational"
             ]
         },
-        "shared.CreateApplicationRequest": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.CreateApplicationRequest": {
             "type": "object",
             "required": [
                 "accountHolder",
@@ -2746,6 +2646,10 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 255
                 },
+                "billingEmail": {
+                    "type": "string",
+                    "maxLength": 200
+                },
                 "birthDate": {
                     "type": "string"
                 },
@@ -2753,6 +2657,18 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 150,
                     "minLength": 1
+                },
+                "contactPersonEmail": {
+                    "type": "string",
+                    "maxLength": 200
+                },
+                "contactPersonName": {
+                    "type": "string",
+                    "maxLength": 150
+                },
+                "contactPersonPhone": {
+                    "type": "string",
+                    "maxLength": 50
                 },
                 "cooperativeSharesCount": {
                     "description": "PROJ-37: Anzahl der gezeichneten Genossenschaftsanteile. Pflicht bei\nEEGs mit aktivierter Anteils-Erfassung, sonst optional (wird dann\nserverseitig ignoriert).",
@@ -2782,6 +2698,14 @@ const docTemplate = `{
                     "maxLength": 100,
                     "minLength": 1
                 },
+                "hasBillingEmail": {
+                    "description": "PROJ-58: Abweichende Rechnungs-E-Mail für Org-Mitgliedstypen.",
+                    "type": "boolean"
+                },
+                "hasContactPerson": {
+                    "description": "PROJ-57: Ansprechperson für Org-Mitgliedstypen. HasContactPerson ist\nder Toggle aus dem Formular; die drei Felder sind nur relevant wenn\nHasContactPerson=true. Service-Layer cleart sonst auf NULL.",
+                    "type": "boolean"
+                },
                 "heatPump": {
                     "type": "boolean"
                 },
@@ -2810,17 +2734,26 @@ const docTemplate = `{
                     "description": "Configurable application-level fields (PROJ-8). PROJ-49 moved\nconsumption/feed_in/pv_power fields to MeteringPoint sub-struct.",
                     "type": "string"
                 },
+                "meterInventoryNumber": {
+                    "type": "string",
+                    "maxLength": 100
+                },
                 "meteringPoints": {
                     "type": "array",
                     "maxItems": 10,
                     "minItems": 1,
                     "items": {
-                        "$ref": "#/definitions/shared.CreateMeteringPointRequest"
+                        "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.CreateMeteringPointRequest"
                     }
                 },
                 "networkOperatorAuthorization": {
                     "description": "PROJ-44: Netzbetreiber-Vollmacht. Nur relevant wenn EEG das Feld als\noptional/required konfiguriert hat.",
                     "type": "boolean"
+                },
+                "networkOperatorCustomerNumber": {
+                    "description": "PROJ-56: Netzbetreiber-Info-Felder. Im Public-Formular sichtbar, wenn\ndie Vollmacht-Checkbox aktiv ist. Werden serverseitig auf NULL geclearted,\nwenn die Vollmacht nicht erteilt wurde.",
+                    "type": "string",
+                    "maxLength": 100
                 },
                 "personsInHousehold": {
                     "type": "integer",
@@ -2884,7 +2817,7 @@ const docTemplate = `{
                 }
             }
         },
-        "shared.CreateMeteringPointRequest": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.CreateMeteringPointRequest": {
             "type": "object",
             "required": [
                 "direction",
@@ -2990,14 +2923,14 @@ const docTemplate = `{
                 }
             }
         },
-        "shared.DocumentConsentView": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.DocumentConsentView": {
             "type": "object",
             "properties": {
                 "consentType": {
                     "description": "ConsentType distinguishes ` + "`" + `explicit` + "`" + ` (member ticked a checkbox)\nfrom ` + "`" + `informational` + "`" + ` (document was shown as info-only). PROJ-36.",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/shared.ConsentType"
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ConsentType"
                         }
                     ]
                 },
@@ -3018,7 +2951,7 @@ const docTemplate = `{
                 }
             }
         },
-        "shared.EEGSettingsComparisonResponse": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.EEGSettingsComparisonResponse": {
             "type": "object",
             "properties": {
                 "coreReachable": {
@@ -3030,7 +2963,7 @@ const docTemplate = `{
                 "differingFields": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/shared.EEGSettingsFieldDiff"
+                        "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.EEGSettingsFieldDiff"
                     }
                 },
                 "inSync": {
@@ -3049,7 +2982,7 @@ const docTemplate = `{
                 }
             }
         },
-        "shared.EEGSettingsFieldDiff": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.EEGSettingsFieldDiff": {
             "type": "object",
             "properties": {
                 "coreValue": {
@@ -3066,7 +2999,7 @@ const docTemplate = `{
                 }
             }
         },
-        "shared.ErrorResponse": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse": {
             "type": "object",
             "properties": {
                 "code": {
@@ -3083,7 +3016,7 @@ const docTemplate = `{
                 }
             }
         },
-        "shared.LegalDocumentItem": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.LegalDocumentItem": {
             "type": "object",
             "properties": {
                 "id": {
@@ -3106,7 +3039,7 @@ const docTemplate = `{
                 }
             }
         },
-        "shared.MarkActivatedRequest": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.MarkActivatedRequest": {
             "type": "object",
             "required": [
                 "memberNumber"
@@ -3119,7 +3052,7 @@ const docTemplate = `{
                 }
             }
         },
-        "shared.MarkImportedManuallyRequest": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.MarkImportedManuallyRequest": {
             "type": "object",
             "required": [
                 "memberNumber",
@@ -3140,7 +3073,7 @@ const docTemplate = `{
                 }
             }
         },
-        "shared.MemberType": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.MemberType": {
             "type": "string",
             "enum": [
                 "private",
@@ -3159,7 +3092,7 @@ const docTemplate = `{
                 "MemberTypeAssociation"
             ]
         },
-        "shared.MeterDirection": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.MeterDirection": {
             "type": "string",
             "enum": [
                 "CONSUMPTION",
@@ -3170,7 +3103,7 @@ const docTemplate = `{
                 "DirectionProduction"
             ]
         },
-        "shared.MeteringPoint": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.MeteringPoint": {
             "type": "object",
             "properties": {
                 "addressCity": {
@@ -3207,7 +3140,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "direction": {
-                    "$ref": "#/definitions/shared.MeterDirection"
+                    "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.MeterDirection"
                 },
                 "feedInForecast": {
                     "type": "integer"
@@ -3256,7 +3189,7 @@ const docTemplate = `{
                 }
             }
         },
-        "shared.ReassignEEGRequest": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.ReassignEEGRequest": {
             "type": "object",
             "required": [
                 "reason",
@@ -3275,7 +3208,7 @@ const docTemplate = `{
                 }
             }
         },
-        "shared.RegistrationConfig": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.RegistrationConfig": {
             "type": "object",
             "properties": {
                 "active": {
@@ -3303,7 +3236,7 @@ const docTemplate = `{
                 "legalDocuments": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/shared.LegalDocumentItem"
+                        "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.LegalDocumentItem"
                     }
                 },
                 "meteringPointPrefixConsumption": {
@@ -3335,7 +3268,7 @@ const docTemplate = `{
                 }
             }
         },
-        "shared.ResetImportRequest": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.ResetImportRequest": {
             "type": "object",
             "required": [
                 "reason"
@@ -3348,7 +3281,7 @@ const docTemplate = `{
                 }
             }
         },
-        "shared.StatusLogEntry": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.StatusLogEntry": {
             "type": "object",
             "properties": {
                 "applicationId": {
@@ -3374,18 +3307,18 @@ const docTemplate = `{
                 }
             }
         },
-        "shared.SubmitRequest": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.SubmitRequest": {
             "type": "object",
             "properties": {
                 "consents": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/shared.ConsentInput"
+                        "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ConsentInput"
                     }
                 }
             }
         },
-        "shared.SubmitResponse": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.SubmitResponse": {
             "type": "object",
             "properties": {
                 "id": {
@@ -3395,14 +3328,14 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
-                    "$ref": "#/definitions/shared.ApplicationStatus"
+                    "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ApplicationStatus"
                 },
                 "submittedAt": {
                     "type": "string"
                 }
             }
         },
-        "shared.UpdateAdminNoteRequest": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.UpdateAdminNoteRequest": {
             "type": "object",
             "properties": {
                 "note": {
@@ -3411,7 +3344,7 @@ const docTemplate = `{
                 }
             }
         },
-        "shared.UpdateApplicationRequest": {
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.UpdateApplicationRequest": {
             "type": "object",
             "properties": {
                 "accountHolder": {
@@ -3426,6 +3359,10 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 255
                 },
+                "billingEmail": {
+                    "type": "string",
+                    "maxLength": 200
+                },
                 "birthDate": {
                     "type": "string"
                 },
@@ -3433,6 +3370,18 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 150,
                     "minLength": 1
+                },
+                "contactPersonEmail": {
+                    "type": "string",
+                    "maxLength": 200
+                },
+                "contactPersonName": {
+                    "type": "string",
+                    "maxLength": 150
+                },
+                "contactPersonPhone": {
+                    "type": "string",
+                    "maxLength": 50
                 },
                 "cooperativeSharesCount": {
                     "description": "PROJ-37: Admin/Member-Updates der gezeichneten Anteils-Anzahl. Bei\nEEGs ohne Anteils-Erfassung serverseitig ignoriert.",
@@ -3446,6 +3395,14 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 100,
                     "minLength": 1
+                },
+                "hasBillingEmail": {
+                    "description": "PROJ-58: Abweichende Rechnungs-E-Mail.",
+                    "type": "boolean"
+                },
+                "hasContactPerson": {
+                    "description": "PROJ-57: Ansprechperson für Org-Mitgliedstypen.",
+                    "type": "boolean"
                 },
                 "iban": {
                     "type": "string",
@@ -3468,17 +3425,26 @@ const docTemplate = `{
                         "association"
                     ]
                 },
+                "meterInventoryNumber": {
+                    "type": "string",
+                    "maxLength": 100
+                },
                 "meteringPoints": {
                     "type": "array",
                     "maxItems": 10,
                     "minItems": 1,
                     "items": {
-                        "$ref": "#/definitions/shared.CreateMeteringPointRequest"
+                        "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.CreateMeteringPointRequest"
                     }
                 },
                 "networkOperatorAuthorization": {
                     "description": "PROJ-44: Netzbetreiber-Vollmacht (Update durch Member im needs_info-Flow).",
                     "type": "boolean"
+                },
+                "networkOperatorCustomerNumber": {
+                    "description": "PROJ-56: Netzbetreiber-Info-Felder. Update durch Member im needs_info-Flow\noder durch Admin via Admin-Edit. Service-Layer cleart auf NULL, wenn die\nVollmacht nicht (mehr) erteilt ist oder die EEG die Felder hidden hat.",
+                    "type": "string",
+                    "maxLength": 100
                 },
                 "phone": {
                     "type": "string",
@@ -3522,6 +3488,133 @@ const docTemplate = `{
                     "maxLength": 50
                 },
                 "titelNach": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "uidNumber": {
+                    "type": "string",
+                    "maxLength": 50
+                }
+            }
+        },
+        "internal_http.externalApplicationRequest": {
+            "type": "object",
+            "required": [
+                "accountHolder",
+                "email",
+                "iban",
+                "memberType",
+                "meteringPoints",
+                "privacyAccepted",
+                "residentCity",
+                "residentStreet",
+                "residentStreetNumber",
+                "residentZip",
+                "sepaMandateAccepted"
+            ],
+            "properties": {
+                "accountHolder": {
+                    "type": "string",
+                    "maxLength": 150,
+                    "minLength": 1
+                },
+                "birthDate": {
+                    "type": "string"
+                },
+                "companyName": {
+                    "type": "string",
+                    "maxLength": 150,
+                    "minLength": 1
+                },
+                "electricHotWater": {
+                    "type": "boolean"
+                },
+                "electricVehicle": {
+                    "type": "boolean"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "firstname": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                },
+                "heatPump": {
+                    "type": "boolean"
+                },
+                "iban": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 15
+                },
+                "lastname": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                },
+                "memberType": {
+                    "type": "string",
+                    "enum": [
+                        "private",
+                        "sole_proprietor",
+                        "farmer",
+                        "municipality",
+                        "company",
+                        "association"
+                    ]
+                },
+                "membershipStartDate": {
+                    "description": "Configurable fields (PROJ-8). PROJ-49 moved consumption / feed_in /\npv_power to MeteringPoints[] sub-entries.",
+                    "type": "string"
+                },
+                "meteringPoints": {
+                    "type": "array",
+                    "maxItems": 10,
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.CreateMeteringPointRequest"
+                    }
+                },
+                "personsInHousehold": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "phone": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "privacyAccepted": {
+                    "type": "boolean"
+                },
+                "registerNumber": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "residentCity": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1
+                },
+                "residentStreet": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1
+                },
+                "residentStreetNumber": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 1
+                },
+                "residentZip": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "minLength": 1
+                },
+                "sepaMandateAccepted": {
+                    "type": "boolean"
+                },
+                "titel": {
                     "type": "string",
                     "maxLength": 50
                 },

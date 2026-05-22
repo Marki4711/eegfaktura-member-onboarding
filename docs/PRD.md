@@ -85,6 +85,10 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 | PROJ-49 | Energie-Felder pro Zählpunkt + Einspeiselimit | Refactoring von app-level zu meter-level |
 | PROJ-52 | Konfigurierbarer Zählpunkt-Prefix pro Richtung | Mask-Lock + Auto-Pad + 2-6-5-20-Format + Alphanumerik + SEPA-Mandat-Datum |
 | PROJ-53 | Aktivierungs-Modus pro EEG + Beitrittsbestätigung erst bei `activated` + manueller `approved → activated`-Skip | Modus A/B konfigurierbar, Mail-Verschiebung, Skip-Endpoint |
+| PROJ-54 | Public/Private Repo-Split | Mirror-Workflow, `private/`-Pfad + `visibility: private`-Frontmatter |
+| PROJ-56 | Netzbetreiber-Info-Seite im Beitrittsbestätigungs-PDF | Zwei optionale Felder (Kundennummer, Inventarnummer), nur sichtbar bei aktiver Vollmacht |
+| PROJ-57 | Ansprechperson für Org-Mitgliedstypen | v3-Design: drei Subfelder einzeln per field_config, Checkbox erscheint automatisch — kein Master-Switch |
+| PROJ-58 | Abweichende Rechnungs-E-Mail | Toggle + E-Mail in der Bankverbindungs-Section, nur bei Org-Mitgliedstypen |
 
 ### Approved (wartet auf Deployment-Bündelung)
 
@@ -106,7 +110,7 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 | PROJ-50 | Zugang Online-Portal Netzbetreiber + bedingte Anleitungs-Mail | Geparkt 2026-05-18 — mehrere offene Fragen |
 | PROJ-51 | Anzeige offener Nutzungsgebühren im Admin-UI | Wartet auf Klärung des Abrechnungs- und Status-Pflege-Konzepts |
 
-> **Next available feature ID:** PROJ-54 (siehe `features/INDEX.md`).
+> **Next available feature ID:** PROJ-59 (siehe `features/INDEX.md`).
 
 ## 5. Success Metrics
 
