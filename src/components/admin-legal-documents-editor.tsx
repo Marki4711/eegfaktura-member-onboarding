@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -214,9 +215,16 @@ export function AdminLegalDocumentsEditor({ rcNumber }: Props) {
                   <p className="text-sm font-medium truncate">{doc.title}</p>
                   <a href={doc.url} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:underline truncate block">{doc.url}</a>
                 </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${doc.required ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"}`}>
+                <Badge
+                  variant="secondary"
+                  className={
+                    doc.required
+                      ? "bg-red-100 text-red-700 hover:bg-red-100"
+                      : "bg-blue-100 text-blue-700 hover:bg-blue-100"
+                  }
+                >
                   {doc.required ? "Pflicht-Zustimmung" : "Nur zur Information"}
-                </span>
+                </Badge>
                 <Button variant="ghost" size="sm" onClick={() => openEdit(doc)}>Bearbeiten</Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
