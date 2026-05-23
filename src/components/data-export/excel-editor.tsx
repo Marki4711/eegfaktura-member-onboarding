@@ -290,7 +290,13 @@ export function DataExportExcelEditor({ rcNumber, initial, template, onSaved, on
                         </SelectTrigger>
                         <SelectContent>
                           {EXCEL_FIELD_CATEGORIES.map((cat) => {
-                            const items = EXCEL_FIELD_CATALOG.filter((f) => f.category === cat);
+                            // Sort fields alphabetically (DE locale) within each
+                            // category for predictable scanning. Category order
+                            // itself stays as defined in the catalog.
+                            const items = EXCEL_FIELD_CATALOG
+                              .filter((f) => f.category === cat)
+                              .slice()
+                              .sort((a, b) => a.label.localeCompare(b.label, "de"));
                             if (items.length === 0) return null;
                             return (
                               <SelectGroup key={cat}>
