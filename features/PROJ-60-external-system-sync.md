@@ -2,7 +2,7 @@
 
 ## Status: Architected
 **Created:** 2026-05-23
-**Last Updated:** 2026-05-23 (`/architecture` abgeschlossen, Tech Design ergänzt)
+**Last Updated:** 2026-05-23 (`/grill-me` auf Tech Design: 10 weitere Implementations-Decisions)
 **Quelle:** Owner-Anforderung
 
 ## Dependencies
@@ -695,6 +695,71 @@ Backend-Schritte 1–8 sind sequenziell. Frontend-Schritte 9–12 parallelisierb
 | Excel-Plugin mit >1000 Spalten (Misuse) | Sehr niedrig | Backend-Limit max 50 Spalten pro Config |
 | Cleanup-Cron läuft länger als 10 Min (Job-Backlog) | Sehr niedrig | concurrencyPolicy: Forbid im CronJob verhindert Überschneidungen; bei wirklich extremer Last: Cleanup-Frequenz reduzieren oder Batch-Größe limitieren |
 | Failure-Mail an Admin geht verloren (SMTP down) | Niedrig | BackOffice-Badge ist primärer Notification-Kanal. Mail ist Bonus. Admin sieht Failed-Jobs auf jeden Fall beim nächsten BackOffice-Besuch |
+
+### Tech-Design `/grill-me`-Decisions (2026-05-23)
+
+Zusätzlich zu den Spec-Level-Decisions hat ein zweiter `/grill-me`-Lauf
+die Implementations-Details geschärft:
+
+#### Backend-Mechanik
+
+| # | Decision | Begründung |
+|---|---|---|
+| 14 | **Worker-Pickup als zwei kurze Transaktionen** | Tx1: SELECT FOR UPDATE SKIP LOCKED + UPDATE status=running + COMMIT. Worker verarbeitet ohne Lock. Tx2: UPDATE status=done + Result + COMMIT. Lock-Hold-Time = Millisekunden, blockiert keine Status-Polling-Queries. Crash-Recovery via Cleanup-Cron. |
+| 15 | **Concurrency-Limit als Soft Limit** | Check + Insert ohne Advisory-Lock. Race-Condition bei parallelen Bulk-Triggers kann Limit auf 4-5 statt 3 erhöhen — akzeptiert. Anti-Misuse-Wirkung bleibt (kein 100-parallel-Spam). |
+| 16 | **Plugin-Registry-Init via Side-Effect-Import in `cmd/server/main.go`** | Pattern wie `sql.Driver`: jedes Plugin-Package hat `init()`, das sich beim Registry registriert. main.go: `import _ "internal/dataexport/plugins/excel"`. Sichtbar in main.go welche Plugins enthalten sind, Build-Time-bekannt, kein Plugin-Loader-Risiko. |
+
+#### API + UX
+
+| # | Decision | Begründung |
+|---|---|---|
+| 17 | **Live-Preview liefert strukturierte JSON-Tabelle** | POST /configs/preview mit Config-JSON im Body, Response = Array von Zeilen (jede Zeile = Map column-header → value). Frontend rendert HTML-Tabelle. Schneller als excelize-Render, Live-Update bei jeder Spalten-Änderung möglich. |
+| 18 | **Standard-Vorlagen im Plugin-Code als Go-Konstanten** | Plugin-Interface-Methode `StandardConfigs()` liefert die 3 Vorlagen. Versioniert mit Code, Auto-Update bei Plugin-Release, keine DB-Migration für neue/geänderte Vorlagen. |
+| 19 | **Job-Status-Response mit `state + processed_count + total_count`** | Response: `{status: 'running', processed: 47, total: 200}`. Worker schreibt processed-Count periodisch (jeder 50. Antrag oder alle 5 Sek). UI zeigt Progress-Bar `47/200 (23%)`. |
+| 20 | **Failure-Mail an triggernden Admin + EEG-Fallback** | Mail an die Keycloak-Profil-Adresse des Admins der den Job startete. Fallback auf `registration_entrypoint.contact_email` wenn Keycloak-Profil keine E-Mail hat. Stellt sicher, dass Person mit Kontext informiert wird. |
+
+#### Daten-Management
+
+| # | Decision | Begründung |
+|---|---|---|
+| 21 | **Config-Delete als Soft-Delete via `deleted_at`-Spalte** | Config-Zeile bleibt in DB mit `deleted_at`-Timestamp. UI/Listen filtern `deleted_at IS NULL`. Audit-Trail bleibt rekonstruierbar (Job-Zeilen referenzieren weiterhin valide Config). Cleanup-Cron kann nach 7 Jahren (§ 132 BAO) hard-deleten. |
+| 22 | **Jobs-Liste: 30-Tage-Default + Filter + Cursor-Pagination** | Standard-Sicht = letzte 30 Tage. Filter: Status, Datums-Range. „Mehr laden"-Button für ältere Einträge via Cursor (keine OFFSET-Pagination → skaliert auf >1000 Jobs ohne Performance-Verlust). |
+| 23 | **Plugin-Auswahl-Dropdown immer anzeigen** (auch bei nur 1 Plugin) | Konsistente UI über alle Phasen. Bei Plugin-Hinzufügen in Phase 2 keine UI-Anpassung nötig. Owner-Entscheidung gegen UX-Optimierung „auto-skip" zugunsten von Konsistenz. |
+
+### Aktualisierte Migrations-Skizze (mit Soft-Delete)
+
+```
+data_export_config
+  - …existierende Felder
+  - deleted_at TIMESTAMPTZ NULL  -- Soft-Delete-Marker
+  - INDEX (rc_number, plugin_type) WHERE deleted_at IS NULL
+  - UNIQUE (rc_number, name) WHERE deleted_at IS NULL
+```
+
+Cleanup-Cron räumt zusätzlich `deleted_at < NOW() - INTERVAL '7 years'`
+mit Hard-Delete auf (DSGVO + Storage-Hygiene).
+
+### Aktualisierte HTTP-Endpoints-Liste
+
+- `GET /api/admin/data-export/jobs?status=...&from=...&to=...&cursor=...` (mit Filter + Cursor)
+- `POST /api/admin/data-export/configs/{plugin_type}/preview` (Plugin-spezifischer Preview, Body = Config-JSON, Response = Array von Zeilen)
+- alle anderen Endpoints wie oben spezifiziert
+
+### Worker-Lifecycle (Standard K8s-Pattern)
+
+- Worker-Goroutine-Pool wird in `cmd/server/main.go` nach DB-Init gestartet (vor HTTP-Server-Start)
+- Bei SIGTERM (K8s-Pod-Shutdown): Worker stoppt Pickup-Polling, lässt in-flight Jobs zu Ende laufen, dann Backend beendet
+- `terminationGracePeriodSeconds: 120` in Helm-Template (Default 30s reicht nicht für Excel-Generierung großer Bulks)
+- Nach 120s SIGKILL → in-flight Job wird Zombie → Cleanup-Cron räumt auf
+
+### Cleanup-Cron — beide Tasks in einem Run
+
+Der `data-export-cleanup`-Subcommand erledigt sequenziell:
+1. **Zombie-Recovery**: Jobs mit `status='running'` und `started_at < NOW() - 1h` → `status='failed'`, `error_message='cleanup: zombie'`, `retry_count++`
+2. **BLOB-Cleanup**: Zeilen aus `data_export_result` mit `expires_at < NOW()` hard-deleten, zugehöriger Job auf `status='expired'`
+3. **Config-Hard-Delete** (DSGVO): `data_export_config` mit `deleted_at < NOW() - 7 years` hard-deleten
+
+Reihenfolge der Tasks ist irrelevant (alle idempotent). Bei Cron-Run-Dauer >10 Min verhindert `concurrencyPolicy: Forbid` Doppelläufe.
 
 ## QA Test Results
 _To be added by /qa_
