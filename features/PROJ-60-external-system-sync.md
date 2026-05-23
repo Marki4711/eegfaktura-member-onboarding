@@ -1,8 +1,8 @@
 # PROJ-60: Datenweiterleitung an externe Systeme — Plugin-Framework
 
-## Status: Architected
+## Status: In Progress
 **Created:** 2026-05-23
-**Last Updated:** 2026-05-23 (`/grill-me` auf Tech Design: 10 weitere Implementations-Decisions)
+**Last Updated:** 2026-05-23 (`/backend` Phase 1 abgeschlossen — komplette Backend-Foundation)
 **Quelle:** Owner-Anforderung
 
 ## Dependencies
@@ -385,6 +385,72 @@ Phasen-Reihenfolge wird über Markt-Nachfrage entschieden.
 
 ---
 <!-- Sections below are added by subsequent skills -->
+
+## Implementation Notes (`/backend` Phase 1, 2026-05-23)
+
+**Lieferumfang:** komplette Backend-Foundation, kein Frontend (separater
+`/frontend`-Schritt), Tests minimal (umfangreich kommen mit `/qa`).
+
+**Erstellte Dateien:**
+
+| Pfad | Inhalt |
+|---|---|
+| `db/migrations/000052_data_export.up.sql` + `.down.sql` | Drei Tabellen + 5 Partial-Indizes |
+| `internal/shared/models.go` (Erweiterung) | DataExportConfig/Job/Result Types + Konstanten |
+| `internal/shared/requests.go` (Erweiterung) | Request/Response-Types für API |
+| `internal/dataexport/plugin.go` | Plugin-Interface + Result-Typen (DownloadResult/SyncResult) + ApplicationSnapshot |
+| `internal/dataexport/registry.go` | Plugin-Registry mit Side-Effect-Import-Pattern |
+| `internal/dataexport/repo.go` | ConfigRepository + JobRepository (inkl. PickupQueued mit FOR UPDATE SKIP LOCKED) + ResultRepository |
+| `internal/dataexport/service.go` | ConfigService + JobService + PreviewBuilder-Interface |
+| `internal/dataexport/loader.go` | AppLoader (wraps ApplicationRepository + MeteringPointRepository) |
+| `internal/dataexport/worker.go` | Goroutine-Pool, processJob, FailureMailer-Interface |
+| `internal/dataexport/cleanup.go` | CleanupRunner (Zombies + BLOBs + Configs-Hard-Delete) |
+| `internal/dataexport/excel/plugin.go` | Excel-Plugin: Type, DisplayName, ValidateConfig, Process |
+| `internal/dataexport/excel/fields.go` | AvailableFields-Katalog mit Extract-Funktionen + Format-Transformationen |
+| `internal/dataexport/excel/renderer.go` | XLSX + CSV-Renderer mit excelize |
+| `internal/dataexport/excel/standard_configs.go` | 3 vordefinierte Vorlagen + BuildPreviewTable |
+| `internal/http/dataexport.go` | HTTP-Handler (Configs CRUD, Preview, Jobs CRUD, Download, Retry) |
+| `helm/member-onboarding/templates/data-export-cleanup-cronjob.yaml` | K8s-CronJob `*/10 * * * *` |
+| `helm/member-onboarding/values.yaml` | dataExportCleanup-Section |
+
+**Geänderte Dateien:**
+- `cmd/server/main.go`: Subcommand-Dispatch (`data-export-cleanup`), Plugin-Side-Effect-Import, Wiring der Repos/Services/Worker/Handler, Routen-Registrierung, MarkObsoletePluginsOnStartup-Hook
+
+**Build-Status:**
+- `go build ./...` ✓
+- `go vet ./...` ✓
+- `go test ./...` ✓ (kein Regression in bestehenden Tests)
+
+**HTTP-Endpoints (alle unter `/api/admin/data-export/`):**
+
+| Method | Pfad | Beschreibung |
+|---|---|---|
+| GET | `/plugins` | Liste aller registrierten Plugins + Standard-Vorlagen |
+| GET | `/configs?rc_number=` | Configs der EEG |
+| POST | `/configs?rc_number=` | Neue Config anlegen |
+| POST | `/configs/preview?rc_number=` | Live-Preview mit den 5 jüngsten Anträgen |
+| GET | `/configs/{id}?rc_number=` | Single Config |
+| PUT | `/configs/{id}?rc_number=` | Config bearbeiten |
+| DELETE | `/configs/{id}?rc_number=` | Soft-Delete |
+| GET | `/jobs?rc_number=&status=&since=&until=&cursor=&limit=` | Job-Liste mit Filter + Cursor + failedLast7Days |
+| POST | `/jobs?rc_number=` | Job triggern (configId + applicationIds) |
+| GET | `/jobs/{id}?rc_number=` | Status + processed/total |
+| GET | `/jobs/{id}/download?rc_number=` | BLOB-Download (nur bei status=done + nicht expired) |
+| POST | `/jobs/{id}/retry?rc_number=` | Retry mit demselben Snapshot |
+
+Alle Routes verlangen `rc_number` (Tenant-Isolation via `checkTenantAccess`).
+
+**Erfüllte Acceptance Criteria:** alle „Framework-Komponenten" + „Job-Queue + Worker" + „Job-Recovery" + „Concurrency-Limit + Idempotenz" + „Trigger" (bis auf Frontend-UI) + „Audit-Log" + „DSGVO" Backend-seitig.
+
+**Offen für `/frontend`:** Admin-UI (Configs-Liste, Editor, Bulk-Action-Dialog, Job-Toast, BackOffice-Übersicht).
+
+**Offen für `/qa`:** Unit-Tests für Excel-Plugin (ValidateConfig, Format-Transformationen, Renderer), Integration-Tests für Worker mit FOR UPDATE SKIP LOCKED, E2E-Tests für Bulk-Trigger → Polling → Download.
+
+**Bekannte TODO:**
+- FailureMailer noch NoopFailureMailer im main.go (Mail-Versand bei Job-Fail kommt mit `/qa`-Hardening)
+- AppLoader.LoadForExport lädt jedes App per GetByID einzeln (N+1) — für V1 mit max 1.000 Anträgen akzeptabel, Optimierung später möglich
+
+---
 
 ## Tech Design (Solution Architect)
 

@@ -43,6 +43,11 @@ import (
 	"github.com/your-org/eegfaktura-member-onboarding/internal/application"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/config"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/coreclient"
+	"github.com/your-org/eegfaktura-member-onboarding/internal/dataexport"
+	// PROJ-60: side-effect import registers the Excel plugin with the
+	// dataexport.Registry. New plugins (Zoho/HubSpot/…) are added the
+	// same way — one import line, no framework changes.
+	_ "github.com/your-org/eegfaktura-member-onboarding/internal/dataexport/excel"
 	_ "github.com/your-org/eegfaktura-member-onboarding/docs"
 	internalhttp "github.com/your-org/eegfaktura-member-onboarding/internal/http"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/importing"
@@ -64,6 +69,17 @@ func main() {
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: logLevel,
 	})))
+
+	// Subcommand dispatch (PROJ-60). The container image runs as a long-lived
+	// HTTP server by default, but K8s CronJobs invoke specific maintenance
+	// subcommands (e.g. `data-export-cleanup`) by passing them as the first arg.
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "data-export-cleanup":
+			runDataExportCleanup()
+			return
+		}
+	}
 
 	// Load configuration
 	cfg, err := config.Load()
@@ -138,6 +154,24 @@ func main() {
 		slog.Info("core integration enabled", "core_base_url", cfg.Core.BaseURL)
 	}
 
+	// PROJ-60: Data-export framework (Plugin-Registry, Job-Queue, Worker).
+	// Plugins register themselves via the side-effect imports at the top of
+	// this file. The worker starts after handler wiring (below) so that the
+	// HTTP routes are ready when the first job is picked up.
+	dataExportConfigRepo := dataexport.NewConfigRepository(db)
+	dataExportJobRepo := dataexport.NewJobRepository(db)
+	dataExportResultRepo := dataexport.NewResultRepository(db)
+	dataExportAppLoader := dataexport.NewAppLoader(appRepo, meteringRepo)
+	dataExportConfigService := dataexport.NewConfigService(dataExportConfigRepo, dataExportAppLoader)
+	dataExportJobService := dataexport.NewJobService(dataExportConfigRepo, dataExportJobRepo, dataExportResultRepo, dataExportAppLoader)
+
+	// Mark configs whose plugin_type is no longer registered (e.g. plugin
+	// removed in a release). They stay visible in the BackOffice but are
+	// excluded from new job triggers.
+	if err := dataExportConfigService.MarkObsoletePluginsOnStartup(); err != nil {
+		slog.Warn("dataexport: mark-obsolete on startup failed", "error", err)
+	}
+
 	// Initialize handlers
 	registrationHandler := internalhttp.NewRegistrationHandler(registrationService)
 	applicationHandler := internalhttp.NewApplicationHandler(applicationService, cfg.Turnstile.SecretKey)
@@ -145,7 +179,22 @@ func main() {
 	adminHandler.SetCoreAuthMode(cfg.Core.AuthMode)
 	slog.Info("core auth mode configured", "mode", cfg.Core.AuthMode)
 	externalHandler := internalhttp.NewExternalHandler(applicationService)
+	dataExportHandler := internalhttp.NewDataExportHandler(dataExportConfigService, dataExportJobService)
 	healthHandler := internalhttp.NewHealthHandler(db)
+
+	// PROJ-60: start the data-export worker pool. Workers poll the job queue
+	// every 5 seconds and process picked-up jobs against the relevant plugin.
+	// Multi-replica-safe via FOR UPDATE SKIP LOCKED in PickupQueued.
+	dataExportWorker := dataexport.NewWorker(
+		dataExportJobRepo,
+		dataExportResultRepo,
+		dataExportAppLoader,
+		dataexport.NoopFailureMailer{}, // TODO PROJ-60-phase2: SMTP-backed failure mail
+		3,                              // pool size
+		5*time.Second,                  // poll interval
+	)
+	dataExportWorker.Start(context.Background())
+	defer dataExportWorker.Stop()
 
 	// Configure trusted-proxy CIDRs before realIP() is used by any middleware.
 	// Empty value = trust nothing → r.RemoteAddr wins.
@@ -262,6 +311,27 @@ func main() {
 			r.Put("/{id}", adminHandler.UpdateLegalDocument)
 			r.Delete("/{id}", adminHandler.DeleteLegalDocument)
 		})
+		// PROJ-60: Datenweiterleitung an externe Systeme — Plugin-Framework
+		// (Excel/CSV V1, Zoho/HubSpot/… in Phase 2). All routes require
+		// rc_number query parameter except /plugins (global plugin list).
+		r.Route("/data-export", func(r chi.Router) {
+			r.Get("/plugins", dataExportHandler.ListPlugins)
+			r.Route("/configs", func(r chi.Router) {
+				r.Get("/", dataExportHandler.ListConfigs)
+				r.Post("/", dataExportHandler.CreateConfig)
+				r.Post("/preview", dataExportHandler.PreviewConfig)
+				r.Get("/{id}", dataExportHandler.GetConfig)
+				r.Put("/{id}", dataExportHandler.UpdateConfig)
+				r.Delete("/{id}", dataExportHandler.DeleteConfig)
+			})
+			r.Route("/jobs", func(r chi.Router) {
+				r.Get("/", dataExportHandler.ListJobs)
+				r.Post("/", dataExportHandler.TriggerJob)
+				r.Get("/{id}", dataExportHandler.GetJob)
+				r.Get("/{id}/download", dataExportHandler.DownloadResult)
+				r.Post("/{id}/retry", dataExportHandler.RetryJob)
+			})
+		})
 	})
 
 	// External API routes — authenticated via API key middleware (no Keycloak)
@@ -332,4 +402,42 @@ func main() {
 		log.Fatalf("forced shutdown: %v", err)
 	}
 	slog.Info("server stopped")
+}
+
+// runDataExportCleanup is the entry-point for the `data-export-cleanup`
+// K8s-CronJob subcommand (PROJ-60). It connects to the DB, runs the three
+// cleanup tasks (zombie-recovery, BLOB-TTL, config-hard-delete), logs the
+// counts, and exits.
+//
+// Invoked from main() via `os.Args[1] == "data-export-cleanup"`.
+func runDataExportCleanup() {
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
+
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("data-export-cleanup: load config: %v", err)
+	}
+
+	db, err := sql.Open("postgres", cfg.Database.DSN())
+	if err != nil {
+		log.Fatalf("data-export-cleanup: connect db: %v", err)
+	}
+	defer db.Close()
+	if err := db.Ping(); err != nil {
+		log.Fatalf("data-export-cleanup: ping db: %v", err)
+	}
+
+	configRepo := dataexport.NewConfigRepository(db)
+	jobRepo := dataexport.NewJobRepository(db)
+	resultRepo := dataexport.NewResultRepository(db)
+	runner := dataexport.NewCleanupRunner(jobRepo, resultRepo, configRepo)
+
+	result, err := runner.Run()
+	if err != nil {
+		log.Fatalf("data-export-cleanup: %v", err)
+	}
+	slog.Info("data-export-cleanup: done",
+		"zombies_recovered", result.Zombies,
+		"expired_blobs_deleted", result.ExpiredBlobs,
+		"old_configs_hard_deleted", result.DeletedConfigs)
 }

@@ -27,11 +27,11 @@ ingress:
 images:
   backend:
     repository: ""
-    tag: sha-9e6b359
+    tag: sha-d7e9fe1
     pullPolicy: IfNotPresent
   frontend:
     repository: ""
-    tag: sha-9e6b359
+    tag: sha-d7e9fe1
     pullPolicy: IfNotPresent
 # ── PostgreSQL ─────────────────────────────────────────────────────────────────
 postgres:
@@ -178,6 +178,15 @@ restart:
   enabled: false
   schedule: "0 2 * * *" # daily at 02:00 UTC
   kubectlImage: "bitnami/kubectl:1.31"
+# ── Data-Export Cleanup (PROJ-60) ─────────────────────────────────────────────
+# K8s-CronJob that runs the three cleanup tasks of the data-export framework:
+#   1. Zombie-Recovery (running > 1h → failed)
+#   2. BLOB-TTL (data_export_result rows past expires_at → deleted)
+#   3. Config-Hard-Delete (soft-deleted configs > 7 years → hard-deleted, BAO)
+# Runs as the existing backend image's `data-export-cleanup` subcommand.
+dataExportCleanup:
+  enabled: true
+  schedule: "*/10 * * * *" # every 10 minutes
 # ── Secrets ────────────────────────────────────────────────────────────────────
 # Niemals echte Werte hier eintragen — immer via values-secret.yaml übergeben.
 secrets:

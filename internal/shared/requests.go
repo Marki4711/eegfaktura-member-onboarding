@@ -492,3 +492,81 @@ type BulkActionResponse struct {
 	Succeeded []string `json:"succeeded"`
 	Skipped   []string `json:"skipped"`
 }
+
+// =====================================================================
+// PROJ-60: Datenweiterleitung an externe Systeme
+// =====================================================================
+
+// DataExportConfigRequest is the body for POST/PUT /api/admin/data-export/configs.
+type DataExportConfigRequest struct {
+	PluginType string                 `json:"pluginType" validate:"required,max=50"`
+	Name       string                 `json:"name"       validate:"required,min=1,max=100"`
+	Config     map[string]interface{} `json:"config"     validate:"required"`
+}
+
+// DataExportConfigResponse is the shape returned to the admin.
+type DataExportConfigResponse struct {
+	ID         string                 `json:"id"`
+	RCNumber   string                 `json:"rcNumber"`
+	PluginType string                 `json:"pluginType"`
+	Name       string                 `json:"name"`
+	Config     map[string]interface{} `json:"config"`
+	IsObsolete bool                   `json:"isObsolete"`
+	CreatedAt  string                 `json:"createdAt"`
+	UpdatedAt  string                 `json:"updatedAt"`
+}
+
+// DataExportPreviewRequest is the body for the preview endpoint.
+type DataExportPreviewRequest struct {
+	PluginType string                 `json:"pluginType" validate:"required"`
+	Config     map[string]interface{} `json:"config"     validate:"required"`
+	RCNumber   string                 `json:"rcNumber"   validate:"required"`
+}
+
+// DataExportPreviewResponse contains the structured preview data.
+type DataExportPreviewResponse struct {
+	Headers []string                 `json:"headers"`
+	Rows    []map[string]interface{} `json:"rows"`
+	Note    string                   `json:"note,omitempty"`
+}
+
+// DataExportJobTriggerRequest is the body for POST /api/admin/data-export/jobs.
+type DataExportJobTriggerRequest struct {
+	ConfigID       string   `json:"configId"        validate:"required,uuid"`
+	ApplicationIDs []string `json:"applicationIds" validate:"required,min=1,max=1000,dive,uuid"`
+}
+
+// DataExportJobResponse is the shape returned for job status queries.
+type DataExportJobResponse struct {
+	ID             string                 `json:"id"`
+	RCNumber       string                 `json:"rcNumber"`
+	ConfigID       *string                `json:"configId,omitempty"`
+	ConfigName     *string                `json:"configName,omitempty"`
+	PluginType     string                 `json:"pluginType"`
+	Status         string                 `json:"status"`
+	AdminUserID    string                 `json:"adminUserId"`
+	ProcessedCount int                    `json:"processedCount"`
+	TotalCount     int                    `json:"totalCount"`
+	ResultSummary  map[string]interface{} `json:"resultSummary,omitempty"`
+	ErrorMessage   *string                `json:"errorMessage,omitempty"`
+	RetryCount     int                    `json:"retryCount"`
+	HasResult      bool                   `json:"hasResult"`
+	ResultFileName *string                `json:"resultFileName,omitempty"`
+	ResultFileSize *int                   `json:"resultFileSize,omitempty"`
+	CreatedAt      string                 `json:"createdAt"`
+	StartedAt      *string                `json:"startedAt,omitempty"`
+	FinishedAt     *string                `json:"finishedAt,omitempty"`
+}
+
+// DataExportPluginInfo describes one registered plugin (for /plugins listing).
+type DataExportPluginInfo struct {
+	Type            string                         `json:"type"`
+	DisplayName     string                         `json:"displayName"`
+	StandardConfigs []DataExportStandardConfigInfo `json:"standardConfigs"`
+}
+
+// DataExportStandardConfigInfo is a read-only template that admins can clone.
+type DataExportStandardConfigInfo struct {
+	Name   string                 `json:"name"`
+	Config map[string]interface{} `json:"config"`
+}

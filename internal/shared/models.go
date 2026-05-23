@@ -334,3 +334,77 @@ type StatusLogEntry struct {
 	Reason           *string    `json:"reason,omitempty" db:"reason"`
 	CreatedAt        time.Time  `json:"createdAt" db:"created_at"`
 }
+
+// =====================================================================
+// PROJ-60: Datenweiterleitung an externe Systeme (Plugin-Framework)
+// =====================================================================
+
+// DataExportJobStatus is the lifecycle status of an async export job.
+type DataExportJobStatus string
+
+const (
+	DataExportJobStatusQueued  DataExportJobStatus = "queued"
+	DataExportJobStatusRunning DataExportJobStatus = "running"
+	DataExportJobStatusDone    DataExportJobStatus = "done"
+	DataExportJobStatusFailed  DataExportJobStatus = "failed"
+	DataExportJobStatusExpired DataExportJobStatus = "expired"
+)
+
+// DataExportConfig is a per-EEG plugin configuration. Multiple configs per EEG
+// (e.g. "Excel: Newsletter", "Excel: CRM-Stammdaten", later "Zoho: Main").
+type DataExportConfig struct {
+	ID         uuid.UUID  `json:"id" db:"id"`
+	RCNumber   string     `json:"rcNumber" db:"rc_number"`
+	PluginType string     `json:"pluginType" db:"plugin_type"`
+	Name       string     `json:"name" db:"name"`
+	Config     []byte     `json:"-" db:"config"` // JSONB, exposed as raw map in response
+	IsObsolete bool       `json:"isObsolete" db:"is_obsolete"`
+	DeletedAt  *time.Time `json:"-" db:"deleted_at"` // soft-delete marker, never serialized
+	CreatedAt  time.Time  `json:"createdAt" db:"created_at"`
+	UpdatedAt  time.Time  `json:"updatedAt" db:"updated_at"`
+}
+
+// DataExportJob represents a queued or completed export run.
+// Long-lived for audit: only data_export_result BLOB is TTL-cleaned.
+type DataExportJob struct {
+	ID              uuid.UUID           `json:"id" db:"id"`
+	RCNumber        string              `json:"rcNumber" db:"rc_number"`
+	ConfigID        *uuid.UUID          `json:"configId,omitempty" db:"config_id"`
+	ConfigSnapshot  []byte              `json:"-" db:"config_snapshot"`
+	PluginType      string              `json:"pluginType" db:"plugin_type"`
+	ApplicationIDs  []uuid.UUID         `json:"applicationIds" db:"application_ids"`
+	Status          DataExportJobStatus `json:"status" db:"status"`
+	AdminUserID     string              `json:"adminUserId" db:"admin_user_id"`
+	ProcessedCount  int                 `json:"processedCount" db:"processed_count"`
+	TotalCount      int                 `json:"totalCount" db:"total_count"`
+	ResultSummary   []byte              `json:"-" db:"result_summary"`
+	ErrorMessage    *string             `json:"errorMessage,omitempty" db:"error_message"`
+	RetryCount      int                 `json:"retryCount" db:"retry_count"`
+	CreatedAt       time.Time           `json:"createdAt" db:"created_at"`
+	StartedAt       *time.Time          `json:"startedAt,omitempty" db:"started_at"`
+	FinishedAt      *time.Time          `json:"finishedAt,omitempty" db:"finished_at"`
+}
+
+// DataExportResult is the file BLOB for a download-style plugin run (Excel/CSV).
+// Push-style plugins (Phase 2: Zoho/HubSpot) write nothing here.
+type DataExportResult struct {
+	JobID        uuid.UUID  `json:"jobId" db:"job_id"`
+	FileName     string     `json:"fileName" db:"file_name"`
+	MimeType     string     `json:"mimeType" db:"mime_type"`
+	FileBytes    []byte     `json:"-" db:"file_bytes"`
+	FileSize     int        `json:"fileSize" db:"file_size"`
+	ExpiresAt    time.Time  `json:"expiresAt" db:"expires_at"`
+	DownloadedAt *time.Time `json:"downloadedAt,omitempty" db:"downloaded_at"`
+	CreatedAt    time.Time  `json:"createdAt" db:"created_at"`
+}
+
+// Domain-level constants for PROJ-60 limits.
+const (
+	DataExportMaxConfigsPerEEG    = 20
+	DataExportMaxColumnsPerExcel  = 50
+	DataExportMaxApplications     = 1000
+	DataExportConcurrencyLimit    = 3
+	DataExportResultTTL           = 24 * time.Hour
+	DataExportZombieThreshold     = 1 * time.Hour
+	DataExportConfigHardDeleteAge = 7 * 365 * 24 * time.Hour // 7 Jahre (§ 132 BAO)
+)
