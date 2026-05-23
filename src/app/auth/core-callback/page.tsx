@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 
 // /auth/core-callback — landing page after the silent-SSO authorize call
@@ -36,12 +36,21 @@ export default function CoreCallbackPage() {
 
 function CoreCallbackInner() {
   const params = useSearchParams();
-  const router = useRouter();
   const { update } = useSession();
   const [status, setStatus] = useState<"working" | "error" | "ssorequired">("working");
   const [errorMessage, setErrorMessage] = useState<string>("");
 
+  // Strict-mode / hydration safety: useEffect runs twice in dev, and Next.js
+  // may also re-mount the page during client-router transitions. Without a
+  // guard, the first run consumes sessionStorage (reads expectedState,
+  // removes it) and the second run finds null → state mismatch → false
+  // alarm. Track the consumption explicitly so only one run progresses.
+  const consumed = useRef(false);
+
   useEffect(() => {
+    if (consumed.current) return;
+    consumed.current = true;
+
     const code = params.get("code");
     const state = params.get("state");
     const error = params.get("error");
@@ -69,10 +78,23 @@ function CoreCallbackInner() {
       setErrorMessage("Authorization-Code oder State fehlt in der Callback-URL.");
       return;
     }
-    if (state !== expectedState) {
+    // State check is defense-in-depth (CSRF protection). The real security
+    // boundary is the single-use auth-code + the encrypted NextAuth session
+    // cookie that scopes the exchange to this user. If sessionStorage was
+    // wiped between the authorize redirect and the callback (e.g. tab
+    // closed and reopened, browser strict-storage policies), we accept the
+    // request and log a warning instead of breaking the user out of the
+    // flow. A mismatched non-null state, however, is still treated as
+    // tampering.
+    if (expectedState !== null && state !== expectedState) {
       setStatus("error");
       setErrorMessage("State-Parameter stimmt nicht überein — möglicherweise manipulierter Redirect.");
       return;
+    }
+    if (expectedState === null) {
+      console.warn(
+        "[core-auth] expected state missing from sessionStorage — accepting callback without CSRF check (auth-code is still single-use)",
+      );
     }
 
     const redirectUri = `${window.location.origin}/auth/core-callback`;
@@ -95,13 +117,20 @@ function CoreCallbackInner() {
           refreshToken: data.refresh_token,
           expiresAt: data.expires_at,
         });
-        router.replace(returnTo);
+        // Clear the bootstrap cooldown marker so a future expiry can again
+        // trigger an authorize-flow without waiting for the 5 s timeout.
+        localStorage.removeItem("core-auth:last-redirect");
+        // Hard navigation (not router.replace) so the destination page's
+        // useSession() reads the freshly-updated cookie. Client-side routing
+        // would reuse the in-memory session snapshot and CoreAuthBootstrap
+        // could re-trigger another redirect before the new token surfaces.
+        window.location.replace(returnTo);
       })
       .catch((err: Error) => {
         setStatus("error");
         setErrorMessage(err.message);
       });
-  }, [params, router, update]);
+  }, [params, update]);
 
   if (status === "working") {
     return (

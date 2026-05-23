@@ -118,6 +118,20 @@ export function CoreAuthBootstrap({ authMode, issuer, coreClientId }: Props) {
       // Authorize-Flow. We're about to leave the page via top-level redirect,
       // so stash the current URL so the callback can return the user here.
       if (cancelled) return;
+
+      // Loop guard: if we've redirected within the last 5 s without the
+      // session catching up, NextAuth's session-update lag is hiding the
+      // already-installed token. Bail out instead of triggering another
+      // round-trip. The user can reload the page once the lag resolves.
+      const lastRedirectAt = parseInt(
+        localStorage.getItem("core-auth:last-redirect") ?? "0",
+      );
+      if (Date.now() - lastRedirectAt < 5000) {
+        console.warn("[core-auth] redirect cooldown active, skipping");
+        return;
+      }
+      localStorage.setItem("core-auth:last-redirect", Date.now().toString());
+
       const returnTo = window.location.pathname + window.location.search;
       sessionStorage.setItem("core-auth:return-to", returnTo);
 
