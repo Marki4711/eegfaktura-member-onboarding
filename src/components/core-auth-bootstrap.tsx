@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
+import { clearCoreToken, loadCoreToken, saveCoreToken } from "@/lib/core-token-store";
 
 // CoreAuthBootstrap installs and keeps fresh the Faktura-side core-access-
 // token in the NextAuth session when CORE_AUTH_MODE=exchange. Runs only on
@@ -47,7 +48,7 @@ interface Props {
 }
 
 export function CoreAuthBootstrap({ authMode, issuer, coreClientId }: Props) {
-  const { data: session, status, update } = useSession();
+  const { data: session, status } = useSession();
 
   // Guards against concurrent refresh attempts (e.g. if two interval ticks
   // happen to overlap with a slow Keycloak response, or React re-renders
@@ -75,38 +76,46 @@ export function CoreAuthBootstrap({ authMode, issuer, coreClientId }: Props) {
 
     async function evaluate() {
       if (refreshInFlight.current) return;
-      const expiresAt = session?.coreExpiresAt ?? 0;
+      const snapshot = loadCoreToken();
       const nowSec = Date.now() / 1000;
-      const hasToken = !!session?.coreAccessToken;
+      const expiresAt = snapshot?.expiresAt ?? 0;
+      const hasToken = !!snapshot;
       const expiringSoon = expiresAt - nowSec < refreshLeadSeconds;
 
       // Case 1: token is still healthy — nothing to do.
       if (hasToken && !expiringSoon) return;
 
       // Case 2: token is present but about to expire — try the cheap path
-      // (server-side refresh-token flow) first.
-      if (hasToken && expiringSoon) {
+      // (server-side refresh-token flow) first. We POST the refresh-token
+      // because the server-side route can no longer pull it from the
+      // NextAuth-cookie (we don't store it there anymore — see
+      // core-token-store.ts).
+      if (hasToken && expiringSoon && snapshot?.refreshToken) {
         refreshInFlight.current = true;
         try {
-          const res = await fetch("/api/auth/core-refresh", { method: "POST" });
+          const res = await fetch("/api/auth/core-refresh", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ refreshToken: snapshot.refreshToken }),
+          });
           if (res.ok) {
             const data = (await res.json()) as {
               access_token: string;
               refresh_token?: string;
               expires_at: number;
             };
-            await update({
-              type: "core-token",
+            saveCoreToken({
               accessToken: data.access_token,
-              refreshToken: data.refresh_token,
+              refreshToken: data.refresh_token ?? snapshot.refreshToken,
               expiresAt: data.expires_at,
             });
             return;
           }
-          // Refresh failed (expired refresh-token, etc.) — fall through to
-          // the full Authorize-Flow below. Don't log loudly: this is an
-          // expected branch on Keycloak session timeout.
+          // Refresh failed (expired refresh-token, etc.) — drop the dead
+          // snapshot so a fresh Authorize-Flow starts below. Don't log
+          // loudly: this is an expected branch on Keycloak session timeout.
           console.warn("[core-auth] refresh-token flow failed, falling back to Authorize");
+          clearCoreToken();
         } catch (e) {
           console.warn("[core-auth] refresh-token network error, falling back to Authorize", e);
         } finally {
@@ -159,7 +168,7 @@ export function CoreAuthBootstrap({ authMode, issuer, coreClientId }: Props) {
 
       window.location.href = authorizeUrl.toString();
     }
-  }, [session, status, update, authMode, issuer, coreClientId]);
+  }, [session, status, authMode, issuer, coreClientId]);
 
   return null;
 }

@@ -895,14 +895,24 @@ export interface ImportRequestBody {
 }
 
 // coreAuthHeader builds the optional X-Core-Authorization header used when
-// CORE_AUTH_MODE=exchange. It is sent alongside the regular Authorization
-// header — the backend reads X-Core-Authorization for outgoing Faktura-Core
-// calls and the regular Authorization for the Onboarding's own auth.
-// Returns an empty object when coreToken is absent so it can be spread into
-// the headers object unconditionally.
+// CORE_AUTH_MODE=exchange. Reads the token from localStorage (kept there by
+// CoreAuthBootstrap / /auth/core-callback because NextAuth's session.update()
+// is broken in v4.24 — see core-token-store.ts for the rationale). When the
+// caller passes a coreToken explicitly we use that; otherwise we look in the
+// store. The fallback keeps existing call-sites compiling and lets future
+// callers omit the param entirely.
 function coreAuthHeader(coreToken?: string): Record<string, string> {
-  if (!coreToken) return {};
-  return { "X-Core-Authorization": `Bearer ${coreToken}` };
+  let token = coreToken;
+  if (!token && typeof window !== "undefined") {
+    try {
+      const raw = window.localStorage.getItem("core-auth:access-token");
+      if (raw) token = raw;
+    } catch {
+      /* localStorage not available — skip */
+    }
+  }
+  if (!token) return {};
+  return { "X-Core-Authorization": `Bearer ${token}` };
 }
 
 export function importApplication(

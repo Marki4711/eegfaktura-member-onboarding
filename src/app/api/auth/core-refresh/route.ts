@@ -1,31 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 // POST /api/auth/core-refresh
 //
-// Refreshes the Faktura-side core access token without going through a fresh
-// silent-SSO round-trip. Reads the refresh-token from the NextAuth JWT-Cookie
-// (server-side only — the refresh-token is never exposed to the browser),
-// hits Keycloak's token endpoint with grant_type=refresh_token, and returns
-// the new access-token + expires_at to the caller. The frontend then calls
-// session.update() to install the new token in the session.
+// Refreshes the Faktura-side core access-token without going through a fresh
+// silent-SSO round-trip. The refresh-token is sent in the body by the
+// caller (CoreAuthBootstrap) — we cannot pull it from the NextAuth JWT-Cookie
+// because session.update() does not work reliably in NextAuth v4.24, so the
+// core-token lives in localStorage instead of the encrypted session cookie.
+//
+// Auth: the caller must still hold a valid Onboarding session — otherwise
+// this is a token-exchange oracle for anyone with a stolen refresh-token.
+//
+// Body: { refreshToken: string }
+// Response: { access_token, refresh_token?, expires_at }
 //
 // Errors:
-//   - 401: no logged-in session at all → caller should signIn() again
-//   - 404: session has no coreRefreshToken yet → caller should trigger the
-//          full Authorize-Flow (CoreAuthBootstrap does this)
-//   - 502/400: refresh attempt rejected (expired refresh-token, invalid
-//          client, etc.) → caller should fall back to full Authorize-Flow
+//   - 401: no logged-in session at all
+//   - 400: malformed body / refresh-token rejected by Keycloak
+//   - 503: KEYCLOAK_ISSUER or KEYCLOAK_CORE_CLIENT_ID missing
+//   - 502: Keycloak unreachable
 export async function POST(req: NextRequest) {
-  const token = await getToken({
-    req,
-    secret: process.env.NEXTAUTH_SECRET,
-  });
-  if (!token) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
-  if (!token.coreRefreshToken) {
-    return NextResponse.json({ error: "no_refresh_token" }, { status: 404 });
+
+  let body: { refreshToken?: unknown };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "invalid_request_body" }, { status: 400 });
+  }
+  const refreshToken = typeof body.refreshToken === "string" ? body.refreshToken : "";
+  if (!refreshToken) {
+    return NextResponse.json({ error: "missing_refresh_token" }, { status: 400 });
   }
 
   const issuer = process.env.KEYCLOAK_ISSUER;
@@ -40,7 +50,7 @@ export async function POST(req: NextRequest) {
   const params = new URLSearchParams({
     grant_type: "refresh_token",
     client_id: coreClientId,
-    refresh_token: token.coreRefreshToken,
+    refresh_token: refreshToken,
   });
 
   const refreshRes = await fetch(`${issuer}/protocol/openid-connect/token`, {
@@ -58,9 +68,6 @@ export async function POST(req: NextRequest) {
     } catch {
       /* keep generic */
     }
-    // 400 from Keycloak typically means the refresh-token itself is no longer
-    // valid (expired, revoked, used after rotation). Pass that through so the
-    // frontend can decide to fall back to a fresh Authorize-Flow.
     return NextResponse.json(
       { error: detail },
       { status: refreshRes.status === 400 ? 400 : 502 },

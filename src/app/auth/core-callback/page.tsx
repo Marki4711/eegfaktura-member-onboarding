@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { saveCoreToken } from "@/lib/core-token-store";
 
 // /auth/core-callback — landing page after the silent-SSO authorize call
 // in CoreAuthBootstrap. Behaviour:
@@ -36,7 +36,6 @@ export default function CoreCallbackPage() {
 
 function CoreCallbackInner() {
   const params = useSearchParams();
-  const { update } = useSession();
   const [status, setStatus] = useState<"working" | "error" | "ssorequired">("working");
   const [errorMessage, setErrorMessage] = useState<string>("");
 
@@ -110,38 +109,28 @@ function CoreCallbackInner() {
         }
         return res.json();
       })
-      .then(async (data: { access_token: string; refresh_token?: string; expires_at: number }) => {
-        console.log("[core-callback] token exchange success", {
-          accessTokenLen: data.access_token?.length,
-          hasRefreshToken: !!data.refresh_token,
+      .then((data: { access_token: string; refresh_token?: string; expires_at: number }) => {
+        // Persist the core-token in localStorage rather than via the
+        // NextAuth session.update() path — the latter resolves undefined
+        // in v4.24 without actually POSTing /api/auth/session, so the
+        // jwt-callback never installs the token. localStorage gives us a
+        // tab-scoped, JS-readable store; the cost (XSS exposure) matches
+        // the existing accessToken handling in api.ts.
+        saveCoreToken({
+          accessToken: data.access_token,
+          refreshToken: data.refresh_token,
           expiresAt: data.expires_at,
         });
-        try {
-          const updateResult = await update({
-            type: "core-token",
-            accessToken: data.access_token,
-            refreshToken: data.refresh_token,
-            expiresAt: data.expires_at,
-          });
-          console.log("[core-callback] update() resolved with", updateResult);
-        } catch (e) {
-          console.error("[core-callback] update() threw", e);
-        }
         // Clear the bootstrap cooldown marker so a future expiry can again
         // trigger an authorize-flow without waiting for the 5 s timeout.
         localStorage.removeItem("core-auth:last-redirect");
-        console.log("[core-callback] navigating to", returnTo);
-        // Hard navigation (not router.replace) so the destination page's
-        // useSession() reads the freshly-updated cookie. Client-side routing
-        // would reuse the in-memory session snapshot and CoreAuthBootstrap
-        // could re-trigger another redirect before the new token surfaces.
         window.location.replace(returnTo);
       })
       .catch((err: Error) => {
         setStatus("error");
         setErrorMessage(err.message);
       });
-  }, [params, update]);
+  }, [params]);
 
   if (status === "working") {
     return (
