@@ -81,13 +81,30 @@ func (w *Worker) Start(ctx context.Context) {
 }
 
 // Stop signals all workers to stop accepting new jobs and waits for in-flight
-// jobs to finish. Called from main.go on SIGTERM.
-func (w *Worker) Stop() {
+// jobs to finish. Bounded by ctx.Done() — when the context cancels (e.g. K8s
+// terminationGracePeriodSeconds elapsing) Stop returns even if jobs are
+// still running; those jobs will be picked up as zombies by the cleanup
+// CronJob within an hour. Called from main.go on SIGTERM BEFORE
+// srv.Shutdown so the worker drains while HTTP is still up (admin can
+// observe job-status until the very end).
+func (w *Worker) Stop(ctx context.Context) error {
 	w.once.Do(func() {
 		close(w.stop)
 	})
-	w.wg.Wait()
-	slog.Info("dataexport: worker pool stopped")
+	done := make(chan struct{})
+	go func() {
+		w.wg.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+		slog.Info("dataexport: worker pool stopped (clean drain)")
+		return nil
+	case <-ctx.Done():
+		slog.Warn("dataexport: worker pool stop deadline exceeded — in-flight jobs will be recovered by cleanup cron",
+			"error", ctx.Err())
+		return ctx.Err()
+	}
 }
 
 func (w *Worker) loop(ctx context.Context, workerID int) {

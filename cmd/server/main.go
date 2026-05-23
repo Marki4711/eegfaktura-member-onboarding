@@ -197,6 +197,15 @@ func main() {
 	// PROJ-60: start the data-export worker pool. Workers poll the job queue
 	// every 5 seconds and process picked-up jobs against the relevant plugin.
 	// Multi-replica-safe via FOR UPDATE SKIP LOCKED in PickupQueued.
+	//
+	// Lifecycle: workerCtx is cancelled in the SIGTERM handler BEFORE
+	// srv.Shutdown so workers drain first (admin can still observe job
+	// status while HTTP is up). Stop() is also called there with a bounded
+	// timeout; we intentionally don't `defer Stop` here to avoid the
+	// stop-after-srv.Shutdown ordering that strands in-flight Excel jobs
+	// past Pod-Grace-Period.
+	workerCtx, workerCancel := context.WithCancel(context.Background())
+	defer workerCancel()
 	dataExportWorker := dataexport.NewWorker(
 		dataExportJobRepo,
 		dataExportResultRepo,
@@ -206,8 +215,7 @@ func main() {
 		3,             // pool size
 		5*time.Second, // poll interval
 	)
-	dataExportWorker.Start(context.Background())
-	defer dataExportWorker.Stop()
+	dataExportWorker.Start(workerCtx)
 
 	// Configure trusted-proxy CIDRs before realIP() is used by any middleware.
 	// Empty value = trust nothing → r.RemoteAddr wins.
@@ -406,6 +414,20 @@ func main() {
 
 	slog.Info("shutdown signal received, draining requests...")
 	cleanupCancel()
+
+	// PROJ-60: drain the data-export worker pool FIRST, before HTTP is
+	// closed. Reason: workers may still be processing Excel/CSV jobs;
+	// completing them inside the K8s Pod-Grace-Period beats letting K8s
+	// SIGKILL the pod (→ zombies that the cleanup CronJob recovers an
+	// hour later). The 60s budget is comfortable for typical bulks
+	// (1000 rows render in <2s) and a hard cap so a hung plugin can't
+	// block pod-stop indefinitely. Helm chart sets
+	// terminationGracePeriodSeconds=120 to give us headroom.
+	workerCancel()
+	workerStopCtx, workerStopCancel := context.WithTimeout(context.Background(), 60*time.Second)
+	_ = dataExportWorker.Stop(workerStopCtx)
+	workerStopCancel()
+
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer shutdownCancel()
 	if metricsSrv != nil {

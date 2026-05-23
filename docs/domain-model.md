@@ -357,6 +357,81 @@ Rules:
 - Per-year reset: counter starts at `0001` each calendar year
 - Legacy applications created before PROJ-35 keep their `MO-YYYY-NNNNNN` reference numbers (uniqueness across both formats is guaranteed by the column-level UNIQUE on `application.reference_number`)
 
+### 3.6 `data_export_config` (PROJ-60)
+
+Plugin-specific configurations for the asynchronous data-export framework. Each row is one
+named instance of a registered plugin (e.g. one Excel/CSV column-mapping) scoped to one EEG.
+
+- `id` — UUID PRIMARY KEY (default `gen_random_uuid()`)
+- `rc_number` — TEXT NOT NULL, FK → `registration_entrypoint(rc_number)` ON DELETE CASCADE
+- `plugin_type` — TEXT NOT NULL (stable identifier of a registered plugin, e.g. `"excel"`)
+- `name` — TEXT NOT NULL (unique per EEG across all plugin types — UNIQUE INDEX with `deleted_at IS NULL` predicate)
+- `config` — JSONB NOT NULL DEFAULT `'{}'` (plugin-specific payload, validated by `Plugin.ValidateConfig` on every write)
+- `is_obsolete` — BOOLEAN NOT NULL DEFAULT FALSE (set by `MarkObsoletePluginsOnStartup` when the registry no longer carries `plugin_type`)
+- `deleted_at` — TIMESTAMPTZ NULL (soft-delete marker)
+- `created_at`, `updated_at` — TIMESTAMPTZ NOT NULL DEFAULT NOW()
+
+Indexes:
+- UNIQUE `(rc_number, name)` WHERE `deleted_at IS NULL`
+- `(rc_number, plugin_type)` WHERE `deleted_at IS NULL`
+
+Rules:
+- Soft-delete: deletion sets `deleted_at`; reads filter `deleted_at IS NULL`. Hard-delete only via the cleanup CronJob after 7 years (DSGVO § 132 BAO).
+- Tenant isolation: enforced server-side via JWT `tenant` claim + `parseRCAndCheck` on every endpoint plus a service-layer `cfg.RCNumber == rcNumber` cross-check.
+
+### 3.7 `data_export_job` (PROJ-60)
+
+Async job queue and long-lived audit trail for data-export runs. Never deleted (cleanup
+only blanks the BLOB and flips the status to `expired`).
+
+- `id` — UUID PRIMARY KEY (default `gen_random_uuid()`)
+- `rc_number` — TEXT NOT NULL, FK → `registration_entrypoint(rc_number)` ON DELETE CASCADE
+- `config_id` — UUID NULL, FK → `data_export_config(id)` ON DELETE SET NULL (allows config deletion without losing the audit trail)
+- `config_snapshot` — JSONB NOT NULL (frozen copy of `data_export_config.config` at trigger time — running jobs are immune to subsequent config edits)
+- `plugin_type` — TEXT NOT NULL (snapshot of `data_export_config.plugin_type` so plugin removal doesn't break the audit)
+- `application_ids` — UUID[] NOT NULL (snapshot of the application IDs selected by the admin; deletion of an application produces a dangling reference, which the loader silently skips)
+- `status` — TEXT NOT NULL CHECK IN (`queued`, `running`, `done`, `failed`, `expired`)
+- `admin_user_id` — TEXT NOT NULL (Keycloak `sub` of the admin who triggered the job)
+- `processed_count` — INTEGER NOT NULL DEFAULT 0
+- `total_count` — INTEGER NOT NULL
+- `result_summary` — JSONB NULL (e.g. `{"downloaded": 47, "file_size": 12345}`)
+- `error_message` — TEXT NULL (user-safe text — internal `%v` details only go to slog)
+- `retry_count` — INTEGER NOT NULL DEFAULT 0 (incremented by zombie-recovery)
+- `created_at`, `started_at`, `finished_at` — TIMESTAMPTZ
+
+Indexes:
+- `(status, created_at)` WHERE `status = 'queued'` — Worker queue-poll
+- `(rc_number, status)` WHERE `status IN ('queued', 'running')` — concurrency-limit check
+- `(rc_number, created_at DESC)` — BackOffice job-list
+- `(started_at)` WHERE `status = 'running'` — zombie-recovery scan
+
+Rules:
+- Pickup: `SELECT ... FOR UPDATE SKIP LOCKED LIMIT 1` — multi-replica-safe.
+- Concurrency soft-limit: max 3 queued+running per EEG (race-tolerant — bursts up to 4-5 are intentionally accepted).
+- Sensitive-export audit: when the snapshot contains `iban` or `birth_date`, the worker emits `slog.Info classification=sensitive-export` with `admin_user_id` for DSGVO compliance.
+
+### 3.8 `data_export_result` (PROJ-60)
+
+File BLOBs with 24-hour TTL, written by download-style plugins (Excel/CSV in V1). Push-style
+plugins do not populate this table.
+
+- `job_id` — UUID PRIMARY KEY, FK → `data_export_job(id)` ON DELETE CASCADE
+- `file_name` — TEXT NOT NULL (built by the worker as `{rc_number}-{config_name}-{YYYY-MM-DD}.{ext}` with path-traversal characters stripped)
+- `mime_type` — TEXT NOT NULL
+- `file_bytes` — BYTEA NOT NULL
+- `file_size` — INTEGER NOT NULL
+- `expires_at` — TIMESTAMPTZ NOT NULL (`created_at + 24h`)
+- `downloaded_at` — TIMESTAMPTZ NULL (best-effort, bumped on first download)
+- `created_at` — TIMESTAMPTZ NOT NULL DEFAULT NOW()
+
+Indexes:
+- `(expires_at)` — TTL cleanup scan
+
+Rules:
+- TTL cleanup: the `data-export-cleanup` CronJob (`*/10 * * * *`) deletes rows where `expires_at < NOW()` and flips the corresponding job to `status='expired'`.
+- BLOB-Auth: download endpoint re-validates tenant via the job's `rc_number`.
+- Spreadsheet-injection defense: cell values starting with `=`, `+`, `-`, `@`, TAB, or CR (after stripping leading SPACE/NBSP/BOM) are prefixed with `'` by `excel/renderer.sanitiseSpreadsheetValue`.
+
 ---
 
 ## 4. Status Model

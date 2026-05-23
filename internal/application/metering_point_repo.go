@@ -61,17 +61,104 @@ func (r *MeteringPointRepository) CreateBulkTx(tx *sql.Tx, applicationID uuid.UU
 	return nil
 }
 
+// meteringPointColumns is the SELECT-clause body shared by GetByApplicationID
+// and GetByApplicationIDs. Keep in lock-step with scanMeteringPointRow.
+const meteringPointColumns = `id, application_id, metering_point, direction, participation_factor,
+	transformer, installation_number, installation_name,
+	address_street, address_street_number, address_zip, address_city,
+	generation_type, battery_size_kwh, inverter_manufacturer,
+	consumption_previous_year, consumption_forecast,
+	feed_in_forecast, pv_power_kwp, feed_in_limit_present, feed_in_limit_kw,
+	battery_control_acceptable, inverter_power_kw,
+	created_at, updated_at`
+
+// scanMeteringPointRow consumes one metering_point row matching
+// meteringPointColumns and returns a fully populated MeteringPoint.
+func scanMeteringPointRow(rows *sql.Rows) (shared.MeteringPoint, error) {
+	var point shared.MeteringPoint
+	var transformer, installationNumber, installationName sql.NullString
+	var addrStreet, addrStreetNumber, addrZip, addrCity sql.NullString
+	var generationType, inverterManufacturer sql.NullString
+	var batterySizeKwh sql.NullFloat64
+	var consumptionPreviousYear, consumptionForecast, feedInForecast sql.NullInt64
+	var pvPowerKwp, feedInLimitKw, inverterPowerKw sql.NullFloat64
+	var feedInLimitPresent, batteryControlAcceptable sql.NullBool
+	err := rows.Scan(
+		&point.ID, &point.ApplicationID, &point.MeteringPoint, &point.Direction, &point.ParticipationFactor,
+		&transformer, &installationNumber, &installationName,
+		&addrStreet, &addrStreetNumber, &addrZip, &addrCity,
+		&generationType, &batterySizeKwh, &inverterManufacturer,
+		&consumptionPreviousYear, &consumptionForecast,
+		&feedInForecast, &pvPowerKwp, &feedInLimitPresent, &feedInLimitKw,
+		&batteryControlAcceptable, &inverterPowerKw,
+		&point.CreatedAt, &point.UpdatedAt,
+	)
+	if err != nil {
+		return point, fmt.Errorf("failed to scan metering point: %w", err)
+	}
+	if transformer.Valid {
+		point.Transformer = &transformer.String
+	}
+	if installationNumber.Valid {
+		point.InstallationNumber = &installationNumber.String
+	}
+	if installationName.Valid {
+		point.InstallationName = &installationName.String
+	}
+	if addrStreet.Valid {
+		point.AddressStreet = &addrStreet.String
+	}
+	if addrStreetNumber.Valid {
+		point.AddressStreetNumber = &addrStreetNumber.String
+	}
+	if addrZip.Valid {
+		point.AddressZip = &addrZip.String
+	}
+	if addrCity.Valid {
+		point.AddressCity = &addrCity.String
+	}
+	if generationType.Valid {
+		point.GenerationType = &generationType.String
+	}
+	if batterySizeKwh.Valid {
+		point.BatterySizeKwh = &batterySizeKwh.Float64
+	}
+	if inverterManufacturer.Valid {
+		point.InverterManufacturer = &inverterManufacturer.String
+	}
+	if consumptionPreviousYear.Valid {
+		v := consumptionPreviousYear.Int64
+		point.ConsumptionPreviousYear = &v
+	}
+	if consumptionForecast.Valid {
+		v := consumptionForecast.Int64
+		point.ConsumptionForecast = &v
+	}
+	if feedInForecast.Valid {
+		v := feedInForecast.Int64
+		point.FeedInForecast = &v
+	}
+	if pvPowerKwp.Valid {
+		point.PvPowerKwp = &pvPowerKwp.Float64
+	}
+	if feedInLimitPresent.Valid {
+		point.FeedInLimitPresent = &feedInLimitPresent.Bool
+	}
+	if feedInLimitKw.Valid {
+		point.FeedInLimitKw = &feedInLimitKw.Float64
+	}
+	if batteryControlAcceptable.Valid {
+		point.BatteryControlAcceptable = &batteryControlAcceptable.Bool
+	}
+	if inverterPowerKw.Valid {
+		point.InverterPowerKw = &inverterPowerKw.Float64
+	}
+	return point, nil
+}
+
 // GetByApplicationID gets all metering points for an application
 func (r *MeteringPointRepository) GetByApplicationID(applicationID uuid.UUID) ([]shared.MeteringPoint, error) {
-	query := `
-		SELECT id, application_id, metering_point, direction, participation_factor,
-		       transformer, installation_number, installation_name,
-		       address_street, address_street_number, address_zip, address_city,
-		       generation_type, battery_size_kwh, inverter_manufacturer,
-		       consumption_previous_year, consumption_forecast,
-		       feed_in_forecast, pv_power_kwp, feed_in_limit_present, feed_in_limit_kw,
-		       battery_control_acceptable, inverter_power_kw,
-		       created_at, updated_at
+	query := `SELECT ` + meteringPointColumns + `
 		FROM member_onboarding.metering_point
 		WHERE application_id = $1
 		ORDER BY created_at`
@@ -84,92 +171,52 @@ func (r *MeteringPointRepository) GetByApplicationID(applicationID uuid.UUID) ([
 
 	var points []shared.MeteringPoint
 	for rows.Next() {
-		var point shared.MeteringPoint
-		var transformer, installationNumber, installationName sql.NullString
-		var addrStreet, addrStreetNumber, addrZip, addrCity sql.NullString
-		var generationType, inverterManufacturer sql.NullString
-		var batterySizeKwh sql.NullFloat64
-		var consumptionPreviousYear, consumptionForecast, feedInForecast sql.NullInt64
-		var pvPowerKwp, feedInLimitKw, inverterPowerKw sql.NullFloat64
-		var feedInLimitPresent, batteryControlAcceptable sql.NullBool
-		err := rows.Scan(
-			&point.ID, &point.ApplicationID, &point.MeteringPoint, &point.Direction, &point.ParticipationFactor,
-			&transformer, &installationNumber, &installationName,
-			&addrStreet, &addrStreetNumber, &addrZip, &addrCity,
-			&generationType, &batterySizeKwh, &inverterManufacturer,
-			&consumptionPreviousYear, &consumptionForecast,
-			&feedInForecast, &pvPowerKwp, &feedInLimitPresent, &feedInLimitKw,
-			&batteryControlAcceptable, &inverterPowerKw,
-			&point.CreatedAt, &point.UpdatedAt,
-		)
+		point, err := scanMeteringPointRow(rows)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan metering point: %w", err)
-		}
-		if transformer.Valid {
-			point.Transformer = &transformer.String
-		}
-		if installationNumber.Valid {
-			point.InstallationNumber = &installationNumber.String
-		}
-		if installationName.Valid {
-			point.InstallationName = &installationName.String
-		}
-		if addrStreet.Valid {
-			point.AddressStreet = &addrStreet.String
-		}
-		if addrStreetNumber.Valid {
-			point.AddressStreetNumber = &addrStreetNumber.String
-		}
-		if addrZip.Valid {
-			point.AddressZip = &addrZip.String
-		}
-		if addrCity.Valid {
-			point.AddressCity = &addrCity.String
-		}
-		if generationType.Valid {
-			point.GenerationType = &generationType.String
-		}
-		if batterySizeKwh.Valid {
-			point.BatterySizeKwh = &batterySizeKwh.Float64
-		}
-		if inverterManufacturer.Valid {
-			point.InverterManufacturer = &inverterManufacturer.String
-		}
-		if consumptionPreviousYear.Valid {
-			v := consumptionPreviousYear.Int64
-			point.ConsumptionPreviousYear = &v
-		}
-		if consumptionForecast.Valid {
-			v := consumptionForecast.Int64
-			point.ConsumptionForecast = &v
-		}
-		if feedInForecast.Valid {
-			v := feedInForecast.Int64
-			point.FeedInForecast = &v
-		}
-		if pvPowerKwp.Valid {
-			point.PvPowerKwp = &pvPowerKwp.Float64
-		}
-		if feedInLimitPresent.Valid {
-			point.FeedInLimitPresent = &feedInLimitPresent.Bool
-		}
-		if feedInLimitKw.Valid {
-			point.FeedInLimitKw = &feedInLimitKw.Float64
-		}
-		if batteryControlAcceptable.Valid {
-			point.BatteryControlAcceptable = &batteryControlAcceptable.Bool
-		}
-		if inverterPowerKw.Valid {
-			point.InverterPowerKw = &inverterPowerKw.Float64
+			return nil, err
 		}
 		points = append(points, point)
 	}
-
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating metering points: %w", err)
 	}
-
 	return points, nil
+}
+
+// GetByApplicationIDs fetches metering points for many applications in one
+// query and groups them by application_id. Used by data-export's batch
+// loader to avoid N+1 round-trips. Result keys cover only IDs that have at
+// least one metering point.
+func (r *MeteringPointRepository) GetByApplicationIDs(ids []uuid.UUID) (map[uuid.UUID][]shared.MeteringPoint, error) {
+	if len(ids) == 0 {
+		return map[uuid.UUID][]shared.MeteringPoint{}, nil
+	}
+	idStrs := make([]string, len(ids))
+	for i, id := range ids {
+		idStrs[i] = id.String()
+	}
+	query := `SELECT ` + meteringPointColumns + `
+		FROM member_onboarding.metering_point
+		WHERE application_id = ANY($1)
+		ORDER BY application_id, created_at`
+	rows, err := r.db.Query(query, pq.Array(idStrs))
+	if err != nil {
+		return nil, fmt.Errorf("query metering points by application ids: %w", err)
+	}
+	defer rows.Close()
+
+	out := make(map[uuid.UUID][]shared.MeteringPoint, len(ids))
+	for rows.Next() {
+		point, err := scanMeteringPointRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		out[point.ApplicationID] = append(out[point.ApplicationID], point)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating metering points: %w", err)
+	}
+	return out, nil
 }
 
 // ValidateUniqueMeteringPoints checks that no metering point appears twice in the request.

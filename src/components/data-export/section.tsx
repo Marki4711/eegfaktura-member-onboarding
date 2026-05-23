@@ -32,6 +32,7 @@ export function DataExportSection({ rcNumber }: Props) {
         rcNumber={rcNumber}
         jobId={trackedJobId}
         onClose={() => setTrackedJobId(null)}
+        onRetried={setTrackedJobId}
       />
     </>
   );

@@ -331,12 +331,11 @@ export function ApplicationsPageContent() {
 
           {pendingAction === "reject" && (
             <div className="space-y-2">
-              <Label htmlFor="bulk-reject-reason">Ablehnungsgrund</Label>
+              <Label htmlFor="bulk-reject-reason">Ablehnungsgrund (erforderlich)</Label>
               <Input
                 id="bulk-reject-reason"
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
-                placeholder="Bitte Grund angeben…"
                 autoFocus
               />
             </div>
@@ -379,6 +378,7 @@ export function ApplicationsPageContent() {
           rcNumber={dataExportJob.rcNumber}
           jobId={dataExportJob.id}
           onClose={() => setDataExportJob(null)}
+          onRetried={(newId) => setDataExportJob({ id: newId, rcNumber: dataExportJob.rcNumber })}
         />
       )}
     </div>

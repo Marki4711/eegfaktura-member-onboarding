@@ -1625,6 +1625,251 @@ All IDs must be valid UUIDs. IDs not belonging to the given `rc_number` are sile
 
 ---
 
+## 6.18 Data export (PROJ-60)
+
+Async plugin framework for forwarding member data to external systems. V1 ships the
+Excel/CSV plugin; Phase 2 adds CRM plugins (Zoho, HubSpot, …) on the same framework.
+All endpoints require Keycloak admin JWT + `rc_number` query parameter (except `/plugins`
+which is global). Tenant isolation enforced via `parseRCAndCheck` + service-layer
+re-validation.
+
+### 6.18.1 List registered plugins
+
+`GET /api/admin/data-export/plugins`
+
+No `rc_number` required — the registry is global.
+
+#### Response 200
+```json
+{
+  "plugins": [
+    {
+      "type": "excel",
+      "displayName": "Excel/CSV-Export",
+      "standardConfigs": [
+        { "name": "Newsletter-Adressliste", "config": { "format": "xlsx", "columns": [...] } },
+        { "name": "CRM-Stammdaten",         "config": { "format": "xlsx", "columns": [...] } },
+        { "name": "Buchhaltungs-Export",    "config": { "format": "xlsx", "columns": [...] } }
+      ]
+    }
+  ]
+}
+```
+
+### 6.18.2 List configurations
+
+`GET /api/admin/data-export/configs?rc_number=AT00001`
+
+Returns non-deleted configs for the EEG, ordered `plugin_type, name`.
+
+#### Response 200
+```json
+{
+  "configs": [
+    {
+      "id": "11111111-2222-3333-4444-555555555555",
+      "rcNumber": "AT00001",
+      "pluginType": "excel",
+      "name": "Newsletter",
+      "config": { "format": "xlsx", "columns": [...] },
+      "isObsolete": false,
+      "createdAt": "2026-05-23T12:00:00Z",
+      "updatedAt": "2026-05-23T12:00:00Z"
+    }
+  ]
+}
+```
+
+### 6.18.3 Create configuration
+
+`POST /api/admin/data-export/configs?rc_number=AT00001`
+
+```json
+{
+  "pluginType": "excel",
+  "name": "Newsletter",
+  "config": {
+    "format": "xlsx",
+    "columns": [
+      { "header": "Vorname",  "field": "firstname", "format": "string" },
+      { "header": "E-Mail",   "field": "email",     "format": "string" }
+    ]
+  }
+}
+```
+
+Server-side validation:
+- `pluginType` must exist in the registry
+- `name` must be unique per EEG across all plugin types (cross-plugin-type collision)
+- `Plugin.ValidateConfig(config)` is called — for excel: at least 1, at most 50 columns, each with non-empty unique header, known field, and a format that matches the field's type
+- Per-EEG limit: max 20 non-deleted configurations (`DataExportMaxConfigsPerEEG`)
+
+#### Response 201
+Same shape as 6.18.2.
+
+#### Errors
+- `400 validation_error` — field-level errors under `fields` (`columns[i].header`, `columns[i].field`, `columns[i].format`)
+- `403 forbidden` — tenant mismatch
+
+### 6.18.4 Get configuration
+
+`GET /api/admin/data-export/configs/{id}?rc_number=AT00001`
+
+### 6.18.5 Update configuration
+
+`PUT /api/admin/data-export/configs/{id}?rc_number=AT00001`
+
+Same body as create. `pluginType` cannot be changed. Obsolete configs cannot be updated.
+
+### 6.18.6 Delete configuration (soft)
+
+`DELETE /api/admin/data-export/configs/{id}?rc_number=AT00001`
+
+Sets `deleted_at = NOW()`. Active jobs referencing this config continue to run with the
+frozen snapshot. Hard-delete happens only via the cleanup CronJob after 7 years.
+
+#### Response 204
+No body.
+
+### 6.18.7 Live preview
+
+`POST /api/admin/data-export/configs/preview?rc_number=AT00001`
+
+```json
+{
+  "pluginType": "excel",
+  "rcNumber": "AT00001",
+  "config": { "format": "xlsx", "columns": [...] }
+}
+```
+
+Runs `ValidateConfig` then renders the latest 5 post-imported members (`imported`,
+`awaiting_bank_confirmation`, `ready_for_activation`, `activated`) through the column
+mapping. Falls back to the plugin's synthetic sample when the EEG has no imported members
+yet (`note` field populated).
+
+#### Response 200
+```json
+{
+  "headers": ["Vorname", "E-Mail"],
+  "rows": [
+    { "Vorname": "Max", "E-Mail": "max@example.com" }
+  ],
+  "note": ""
+}
+```
+
+### 6.18.8 Trigger job
+
+`POST /api/admin/data-export/jobs?rc_number=AT00001`
+
+```json
+{
+  "configId": "11111111-2222-3333-4444-555555555555",
+  "applicationIds": ["aaaa...", "bbbb..."]
+}
+```
+
+Validation:
+- 1 ≤ `applicationIds` ≤ 1000 (`DataExportMaxApplications`)
+- All IDs must belong to `rc_number`
+- Config must exist and not be obsolete
+- Concurrency soft-limit: max 3 active jobs per EEG (overshoot 4-5 tolerated)
+
+The job is created with `status='queued'`, the config payload is snapshotted, and a 202
+is returned immediately. The in-app worker pool picks it up within 5 seconds.
+
+#### Response 202
+Job-shape (see 6.18.10).
+
+#### Errors
+- `400 validation_error` (limits, UUIDs)
+- `403 forbidden`
+- `404 not_found` — config-id unknown
+- `409 conflict` — config is obsolete
+
+### 6.18.9 Retry job
+
+`POST /api/admin/data-export/jobs/{id}/retry?rc_number=AT00001`
+
+Creates a NEW queued job with the same snapshot (config + application IDs). Original job
+is untouched (audit trail preserved). Frontend modal re-subscribes its polling to the new
+job-id via the `onRetried` callback.
+
+#### Response 202
+New job-shape.
+
+### 6.18.10 Get job status
+
+`GET /api/admin/data-export/jobs/{id}?rc_number=AT00001`
+
+Frontend polls this every 2-5 seconds while the job is queued/running.
+
+#### Response 200
+```json
+{
+  "id": "...",
+  "rcNumber": "AT00001",
+  "configId": "...",
+  "pluginType": "excel",
+  "status": "running",
+  "adminUserId": "f47ac10b-...",
+  "processedCount": 47,
+  "totalCount": 200,
+  "resultSummary": { "downloaded": 47, "file_size": 12345 },
+  "errorMessage": null,
+  "retryCount": 0,
+  "hasResult": false,
+  "resultFileName": null,
+  "resultFileSize": null,
+  "createdAt": "2026-05-23T12:00:00Z",
+  "startedAt": "2026-05-23T12:00:05Z",
+  "finishedAt": null
+}
+```
+
+`status` ∈ `queued`, `running`, `done`, `failed`, `expired`. `errorMessage` is
+user-safe text (never contains stack traces or DB internals).
+
+### 6.18.11 List jobs (BackOffice)
+
+`GET /api/admin/data-export/jobs?rc_number=AT00001&status=failed&since=...&until=...&cursor=...&limit=50`
+
+Filter: optional `status`, `since`, `until` (RFC3339). Pagination: cursor-based via
+`created_at` of the last item; pass it back as `cursor`. Default limit 50, max 200.
+
+#### Response 200
+```json
+{
+  "jobs": [ { ... }, { ... } ],
+  "failedLast7Days": 3,
+  "nextCursor": "2026-05-23T11:55:00Z"
+}
+```
+
+`failedLast7Days` powers the red Failed-Jobs-Badge in the BackOffice UI.
+
+### 6.18.12 Download result file
+
+`GET /api/admin/data-export/jobs/{id}/download?rc_number=AT00001`
+
+Only available for `status='done'` jobs with a non-expired result. The filename built by
+the worker follows `{rc_number}-{config_name}-{YYYY-MM-DD}.{xlsx|csv}` after stripping
+path-traversal characters from the segments.
+
+#### Response 200
+Binary stream with `Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
+or `text/csv; charset=utf-8`, `Content-Disposition: attachment; filename="..."`,
+`Content-Length: <bytes>`. CSV files include a UTF-8 BOM + semicolon separator (DACH-Excel
+convention). All cell values whose first non-whitespace character is `=`, `+`, `-`, `@`,
+TAB or CR are prefixed with `'` to defang CSV/Excel-injection.
+
+#### Errors
+- `404 not_found` — job-id unknown or result BLOB expired
+- `409 conflict` — job not in `done` status
+
+---
+
 ## 7. Error model
 
 ### Validation error

@@ -3,6 +3,7 @@ package dataexport
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"sort"
 
 	"github.com/google/uuid"
@@ -22,33 +23,54 @@ func NewAppLoader(appRepo *application.ApplicationRepository, meterRepo *applica
 	return &AppLoader{appRepo: appRepo, meterRepo: meterRepo}
 }
 
-// LoadForExport fetches the given application IDs and their metering points.
-// Filters out applications that don't belong to rcNumber (defence-in-depth
-// against compromised job snapshots).
-func (l *AppLoader) LoadForExport(ctx context.Context, rcNumber string, ids []uuid.UUID) ([]ApplicationSnapshot, error) {
-	out := make([]ApplicationSnapshot, 0, len(ids))
-	for _, id := range ids {
-		app, err := l.appRepo.GetByID(id)
-		if err != nil {
-			// Skip missing applications (member was deleted between selection
-			// and processing). Don't fail the whole job.
-			continue
-		}
+// LoadForExport fetches the given application IDs and their metering points
+// using two batched queries (one for applications, one for metering points),
+// regardless of the input size. Replaces the previous N+1 implementation
+// that issued 2×N sequential round-trips and dominated the latency of
+// 1000-application exports.
+//
+// Filters out applications that don't belong to rcNumber as defence-in-depth
+// against compromised job snapshots. Missing applications (e.g. member
+// deleted after job was queued) are silently skipped — the export proceeds
+// with whatever IDs are still resolvable. Transient DB errors during the
+// initial batched fetch are surfaced so the worker can fail the job and the
+// admin sees a real error rather than a silently smaller result.
+func (l *AppLoader) LoadForExport(_ context.Context, rcNumber string, ids []uuid.UUID) ([]ApplicationSnapshot, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	apps, err := l.appRepo.GetByIDs(ids)
+	if err != nil {
+		return nil, fmt.Errorf("batch load applications: %w", err)
+	}
+
+	// Tenant-filter + collect the IDs we'll need metering points for.
+	keepIDs := make([]uuid.UUID, 0, len(apps))
+	keepApps := make([]*shared.Application, 0, len(apps))
+	skippedTenant := 0
+	for _, app := range apps {
 		if app.RCNumber != rcNumber {
-			// Cross-tenant check — should never happen if the trigger handler
-			// validated, but defence-in-depth here.
+			skippedTenant++
 			continue
 		}
-		meters, err := l.meterRepo.GetByApplicationID(id)
-		if err != nil {
-			return nil, fmt.Errorf("load meters for %s: %w", id, err)
-		}
-		if meters == nil {
-			meters = nil
-		}
+		keepIDs = append(keepIDs, app.ID)
+		keepApps = append(keepApps, app)
+	}
+	if skippedTenant > 0 {
+		slog.Warn("dataexport: skipped applications with non-matching RC number",
+			"rc_number", rcNumber, "skipped", skippedTenant)
+	}
+
+	meters, err := l.meterRepo.GetByApplicationIDs(keepIDs)
+	if err != nil {
+		return nil, fmt.Errorf("batch load metering points: %w", err)
+	}
+
+	out := make([]ApplicationSnapshot, 0, len(keepApps))
+	for _, app := range keepApps {
 		out = append(out, ApplicationSnapshot{
 			Application:    app,
-			MeteringPoints: meters,
+			MeteringPoints: meters[app.ID], // nil-safe: missing key returns nil slice
 		})
 	}
 	return out, nil
@@ -73,7 +95,12 @@ var postImportStatuses = []string{
 // Filters strictly to post-import statuses (PROJ-60 spec); falls back to
 // the plugin's synthetic sample when no imported members exist (handled
 // one layer up in ConfigService.Preview).
-func (l *AppLoader) LoadRecentImportedForPreview(ctx context.Context, rcNumber string, limit int) ([]ApplicationSnapshot, error) {
+//
+// Now uses GetByIDs + GetByApplicationIDs for the detail fetch (2 queries
+// total after the 4 per-status List() calls). Previous implementation did
+// 4 + 2×limit queries per editor keystroke — fine for limit=5 but the
+// underlying loader pattern matters for future preview-size growth.
+func (l *AppLoader) LoadRecentImportedForPreview(_ context.Context, rcNumber string, limit int) ([]ApplicationSnapshot, error) {
 	if limit <= 0 {
 		limit = 5
 	}
@@ -113,20 +140,39 @@ func (l *AppLoader) LoadRecentImportedForPreview(ctx context.Context, rcNumber s
 		pooled = pooled[:limit]
 	}
 
+	if len(pooled) == 0 {
+		return nil, nil
+	}
+
+	ids := make([]uuid.UUID, len(pooled))
+	for i, it := range pooled {
+		ids[i] = it.ID
+	}
+	apps, err := l.appRepo.GetByIDs(ids)
+	if err != nil {
+		return nil, fmt.Errorf("batch load preview applications: %w", err)
+	}
+	meters, err := l.meterRepo.GetByApplicationIDs(ids)
+	if err != nil {
+		return nil, fmt.Errorf("batch load preview metering points: %w", err)
+	}
+
+	// Preserve sort order from the pooled List() result by mapping by ID.
+	byID := make(map[uuid.UUID]*shared.Application, len(apps))
+	for _, app := range apps {
+		byID[app.ID] = app
+	}
 	out := make([]ApplicationSnapshot, 0, len(pooled))
 	for _, it := range pooled {
-		app, err := l.appRepo.GetByID(it.ID)
-		if err != nil {
+		app, ok := byID[it.ID]
+		if !ok {
 			continue
-		}
-		meters, err := l.meterRepo.GetByApplicationID(it.ID)
-		if err != nil {
-			meters = nil
 		}
 		out = append(out, ApplicationSnapshot{
 			Application:    app,
-			MeteringPoints: meters,
+			MeteringPoints: meters[it.ID],
 		})
 	}
 	return out, nil
 }
+

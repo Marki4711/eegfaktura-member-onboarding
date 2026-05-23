@@ -82,7 +82,10 @@ export function DataExportJobsList({ rcNumber, onTrackJob, reloadKey }: Props) {
         );
         setFailedCount(res.failedLast7Days);
         setNextCursor(res.nextCursor);
-        if (append && jobs) setJobs([...jobs, ...res.jobs]);
+        // Functional update so concurrent "Mehr laden" clicks (or a filter
+        // change firing mid-append) can't restore a stale `jobs` snapshot.
+        // Also: `jobs` no longer needs to be in this callback's deps.
+        if (append) setJobs((prev) => [...(prev ?? []), ...res.jobs]);
         else setJobs(res.jobs);
       } catch (err) {
         setError(formatValidationError(err).join(" — "));
@@ -91,13 +94,12 @@ export function DataExportJobsList({ rcNumber, onTrackJob, reloadKey }: Props) {
         setLoadingMore(false);
       }
     },
-    [rcNumber, session?.accessToken, statusFilter, jobs],
+    [rcNumber, session?.accessToken, statusFilter],
   );
 
   useEffect(() => {
     void load(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rcNumber, session?.accessToken, statusFilter, reloadKey]);
+  }, [load, reloadKey]);
 
   async function handleDownload(job: DataExportJobResponse) {
     setBusyId(job.id);

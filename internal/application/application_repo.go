@@ -7,113 +7,49 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 
 	"github.com/your-org/eegfaktura-member-onboarding/internal/shared"
 )
 
-// ApplicationRepository handles database operations for applications
-type ApplicationRepository struct {
-	db *sql.DB
+// applicationColumns is the SELECT-clause body shared by GetByID and
+// GetByIDs. Keep in lock-step with scanApplicationRow.
+const applicationColumns = `id, reference_number, rc_number, status, started_at, submitted_at,
+	approved_at, rejected_at, imported_at,
+	bank_confirmed_at, activated_at,
+	activation_notification_sent_at,
+	member_type, titel, titel_nach, firstname, lastname, birth_date,
+	company_name, uid_number, register_number,
+	email, phone,
+	resident_street, resident_street_number, resident_zip, resident_city,
+	privacy_accepted, privacy_version, privacy_accepted_at, accuracy_confirmed,
+	iban, account_holder, sepa_mandate_accepted, sepa_mandate_accepted_at,
+	reviewed_by_user_id, admin_note, needs_info_reason, target_participant_id,
+	import_started_at, import_finished_at, import_error_message,
+	membership_start_date, persons_in_household,
+	heat_pump, electric_vehicle, electric_vehicle_count, electric_vehicle_annual_km, electric_hot_water,
+	einzugsart, bank_name, mandate_reference, mandate_date,
+	member_number,
+	cooperative_shares_count,
+	network_operator_authorization, network_operator_authorization_at,
+	network_operator_customer_number, meter_inventory_number,
+	has_contact_person, contact_person_name, contact_person_email, contact_person_phone,
+	has_billing_email, billing_email,
+	email_confirmed_at, email_confirmation_used_at,
+	email_confirmation_token_hash, email_confirmation_token_expires_at,
+	created_at, updated_at`
+
+// rowScanner abstracts *sql.Row and *sql.Rows for shared scan helpers.
+type rowScanner interface {
+	Scan(dest ...interface{}) error
 }
 
-// NewApplicationRepository creates a new application repository
-func NewApplicationRepository(db *sql.DB) *ApplicationRepository {
-	return &ApplicationRepository{db: db}
-}
-
-// CreateTx inserts a new application using an existing transaction.
-func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) error {
-	query := `
-		INSERT INTO member_onboarding.application (
-			reference_number, rc_number, status, started_at,
-			member_type, titel, titel_nach, firstname, lastname, birth_date,
-			company_name, uid_number, register_number,
-			email, phone,
-			resident_street, resident_street_number, resident_zip, resident_city,
-			privacy_accepted, privacy_version, privacy_accepted_at, accuracy_confirmed,
-			iban, account_holder, bank_name, sepa_mandate_accepted, sepa_mandate_accepted_at,
-			membership_start_date, persons_in_household,
-			heat_pump, electric_vehicle, electric_vehicle_count, electric_vehicle_annual_km, electric_hot_water,
-			cooperative_shares_count,
-			network_operator_authorization, network_operator_authorization_at,
-			network_operator_customer_number, meter_inventory_number,
-			has_contact_person, contact_person_name, contact_person_email, contact_person_phone,
-			has_billing_email, billing_email,
-			created_at, updated_at
-		) VALUES (
-			$1, $2, $3, $4,
-			$5, $6, $7, $8, $9, $10,
-			$11, $12, $13,
-			$14, $15,
-			$16, $17, $18, $19,
-			$20, $21, $22, $23,
-			$24, $25, $26, $27, $28,
-			$29, $30,
-			$31, $32, $33, $34, $35,
-			$36,
-			$37, $38,
-			$39, $40,
-			$41, $42, $43, $44,
-			$45, $46,
-			$47, $48
-		) RETURNING id`
-
-	now := app.CreatedAt
-	args := []interface{}{
-		app.ReferenceNumber, app.RCNumber, app.Status, app.StartedAt,
-		app.MemberType, app.Titel, app.TitelNach, app.Firstname, app.Lastname, app.BirthDate,
-		app.CompanyName, app.UIDNumber, app.RegisterNumber,
-		app.Email, app.Phone,
-		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity,
-		app.PrivacyAccepted, app.PrivacyVersion, &now, app.AccuracyConfirmed,
-		app.IBAN, app.AccountHolder, app.BankName, app.SepaMandateAccepted, app.SepaMandateAcceptedAt,
-		app.MembershipStartDate, app.PersonsInHousehold,
-		app.HeatPump, app.ElectricVehicle, app.ElectricVehicleCount, app.ElectricVehicleAnnualKm, app.ElectricHotWater,
-		app.CooperativeSharesCount,
-		app.NetworkOperatorAuthorization, app.NetworkOperatorAuthorizationAt,
-		app.NetworkOperatorCustomerNumber, app.MeterInventoryNumber,
-		app.HasContactPerson, app.ContactPersonName, app.ContactPersonEmail, app.ContactPersonPhone,
-		app.HasBillingEmail, app.BillingEmail,
-		app.CreatedAt, app.UpdatedAt,
-	}
-
-	err := tx.QueryRow(query, args...).Scan(&app.ID)
-	if err != nil {
-		return fmt.Errorf("failed to create application: %w", err)
-	}
-	return nil
-}
-
-// GetByID gets an application by ID
-func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, error) {
-	query := `
-		SELECT id, reference_number, rc_number, status, started_at, submitted_at,
-		       approved_at, rejected_at, imported_at,
-		       bank_confirmed_at, activated_at,
-		       activation_notification_sent_at,
-		       member_type, titel, titel_nach, firstname, lastname, birth_date,
-		       company_name, uid_number, register_number,
-		       email, phone,
-		       resident_street, resident_street_number, resident_zip, resident_city,
-		       privacy_accepted, privacy_version, privacy_accepted_at, accuracy_confirmed,
-		       iban, account_holder, sepa_mandate_accepted, sepa_mandate_accepted_at,
-		       reviewed_by_user_id, admin_note, needs_info_reason, target_participant_id,
-		       import_started_at, import_finished_at, import_error_message,
-		       membership_start_date, persons_in_household,
-		       heat_pump, electric_vehicle, electric_vehicle_count, electric_vehicle_annual_km, electric_hot_water,
-		       einzugsart, bank_name, mandate_reference, mandate_date,
-		       member_number,
-		       cooperative_shares_count,
-		       network_operator_authorization, network_operator_authorization_at,
-		       network_operator_customer_number, meter_inventory_number,
-		       has_contact_person, contact_person_name, contact_person_email, contact_person_phone,
-		       has_billing_email, billing_email,
-		       email_confirmed_at, email_confirmation_used_at,
-		       email_confirmation_token_hash, email_confirmation_token_expires_at,
-		       created_at, updated_at
-		FROM member_onboarding.application
-		WHERE id = $1`
-
+// scanApplicationRow consumes one row's worth of columns (matching the
+// applicationColumns SELECT) and returns a fully populated Application.
+// Returns shared.ErrNotFound when the scanner produces sql.ErrNoRows
+// (only meaningful for *sql.Row callers; *sql.Rows users wouldn't hit
+// this branch since they iterate with Next()).
+func scanApplicationRow(s rowScanner) (*shared.Application, error) {
 	app := &shared.Application{}
 	var phone, privacyVersion, iban, accountHolder, reviewedByUserID, adminNote, needsInfoReason, targetParticipantID, importErrorMessage sql.NullString
 	var titel, titelNach, firstname, lastname, companyName, uidNumber, registerNumber sql.NullString
@@ -134,7 +70,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	var emailConfirmedAt, emailConfirmationUsedAt, emailConfirmationTokenExpiresAt sql.NullTime
 	var emailConfirmationTokenHash sql.NullString
 
-	err := r.db.QueryRow(query, id).Scan(
+	err := s.Scan(
 		&app.ID, &app.ReferenceNumber, &app.RCNumber, &app.Status, &startedAt,
 		&submittedAt, &approvedAt, &rejectedAt, &importedAt,
 		&bankConfirmedAt, &activatedAt,
@@ -164,7 +100,7 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 		if err == sql.ErrNoRows {
 			return nil, shared.ErrNotFound
 		}
-		return nil, fmt.Errorf("failed to get application: %w", err)
+		return nil, fmt.Errorf("failed to scan application: %w", err)
 	}
 
 	if titel.Valid {
@@ -338,6 +274,116 @@ func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, erro
 	app.EmailConfirmationPending = app.EmailConfirmationTokenHash != nil && app.EmailConfirmedAt == nil
 
 	return app, nil
+}
+
+// ApplicationRepository handles database operations for applications
+type ApplicationRepository struct {
+	db *sql.DB
+}
+
+// NewApplicationRepository creates a new application repository
+func NewApplicationRepository(db *sql.DB) *ApplicationRepository {
+	return &ApplicationRepository{db: db}
+}
+
+// CreateTx inserts a new application using an existing transaction.
+func (r *ApplicationRepository) CreateTx(tx *sql.Tx, app *shared.Application) error {
+	query := `
+		INSERT INTO member_onboarding.application (
+			reference_number, rc_number, status, started_at,
+			member_type, titel, titel_nach, firstname, lastname, birth_date,
+			company_name, uid_number, register_number,
+			email, phone,
+			resident_street, resident_street_number, resident_zip, resident_city,
+			privacy_accepted, privacy_version, privacy_accepted_at, accuracy_confirmed,
+			iban, account_holder, bank_name, sepa_mandate_accepted, sepa_mandate_accepted_at,
+			membership_start_date, persons_in_household,
+			heat_pump, electric_vehicle, electric_vehicle_count, electric_vehicle_annual_km, electric_hot_water,
+			cooperative_shares_count,
+			network_operator_authorization, network_operator_authorization_at,
+			network_operator_customer_number, meter_inventory_number,
+			has_contact_person, contact_person_name, contact_person_email, contact_person_phone,
+			has_billing_email, billing_email,
+			created_at, updated_at
+		) VALUES (
+			$1, $2, $3, $4,
+			$5, $6, $7, $8, $9, $10,
+			$11, $12, $13,
+			$14, $15,
+			$16, $17, $18, $19,
+			$20, $21, $22, $23,
+			$24, $25, $26, $27, $28,
+			$29, $30,
+			$31, $32, $33, $34, $35,
+			$36,
+			$37, $38,
+			$39, $40,
+			$41, $42, $43, $44,
+			$45, $46,
+			$47, $48
+		) RETURNING id`
+
+	now := app.CreatedAt
+	args := []interface{}{
+		app.ReferenceNumber, app.RCNumber, app.Status, app.StartedAt,
+		app.MemberType, app.Titel, app.TitelNach, app.Firstname, app.Lastname, app.BirthDate,
+		app.CompanyName, app.UIDNumber, app.RegisterNumber,
+		app.Email, app.Phone,
+		app.ResidentStreet, app.ResidentStreetNumber, app.ResidentZip, app.ResidentCity,
+		app.PrivacyAccepted, app.PrivacyVersion, &now, app.AccuracyConfirmed,
+		app.IBAN, app.AccountHolder, app.BankName, app.SepaMandateAccepted, app.SepaMandateAcceptedAt,
+		app.MembershipStartDate, app.PersonsInHousehold,
+		app.HeatPump, app.ElectricVehicle, app.ElectricVehicleCount, app.ElectricVehicleAnnualKm, app.ElectricHotWater,
+		app.CooperativeSharesCount,
+		app.NetworkOperatorAuthorization, app.NetworkOperatorAuthorizationAt,
+		app.NetworkOperatorCustomerNumber, app.MeterInventoryNumber,
+		app.HasContactPerson, app.ContactPersonName, app.ContactPersonEmail, app.ContactPersonPhone,
+		app.HasBillingEmail, app.BillingEmail,
+		app.CreatedAt, app.UpdatedAt,
+	}
+
+	err := tx.QueryRow(query, args...).Scan(&app.ID)
+	if err != nil {
+		return fmt.Errorf("failed to create application: %w", err)
+	}
+	return nil
+}
+
+// GetByID gets an application by ID
+func (r *ApplicationRepository) GetByID(id uuid.UUID) (*shared.Application, error) {
+	query := `SELECT ` + applicationColumns + ` FROM member_onboarding.application WHERE id = $1`
+	return scanApplicationRow(r.db.QueryRow(query, id))
+}
+
+// GetByIDs fetches multiple applications in a single query. Order of the
+// result slice is undefined; callers that need a specific order must map by
+// ID. Missing IDs (deleted applications) are silently omitted — the result
+// length may be smaller than len(ids). Used by data-export's batch loader to
+// avoid N+1 round-trips when exporting hundreds of applications.
+func (r *ApplicationRepository) GetByIDs(ids []uuid.UUID) ([]*shared.Application, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	idStrs := make([]string, len(ids))
+	for i, id := range ids {
+		idStrs[i] = id.String()
+	}
+	query := `SELECT ` + applicationColumns + ` FROM member_onboarding.application WHERE id = ANY($1)`
+	rows, err := r.db.Query(query, pq.Array(idStrs))
+	if err != nil {
+		return nil, fmt.Errorf("query applications by ids: %w", err)
+	}
+	defer rows.Close()
+
+	out := make([]*shared.Application, 0, len(ids))
+	for rows.Next() {
+		app, err := scanApplicationRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, app)
+	}
+	return out, rows.Err()
 }
 
 // AssignMemberNumberTx assigns the next available member number for the EEG to the

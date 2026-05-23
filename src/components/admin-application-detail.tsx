@@ -707,6 +707,7 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
         rcNumber={application.rcNumber}
         jobId={dataExportJobId}
         onClose={() => setDataExportJobId(null)}
+        onRetried={setDataExportJobId}
       />
     </>
   );

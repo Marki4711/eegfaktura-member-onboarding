@@ -10,6 +10,43 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### PROJ-60 — Datenweiterleitung an externe Systeme (async Plugin-Framework + Excel/CSV-Plugin) *(2026-05-23)*
+
+Komplett neues asynchrones Framework für die Weitergabe importierter
+Mitglieder an externe Systeme. V1 ships das Excel/CSV-Export-Plugin;
+Phase 2 (Zoho, HubSpot, …) baut ohne Framework-Eingriff auf.
+
+**DB-Schema (Migration 000052):**
+- `data_export_config` — Plugin-Konfigurationen pro EEG, Soft-Delete via `deleted_at`, UNIQUE auf `(rc_number, name)` WHERE non-deleted
+- `data_export_job` — Async-Job-Queue + langlebiger Audit-Trail, mit `config_snapshot` (immune gegen Config-Edits zur Laufzeit) und 4 spezialisierten Partial-Indizes (Pickup, Concurrency-Check, BackOffice-Liste, Zombie-Scan)
+- `data_export_result` — Datei-BLOBs mit 24 h TTL, FK CASCADE auf Job
+
+**Backend:**
+- Plugin-Registry mit Side-Effect-Import (`sql.Driver`-Pattern) — neue Plugins via einem Import in `cmd/server/main.go`
+- In-App-Worker-Pool (3 Goroutines, 5 s Polling) mit `SELECT ... FOR UPDATE SKIP LOCKED` — multi-replica-safe
+- Worker-Shutdown vor HTTP-Shutdown (`Worker.Stop(ctx)` mit 60 s Budget) — keine Zombie-Jobs mehr bei Rollouts; Helm-Template `terminationGracePeriodSeconds: 120`
+- K8s-CronJob `data-export-cleanup` (`*/10 * * * *`): Zombie-Recovery + BLOB-TTL + DSGVO-Hard-Delete nach 7 J
+- 11 neue Admin-Endpoints unter `/api/admin/data-export/*` (Plugins, Configs CRUD, Preview, Jobs CRUD, Download, Retry)
+- DSGVO: `slog.Info classification=sensitive-export` bei IBAN/Geburtsdatum-Exports; CSV/Excel-Injection-Defense für Werte mit Prefix `=+-@\t\r` (auch nach Leading-Whitespace/NBSP/BOM)
+- Filename-Schema `{rc_number}-{config_name}-{YYYY-MM-DD}.{xlsx|csv}` mit Path-Traversal-Sanitization
+- FailureMailer-Adapter sendet Plain-Text-Mail an `registration_entrypoint.contact_email` mit Job-Details + BackOffice-Link
+- Batch-Loader (`GetByIDs` / `GetByApplicationIDs`) — N+1 eliminiert für 1000-Apps-Bulks
+- 30 Unit-Tests im Excel-Plugin (ValidateConfig, formatValue, Renderer, Process, sanitiseSpreadsheetValue inkl. Whitespace-Bypass-Edge-Cases)
+
+**Frontend:**
+- Settings-Page jetzt mit shadcn Tabs (6 Sektionen statt langer Liste): Stammdaten | Einleitungstext | Formular-Felder | Rechtsdokumente | Externe API | Datenweiterleitung
+- Excel-Editor mit Spalten-Mapping (Header/Feld/Format/Up-Down-Remove), Live-Preview (debounced, skipped bei unvollständigen Spalten), 3 Standard-Vorlagen (Newsletter, CRM-Stammdaten, Buchhaltung), DSGVO-Popover bei IBAN/Geburtsdatum, alphabetische Sortierung pro Kategorie im Feld-Dropdown
+- Trigger-Dialog (einstufige Plugin-Konfig-Liste), Bulk-Action in Antragsliste mit Cross-EEG-Schutz, Single-Action im Antrags-Detail
+- Polling-Modal (2 s/5 s) mit Progress-Bar, Download bei Done, Retry bei Failed (Retry-Polling re-subscribed via `onRetried`-Callback)
+- BackOffice-Jobs-Tab mit Failed-Badge (7 Tage), Status-Filter, Cursor-Pagination
+- Aussagekräftige Fehlermeldungen via `formatValidationError` (Backend-`fields`-Map wird ausgepackt, Pfade wie `columns[1].header` prettifiziert zu „Spalte 2 → Spaltenkopf")
+
+**Bugfix-Welle parallel zu PROJ-60:**
+- `persons_in_household` ist konzeptuell nur für `private` und `farmer` sinnvoll → Backend `clearMemberTypeFields` cleart bei Org-Typen, Required-Check zusätzlich auf `isNaturalPerson` gegated, Public-Form rendert das Feld nicht mehr für Org-Typen, Admin-Field-Config-Editor zeigt zwei Badges (`consumption` + `natural_person`)
+- Verein-Submit funktioniert wieder bei EEGs, die `persons_in_household` als Pflichtfeld konfiguriert hatten
+- `jobs-list` functional setState verhindert Race bei „Mehr laden" + Filter-Wechsel
+- Placeholder-Verstoß im Bulk-Reject-Dialog entfernt (Label trägt jetzt den Hinweis)
+
 ### PROJ-57 v3 — Ansprechperson ohne Master-Switch, drei Felder einzeln steuerbar *(2026-05-21)*
 
 Vereinfachung des Konfigurations-Modells: der separate

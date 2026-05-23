@@ -25,12 +25,18 @@ interface Props {
   rcNumber: string;
   jobId: string | null;
   onClose: () => void;
+  // Called after a successful retry so the parent can update its tracked
+  // job-id. Without this the modal would keep polling the old job and the
+  // admin would never see the new run's progress (the local useEffect only
+  // re-subscribes when the jobId prop changes — mutating a local ref is not
+  // enough).
+  onRetried?: (newJobId: string) => void;
 }
 
 const POLL_FAST_MS = 2000;
 const POLL_SLOW_MS = 5000;
 
-export function DataExportJobStatusModal({ rcNumber, jobId, onClose }: Props) {
+export function DataExportJobStatusModal({ rcNumber, jobId, onClose, onRetried }: Props) {
   const { data: session } = useSession();
   const [job, setJob] = useState<DataExportJobResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -108,8 +114,17 @@ export function DataExportJobStatusModal({ rcNumber, jobId, onClose }: Props) {
     setRetrying(true);
     try {
       const newJob = await retryDataExportJob(rcNumber, job.id, session?.accessToken);
-      activeJobIdRef.current = newJob.id;
-      setJob(newJob);
+      // Hand the new job-id back to the parent so its state-owned `jobId`
+      // prop changes — that's what re-subscribes the polling effect. Mutating
+      // the local ref alone keeps the effect closed over the old jobId.
+      if (onRetried) {
+        onRetried(newJob.id);
+      } else {
+        // Fallback for parents that haven't wired onRetried: at least show
+        // the initial state of the new job, even though polling won't update.
+        activeJobIdRef.current = newJob.id;
+        setJob(newJob);
+      }
     } catch (err) {
       setError(formatValidationError(err).join(" — "));
     } finally {

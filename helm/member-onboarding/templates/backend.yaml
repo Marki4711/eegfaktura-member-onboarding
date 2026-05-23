@@ -17,6 +17,11 @@ spec:
       labels:
         app: {{ include "member-onboarding.fullname" . }}-backend
     spec:
+      # PROJ-60: 120 s reicht für den geordneten Drain des data-export
+      # Worker-Pools (max 60 s) plus den anschließenden HTTP-Shutdown
+      # (max 15 s). Default 30 s war zu knapp und produzierte Zombie-Jobs
+      # bei jedem Rollout, die der cleanup-CronJob erst nach 1 h heilte.
+      terminationGracePeriodSeconds: 120
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000

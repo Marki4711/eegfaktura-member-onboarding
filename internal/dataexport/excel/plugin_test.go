@@ -445,6 +445,27 @@ func TestSanitiseSpreadsheetValue_DefangesFormulaPrefixes(t *testing.T) {
 	}
 }
 
+// LibreOffice/Excel-Importmodi trimmen führende Whitespace vor Formel-
+// Erkennung — auch NBSP (U+00A0) und BOM (U+FEFF) zählen dazu. Der
+// sanitiser muss diese Bypass-Pfade abdecken.
+func TestSanitiseSpreadsheetValue_DefangesLeadingWhitespaceBypass(t *testing.T) {
+	cases := map[string]string{
+		" =SUM(A1:A99)":      "' =SUM(A1:A99)",
+		"  +1234":            "'  +1234",
+		"\t=HYPERLINK(\"x\")": "'\t=HYPERLINK(\"x\")",
+		"\u00a0=evil":        "'\u00a0=evil", // NBSP
+		"\ufeff=evil":        "'\ufeff=evil", // BOM
+		" Max Mustermann":    " Max Mustermann", // harmlos, untouched
+		"   ":                "   ",             // all-whitespace untouched
+	}
+	for in, expected := range cases {
+		got := sanitiseSpreadsheetValue(in)
+		if got != expected {
+			t.Errorf("sanitise(%q): expected %q, got %q", in, expected, got)
+		}
+	}
+}
+
 func TestRenderCSV_DefangsFormulaInjection(t *testing.T) {
 	// Member's lastname contains a hostile formula payload.
 	cfg := excelConfig{
