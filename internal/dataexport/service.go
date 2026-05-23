@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -236,6 +237,12 @@ type JobService struct {
 	jobRepo    *JobRepository
 	resultRepo *ResultRepository
 	appRepo    ApplicationLoader
+	// shuttingDown is flipped by main.go's signal handler during graceful
+	// shutdown. Once true, TriggerJob refuses new jobs with ConflictError —
+	// the worker pool is draining and any newly-queued job would be picked
+	// up by no one (zombie). Status/Download/Retry stay available so admins
+	// keep observing existing jobs through the drain window.
+	shuttingDown atomic.Bool
 }
 
 func NewJobService(configRepo *ConfigRepository, jobRepo *JobRepository, resultRepo *ResultRepository, appRepo ApplicationLoader) *JobService {
@@ -247,9 +254,19 @@ func NewJobService(configRepo *ConfigRepository, jobRepo *JobRepository, resultR
 	}
 }
 
+// MarkShuttingDown causes subsequent TriggerJob/Retry calls to return a
+// ConflictError. Idempotent. Called from main.go's SIGTERM handler before
+// stopping the worker pool.
+func (s *JobService) MarkShuttingDown() {
+	s.shuttingDown.Store(true)
+}
+
 // TriggerJob creates a new queued job from a config + list of application IDs.
 // Performs soft concurrency-limit check (overshoot up to ~4-5 tolerated).
 func (s *JobService) TriggerJob(rcNumber string, configID uuid.UUID, applicationIDs []uuid.UUID, adminUserID string) (*shared.DataExportJob, error) {
+	if s.shuttingDown.Load() {
+		return nil, shared.NewConflictError("Server wird heruntergefahren — neue Jobs werden nicht mehr angenommen. Bitte gleich erneut versuchen.")
+	}
 	if len(applicationIDs) == 0 {
 		return nil, shared.NewValidationError("Validation failed", map[string]string{
 			"applicationIds": "mindestens eine Antrags-ID erforderlich",
@@ -326,8 +343,12 @@ func (s *JobService) CountFailedSince(rcNumber string, since time.Time) (int, er
 }
 
 // Retry creates a new queued job with the same snapshot + application IDs as
-// the original. The original job is unaffected (audit-trail).
+// the original. The original job is unaffected (audit-trail). Refused during
+// shutdown so the new job doesn't end up as a zombie.
 func (s *JobService) Retry(originalJobID uuid.UUID, rcNumber, adminUserID string) (*shared.DataExportJob, error) {
+	if s.shuttingDown.Load() {
+		return nil, shared.NewConflictError("Server wird heruntergefahren — Retries werden nicht mehr angenommen. Bitte gleich erneut versuchen.")
+	}
 	original, err := s.GetJob(originalJobID, rcNumber)
 	if err != nil {
 		return nil, err
@@ -377,4 +398,19 @@ func (s *JobService) GetResultMetadata(jobID uuid.UUID) (fileName string, fileSi
 		return "", 0, false
 	}
 	return fn, fs, ex
+}
+
+// GetResultMetadataBatch returns file_name + size for many jobs in one
+// query, used by ListJobs to avoid N+1. Jobs without a result are absent
+// from the map.
+func (s *JobService) GetResultMetadataBatch(jobIDs []uuid.UUID) map[uuid.UUID]ResultMetadata {
+	if len(jobIDs) == 0 {
+		return nil
+	}
+	meta, err := s.resultRepo.GetMetadataByJobIDs(jobIDs)
+	if err != nil {
+		slog.Warn("dataexport: batch metadata lookup failed (listing renders without result info)", "error", err)
+		return nil
+	}
+	return meta
 }

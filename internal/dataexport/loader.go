@@ -60,6 +60,14 @@ func (l *AppLoader) LoadForExport(_ context.Context, rcNumber string, ids []uuid
 		slog.Warn("dataexport: skipped applications with non-matching RC number",
 			"rc_number", rcNumber, "skipped", skippedTenant)
 	}
+	// Hard-fail when the tenant filter wiped EVERYTHING but the caller
+	// asked for ≥1 ID. Reaching this branch implies a compromised /
+	// reassigned-EEG / forged-snapshot scenario — silently producing a
+	// 0-row "successful" export would hand the admin a misleading file and
+	// hide the integrity issue.
+	if skippedTenant > 0 && len(keepApps) == 0 {
+		return nil, fmt.Errorf("alle %d Anträge gehören nicht (mehr) zur EEG %s — Job-Snapshot ist veraltet, bitte neu auslösen", skippedTenant, rcNumber)
+	}
 
 	meters, err := l.meterRepo.GetByApplicationIDs(keepIDs)
 	if err != nil {

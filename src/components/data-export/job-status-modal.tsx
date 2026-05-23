@@ -25,12 +25,13 @@ interface Props {
   rcNumber: string;
   jobId: string | null;
   onClose: () => void;
-  // Called after a successful retry so the parent can update its tracked
-  // job-id. Without this the modal would keep polling the old job and the
-  // admin would never see the new run's progress (the local useEffect only
-  // re-subscribes when the jobId prop changes — mutating a local ref is not
-  // enough).
-  onRetried?: (newJobId: string) => void;
+  // Required: parent must own the tracked job-id state and update it here.
+  // The polling effect only re-subscribes when the jobId prop changes;
+  // without this callback the modal would silently freeze on the old job
+  // after a retry (the user clicks "Erneut ausführen" but the progress
+  // never moves). TypeScript catches missing wiring at compile time so the
+  // bug cannot ship to production.
+  onRetried: (newJobId: string) => void;
 }
 
 const POLL_FAST_MS = 2000;
@@ -115,16 +116,8 @@ export function DataExportJobStatusModal({ rcNumber, jobId, onClose, onRetried }
     try {
       const newJob = await retryDataExportJob(rcNumber, job.id, session?.accessToken);
       // Hand the new job-id back to the parent so its state-owned `jobId`
-      // prop changes — that's what re-subscribes the polling effect. Mutating
-      // the local ref alone keeps the effect closed over the old jobId.
-      if (onRetried) {
-        onRetried(newJob.id);
-      } else {
-        // Fallback for parents that haven't wired onRetried: at least show
-        // the initial state of the new job, even though polling won't update.
-        activeJobIdRef.current = newJob.id;
-        setJob(newJob);
-      }
+      // prop changes — that's what re-subscribes the polling effect.
+      onRetried(newJob.id);
     } catch (err) {
       setError(formatValidationError(err).join(" — "));
     } finally {

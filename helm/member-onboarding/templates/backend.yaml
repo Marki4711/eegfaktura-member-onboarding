@@ -22,9 +22,17 @@ spec:
       # (max 15 s). Default 30 s war zu knapp und produzierte Zombie-Jobs
       # bei jedem Rollout, die der cleanup-CronJob erst nach 1 h heilte.
       terminationGracePeriodSeconds: 120
+      # Pod hat keinen Bedarf an K8s-API-Zugriff (keine Discovery, kein
+      # ServiceAccount-Token-Use). Verhindert lateral movement im Fall eines
+      # Container-Compromise.
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
+        # K8s 1.27+ default; explizit setzen, damit auch auf älteren Clustern
+        # syscalls per seccomp-default-Profile gefiltert werden.
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: backend
           image: {{ .Values.images.backend.repository }}:{{ .Values.images.backend.tag }}

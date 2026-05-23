@@ -357,7 +357,7 @@ Rules:
 - Per-year reset: counter starts at `0001` each calendar year
 - Legacy applications created before PROJ-35 keep their `MO-YYYY-NNNNNN` reference numbers (uniqueness across both formats is guaranteed by the column-level UNIQUE on `application.reference_number`)
 
-### 3.6 `data_export_config` (PROJ-60)
+### 3.9 `data_export_config` (PROJ-60)
 
 Plugin-specific configurations for the asynchronous data-export framework. Each row is one
 named instance of a registered plugin (e.g. one Excel/CSV column-mapping) scoped to one EEG.
@@ -379,7 +379,7 @@ Rules:
 - Soft-delete: deletion sets `deleted_at`; reads filter `deleted_at IS NULL`. Hard-delete only via the cleanup CronJob after 7 years (DSGVO § 132 BAO).
 - Tenant isolation: enforced server-side via JWT `tenant` claim + `parseRCAndCheck` on every endpoint plus a service-layer `cfg.RCNumber == rcNumber` cross-check.
 
-### 3.7 `data_export_job` (PROJ-60)
+### 3.10 `data_export_job` (PROJ-60)
 
 Async job queue and long-lived audit trail for data-export runs. Never deleted (cleanup
 only blanks the BLOB and flips the status to `expired`).
@@ -410,7 +410,7 @@ Rules:
 - Concurrency soft-limit: max 3 queued+running per EEG (race-tolerant — bursts up to 4-5 are intentionally accepted).
 - Sensitive-export audit: when the snapshot contains `iban` or `birth_date`, the worker emits `slog.Info classification=sensitive-export` with `admin_user_id` for DSGVO compliance.
 
-### 3.8 `data_export_result` (PROJ-60)
+### 3.11 `data_export_result` (PROJ-60)
 
 File BLOBs with 24-hour TTL, written by download-style plugins (Excel/CSV in V1). Push-style
 plugins do not populate this table.

@@ -415,14 +415,14 @@ func main() {
 	slog.Info("shutdown signal received, draining requests...")
 	cleanupCancel()
 
-	// PROJ-60: drain the data-export worker pool FIRST, before HTTP is
-	// closed. Reason: workers may still be processing Excel/CSV jobs;
-	// completing them inside the K8s Pod-Grace-Period beats letting K8s
-	// SIGKILL the pod (→ zombies that the cleanup CronJob recovers an
-	// hour later). The 60s budget is comfortable for typical bulks
-	// (1000 rows render in <2s) and a hard cap so a hung plugin can't
-	// block pod-stop indefinitely. Helm chart sets
-	// terminationGracePeriodSeconds=120 to give us headroom.
+	// PROJ-60: drain order matters. Workers must drain BEFORE the HTTP
+	// server closes so admins can keep polling job-status through the
+	// shutdown window. But we must also stop accepting NEW jobs at the
+	// same moment we start cancelling worker pickups — otherwise a hastily
+	// triggered job would land in the queue with no one to pick it up
+	// (→ guaranteed zombie). MarkShuttingDown causes TriggerJob/Retry to
+	// return 409 immediately.
+	dataExportJobService.MarkShuttingDown()
 	workerCancel()
 	workerStopCtx, workerStopCancel := context.WithTimeout(context.Background(), 60*time.Second)
 	_ = dataExportWorker.Stop(workerStopCtx)

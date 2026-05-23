@@ -52,8 +52,15 @@ func NewDataExportHandler(cs *dataexport.ConfigService, js *dataexport.JobServic
 // PLUGIN LISTING
 // =====================================================================
 
-// ListPlugins handles GET /api/admin/data-export/plugins.
-// No RC-number needed; the list is global.
+// ListPlugins lists all registered data-export plugins with their standard templates.
+// @Summary      List registered data-export plugins (PROJ-60)
+// @Description  Returns all plugins compiled into the backend with their built-in standard templates. Global — no rc_number filter.
+// @Tags         data-export
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}
+// @Failure      401  {object}  shared.ErrorResponse
+// @Router       /api/admin/data-export/plugins [get]
 func (h *DataExportHandler) ListPlugins(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"plugins": dataexport.PluginInfos(),
@@ -64,7 +71,16 @@ func (h *DataExportHandler) ListPlugins(w http.ResponseWriter, r *http.Request) 
 // CONFIG CRUD
 // =====================================================================
 
-// ListConfigs handles GET /api/admin/data-export/configs?rc_number=...
+// ListConfigs returns all non-deleted data-export configurations for the EEG.
+// @Summary      List data-export configurations (PROJ-60)
+// @Tags         data-export
+// @Security     BearerAuth
+// @Produce      json
+// @Param        rc_number  query     string  true  "EEG RC number (must be in the admin's tenant claim)"
+// @Success      200        {object}  map[string]interface{}
+// @Failure      400        {object}  shared.ErrorResponse
+// @Failure      403        {object}  shared.ErrorResponse
+// @Router       /api/admin/data-export/configs [get]
 func (h *DataExportHandler) ListConfigs(w http.ResponseWriter, r *http.Request) {
 	rcNumber, ok := h.parseRCAndCheck(w, r)
 	if !ok {
@@ -82,7 +98,19 @@ func (h *DataExportHandler) ListConfigs(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusOK, map[string]interface{}{"configs": out})
 }
 
-// CreateConfig handles POST /api/admin/data-export/configs?rc_number=...
+// CreateConfig creates a new data-export configuration for the EEG.
+// @Summary      Create data-export configuration (PROJ-60)
+// @Description  Plugin-specific config validated by Plugin.ValidateConfig. Enforced limits: max 20 non-deleted configs per EEG, unique name per EEG across plugin types.
+// @Tags         data-export
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        rc_number  query     string                         true  "EEG RC number"
+// @Param        request    body      shared.DataExportConfigRequest  true  "Plugin type, name, plugin-specific config"
+// @Success      201        {object}  shared.DataExportConfigResponse
+// @Failure      400        {object}  shared.ErrorResponse  "validation_error — field-level errors under `fields` (e.g. `columns[1].header`)"
+// @Failure      403        {object}  shared.ErrorResponse
+// @Router       /api/admin/data-export/configs [post]
 func (h *DataExportHandler) CreateConfig(w http.ResponseWriter, r *http.Request) {
 	rcNumber, ok := h.parseRCAndCheck(w, r)
 	if !ok {
@@ -105,7 +133,17 @@ func (h *DataExportHandler) CreateConfig(w http.ResponseWriter, r *http.Request)
 	writeJSON(w, http.StatusCreated, configToResponse(*cfg))
 }
 
-// GetConfig handles GET /api/admin/data-export/configs/{id}?rc_number=...
+// GetConfig returns one data-export configuration by ID.
+// @Summary      Get data-export configuration (PROJ-60)
+// @Tags         data-export
+// @Security     BearerAuth
+// @Produce      json
+// @Param        id         path      string  true  "Config UUID"
+// @Param        rc_number  query     string  true  "EEG RC number"
+// @Success      200        {object}  shared.DataExportConfigResponse
+// @Failure      403        {object}  shared.ErrorResponse
+// @Failure      404        {object}  shared.ErrorResponse
+// @Router       /api/admin/data-export/configs/{id} [get]
 func (h *DataExportHandler) GetConfig(w http.ResponseWriter, r *http.Request) {
 	rcNumber, ok := h.parseRCAndCheck(w, r)
 	if !ok {
@@ -124,7 +162,21 @@ func (h *DataExportHandler) GetConfig(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, configToResponse(*cfg))
 }
 
-// UpdateConfig handles PUT /api/admin/data-export/configs/{id}?rc_number=...
+// UpdateConfig updates an existing data-export configuration.
+// @Summary      Update data-export configuration (PROJ-60)
+// @Description  Same shape as create. pluginType cannot be changed. Obsolete configs are read-only.
+// @Tags         data-export
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        id         path      string                         true  "Config UUID"
+// @Param        rc_number  query     string                         true  "EEG RC number"
+// @Param        request    body      shared.DataExportConfigRequest  true  "Updated plugin config"
+// @Success      200        {object}  shared.DataExportConfigResponse
+// @Failure      400        {object}  shared.ErrorResponse
+// @Failure      403        {object}  shared.ErrorResponse
+// @Failure      404        {object}  shared.ErrorResponse
+// @Router       /api/admin/data-export/configs/{id} [put]
 func (h *DataExportHandler) UpdateConfig(w http.ResponseWriter, r *http.Request) {
 	rcNumber, ok := h.parseRCAndCheck(w, r)
 	if !ok {
@@ -152,7 +204,17 @@ func (h *DataExportHandler) UpdateConfig(w http.ResponseWriter, r *http.Request)
 	writeJSON(w, http.StatusOK, configToResponse(*cfg))
 }
 
-// DeleteConfig handles DELETE /api/admin/data-export/configs/{id}?rc_number=...
+// DeleteConfig soft-deletes a data-export configuration.
+// @Summary      Soft-delete data-export configuration (PROJ-60)
+// @Description  Sets deleted_at = NOW. Running jobs keep their snapshot. Hard-delete via cleanup CronJob after 7 years (DSGVO § 132 BAO).
+// @Tags         data-export
+// @Security     BearerAuth
+// @Param        id         path  string  true  "Config UUID"
+// @Param        rc_number  query string  true  "EEG RC number"
+// @Success      204
+// @Failure      403  {object}  shared.ErrorResponse
+// @Failure      404  {object}  shared.ErrorResponse
+// @Router       /api/admin/data-export/configs/{id} [delete]
 func (h *DataExportHandler) DeleteConfig(w http.ResponseWriter, r *http.Request) {
 	rcNumber, ok := h.parseRCAndCheck(w, r)
 	if !ok {
@@ -170,7 +232,19 @@ func (h *DataExportHandler) DeleteConfig(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// PreviewConfig handles POST /api/admin/data-export/configs/preview?rc_number=...
+// PreviewConfig runs a plugin config against the EEG's latest 5 post-imported members.
+// @Summary      Live-preview a data-export config (PROJ-60)
+// @Description  Returns headers + rows as JSON (not file bytes) — used by the editor for instant feedback. Falls back to the plugin's synthetic sample when the EEG has no imported members yet.
+// @Tags         data-export
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        rc_number  query     string                          true  "EEG RC number"
+// @Param        request    body      shared.DataExportPreviewRequest  true  "Plugin type + config to preview"
+// @Success      200        {object}  shared.DataExportPreviewResponse
+// @Failure      400        {object}  shared.ErrorResponse
+// @Failure      403        {object}  shared.ErrorResponse
+// @Router       /api/admin/data-export/configs/preview [post]
 func (h *DataExportHandler) PreviewConfig(w http.ResponseWriter, r *http.Request) {
 	rcNumber, ok := h.parseRCAndCheck(w, r)
 	if !ok {
@@ -197,7 +271,21 @@ func (h *DataExportHandler) PreviewConfig(w http.ResponseWriter, r *http.Request
 // JOB CRUD
 // =====================================================================
 
-// TriggerJob handles POST /api/admin/data-export/jobs?rc_number=...
+// TriggerJob enqueues a new data-export job for the given config + application IDs.
+// @Summary      Trigger data-export job (PROJ-60)
+// @Description  Limits: 1..1000 application IDs, max 3 active jobs per EEG (soft, tolerates 4-5 burst). Config snapshot is frozen at trigger time so subsequent config edits don't affect this run. Returns 409 during graceful shutdown.
+// @Tags         data-export
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        rc_number  query     string                              true  "EEG RC number"
+// @Param        request    body      shared.DataExportJobTriggerRequest  true  "Config ID + application IDs"
+// @Success      202        {object}  shared.DataExportJobResponse
+// @Failure      400        {object}  shared.ErrorResponse
+// @Failure      403        {object}  shared.ErrorResponse
+// @Failure      404        {object}  shared.ErrorResponse  "Config not found"
+// @Failure      409        {object}  shared.ErrorResponse  "Config obsolete or server shutting down"
+// @Router       /api/admin/data-export/jobs [post]
 func (h *DataExportHandler) TriggerJob(w http.ResponseWriter, r *http.Request) {
 	rcNumber, ok := h.parseRCAndCheck(w, r)
 	if !ok {
@@ -240,7 +328,18 @@ func (h *DataExportHandler) TriggerJob(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusAccepted, jobToResponse(*job, false, nil, nil))
 }
 
-// GetJob handles GET /api/admin/data-export/jobs/{id}?rc_number=...
+// GetJob returns a job's current status — polled by the frontend modal.
+// @Summary      Get data-export job status (PROJ-60)
+// @Description  Polled every 2-5 seconds while the job is queued/running. errorMessage is always user-safe text (never contains stack traces or DB internals).
+// @Tags         data-export
+// @Security     BearerAuth
+// @Produce      json
+// @Param        id         path      string  true  "Job UUID"
+// @Param        rc_number  query     string  true  "EEG RC number"
+// @Success      200        {object}  shared.DataExportJobResponse
+// @Failure      403        {object}  shared.ErrorResponse
+// @Failure      404        {object}  shared.ErrorResponse
+// @Router       /api/admin/data-export/jobs/{id} [get]
 func (h *DataExportHandler) GetJob(w http.ResponseWriter, r *http.Request) {
 	rcNumber, ok := h.parseRCAndCheck(w, r)
 	if !ok {
@@ -276,7 +375,21 @@ func (h *DataExportHandler) GetJob(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, jobToResponse(*job, hasResult, fnPtr, fsPtr))
 }
 
-// ListJobs handles GET /api/admin/data-export/jobs?rc_number=...&status=...&since=...&until=...&cursor=...&limit=...
+// ListJobs returns the BackOffice job overview with optional filter + cursor pagination.
+// @Summary      List data-export jobs (BackOffice, PROJ-60)
+// @Description  Cursor-based pagination via created_at. Includes failedLast7Days for the red-badge counter.
+// @Tags         data-export
+// @Security     BearerAuth
+// @Produce      json
+// @Param        rc_number  query     string  true   "EEG RC number"
+// @Param        status     query     string  false  "queued | running | done | failed | expired"
+// @Param        since      query     string  false  "Filter created_at >= RFC3339"
+// @Param        until      query     string  false  "Filter created_at < RFC3339"
+// @Param        cursor     query     string  false  "Pagination cursor (RFC3339Nano of last item)"
+// @Param        limit      query     int     false  "Page size (default 50, max 200)"
+// @Success      200        {object}  map[string]interface{}
+// @Failure      403        {object}  shared.ErrorResponse
+// @Router       /api/admin/data-export/jobs [get]
 func (h *DataExportHandler) ListJobs(w http.ResponseWriter, r *http.Request) {
 	rcNumber, ok := h.parseRCAndCheck(w, r)
 	if !ok {
@@ -300,15 +413,25 @@ func (h *DataExportHandler) ListJobs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// For each job in done-status, attach result metadata.
+	// Batch-load metadata for all done-jobs in one query instead of N
+	// (was a per-job lookup; with limit=50 that's 50 extra DB round-trips).
+	doneIDs := make([]uuid.UUID, 0, len(jobs))
+	for _, j := range jobs {
+		if j.Status == shared.DataExportJobStatusDone {
+			doneIDs = append(doneIDs, j.ID)
+		}
+	}
+	metaByJob := h.jobService.GetResultMetadataBatch(doneIDs)
+
 	out := make([]shared.DataExportJobResponse, len(jobs))
 	for i, j := range jobs {
 		hasResult, fileName, fileSize := false, "", 0
 		if j.Status == shared.DataExportJobStatusDone {
-			fn, fs, exists := h.jobService.GetResultMetadata(j.ID)
-			hasResult = exists
-			fileName = fn
-			fileSize = fs
+			if m, ok := metaByJob[j.ID]; ok {
+				hasResult = true
+				fileName = m.FileName
+				fileSize = m.FileSize
+			}
 		}
 		var fnPtr *string
 		var fsPtr *int
@@ -334,8 +457,19 @@ func (h *DataExportHandler) ListJobs(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
-// DownloadResult handles GET /api/admin/data-export/jobs/{id}/download?rc_number=...
-// Streams the result BLOB to the client with Content-Disposition.
+// DownloadResult streams the result file (Excel/CSV) for a done job.
+// @Summary      Download data-export result (PROJ-60)
+// @Description  Filename pattern `{rc_number}-{config_name}-{YYYY-MM-DD}.{xlsx|csv}` with path-traversal sanitization. CSV includes UTF-8 BOM + semicolon (DACH-Excel convention). All cell values whose first non-whitespace char is `=+-@\t\r` are prefixed with `'` to defang CSV/Excel-injection.
+// @Tags         data-export
+// @Security     BearerAuth
+// @Produce      application/octet-stream
+// @Param        id         path  string  true  "Job UUID"
+// @Param        rc_number  query string  true  "EEG RC number"
+// @Success      200  "Binary stream with Content-Disposition: attachment"
+// @Failure      403  {object}  shared.ErrorResponse
+// @Failure      404  {object}  shared.ErrorResponse  "Job unknown or result expired"
+// @Failure      409  {object}  shared.ErrorResponse  "Job not in done status"
+// @Router       /api/admin/data-export/jobs/{id}/download [get]
 func (h *DataExportHandler) DownloadResult(w http.ResponseWriter, r *http.Request) {
 	rcNumber, ok := h.parseRCAndCheck(w, r)
 	if !ok {
@@ -358,7 +492,19 @@ func (h *DataExportHandler) DownloadResult(w http.ResponseWriter, r *http.Reques
 	_, _ = w.Write(res.FileBytes)
 }
 
-// RetryJob handles POST /api/admin/data-export/jobs/{id}/retry?rc_number=...
+// RetryJob creates a new queued job with the same snapshot as the original.
+// @Summary      Retry a data-export job (PROJ-60)
+// @Description  Original job is unaffected (audit-trail preserved). Returns 409 during graceful shutdown.
+// @Tags         data-export
+// @Security     BearerAuth
+// @Produce      json
+// @Param        id         path      string  true  "Original job UUID"
+// @Param        rc_number  query     string  true  "EEG RC number"
+// @Success      202        {object}  shared.DataExportJobResponse
+// @Failure      403        {object}  shared.ErrorResponse
+// @Failure      404        {object}  shared.ErrorResponse
+// @Failure      409        {object}  shared.ErrorResponse  "Server shutting down"
+// @Router       /api/admin/data-export/jobs/{id}/retry [post]
 func (h *DataExportHandler) RetryJob(w http.ResponseWriter, r *http.Request) {
 	rcNumber, ok := h.parseRCAndCheck(w, r)
 	if !ok {

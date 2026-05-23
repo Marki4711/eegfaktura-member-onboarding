@@ -378,7 +378,7 @@ export function ApplicationsPageContent() {
           rcNumber={dataExportJob.rcNumber}
           jobId={dataExportJob.id}
           onClose={() => setDataExportJob(null)}
-          onRetried={(newId) => setDataExportJob({ id: newId, rcNumber: dataExportJob.rcNumber })}
+          onRetried={(newId) => setDataExportJob((prev) => (prev ? { id: newId, rcNumber: prev.rcNumber } : null))}
         />
       )}
     </div>

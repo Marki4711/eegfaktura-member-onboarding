@@ -30,9 +30,14 @@ spec:
           labels:
             app: {{ include "member-onboarding.fullname" . }}-data-export-cleanup
         spec:
+          # Cleanup-Job braucht keine K8s-API. Verhindert lateral movement
+          # im Compromise-Fall.
+          automountServiceAccountToken: false
           securityContext:
             runAsNonRoot: true
             runAsUser: 1000
+            seccompProfile:
+              type: RuntimeDefault
           restartPolicy: OnFailure
           containers:
             - name: cleanup

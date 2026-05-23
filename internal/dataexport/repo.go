@@ -504,6 +504,45 @@ func (r *ResultRepository) GetMetadataByJobID(jobID uuid.UUID) (fileName string,
 	return fileName, fileSize, true, nil
 }
 
+// ResultMetadata is the (file_name, file_size) pair returned by the batch
+// metadata lookup. Used by ListJobs to attach download info without N+1.
+type ResultMetadata struct {
+	FileName string
+	FileSize int
+}
+
+// GetMetadataByJobIDs returns file_name + size for many jobs in a single
+// query. Jobs without a result row are simply absent from the map. Used by
+// ListJobs so a 50-row page does 1 metadata-query instead of 50.
+func (r *ResultRepository) GetMetadataByJobIDs(jobIDs []uuid.UUID) (map[uuid.UUID]ResultMetadata, error) {
+	if len(jobIDs) == 0 {
+		return map[uuid.UUID]ResultMetadata{}, nil
+	}
+	idStrs := make([]string, len(jobIDs))
+	for i, id := range jobIDs {
+		idStrs[i] = id.String()
+	}
+	rows, err := r.db.Query(`
+		SELECT job_id, file_name, file_size
+		FROM member_onboarding.data_export_result
+		WHERE job_id = ANY($1)`, pq.Array(idStrs))
+	if err != nil {
+		return nil, fmt.Errorf("batch metadata: %w", err)
+	}
+	defer rows.Close()
+
+	out := make(map[uuid.UUID]ResultMetadata, len(jobIDs))
+	for rows.Next() {
+		var jobID uuid.UUID
+		var meta ResultMetadata
+		if err := rows.Scan(&jobID, &meta.FileName, &meta.FileSize); err != nil {
+			return nil, fmt.Errorf("scan metadata row: %w", err)
+		}
+		out[jobID] = meta
+	}
+	return out, rows.Err()
+}
+
 // MarkDownloaded sets downloaded_at to now. Best-effort, idempotent.
 func (r *ResultRepository) MarkDownloaded(jobID uuid.UUID) error {
 	_, err := r.db.Exec(`

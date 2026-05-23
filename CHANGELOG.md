@@ -26,7 +26,7 @@ Phase 2 (Zoho, HubSpot, …) baut ohne Framework-Eingriff auf.
 - In-App-Worker-Pool (3 Goroutines, 5 s Polling) mit `SELECT ... FOR UPDATE SKIP LOCKED` — multi-replica-safe
 - Worker-Shutdown vor HTTP-Shutdown (`Worker.Stop(ctx)` mit 60 s Budget) — keine Zombie-Jobs mehr bei Rollouts; Helm-Template `terminationGracePeriodSeconds: 120`
 - K8s-CronJob `data-export-cleanup` (`*/10 * * * *`): Zombie-Recovery + BLOB-TTL + DSGVO-Hard-Delete nach 7 J
-- 11 neue Admin-Endpoints unter `/api/admin/data-export/*` (Plugins, Configs CRUD, Preview, Jobs CRUD, Download, Retry)
+- 12 neue Admin-Endpoints unter `/api/admin/data-export/*` (Plugins-Liste, Configs CRUD, Preview, Jobs CRUD inkl. Listing, Download, Retry)
 - DSGVO: `slog.Info classification=sensitive-export` bei IBAN/Geburtsdatum-Exports; CSV/Excel-Injection-Defense für Werte mit Prefix `=+-@\t\r` (auch nach Leading-Whitespace/NBSP/BOM)
 - Filename-Schema `{rc_number}-{config_name}-{YYYY-MM-DD}.{xlsx|csv}` mit Path-Traversal-Sanitization
 - FailureMailer-Adapter sendet Plain-Text-Mail an `registration_entrypoint.contact_email` mit Job-Details + BackOffice-Link

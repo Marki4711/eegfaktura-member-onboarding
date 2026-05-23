@@ -84,9 +84,13 @@ func (w *Worker) Start(ctx context.Context) {
 // jobs to finish. Bounded by ctx.Done() — when the context cancels (e.g. K8s
 // terminationGracePeriodSeconds elapsing) Stop returns even if jobs are
 // still running; those jobs will be picked up as zombies by the cleanup
-// CronJob within an hour. Called from main.go on SIGTERM BEFORE
-// srv.Shutdown so the worker drains while HTTP is still up (admin can
-// observe job-status until the very end).
+// CronJob within an hour.
+//
+// Called from main.go on SIGTERM BEFORE srv.Shutdown so the worker drains
+// while HTTP is still up (admin can observe job-status until the very end).
+// New TriggerJob/Retry calls are blocked in parallel via
+// JobService.MarkShuttingDown so no fresh jobs land in the queue during the
+// drain window — otherwise they would be guaranteed zombies.
 func (w *Worker) Stop(ctx context.Context) error {
 	w.once.Do(func() {
 		close(w.stop)
