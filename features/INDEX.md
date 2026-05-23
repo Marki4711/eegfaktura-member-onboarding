@@ -72,6 +72,6 @@ Central tracking for all features.
 | PROJ-56 | Netzbetreiber-Info-Seite im Beitrittsbestätigungs-PDF | In Review | `features/PROJ-56-network-operator-info-pdf.md` | 2026-05-21 |
 | PROJ-57 | Ansprechperson für Org-Mitgliedstypen | In Review | `features/PROJ-57-contact-person.md` | 2026-05-21 |
 | PROJ-58 | Abweichende Rechnungs-E-Mail für Org-Mitgliedstypen | In Review | `features/PROJ-58-billing-email.md` | 2026-05-21 |
-| PROJ-59 | BgA / Hoheitsbereich-Vermerk im Anlagennamen bei Gemeinden | In Review | `features/PROJ-59-municipal-business-type-per-meter.md` | 2026-05-23 |
+| PROJ-59 | BgA / Hoheitsbereich-Vermerk im Anlagennamen bei Gemeinden | Approved | `features/PROJ-59-municipal-business-type-per-meter.md` | 2026-05-23 |
 
 ## Next Available ID: PROJ-60

@@ -75,7 +75,82 @@ Keine zusätzlichen Tests erforderlich:
 _Verworfene strukturelle Lösung — historischer Zwischenstand in der Git-History dieser Datei. Aktuelle Lösung ist eine reine Hilfetext-Ergänzung an zwei Stellen im Frontend, kein eigenes Tech Design notwendig._
 
 ## QA Test Results
-_To be added by /qa_
+
+**QA Date:** 2026-05-23
+**Tester:** Claude QA
+**Commit:** `6740c1b`
+
+### Scope-Hinweis
+
+PROJ-59 wurde während `/backend` auf **Variante 2** reduziert (Vermerk im Anlagennamen statt strukturelle Erfassung). Damit besteht der Code-Diff aus exakt zwei Hilfetext-Edits im Public-Form. QA fokussiert sich entsprechend auf:
+
+1. Korrektheit der zwei UI-Edits (Conditional-Rendering + statischer Text)
+2. Regression: bestehende Hilfetexte bleiben unverändert
+3. Build/Test-Pipeline grün
+
+Kein Backend, keine API, kein Schema, keine Auth-Pfade berührt → kein eigener Security-Smoke-Test erforderlich; `/security-review`-Trigger nicht ausgelöst.
+
+### Automated Tests
+
+| Suite | Ergebnis |
+|---|---|
+| GitHub Actions „CI Build & Test" auf `6740c1b` (Backend: `go vet` + `go build` + `go test`) | ✅ success |
+| GitHub Actions „CI Build & Test" auf `6740c1b` (Frontend: `tsc` + `next build` + Vitest) | ✅ success |
+| GitHub Actions „Snyk Security Scan" | ❌ failure — **pre-existing**, drei Runs in Folge (auch auf Commits ohne PROJ-59-Bezug). Nicht durch diese Änderung verursacht. Separat zu adressieren. |
+
+### Acceptance Criteria
+
+| # | Criterion | Result |
+|---|---|---|
+| AC-1 | `metering-point-fields.tsx`: bei `memberType=municipality` wird im Anlagenname-Popover ein zweiter Absatz mit BgA/Hoheit-Hinweis angezeigt | ✅ (Quelle: `form.watch("memberType") === "municipality"` an Zeile 522) |
+| AC-2 | Bei allen anderen `memberType`-Werten erscheint der zweite Absatz **nicht** | ✅ (Strict-Equality auf Literal — JSX-Block in Conditional gekapselt) |
+| AC-3 | Der bestehende erste Absatz („Der Anlagenname ist eine Bezeichnung des Zählpunkts …") bleibt für alle Mitgliedstypen sichtbar | ✅ (Edit fügt nur `<p className="mt-2">…</p>` an, ändert vorhandenen `<p>` nicht) |
+| AC-4 | Der Gemeinde-Hilfetext im `MemberTypeSelector` enthält den neuen Absatz über den Anlagenname-Vermerk | ✅ (`registration-form.tsx` Zeile 856–860) |
+| AC-5 | Bestehender BgA/hoheitlich-Aufzählungspunkt im Gemeinde-Hilfetext bleibt erhalten | ✅ (Edit fügt nur einen `<p className="mt-2">` nach der `<ul>` an) |
+| AC-6 | TypeScript-Build und Production-Build laufen ohne Fehler | ✅ (CI grün, siehe oben) |
+| AC-7 | Vitest-Unit-Tests laufen ohne Fehler | ✅ (CI grün, siehe oben) |
+
+### Regression
+
+| Bereich | Risiko | Bewertung |
+|---|---|---|
+| Public-Form-Submit für Nicht-municipality | Sehr niedrig | UI-Edit ist additiv und conditional — kein State, keine Validierung berührt |
+| Public-Form-Submit für municipality | Sehr niedrig | Kein Pflichtfeld-Pfad hinzugefügt, keine Zod-Schema-Änderung. Submit-Verhalten unverändert |
+| Andere Mitgliedstypen im `MemberTypeSelector` | Sehr niedrig | Edit liegt ausschließlich im `<div>` der Gemeinde-Option |
+| Admin-Edit-Form | Nicht betroffen | `metering-point-fields.tsx` wird nur im Public-Form genutzt — Admin-Form hat eigene Felder |
+| Externe API (PROJ-13) | Nicht betroffen | Reine Frontend-Änderung |
+| Excel-Export, PDF, Mail-Templates | Nicht betroffen | Kein Backend-Code geändert |
+
+### Security Smoke
+
+| Bereich | Bewertung |
+|---|---|
+| Auth/Authz | n/a — keine neuen Endpoints, keine Auth-Pfade |
+| Injection | n/a — keine Backend-Logik, keine DB-Query |
+| XSS | ✓ — Hilfetext ist statisches JSX, kein User-Input gerendert. Anführungszeichen im Text sind echte Unicode-Zeichen, kein dangerouslySetInnerHTML |
+| Secrets/PII in Logs | n/a — keine Log-Statements geändert |
+| Input-Limits | n/a — kein neues Eingabefeld |
+| Status-Transitions | n/a — kein Status-Code geändert |
+
+→ Kein `/security-review`-Trigger ausgelöst.
+
+### Manuelle Smoke-Tests (Empfehlung für Reviewer)
+
+Visuelle Verifikation im Browser sollte vom Reviewer vor Deploy einmal ausgeführt werden — die zwei betroffenen Spots:
+
+1. Public-Form öffnen → Mitgliedstyp „Gemeinde" wählen → Info-Icon neben „Mitgliedstyp" anklicken → der Gemeinde-Block enthält jetzt nach der BgA/hoheitlich-Aufzählung den zusätzlichen Absatz über den Anlagenname-Vermerk.
+2. Public-Form öffnen → Mitgliedstyp „Gemeinde" wählen → Zählpunkt-Block aufklappen → Info-Icon neben „Anlagenname" anklicken → der Popover zeigt jetzt den zusätzlichen Absatz mit „Gemeinden: bitte hier auch vermerken …".
+3. Mitgliedstyp auf „Privatperson" umstellen → derselbe Info-Icon-Klick zeigt **nur** den ursprünglichen Text, keinen zusätzlichen Absatz.
+
+Optional Cross-Browser (Chrome/Firefox/Safari): Popover-Verhalten ist shadcn-Standard und in PROJ-39 bereits getestet — keine zusätzliche Cross-Browser-Pflicht.
+
+### Bugs Found
+
+Keine.
+
+### Production-Ready Decision
+
+**READY** — alle ACs erfüllt, CI grün (außer pre-existing Snyk), keine Regression-Risiken, keine Security-Implikationen. Status kann auf **Approved** wechseln und beim nächsten Deploy mitlaufen.
 
 ## Deployment
 _To be added by /deploy_
