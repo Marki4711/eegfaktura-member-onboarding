@@ -85,11 +85,15 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, account, trigger, session: updateData }) {
       // Branch 1: session.update() from the silent-SSO bootstrap — install the
       // Faktura-side core token without touching the regular session fields.
+      // refreshToken is preserved across updates that don't carry a new one,
+      // because Keycloak only emits a new refresh-token on rotation; a refresh
+      // call that returns just an access_token must not wipe our stored
+      // refresh credential.
       if (trigger === "update" && isCoreTokenUpdate(updateData)) {
         return {
           ...token,
           coreAccessToken: updateData.accessToken,
-          coreRefreshToken: updateData.refreshToken,
+          coreRefreshToken: updateData.refreshToken ?? token.coreRefreshToken,
           coreExpiresAt: updateData.expiresAt,
           coreError: updateData.error,
         };
