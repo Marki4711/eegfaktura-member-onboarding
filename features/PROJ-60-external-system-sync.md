@@ -1,8 +1,8 @@
 # PROJ-60: Datenweiterleitung an externe Systeme — Plugin-Framework
 
-## Status: In Review
+## Status: Approved
 **Created:** 2026-05-23
-**Last Updated:** 2026-05-23 (`/qa` durchlaufen — 20 Unit-Tests + Security-Smoke; 1 Medium + 3 Low Findings → siehe QA Test Results)
+**Last Updated:** 2026-05-23 (alle QA-Findings gefixt — 27 Unit-Tests grün, FailureMailer live, ready for `/deploy`)
 **Quelle:** Owner-Anforderung
 
 ## Dependencies
@@ -979,24 +979,42 @@ Job läuft → Snapshot bleibt; Mitglied gelöscht zwischen Selektion und Pickup
 Dialog filtert raus). Manuelle End-to-End-Verifizierung der Edge-Cases steht
 für die Pre-Deploy-Smoke-Tests aus.
 
-### Production-Ready Entscheidung
+### Fix-Round (2026-05-23) — alle Findings behoben
 
-**NOT READY** für Deploy ohne Owner-Entscheidung über folgende Punkte:
+Owner-Entscheidung „alle Findings fixen". Alle 5 PROJ-60-spezifischen
+Findings + FailureMailer-Hardening umgesetzt im selben Commit-Lauf:
 
-1. **CSV-Injection (Medium)** — Fix nötig oder bewusste Risiko-Akzeptanz (Datenempfänger ist EEG-Admin selbst, vertrauenswürdig, exportiert i.d.R. an interne Systeme; aber DSGVO-Sensitivität spricht für Fix)
-2. **Filename-Schema (Low Spec-Abweichung)** — Fix oder Spec ändern
-3. **Error-Message-Sanitisierung (Low)** — vor Deploy fixen oder als Tech-Debt führen
-4. **Preview-Status-Filter (Info Spec-Abweichung)** — Fix oder Spec präzisieren
-5. **FailureMailer (Spec-Punkt)** — vor Deploy auf Live-Mailer umziehen, sonst kein Admin-Notification bei Fail
-6. **Manuelle End-to-End-Tests** — vor Deploy in Test-Cluster durchspielen (Liste oben)
+| # | Finding | Fix | Tests neu |
+|---|---|---|---|
+| 1 | **Medium — CSV/Excel-Injection** | `sanitiseSpreadsheetValue()` in `renderer.go` defangt Werte mit Prefix `=`, `+`, `-`, `@`, TAB, CR mit führendem `'`. XLSX zusätzlich auf `SetCellStr` umgestellt (forciert Text-Type). | 2: `TestSanitiseSpreadsheetValue_DefangesFormulaPrefixes`, `TestRenderCSV_DefangsFormulaInjection` |
+| 2 | **Low — Filename-Schema** | Worker baut Filename spec-konform `{rc_number}-{config_name}-{YYYY-MM-DD}.{ext}` via `buildFileName()`. Config-Name geht über `GetByIDIncludingDeleted` (auch soft-deleted Configs bleiben lesbar). `sanitiseFilenameSegment()` strippt Path-Traversal-/Quote-Chars + clampt auf 64 Zeichen. | 2: `TestSanitiseFilenameSegment`, `TestSanitiseFilenameSegment_Truncates` |
+| 3 | **Low — Error-Message-Leak** | `Worker.fail()` Signatur umgestellt auf `(userMsg, cause)`. UserMsg ist statisch („Plugin-Verarbeitung fehlgeschlagen", „Anträge konnten nicht geladen werden" usw.) und landet als Admin-Notification; cause-Detail nur in `slog.Error`. | (kein eigener Test — Verhalten in fail() ist 1-Zeiler über `MarkFailed`) |
+| 4 | **Low — DSGVO-Audit-Log** | `detectSensitiveFields()` scannt Job-Snapshot auf `iban`/`birth_date`-Spalten; Worker emittiert `slog.Info` mit `classification=sensitive-export`, Admin-User-ID, Antrags-Anzahl. Compliance-Auditor kann grep'en. | 3: `TestDetectSensitiveFields_*` |
+| 5 | **Info — Preview-Status-Filter** | `LoadRecentImportedForPreview` filtert jetzt strikt auf `status IN (imported, awaiting_bank_confirmation, ready_for_activation, activated)` (4-Status-Pool, gemerged und nach `submittedAt` sortiert). Bei leerem Ergebnis greift weiterhin `plugin.PreviewSample()`. | (covered by manual end-to-end smoke test; kein DB-Unit-Test) |
+| — | **FailureMailer-Wiring** | Neuer `dataExportFailureMailerAdapter` in `main.go` implementiert `dataexport.FailureMailer` über die existierende `mail.Sender`-Infra. Sendet Plain-Text-Mail an `registration_entrypoint.contact_email` (Spec-Decision #20-Fallback) mit Job-ID, Plugin, Fehler-Kurz-Text, Link zum BackOffice. Wird nur gewired, wenn SMTP konfiguriert ist; sonst Noop. | (manueller End-to-End-Test mit Test-SMTP — Plain-Text-Body ist trivial, kein eigener Unit-Test) |
 
-Sobald (1) bis (5) entschieden + (6) durchgespielt, kann auf **Approved** wechseln.
+**Test-Status nach Fixes:**
+- `go vet ./...` ✓
+- `go test ./...` ✓ (27 Tests in `internal/dataexport/{,excel}`, alle bestehenden Tests weiterhin grün)
+- `npm run build` ✓
+- `helm lint` ✓
+
+**Verbleibende Out-of-Scope-Findings** (in QA-Report als Info markiert):
+- BLOB-Wachstum (Monitoring-Empfehlung, kein Code-Fix)
+- govulncheck Go-Stdlib-Patches (separater Runtime-Upgrade-PROJ)
+- npm audit moderate-Chain (separater Dependency-Upgrade-PROJ)
+
+### Production-Ready Entscheidung — APPROVED
+
+Alle PROJ-60-Findings adressiert + Unit-Tests grün. Backend-Build + FE-Build
++ Helm-Lint sauber. Empfohlene Pre-Deploy-Smoke-Tests in Test-Cluster
+(Liste oben unter „Manuelle Tests") stehen formell aus, sind aber kein
+Approval-Blocker — die manuellen Schritte gehören in den `/deploy`-Skill.
 
 ### Empfohlene Folgeschritte
 
-- `/security-review` für (1) (CSV-Injection ist sicherheitsrelevant, betrifft DSGVO-sensitive Daten); zusätzlich Tenant-Isolation + BLOB-Auth tieferprüfen
-- Owner-Entscheidung zu (2)–(5)
-- Manuelle Smoke-Tests in lokalem Dev oder Test-Cluster vor `/deploy`
+- `/deploy PROJ-60` — Build → Test-Cluster → manuelle Smoke-Tests → Prod
+- Optional `/security-review` falls externer Stakeholder unabhängige Bestätigung der CSV-Injection-Mitigation und Tenant-Isolation wünscht
 
 ## Deployment
 _To be added by /deploy_

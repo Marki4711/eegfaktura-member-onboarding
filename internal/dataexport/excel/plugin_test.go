@@ -423,6 +423,57 @@ func TestProcess_Xlsx(t *testing.T) {
 }
 
 // =====================================================================
+// CSV/Excel-Injection defence (Medium-Finding fix)
+// =====================================================================
+
+func TestSanitiseSpreadsheetValue_DefangesFormulaPrefixes(t *testing.T) {
+	cases := map[string]string{
+		"":                                  "",
+		"Max":                               "Max",                                  // safe untouched
+		"=HYPERLINK(\"http://evil/\",\"x\")": "'=HYPERLINK(\"http://evil/\",\"x\")", // formula
+		"+1234":                             "'+1234",                               // formula
+		"-7":                                "'-7",                                  // formula
+		"@SUM(A1:A2)":                       "'@SUM(A1:A2)",                         // formula
+		"\tinjected":                        "'\tinjected",                          // tab (DDE)
+		"\rinjected":                        "'\rinjected",                          // CR
+	}
+	for in, expected := range cases {
+		got := sanitiseSpreadsheetValue(in)
+		if got != expected {
+			t.Errorf("sanitise(%q): expected %q, got %q", in, expected, got)
+		}
+	}
+}
+
+func TestRenderCSV_DefangsFormulaInjection(t *testing.T) {
+	// Member's lastname contains a hostile formula payload.
+	cfg := excelConfig{
+		Format: FormatCSV,
+		Columns: []columnConfig{
+			{Header: "Vorname", Field: "firstname", Format: "string"},
+			{Header: "Nachname", Field: "lastname", Format: "string"},
+		},
+	}
+	apps := []dataexport.ApplicationSnapshot{
+		makeAppSnapshot("Max", `=HYPERLINK("http://evil/?","klick")`, "x@y.at"),
+	}
+	out, err := renderCSV(cfg, apps, nil)
+	if err != nil {
+		t.Fatalf("renderCSV: %v", err)
+	}
+	r := csv.NewReader(bytes.NewReader(out[3:])) // skip BOM
+	r.Comma = ';'
+	records, err := r.ReadAll()
+	if err != nil {
+		t.Fatalf("csv parse: %v", err)
+	}
+	// data row 1, column "Nachname" — first character must be the leading apostrophe.
+	if !strings.HasPrefix(records[1][1], "'=HYPERLINK") {
+		t.Errorf("expected lastname to be defanged with leading apostrophe, got %q", records[1][1])
+	}
+}
+
+// =====================================================================
 // StandardConfigs
 // =====================================================================
 

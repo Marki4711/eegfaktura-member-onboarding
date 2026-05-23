@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
@@ -21,6 +22,7 @@ import (
 type Worker struct {
 	jobRepo    *JobRepository
 	resultRepo *ResultRepository
+	configRepo *ConfigRepository
 	appLoader  ApplicationLoader
 	mailer     FailureMailer
 	poolSize   int
@@ -46,7 +48,7 @@ func (NoopFailureMailer) SendDataExportFailure(ctx context.Context, job *shared.
 	return nil
 }
 
-func NewWorker(jobRepo *JobRepository, resultRepo *ResultRepository, appLoader ApplicationLoader, mailer FailureMailer, poolSize int, pollEvery time.Duration) *Worker {
+func NewWorker(jobRepo *JobRepository, resultRepo *ResultRepository, configRepo *ConfigRepository, appLoader ApplicationLoader, mailer FailureMailer, poolSize int, pollEvery time.Duration) *Worker {
 	if poolSize <= 0 {
 		poolSize = 3
 	}
@@ -59,6 +61,7 @@ func NewWorker(jobRepo *JobRepository, resultRepo *ResultRepository, appLoader A
 	return &Worker{
 		jobRepo:    jobRepo,
 		resultRepo: resultRepo,
+		configRepo: configRepo,
 		appLoader:  appLoader,
 		mailer:     mailer,
 		poolSize:   poolSize,
@@ -120,22 +123,38 @@ func (w *Worker) tryPickup(ctx context.Context, workerID int) {
 func (w *Worker) processJob(ctx context.Context, job *shared.DataExportJob) {
 	plugin := Get(job.PluginType)
 	if plugin == nil {
-		w.fail(ctx, job, fmt.Sprintf("plugin %q not registered (probably removed since job was queued)", job.PluginType))
+		w.fail(ctx, job, "Plugin nicht mehr verfügbar — wurde seit Job-Erstellung entfernt", nil)
 		return
 	}
 
 	// Load applications.
 	apps, err := w.appLoader.LoadForExport(ctx, job.RCNumber, job.ApplicationIDs)
 	if err != nil {
-		w.fail(ctx, job, fmt.Sprintf("load applications: %v", err))
+		w.fail(ctx, job, "Anträge konnten nicht geladen werden", err)
 		return
 	}
 
 	// Decode config snapshot.
 	var configMap map[string]interface{}
 	if err := json.Unmarshal(job.ConfigSnapshot, &configMap); err != nil {
-		w.fail(ctx, job, fmt.Sprintf("decode config snapshot: %v", err))
+		w.fail(ctx, job, "Konfigurations-Snapshot ist beschädigt", err)
 		return
+	}
+
+	// DSGVO audit log: detect exports containing sensitive personal data
+	// (IBAN, Geburtsdatum). Emitted before processing so the audit trail
+	// exists even if the job later fails. Admin-User-ID is part of the job
+	// row, so the slog event ties admin → sensitive-export.
+	if sens := detectSensitiveFields(configMap); len(sens) > 0 {
+		slog.Info("dataexport: sensitive-export",
+			"classification", "sensitive-export",
+			"job_id", job.ID,
+			"rc_number", job.RCNumber,
+			"admin_user_id", job.AdminUserID,
+			"plugin_type", job.PluginType,
+			"application_count", len(apps),
+			"sensitive_fields", sens,
+		)
 	}
 
 	// Progress callback updates DB every ~50 items.
@@ -147,12 +166,18 @@ func (w *Worker) processJob(ctx context.Context, job *shared.DataExportJob) {
 
 	result, err := plugin.Process(ctx, configMap, apps, progress)
 	if err != nil {
-		w.fail(ctx, job, fmt.Sprintf("plugin process: %v", err))
+		w.fail(ctx, job, "Plugin-Verarbeitung fehlgeschlagen", err)
 		return
 	}
 
 	// Persist result (only for DownloadResult — SyncResult writes nothing to result table).
 	if dl, ok := result.(DownloadResult); ok {
+		// Spec-conformant filename: {rc_number}-{config_name}-{YYYY-MM-DD}.{ext}.
+		// Config name comes from configRepo (including soft-deleted, so an
+		// admin-deleted config mid-job still yields a meaningful name);
+		// fall back to plugin's original filename if the lookup fails.
+		dl.FileName = w.buildFileName(job, dl.FileName)
+
 		exp := time.Now().Add(shared.DataExportResultTTL)
 		if err := w.resultRepo.Create(&shared.DataExportResult{
 			JobID:     job.ID,
@@ -162,14 +187,14 @@ func (w *Worker) processJob(ctx context.Context, job *shared.DataExportJob) {
 			FileSize:  len(dl.Bytes),
 			ExpiresAt: exp,
 		}); err != nil {
-			w.fail(ctx, job, fmt.Sprintf("persist result blob: %v", err))
+			w.fail(ctx, job, "Ergebnis konnte nicht gespeichert werden", err)
 			return
 		}
 	}
 
 	summaryJSON, err := json.Marshal(result.Summary())
 	if err != nil {
-		w.fail(ctx, job, fmt.Sprintf("marshal summary: %v", err))
+		w.fail(ctx, job, "Ergebnis-Zusammenfassung konnte nicht serialisiert werden", err)
 		return
 	}
 	if err := w.jobRepo.MarkDone(job.ID, len(apps), summaryJSON); err != nil {
@@ -179,16 +204,106 @@ func (w *Worker) processJob(ctx context.Context, job *shared.DataExportJob) {
 	slog.Info("dataexport: job done", "job_id", job.ID, "processed", len(apps))
 }
 
-func (w *Worker) fail(ctx context.Context, job *shared.DataExportJob, errMsg string) {
-	slog.Error("dataexport: job failed", "job_id", job.ID, "error", errMsg)
-	if err := w.jobRepo.MarkFailed(job.ID, errMsg); err != nil {
+// fail records a user-safe message in the job row and logs internal details
+// separately. The userMsg is shown to the admin in the BackOffice UI; cause
+// is the wrapped Go error (may contain DB internals, library names, etc.)
+// and only ever appears in structured logs.
+func (w *Worker) fail(ctx context.Context, job *shared.DataExportJob, userMsg string, cause error) {
+	slog.Error("dataexport: job failed",
+		"job_id", job.ID,
+		"user_msg", userMsg,
+		"cause", cause,
+	)
+	if err := w.jobRepo.MarkFailed(job.ID, userMsg); err != nil {
 		slog.Error("dataexport: mark failed write failed", "job_id", job.ID, "error", err)
 	}
 	job.Status = shared.DataExportJobStatusFailed
-	job.ErrorMessage = &errMsg
+	job.ErrorMessage = &userMsg
 	if mailErr := w.mailer.SendDataExportFailure(ctx, job); mailErr != nil {
 		slog.Warn("dataexport: failure mail send failed (continuing)", "job_id", job.ID, "error", mailErr)
 	}
+}
+
+// buildFileName returns `{rc_number}-{config_name}-{YYYY-MM-DD}.{ext}` per
+// the PROJ-60 spec. config_name is fetched from configRepo (including
+// soft-deleted rows); ext is inferred from the plugin's original filename.
+// All path-traversal characters are stripped before assembly.
+func (w *Worker) buildFileName(job *shared.DataExportJob, pluginFileName string) string {
+	ext := ".bin"
+	if i := strings.LastIndex(pluginFileName, "."); i >= 0 {
+		ext = pluginFileName[i:]
+	}
+
+	configName := "export"
+	if job.ConfigID != nil && w.configRepo != nil {
+		if cfg, err := w.configRepo.GetByIDIncludingDeleted(*job.ConfigID); err == nil {
+			configName = cfg.Name
+		}
+	}
+
+	rc := sanitiseFilenameSegment(job.RCNumber)
+	name := sanitiseFilenameSegment(configName)
+	date := time.Now().Format("2006-01-02")
+	return fmt.Sprintf("%s-%s-%s%s", rc, name, date, ext)
+}
+
+// sanitiseFilenameSegment replaces any character that could traverse the
+// filesystem (slashes, dots, control bytes) or break Content-Disposition
+// quoting (quote, backslash) with `_`. Result is bounded to 64 chars so
+// pathological config names cannot produce > MAX_PATH filenames downstream.
+func sanitiseFilenameSegment(s string) string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return "export"
+	}
+	var b strings.Builder
+	for _, r := range s {
+		switch {
+		case r >= '0' && r <= '9',
+			r >= 'a' && r <= 'z',
+			r >= 'A' && r <= 'Z',
+			r == '-', r == '_':
+			b.WriteRune(r)
+		case r == ' ':
+			b.WriteByte('_')
+		default:
+			b.WriteByte('_')
+		}
+	}
+	out := b.String()
+	if len(out) > 64 {
+		out = out[:64]
+	}
+	if out == "" {
+		out = "export"
+	}
+	return out
+}
+
+// detectSensitiveFields returns the list of sensitive field-keys present in
+// an Excel-plugin config (currently the only plugin that exposes them).
+// Other plugins return an empty list. Used for DSGVO audit-trail logging.
+func detectSensitiveFields(configSnapshot map[string]interface{}) []string {
+	cols, ok := configSnapshot["columns"].([]interface{})
+	if !ok {
+		return nil
+	}
+	sensitive := map[string]bool{
+		"iban":       true,
+		"birth_date": true,
+	}
+	var found []string
+	for _, c := range cols {
+		m, ok := c.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		field, _ := m["field"].(string)
+		if sensitive[field] {
+			found = append(found, field)
+		}
+	}
+	return found
 }
 
 // JobID is a tiny helper for tests / debug logging.

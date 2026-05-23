@@ -26,11 +26,13 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -53,6 +55,7 @@ import (
 	"github.com/your-org/eegfaktura-member-onboarding/internal/importing"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/mail"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/pdf"
+	"github.com/your-org/eegfaktura-member-onboarding/internal/shared"
 )
 
 func main() {
@@ -122,6 +125,10 @@ func main() {
 
 	// Initialize mail service
 	var mailService mail.MailService = &mail.NoOpMailService{}
+	// PROJ-60: dataexport worker dispatches failure notifications via this
+	// FailureMailer. NoopFailureMailer keeps Dev (no SMTP) running silently;
+	// the SMTP-backed adapter below is wired only when SMTP is configured.
+	var dataExportFailureMailer dataexport.FailureMailer = dataexport.NoopFailureMailer{}
 	if cfg.SMTP.Host != "" {
 		if cfg.SMTP.From == "" {
 			log.Fatalf("SMTP_FROM must be set when SMTP_HOST is configured")
@@ -132,6 +139,11 @@ func main() {
 			log.Fatalf("Failed to initialize mail service: %v", err)
 		}
 		mailService = svc
+		dataExportFailureMailer = &dataExportFailureMailerAdapter{
+			sender:         mailer,
+			entrypointRepo: entrypointRepo,
+			adminBaseURL:   cfg.AdminBaseURL,
+		}
 		slog.Info("mail service enabled", "smtp_host", cfg.SMTP.Host)
 	}
 
@@ -188,10 +200,11 @@ func main() {
 	dataExportWorker := dataexport.NewWorker(
 		dataExportJobRepo,
 		dataExportResultRepo,
+		dataExportConfigRepo,
 		dataExportAppLoader,
-		dataexport.NoopFailureMailer{}, // TODO PROJ-60-phase2: SMTP-backed failure mail
-		3,                              // pool size
-		5*time.Second,                  // poll interval
+		dataExportFailureMailer,
+		3,             // pool size
+		5*time.Second, // poll interval
 	)
 	dataExportWorker.Start(context.Background())
 	defer dataExportWorker.Stop()
@@ -440,4 +453,48 @@ func runDataExportCleanup() {
 		"zombies_recovered", result.Zombies,
 		"expired_blobs_deleted", result.ExpiredBlobs,
 		"old_configs_hard_deleted", result.DeletedConfigs)
+}
+
+// dataExportFailureMailerAdapter implements dataexport.FailureMailer by
+// sending a short plain-text notification to the EEG contact_email
+// (Decision #20: fallback to entrypoint when Keycloak-profile email
+// lookup is unavailable). Includes job-id, plugin-type, error-message,
+// and a link to the BackOffice jobs tab.
+type dataExportFailureMailerAdapter struct {
+	sender         mail.Sender
+	entrypointRepo *application.RegistrationEntrypointRepository
+	adminBaseURL   string
+}
+
+func (a *dataExportFailureMailerAdapter) SendDataExportFailure(_ context.Context, job *shared.DataExportJob) error {
+	ep, err := a.entrypointRepo.GetByRCNumber(job.RCNumber)
+	if err != nil {
+		return fmt.Errorf("lookup contact email for %s: %w", job.RCNumber, err)
+	}
+	if ep.ContactEmail == nil || *ep.ContactEmail == "" {
+		slog.Info("dataexport: failure mail skipped — EEG has no contact_email",
+			"rc_number", job.RCNumber, "job_id", job.ID)
+		return nil
+	}
+
+	errMsg := ""
+	if job.ErrorMessage != nil {
+		errMsg = *job.ErrorMessage
+	}
+	jobsURL := strings.TrimRight(a.adminBaseURL, "/") + "/admin/settings"
+	subject := fmt.Sprintf("[eegFaktura] Datenweiterleitung fehlgeschlagen — %s", job.PluginType)
+	plainBody := fmt.Sprintf(`Ein Datenweiterleitungs-Job ist fehlgeschlagen.
+
+Job-ID: %s
+Plugin: %s
+EEG (RC-Nummer): %s
+Fehlerursache: %s
+
+Details und Retry-Möglichkeit in der BackOffice-Übersicht:
+%s
+
+Diese Nachricht wurde automatisch versendet (PROJ-60).
+`, job.ID, job.PluginType, job.RCNumber, errMsg, jobsURL)
+
+	return a.sender.Send(mail.Options{}, *ep.ContactEmail, subject, "", plainBody)
 }
