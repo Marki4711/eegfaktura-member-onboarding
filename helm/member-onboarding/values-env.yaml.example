@@ -127,9 +127,9 @@ backend:
   #             azp-Filter im Faktura-Backend.
   coreAuthMode: "direct"
 
-  # Admin-UI Basis-URL — eingebettet als Admin-Detail-Link in EEG-Submission-
-  # Mails (PROJ-20). Leer = kein Link in der Mail.
-  adminBaseUrl: "https://admin.member-onboarding.example.at"
+  # (Keinen separaten adminBaseUrl mehr setzen — die Admin-Detail-Link-URL
+  #  für EEG-Mails (PROJ-20) wird automatisch aus frontend.nextauthUrl
+  #  abgeleitet. Single source of truth für die öffentliche App-URL.)
 
   # Trusted-Proxy-CIDRs: aus diesen IP-Bereichen werden X-Real-IP /
   # X-Forwarded-For-Header akzeptiert; alles andere wird ignoriert. Schützt

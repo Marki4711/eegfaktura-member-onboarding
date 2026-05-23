@@ -27,11 +27,11 @@ ingress:
 images:
   backend:
     repository: ""
-    tag: sha-4f9ffe6
+    tag: sha-fd275ce
     pullPolicy: IfNotPresent
   frontend:
     repository: ""
-    tag: sha-4f9ffe6
+    tag: sha-fd275ce
     pullPolicy: IfNotPresent
 # ── PostgreSQL ─────────────────────────────────────────────────────────────────
 postgres:
@@ -90,9 +90,9 @@ backend:
   # Globale Einstellung — kein Per-EEG-Switch. Nach Faktura-Patch wieder
   # auf "direct" umstellen + Redeploy.
   coreAuthMode: "direct"
-  # Admin-UI Basis-URL — wird in EEG-Submission-Mails (PROJ-20) als Admin-
-  # Detail-Link eingebettet. Leer = kein Link in der Mail (graceful fallback).
-  adminBaseUrl: "" # z.B. https://admin.member-onboarding.example.at
+  # (ADMIN_BASE_URL wird aus frontend.nextauthUrl abgeleitet — separater
+  #  Wert wurde 2026-05-23 entfernt, weil Admin- und Public-UI denselben
+  #  Hostname teilen und ein zweiter Eintrag nur Drift erzeugen würde.)
   # Trusted-Proxy-CIDRs: aus diesen IP-Bereichen werden X-Real-IP /
   # X-Forwarded-For-Header akzeptiert. Alles andere wird ignoriert und
   # r.RemoteAddr verwendet → kein Bypass des per-IP Rate-Limits durch
