@@ -1,8 +1,8 @@
 # PROJ-60: Datenweiterleitung an externe Systeme — Plugin-Framework
 
-## Status: Planned
+## Status: Architected
 **Created:** 2026-05-23
-**Last Updated:** 2026-05-23 (`/grill-me`: Async-Framework + Worker-Architektur + Robustness-Decisions)
+**Last Updated:** 2026-05-23 (`/architecture` abgeschlossen, Tech Design ergänzt)
 **Quelle:** Owner-Anforderung
 
 ## Dependencies
@@ -387,7 +387,314 @@ Phasen-Reihenfolge wird über Markt-Nachfrage entschieden.
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+
+### Übersicht
+
+PROJ-60 baut ein **generisches Async-Plugin-Framework** für Datenweiterleitungen mit dem Excel/CSV-Plugin als erster Implementierung. Die Architektur ist von Anfang an darauf ausgelegt, weitere Plugins (Zoho-CRM, HubSpot, etc. in Phase 2+) ohne Framework-Refactor hinzufügen zu können.
+
+**Drei Kern-Bestandteile:**
+1. **Plugin-Framework** — Registry, Interface, Job-Queue, Worker, Cleanup-Cron
+2. **Excel-Plugin** — erste konkrete Implementierung mit Spalten-Mapping, Live-Preview, XLSX/CSV-Generierung
+3. **Admin-UI** — Konfigurations-Verwaltung, Bulk-/Single-Trigger, Job-Polling, BackOffice-Übersicht
+
+Drei neue DB-Tabellen, ein neuer K8s-CronJob, neue Routen im Frontend. Keine Änderung an bestehenden Datenstrukturen.
+
+### Komponenten-Struktur (Überblick)
+
+```
+Admin-UI (EEG-Settings)
++-- Sektion „Datenweiterleitung" (neu)
+|   +-- Konfigurations-Liste (gruppiert nach Plugin-Typ)
+|   |   +-- „Excel-Exports"
+|   |   |   +-- Konfig „Newsletter"     [bearbeiten] [löschen]
+|   |   |   +-- Konfig „CRM-Stammdaten" [bearbeiten] [löschen]
+|   |   |   +-- + Neue Konfiguration anlegen
+|   |   +-- (später) „Zoho CRM"
+|   +-- Konfigurations-Editor (Plugin-spezifisch)
+|   |   +-- Excel-Editor:
+|   |   |   +-- Name, Format (XLSX/CSV)
+|   |   |   +-- Spalten-Liste mit Sortierung
+|   |   |   |   +-- Spalte: Header, Feld-Dropdown, Format-Dropdown
+|   |   |   |   +-- + Hinzufügen / Up/Down/Entfernen pro Spalte
+|   |   |   +-- Live-Preview (letzte 5 importierte Mitglieder)
+|   |   +-- (später) Zoho-Editor: OAuth-Setup, Field-Mapping
+|   +-- Standard-Vorlagen-Bereich
+|   |   +-- „Newsletter-Adressliste" → [Aus Vorlage erstellen]
+|   |   +-- „CRM-Stammdaten"          → [Aus Vorlage erstellen]
+|   |   +-- „Buchhaltungs-Export"     → [Aus Vorlage erstellen]
+|   +-- Sub-Tab „Jobs"
+|       +-- Failed-Jobs-Badge (rot, prominent)
+|       +-- Liste der letzten 100 Jobs (Status, Zeit, Konfig, Anzahl)
+|       +-- Pro Job: [Erneut ausführen] / [Datei herunterladen falls verfügbar]
+
+Antragsliste (admin-application-table.tsx)
++-- Bestehende Bulk-Action-Leiste (PROJ-25)
+    +-- „Genehmigen" / „Ablehnen" / „Zur Prüfung"
+    +-- NEU: „Datenweiterleitung" → Dialog mit einstufiger Liste
+
+Antrags-Detail (admin-application-detail.tsx)
++-- Bestehende Aktionen
+    +-- NEU: „Datenweiterleitung" im Menü → gleicher Dialog
+
+Job-Status-Toast (overlay, global)
++-- Polling alle 2-5 Sek
++-- Status: queued → running (Progress) → done | failed
++-- Bei done + DownloadResult: [Datei herunterladen]
++-- Bei done + SyncResult: Status-Report
++-- Bei failed: Fehler + [Retry]
+```
+
+### Datenmodell (in Klartext)
+
+**Drei neue Tabellen** im `member_onboarding`-Schema:
+
+**1. `data_export_config` — Plugin-Konfigurationen pro EEG**
+
+Jede Konfiguration ist eine Instanz eines Plugins mit einem Namen, z. B. „Excel-Plugin als ‚Newsletter‘". Hat:
+
+- Eindeutige ID + Referenz zur EEG (über `rc_number`)
+- Plugin-Typ (z. B. `"excel"`, später `"zoho_crm"`)
+- Name (eindeutig pro EEG, cross-plugin-type)
+- Plugin-spezifische Konfiguration als flexibles JSON-Feld (für Excel: Spalten-Liste + Format)
+- Flag „obsolet" für den Fall, dass der Plugin-Typ später aus dem Backend entfernt wird (Audit-Trail bleibt)
+- Standard-Timestamps
+
+**2. `data_export_job` — Job-Queue und -State, langlebig**
+
+Jede ausgelöste Bulk- oder Single-Aktion erzeugt einen Job-Datensatz. Hält:
+
+- Job-ID + EEG-Referenz
+- Referenz auf die ursprüngliche Konfiguration (NULL wenn inzwischen gelöscht — Audit bleibt trotzdem lesbar)
+- **Snapshot der Konfiguration** zum Trigger-Zeitpunkt (JSON) — laufende Jobs sind immun gegen Config-Edits
+- Plugin-Typ als Snapshot (damit Plugin-Removal Audit nicht zerstört)
+- Liste der selektierten Antrags-IDs (Snapshot)
+- Status: `queued` / `running` / `done` / `failed` / `expired`
+- Ausführender Admin
+- Zeitstempel (created, started, finished)
+- Result-Summary (JSON, z. B. `{"downloaded": 47}` oder `{"synced": 45, "failed": 2}`)
+- Fehler-Meldung bei Failure
+- Retry-Counter
+
+Bleibt **unbegrenzt** erhalten für Audit. Nur Datei-BLOBs werden nach TTL gelöscht.
+
+**3. `data_export_result` — Datei-Storage mit TTL**
+
+Pro Job-Result eine BLOB-Zeile:
+
+- Job-ID (Primary + Foreign Key)
+- Dateiname, MIME-Type, Bytes, Größe
+- Download-Zeitpunkt (optional, für spätere Stats)
+- `expires_at` = `created_at + 24h` — Cleanup-Cron räumt auf
+
+Nur für `DownloadResult`-Plugins (Excel). `SyncResult`-Plugins (Phase 2) haben keine Datei, brauchen diese Tabelle nicht.
+
+### Async-Workflow (typischer Excel-Export-Lauf)
+
+```
+[Admin]                    [Backend HTTP]        [DB]          [Worker-Goroutine]
+   |                           |                   |                  |
+   | selektiert 200 Anträge    |                   |                  |
+   | → Bulk-Action "Daten-     |                   |                  |
+   |   weiterleitung"          |                   |                  |
+   | → wählt "Excel: News-     |                   |                  |
+   |   letter"                 |                   |                  |
+   | → bestätigt               |                   |                  |
+   |--------------------------→|                   |                  |
+   |                           | POST /jobs        |                  |
+   |                           |------------------→|                  |
+   |                           | (Config + IDs als |                  |
+   |                           |  Snapshot in Job- |                  |
+   |                           |  Zeile schreiben) |                  |
+   |                           |←------------------|                  |
+   |←--------------------------| 202 Accepted +    |                  |
+   | Toast erscheint:          |   job_id          |                  |
+   | "Job queued"              |                   |                  |
+   |                           |                   |←-- pollt alle    |
+   |                           |                   |   5 Sek          |
+   |                           |                   |    (SELECT ...   |
+   |                           |                   |    FOR UPDATE    |
+   |                           |                   |    SKIP LOCKED)  |
+   |                           |                   |←-- nimmt Job an  |
+   |                           |                   |   status=running |
+   |                           |                   |                  |
+   |--- pollt alle 2 Sek -----→|                   |                  |
+   |                           | GET /jobs/{id}    |                  |
+   |                           |------------------→|                  |
+   |                           |←------------------|                  |
+   |←-- "running, 50 of 200"---|                   |   verarbeitet:   |
+   |                           |                   |   - Snapshot     |
+   |                           |                   |     auspacken    |
+   |                           |                   |   - Mitglieder   |
+   |                           |                   |     laden        |
+   |                           |                   |   - excelize-    |
+   |                           |                   |     Renderer     |
+   |                           |                   |     pro Zeile    |
+   |                           |                   |   - BLOB in      |
+   |                           |                   |     data_export_ |
+   |                           |                   |     result       |
+   |                           |                   |   - status=done  |
+   |--- weiter Polling -------→|                   |                  |
+   |                           | GET /jobs/{id}    |                  |
+   |                           |------------------→|                  |
+   |                           |←-- status=done    |                  |
+   |←-- "Fertig! Download..."--|   + result_url    |                  |
+   |                           |                   |                  |
+   | klickt Download           |                   |                  |
+   |--------------------------→|                   |                  |
+   |                           | GET /jobs/{id}/   |                  |
+   |                           |     download      |                  |
+   |                           |------------------→|                  |
+   |                           |←-- BLOB-Stream    |                  |
+   |←-- Datei lädt herunter----|                   |                  |
+```
+
+### Backend-Komponenten
+
+| Datei / Package | Inhalt |
+|---|---|
+| `db/migrations/00006X_data_export_*.up.sql` (3 Migrationen) | DB-Schema: config, job, result |
+| `internal/shared/models.go` | Structs für Config, Job, Result, Plugin-Result-Typen (DownloadResult, SyncResult) |
+| `internal/shared/requests.go` | Request/Response-Typen für API |
+| `internal/dataexport/plugins/registry.go` | Plugin-Registry (Map, init über Imports) |
+| `internal/dataexport/plugins/plugin.go` | Plugin-Interface |
+| `internal/dataexport/plugins/excel/` | Excel-Plugin-Implementierung |
+| `internal/dataexport/plugins/excel/plugin.go` | Plugin-Type, Validate, Process, StandardConfigs |
+| `internal/dataexport/plugins/excel/renderer.go` | Spalten-Mapping + excelize-Wrapper (Wiederverwendung aus PROJ-17) |
+| `internal/dataexport/service/config_service.go` | CRUD für Configs |
+| `internal/dataexport/service/job_service.go` | Job-Erzeugung, Status-Abfrage, Retry-Logik |
+| `internal/dataexport/worker/worker.go` | Goroutine-Pool, Job-Pickup mit FOR UPDATE SKIP LOCKED |
+| `internal/dataexport/cleanup/cleanup.go` | Cleanup-Logik für Zombie-Jobs + abgelaufene BLOBs |
+| `cmd/server/main.go` | Backend-Subcommand-Wiring: `data-export-cleanup` |
+| `internal/http/admin.go` | Neue HTTP-Endpoints (Configs CRUD, Job-Trigger, Polling, Download, Retry) |
+
+### Frontend-Komponenten
+
+| Komponente | Inhalt |
+|---|---|
+| `src/components/data-export/configs-list.tsx` | Liste aller Konfigurationen pro EEG, gruppiert nach Plugin-Typ |
+| `src/components/data-export/jobs-list.tsx` | BackOffice-Übersicht der letzten Jobs mit Filter + Failed-Badge |
+| `src/components/data-export/job-status-toast.tsx` | Globaler Polling-Toast mit Live-Status + Download-Link |
+| `src/components/data-export/bulk-action-dialog.tsx` | Einstufige Plugin-Konfig-Liste, wird aus Antragsliste + Antrag-Detail aufgerufen |
+| `src/components/data-export/plugins/excel/editor.tsx` | Excel-spezifischer Editor: Spalten-Mapping, Live-Preview |
+| `src/components/data-export/plugins/excel/preview-table.tsx` | Read-only Tabelle der letzten 5 Mitglieder mit aktuellem Mapping |
+| `src/components/data-export/plugins/excel/standard-templates.tsx` | „Aus Vorlage erstellen"-Auswahl der 3 Standard-Templates |
+| `src/components/admin-application-table.tsx` | Erweiterung: neue Bulk-Action „Datenweiterleitung" |
+| `src/components/admin-application-detail.tsx` | Erweiterung: neue Single-Action „Datenweiterleitung" |
+| `src/components/admin-eeg-settings-editor.tsx` | Erweiterung: neue Tab/Sektion „Datenweiterleitung" |
+| `src/lib/api.ts` | Neue API-Funktionen für die Daten-Export-Endpoints |
+| `src/lib/types.ts` | TypeScript-Typen für Config, Job, Result, PluginType |
+
+### K8s-/Helm-Komponenten
+
+| Datei | Inhalt |
+|---|---|
+| `helm/member-onboarding/templates/data-export-cleanup-cronjob.yaml` | Neuer K8s-CronJob (Schedule alle 10 Min) mit Subcommand `data-export-cleanup`, analog `restart-cronjob.yaml` |
+| `helm/member-onboarding/values.yaml` | `dataExport.cleanup.schedule` + Defaults |
+
+### Plugin-Pattern (Klassen-Diagramm)
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                    Plugin-Registry                              │
+│  Map[string → Plugin]   (initialisiert via Go-Imports)         │
+│  - Register(p Plugin)                                           │
+│  - Get(pluginType string) → Plugin                              │
+│  - List() → []Plugin                                            │
+└────────────────────────────────────────────────────────────────┘
+                          ▲
+                          │ implements
+                          │
+┌────────────────────────────────────────────────────────────────┐
+│                    Plugin (Interface)                          │
+│  - Type() string                                                │
+│  - DisplayName() string                                         │
+│  - ValidateConfig(config JSON) error                            │
+│  - Process(ctx, configSnapshot, apps) → Result                  │
+│  - StandardConfigs() []ConfigTemplate                           │
+└────────────────────────────────────────────────────────────────┘
+                          ▲
+                ┌─────────┴─────────────┬──────────────┐
+                │                       │              │
+        ┌───────┴────────┐    ┌─────────┴────────┐   ...
+        │  ExcelPlugin   │    │   ZohoPlugin     │
+        │  (Phase 1)     │    │   (Phase 2)      │
+        └────────────────┘    └──────────────────┘
+
+Result (Interface)
+├── DownloadResult    {Bytes, FileName, MimeType}
+└── SyncResult        {PerAppStatus map[uuid] → string}
+```
+
+### Reihenfolge der Implementierung
+
+1. **DB-Migrationen** — die drei Tabellen (config, job, result) anlegen
+2. **Backend-Models + Requests** — Structs für API-Vertrag
+3. **Plugin-Framework Foundation** — Registry, Interface, Result-Typen
+4. **Excel-Plugin** — Renderer, ValidateConfig, Process, StandardConfigs
+5. **Job-Service** — Erzeugung, Status-Abfrage, Concurrency-Check
+6. **Worker** — Goroutine-Pool mit FOR UPDATE SKIP LOCKED + Pickup-Logik
+7. **Cleanup** — Logik für Zombies + TTL-BLOBs, K8s-CronJob + Backend-Subcommand
+8. **HTTP-Endpoints** — Routes + Handler in admin.go
+9. **Frontend-Typen + API-Wrapper**
+10. **Frontend-Komponenten** — Configs-List, Editor, Bulk-Dialog, Job-Toast, BackOffice-View
+11. **Bulk-Action-Integration** in admin-application-table.tsx
+12. **Single-Action-Integration** in admin-application-detail.tsx
+13. **Tests** — Unit für Plugin-Validate/Process, Integration für Job-Worker + Cleanup, E2E für Bulk-Trigger + Download
+14. **Doku** — `docs/api-spec.md` + `docs/domain-model.md` + Swagger-Regeneration
+
+Backend-Schritte 1–8 sind sequenziell. Frontend-Schritte 9–12 parallelisierbar mit Backend-Tests/Doku.
+
+### Tech-Entscheidungen (begründet)
+
+| Entscheidung | Begründung |
+|---|---|
+| **Plugin-Framework von Anfang an** statt Excel-only-Refactor später | Gleicher Gesamt-Aufwand (~8–11 Tage). Sauberer + niedrigere Hürde für Phase 2 (Zoho-Plugin ~3–4 Tage). |
+| **Async-Framework auch für Excel** | Push-Plugins (Phase 2) brauchen async (Rate-Limit-Throttling = 5–10 Min Verarbeitung). Sync-V1 + Async-V2-Refactor würde alle Patterns brechen. Excel-Overhead von ~1 Sek akzeptabel. |
+| **Build-Time-Plugin-Registry** statt Runtime-Discovery | Pattern wie `sql.Driver` etabliert in Go. Keine Plugin-Loader-Risiken. Passt zu Single-Operator-Setup. |
+| **In-App-Goroutine-Pool** statt separater Worker-Pod | Skaliert mit Backend-Replicas. Kein zweiter Deployment-Pfad. `FOR UPDATE SKIP LOCKED` macht Multi-Replica-safe. Resource-Limits per Pod begrenzen Risiko. |
+| **K8s-CronJob-Cleanup** (Zombies + BLOB-TTL) | Pattern `restart-cronjob.yaml` existiert bereits. Einfacher als Heartbeat-Pattern, ausreichend robust. |
+| **Config-Snapshot at Job-Creation** | Laufende Jobs sind immun gegen Config-Edits. Audit-Trail bleibt vollständig auch nach Config-Löschung. |
+| **DB-BLOB für Datei-Storage** statt PVC oder S3 | Multi-Replica-safe ohne externe Infrastruktur. Excel-Dateien <100 KB → Storage trivial. Bei späterem Wachstum (Mio-Dateien): Migration zu S3 möglich, aber unwahrscheinlich. |
+| **UI-Polling alle 2–5 Sek** statt WebSocket / Server-Sent-Events | Stateless HTTP, einfach im Backend (kein Connection-State), einfach im Frontend. Latency völlig akzeptabel bei Job-Dauern <2 Min. |
+| **Einstufige Plugin-Config-Liste im Dialog** | Schnellste UX. „Excel: Newsletter" ist eindeutiger Bezug, kein Plugin-zuerst-dann-Config-Klick nötig. |
+| **Pro Plugin eigene Frontend-Komponenten** (statt JSON-Schema-Dynamic-Forms) | Excel-Spalten-Editor + Live-Preview hat komplexe UX, die JSON-Schema nicht gut darstellt. Bei jedem neuen Plugin lieber spezifische React-Komponenten als generische Form-Generierung. |
+| **Max 3 parallele Jobs pro EEG** | Anti-Misuse ohne Workflow-Block. FIFO-Queue darüber. |
+| **Keine Idempotenz-Deduplikation** | Admin kann bewusst Re-Trigger machen. Push-Plugins müssen Plugin-intern Idempotenz handhaben (z. B. Custom-Field-Lookup im Ziel-System). |
+| **Cleanup-Cron alle 10 Min** | Balance zwischen Recovery-Latency und Cluster-Last. Zombie-Threshold 1h reicht für typische Jobs. |
+
+### Externe Abhängigkeiten
+
+**Keine neuen npm- oder Go-Pakete erforderlich:**
+- **`excelize`** — bereits aus PROJ-17 (Excel-Export für eegFaktura)
+- **`pq` / `database/sql`** — bereits etabliert für PostgreSQL
+- **`shadcn/ui` Komponenten** — alle nötigen (Dialog, Select, Input, Button, Table, Toast, Badge) bereits installiert
+- **Mail-Service** — Postal-Integration aus PROJ-6 wiederverwendet für Failure-Notifications
+
+### Test-Strategie
+
+| Test-Schicht | Cases |
+|---|---|
+| **Unit (Plugin)** | Excel-Plugin: ValidateConfig akzeptiert valide / lehnt invalide Configs ab; Process generiert XLSX/CSV mit korrekten Spalten + Werten; Format-Transformationen für alle Typen; StandardConfigs liefert 3 Vorlagen |
+| **Unit (Service)** | Config-CRUD: Tenant-Isolation, Name-Eindeutigkeit, Max-20-Limit; Job-Service: Concurrency-Limit-Check (3 pro EEG), Snapshot wird korrekt erzeugt |
+| **Integration (Worker)** | FOR UPDATE SKIP LOCKED in Multi-Worker-Szenario keine Doppel-Pickups; Worker setzt Status korrekt von queued→running→done/failed; Result wird als BLOB persistiert |
+| **Integration (Cleanup)** | Zombie-Jobs nach 1h auf failed mit Retry-Counter; BLOBs nach 24h hard-deleted; Job-Zeile bleibt mit status=expired |
+| **Integration (API)** | Bulk-Trigger mit 200 Anträgen erzeugt Job mit Snapshot; Polling-Endpoint liefert aktuellen Status; Download-Endpoint streamt BLOB; Tenant-Hack-Versuch via config_id → 403; > 1000 Anträge → 400 |
+| **E2E (Playwright)** | EEG-Admin erstellt Config aus Standard-Vorlage „Newsletter"; Live-Preview zeigt Mitglieder; Bulk-Action aus Antragsliste, Toast zeigt Done, Datei lädt herunter; Spalten-Mapping ändern + neu exportieren; Job-Failure simuliert (z. B. Plugin-Validate-Fehler), BackOffice-Badge erscheint, Mail wird versendet (Mail-Mock prüft) |
+
+### Risiken & Mitigationen
+
+| Risiko | Wahrscheinlichkeit | Mitigation |
+|---|---|---|
+| Worker-Goroutine blockiert HTTP-Performance bei großen Jobs | Mittel | Resource-Limits per Pod + max-concurrent-jobs-Cap (3 parallel) + große Jobs sind read-only DB-Operationen, kein Lock-Stress |
+| Zombie-Jobs nach Pod-Crash bleiben „running" forever | Niedrig | Cleanup-Cron alle 10 Min mit 1h-Threshold setzt sie auf failed mit retry_count++ |
+| Multi-Replica: zwei Worker greifen denselben Job | Sehr niedrig | `FOR UPDATE SKIP LOCKED` ist atomare Postgres-Operation, garantiert Single-Pickup |
+| User schließt Browser-Tab während Job läuft | Garantiert | Job läuft im Backend weiter, Result wird im BLOB gespeichert (24h-TTL), Failure-Mail informiert Admin auch wenn UI nicht aktiv |
+| Datei-BLOB-Storage wächst unkontrolliert | Niedrig | 24h-TTL + Cleanup-Cron. Bei 100 Jobs/Woche × 100 KB = 10 MB/Woche initial — vernachlässigbar. Monitoring via DB-Stats |
+| Plugin-Removal bricht Audit-Trail | Niedrig | Plugin-Typ wird im Job-Snapshot persistiert. UI markiert Configs als obsolet, schließt sie aus aktiven Dialogen aus, lässt aber Read-Access. |
+| Config-Schema-Migration bei Plugin-Update (V2: Excel-Plugin bekommt neue Felder) | Niedrig | ValidateConfig pro Plugin-Version. Bei Breaking Changes: Migration-Script konvertiert alte Config-JSONB-Werte in neue Form, ähnliches Pattern wie field_config-Migrationen |
+| Excel-Plugin mit >1000 Spalten (Misuse) | Sehr niedrig | Backend-Limit max 50 Spalten pro Config |
+| Cleanup-Cron läuft länger als 10 Min (Job-Backlog) | Sehr niedrig | concurrencyPolicy: Forbid im CronJob verhindert Überschneidungen; bei wirklich extremer Last: Cleanup-Frequenz reduzieren oder Batch-Größe limitieren |
+| Failure-Mail an Admin geht verloren (SMTP down) | Niedrig | BackOffice-Badge ist primärer Notification-Kanal. Mail ist Bonus. Admin sieht Failed-Jobs auf jeden Fall beim nächsten BackOffice-Besuch |
 
 ## QA Test Results
 _To be added by /qa_
