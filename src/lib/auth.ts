@@ -51,6 +51,28 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
   };
 }
 
+// Session-update payload sent by the silent-SSO bootstrap component to install
+// the Faktura-side core-access-token (CORE_AUTH_MODE=exchange). Validated at
+// the boundary instead of trusting `update()` blindly so a XSS payload cannot
+// inject arbitrary fields into the JWT.
+interface CoreTokenUpdate {
+  type: "core-token";
+  accessToken: string;
+  refreshToken?: string;
+  expiresAt: number;
+  error?: string;
+}
+
+function isCoreTokenUpdate(value: unknown): value is CoreTokenUpdate {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  return (
+    v.type === "core-token" &&
+    typeof v.accessToken === "string" &&
+    typeof v.expiresAt === "number"
+  );
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     KeycloakProvider({
@@ -60,7 +82,19 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, account }) {
+    async jwt({ token, account, trigger, session: updateData }) {
+      // Branch 1: session.update() from the silent-SSO bootstrap — install the
+      // Faktura-side core token without touching the regular session fields.
+      if (trigger === "update" && isCoreTokenUpdate(updateData)) {
+        return {
+          ...token,
+          coreAccessToken: updateData.accessToken,
+          coreRefreshToken: updateData.refreshToken,
+          coreExpiresAt: updateData.expiresAt,
+          coreError: updateData.error,
+        };
+      }
+
       if (account?.access_token) {
         token.accessToken = account.access_token;
         token.idToken = account.id_token;
@@ -103,6 +137,9 @@ export const authOptions: NextAuthOptions = {
       session.tenant = (token.tenant as string[]) ?? [];
       session.userId = token.sub ?? "";
       if (token.error) session.error = token.error;
+      if (token.coreAccessToken) session.coreAccessToken = token.coreAccessToken;
+      if (token.coreExpiresAt) session.coreExpiresAt = token.coreExpiresAt;
+      if (token.coreError) session.coreError = token.coreError;
       return session;
     },
   },

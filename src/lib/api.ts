@@ -894,10 +894,22 @@ export interface ImportRequestBody {
   meterTariffs?: Record<string, string>; // metering_point UUID -> tariff UUID
 }
 
+// coreAuthHeader builds the optional X-Core-Authorization header used when
+// CORE_AUTH_MODE=exchange. It is sent alongside the regular Authorization
+// header — the backend reads X-Core-Authorization for outgoing Faktura-Core
+// calls and the regular Authorization for the Onboarding's own auth.
+// Returns an empty object when coreToken is absent so it can be spread into
+// the headers object unconditionally.
+function coreAuthHeader(coreToken?: string): Record<string, string> {
+  if (!coreToken) return {};
+  return { "X-Core-Authorization": `Bearer ${coreToken}` };
+}
+
 export function importApplication(
   id: string,
   body: ImportRequestBody,
   token?: string,
+  coreToken?: string,
 ): Promise<ImportResponse> {
   return adminRequest<ImportResponse>(
     `/api/admin/applications/${id}/import`,
@@ -905,6 +917,7 @@ export function importApplication(
     {
       method: "POST",
       body: JSON.stringify(body),
+      headers: coreAuthHeader(coreToken),
     }
   );
 }
@@ -918,11 +931,14 @@ export interface ActivationCheckResult {
   errors?: string[];
 }
 
-export function checkActivations(token?: string): Promise<ActivationCheckResult> {
+export function checkActivations(
+  token?: string,
+  coreToken?: string,
+): Promise<ActivationCheckResult> {
   return adminRequest<ActivationCheckResult>(
     `/api/admin/applications/check-activation`,
     token,
-    { method: "POST" },
+    { method: "POST", headers: coreAuthHeader(coreToken) },
   );
 }
 
@@ -934,12 +950,13 @@ export function checkActivations(token?: string): Promise<ActivationCheckResult>
 export function fetchNextMemberNumber(
   applicationId: string,
   token?: string,
+  coreToken?: string,
   signal?: AbortSignal,
 ): Promise<{ next_member_number: string }> {
   return adminRequest<{ next_member_number: string }>(
     `/api/admin/applications/${applicationId}/next-member-number`,
     token,
-    { method: "GET", signal },
+    { method: "GET", signal, headers: coreAuthHeader(coreToken) },
   );
 }
 
@@ -963,12 +980,13 @@ export interface Tariff {
 export function fetchTariffs(
   rcNumber: string,
   token?: string,
+  coreToken?: string,
   signal?: AbortSignal,
 ): Promise<{ tariffs: Tariff[] }> {
   return adminRequest<{ tariffs: Tariff[] }>(
     `/api/admin/tariffs?rcNumber=${encodeURIComponent(rcNumber)}`,
     token,
-    { method: "GET", signal },
+    { method: "GET", signal, headers: coreAuthHeader(coreToken) },
   );
 }
 

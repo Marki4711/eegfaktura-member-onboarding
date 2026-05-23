@@ -9,6 +9,13 @@ declare module "next-auth" {
     tenant: string[];
     userId: string;
     error?: string;
+    // CORE_AUTH_MODE=exchange: separate token for outgoing Faktura-Core
+    // REST-Calls, obtained via silent SSO against the Faktura-frontend
+    // Keycloak client. Undefined when the mode is "direct" or the SSO
+    // bootstrap has not yet completed.
+    coreAccessToken?: string;
+    coreExpiresAt?: number;
+    coreError?: string;
   }
 }
 
@@ -21,5 +28,9 @@ declare module "next-auth/jwt" {
     roles?: string[];
     tenant?: string[];
     error?: string;
+    coreAccessToken?: string;
+    coreRefreshToken?: string;
+    coreExpiresAt?: number;
+    coreError?: string;
   }
 }

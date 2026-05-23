@@ -62,6 +62,16 @@ frontend:
   # Keycloak Client ID (entspricht dem konfigurierten Client in Keycloak)
   keycloakClientId: "eegfaktura-member-onboarding"
 
+  # coreAuthMode: synchron zu backend.coreAuthMode setzen.
+  # "direct" (Default) — Session-Token wird 1:1 weitergereicht.
+  # "exchange" — Silent-SSO gegen Faktura-Frontend-Client.
+  coreAuthMode: "direct"
+
+  # Client-ID des Faktura-Frontend-Keycloak-Clients. Nur relevant bei
+  # coreAuthMode=exchange. Im at.ourproject.vfeeg.app-Client muss
+  # `<nextauthUrl>/auth/core-callback` als Valid Redirect URI eingetragen sein.
+  keycloakCoreClientId: "at.ourproject.vfeeg.app"
+
 # ── Backend ────────────────────────────────────────────────────────────────────
 backend:
   # Anzahl der Backend-Pods (horizontal scaling)

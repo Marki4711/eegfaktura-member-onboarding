@@ -162,7 +162,7 @@ export function ApplicationsPageContent() {
   const handleCheckActivations = async () => {
     setActivationChecking(true);
     try {
-      const result = await checkActivations(session?.accessToken);
+      const result = await checkActivations(session?.accessToken, session?.coreAccessToken);
       if (result.checked === 0) {
         toast.info("Keine aktivierungs-bereiten Anträge gefunden.");
       } else if (result.activated === 0) {

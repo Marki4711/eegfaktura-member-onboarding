@@ -26,6 +26,9 @@ interface Props {
   rcNumber: string;
   meteringPoints: MeteringPointDetail[];
   accessToken?: string;
+  // CORE_AUTH_MODE=exchange: token for outgoing Faktura-Core REST-Calls.
+  // Undefined in direct mode — backend then falls back to accessToken.
+  coreAccessToken?: string;
   loading: boolean;
   // Server-side error from the last import attempt (e.g. member-number
   // already used). Surfaced inside the dialog so the admin sees what went
@@ -54,6 +57,7 @@ export function ImportTariffDialog({
   rcNumber,
   meteringPoints,
   accessToken,
+  coreAccessToken,
   loading,
   errorMessage,
   onCancel,
@@ -88,14 +92,14 @@ export function ImportTariffDialog({
     // Abort both fetches if the dialog closes (or rcNumber/application
     // changes) before the responses land.
     const ac = new AbortController();
-    fetchTariffs(rcNumber, accessToken, ac.signal)
+    fetchTariffs(rcNumber, accessToken, coreAccessToken, ac.signal)
       .then((res) => setTariffs(res.tariffs))
       .catch((err) => {
         if (err instanceof DOMException && err.name === "AbortError") return;
         setFetchError(err instanceof Error ? err.message : "Fehler beim Laden der Tarife");
       })
       .finally(() => setFetching(false));
-    fetchNextMemberNumber(applicationId, accessToken, ac.signal)
+    fetchNextMemberNumber(applicationId, accessToken, coreAccessToken, ac.signal)
       .then((res) => setMemberNumber(res.next_member_number))
       .catch((err) => {
         if (err instanceof DOMException && err.name === "AbortError") return;
@@ -108,7 +112,7 @@ export function ImportTariffDialog({
       })
       .finally(() => setMemberNumberLoading(false));
     return () => ac.abort();
-  }, [open, applicationId, rcNumber, accessToken]);
+  }, [open, applicationId, rcNumber, accessToken, coreAccessToken]);
 
   const eegTariffs = (tariffs ?? []).filter(
     (t) => t.type === "EEG" && t.inactiveSince == null,

@@ -27,11 +27,11 @@ ingress:
 images:
   backend:
     repository: ""
-    tag: sha-e933f8a
+    tag: sha-4f9ffe6
     pullPolicy: IfNotPresent
   frontend:
     repository: ""
-    tag: sha-e933f8a
+    tag: sha-4f9ffe6
     pullPolicy: IfNotPresent
 # ── PostgreSQL ─────────────────────────────────────────────────────────────────
 postgres:
@@ -121,6 +121,16 @@ frontend:
   nextauthUrl: "" # Öffentliche URL der App, z.B. https://member-onboarding.example.at
   keycloakIssuer: "" # z.B. https://keycloak.example.at/realms/EEGFaktura
   keycloakClientId: ""
+  # coreAuthMode muss synchron zu backend.coreAuthMode sein. "exchange"
+  # aktiviert den Silent-SSO-Bootstrap im Admin-Layout, der einen Token
+  # gegen den unten konfigurierten Faktura-Frontend-Client holt und an
+  # den Backend via X-Core-Authorization-Header weiterreicht.
+  coreAuthMode: "direct"
+  # Public client-id des Faktura-Frontend-Keycloak-Clients (z.B.
+  # "at.ourproject.vfeeg.app"). Nur relevant bei coreAuthMode=exchange.
+  # Erforderlich, dass dieser Client `member-onboarding.../auth/core-callback`
+  # in seinen "Valid redirect URIs" hat.
+  keycloakCoreClientId: ""
 # ── Metrics (Prometheus) ──────────────────────────────────────────────────────
 # Separate /metrics endpoint on port 9090, intended to be scraped by an
 # in-cluster Prometheus. The ClusterIP service is NEVER routed through the

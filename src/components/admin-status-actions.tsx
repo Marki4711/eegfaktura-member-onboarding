@@ -147,7 +147,7 @@ export function AdminStatusActions({ applicationId, rcNumber, status, targetPart
     setError(null);
     setIsConflict(false);
     try {
-      const res = await importApplication(applicationId, selection, session?.accessToken);
+      const res = await importApplication(applicationId, selection, session?.accessToken, session?.coreAccessToken);
       if (res.memberTariffWarning) {
         toast.warning(
           `Import erfolgreich (Participant-ID: ${res.targetParticipantId ?? "—"}). ` +
@@ -605,6 +605,7 @@ export function AdminStatusActions({ applicationId, rcNumber, status, targetPart
         rcNumber={rcNumber}
         meteringPoints={meteringPoints}
         accessToken={session?.accessToken}
+        coreAccessToken={session?.coreAccessToken}
         loading={loading}
         errorMessage={error}
         onCancel={() => setImportDialogOpen(false)}
