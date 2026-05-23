@@ -30,6 +30,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DataExportTriggerDialog } from "@/components/data-export/trigger-dialog";
+import { DataExportJobStatusModal } from "@/components/data-export/job-status-modal";
 
 const BULK_ACTION_LABELS: Record<BulkActionType, string> = {
   approve: "Genehmigen",
@@ -53,6 +55,14 @@ export function ApplicationsPageContent() {
   const [rejectReason, setRejectReason] = useState("");
   const [bulkRunning, setBulkRunning] = useState(false);
   const [bulkResult, setBulkResult] = useState<{ succeeded: number; skipped: number } | null>(null);
+
+  // PROJ-60: Datenweiterleitung. Configs sind per EEG — selektierte Anträge
+  // müssen alle aus derselben EEG stammen, sonst Button deaktiviert.
+  const [dataExportOpen, setDataExportOpen] = useState(false);
+  const [dataExportJob, setDataExportJob] = useState<{ id: string; rcNumber: string } | null>(null);
+  const selectedItems = items.filter((i) => selectedIds.has(i.id));
+  const selectedRCs = new Set(selectedItems.map((i) => i.rcNumber));
+  const dataExportRc = selectedRCs.size === 1 ? Array.from(selectedRCs)[0] : null;
 
   const sessionRCNumbers: string[] = (session as unknown as { tenant?: string[] })?.tenant ?? [];
   const rcNumbers = [...new Set([...sessionRCNumbers, ...items.map((i) => i.rcNumber)])].sort();
@@ -258,6 +268,15 @@ export function ApplicationsPageContent() {
             </Button>
             <Button
               size="sm"
+              variant="outline"
+              disabled={!dataExportRc}
+              title={dataExportRc ? undefined : "Bitte nur Anträge einer EEG selektieren."}
+              onClick={() => setDataExportOpen(true)}
+            >
+              Datenweiterleitung
+            </Button>
+            <Button
+              size="sm"
               variant="ghost"
               onClick={() => setSelectedIds(new Set())}
             >
@@ -341,6 +360,27 @@ export function ApplicationsPageContent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* PROJ-60: data-export trigger + status modal */}
+      {dataExportRc && (
+        <DataExportTriggerDialog
+          rcNumber={dataExportRc}
+          applicationIds={Array.from(selectedIds)}
+          open={dataExportOpen}
+          onClose={() => setDataExportOpen(false)}
+          onJobStarted={(jobId) => {
+            setDataExportJob({ id: jobId, rcNumber: dataExportRc });
+            setSelectedIds(new Set());
+          }}
+        />
+      )}
+      {dataExportJob && (
+        <DataExportJobStatusModal
+          rcNumber={dataExportJob.rcNumber}
+          jobId={dataExportJob.id}
+          onClose={() => setDataExportJob(null)}
+        />
+      )}
     </div>
   );
 }

@@ -16,6 +16,7 @@ import { AdminIntroTextEditor } from "@/components/admin-intro-text-editor";
 import { AdminEEGSettingsEditor } from "@/components/admin-eeg-settings-editor";
 import { AdminApiKeyEditor } from "@/components/admin-api-key-editor";
 import { AdminLegalDocumentsEditor } from "@/components/admin-legal-documents-editor";
+import { DataExportSection } from "@/components/data-export/section";
 import { Separator } from "@/components/ui/separator";
 import { getFieldConfig, type AdminFieldConfig } from "@/lib/api";
 
@@ -181,6 +182,22 @@ export default function SettingsPage() {
             Der Key darf ausschließlich server-seitig verwendet werden — niemals in Browser-seitigem Code.
           </p>
           <AdminApiKeyEditor rcNumber={selectedRc} />
+        </div>
+      )}
+
+      <Separator />
+
+      {/* PROJ-60: Datenweiterleitung */}
+      {selectedRc && (
+        <div>
+          <h2 className="text-xl font-semibold mb-1">Datenweiterleitung</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Konfiguriere Spalten-Mappings, um importierte Mitglieder als Excel- oder CSV-Datei zu
+            exportieren. Aus der Antragsliste kannst du beliebige Anträge selektieren und an eine
+            Konfiguration weitergeben — Datei wird im Hintergrund erzeugt und steht 24 Stunden zum
+            Download bereit.
+          </p>
+          <DataExportSection rcNumber={selectedRc} />
         </div>
       )}
     </div>

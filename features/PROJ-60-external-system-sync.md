@@ -2,7 +2,7 @@
 
 ## Status: In Progress
 **Created:** 2026-05-23
-**Last Updated:** 2026-05-23 (`/backend` Phase 1 abgeschlossen — komplette Backend-Foundation)
+**Last Updated:** 2026-05-23 (`/frontend` Phase 1 abgeschlossen — Admin-UI für Excel-Plugin komplett)
 **Quelle:** Owner-Anforderung
 
 ## Dependencies
@@ -442,13 +442,56 @@ Alle Routes verlangen `rc_number` (Tenant-Isolation via `checkTenantAccess`).
 
 **Erfüllte Acceptance Criteria:** alle „Framework-Komponenten" + „Job-Queue + Worker" + „Job-Recovery" + „Concurrency-Limit + Idempotenz" + „Trigger" (bis auf Frontend-UI) + „Audit-Log" + „DSGVO" Backend-seitig.
 
-**Offen für `/frontend`:** Admin-UI (Configs-Liste, Editor, Bulk-Action-Dialog, Job-Toast, BackOffice-Übersicht).
-
 **Offen für `/qa`:** Unit-Tests für Excel-Plugin (ValidateConfig, Format-Transformationen, Renderer), Integration-Tests für Worker mit FOR UPDATE SKIP LOCKED, E2E-Tests für Bulk-Trigger → Polling → Download.
 
 **Bekannte TODO:**
 - FailureMailer noch NoopFailureMailer im main.go (Mail-Versand bei Job-Fail kommt mit `/qa`-Hardening)
 - AppLoader.LoadForExport lädt jedes App per GetByID einzeln (N+1) — für V1 mit max 1.000 Anträgen akzeptabel, Optimierung später möglich
+
+---
+
+## Implementation Notes (`/frontend`, 2026-05-23)
+
+**Lieferumfang:** komplettes Admin-UI für Excel-Plugin, inkl. Bulk-Action,
+Single-Action, Polling-Modal, BackOffice-Übersicht.
+
+**Erstellte Dateien:**
+
+| Pfad | Inhalt |
+|---|---|
+| `src/lib/data-export-fields.ts` | Field-Katalog (gespiegelt aus `internal/dataexport/excel/fields.go`), Format-Optionen, Excel-Config-Types |
+| `src/components/data-export/section.tsx` | Tabs-Wrapper (Konfigurationen / Jobs) + globaler Job-Status-Modal |
+| `src/components/data-export/configs-list.tsx` | Konfigurations-Liste gruppiert nach Plugin-Typ; Dropdown „Neue Konfiguration" mit Vorlagen-Auswahl; Edit/Delete |
+| `src/components/data-export/excel-editor.tsx` | Excel-spezifischer Editor: Spalten-Tabelle mit Header/Feld/Format/Up-Down-Remove; Live-Preview (debounced 400 ms); Sensitiv-Daten-Popover (IBAN, Geburtsdatum) |
+| `src/components/data-export/jobs-list.tsx` | BackOffice-Übersicht: Failed-Badge (letzte 7 Tage), Status-Filter, Cursor-Pagination, Download + Retry pro Job |
+| `src/components/data-export/trigger-dialog.tsx` | Einstufige Plugin-Konfig-Liste, wird von Bulk + Single aufgerufen; ruft `POST /jobs` und liefert `jobId` an Parent |
+| `src/components/data-export/job-status-modal.tsx` | Polling-Modal (2 s bei <100 Anträgen, 5 s sonst); Progress-Bar; Download-Button bei Done; Retry bei Failed |
+
+**Geänderte Dateien:**
+- `src/lib/api.ts`: 12 neue API-Wrapper + Types (Configs CRUD, Preview, Jobs CRUD, Retry, Download)
+- `src/app/admin/settings/page.tsx`: Sektion „Datenweiterleitung" am Ende
+- `src/app/admin/applications/applications-page-content.tsx`: Bulk-Action-Button + Dialog-Wiring; deaktiviert, wenn Selektion mehrere EEGs umfasst
+- `src/components/admin-application-detail.tsx`: Single-Action-Button + Dialog-Wiring, verfügbar für jeden Status
+
+**Build-Status:**
+- `npm run build` ✓ (Next.js 16.2.6 + TypeScript ohne Fehler)
+- `npx tsc --noEmit` ✓
+- Vitest lokal blockiert durch Windows-Native-Binding-Issue (rolldown) — kein Code-Problem; CI prüft
+
+**Erfüllte Acceptance Criteria (Frontend):**
+- Konfigurations-Verwaltung mit Liste, Editor, Standard-Vorlagen (3), Soft-Delete-UX (Obsolete-Badge)
+- Spalten-Mapping mit Up/Down/Remove, Format-Selektion pro Feldtyp, Live-Preview
+- Sensitiv-Daten-Hinweis (DSGVO Art. 32) bei IBAN/Geburtsdatum als Popover
+- Einstufige Plugin-Liste im Trigger-Dialog (Bulk und Single)
+- Bulk-Action in Antragsliste (mit Cross-EEG-Schutz: nur eine EEG pro Bulk)
+- Single-Action im Antrags-Detail
+- Polling-Modal mit Progress-Bar, Download bei Done, Retry bei Failed
+- BackOffice-Übersicht mit Failed-Jobs-Badge (7 Tage), Status-Filter, Cursor-Pagination
+
+**Bekannte TODO / Offene Punkte für `/qa`:**
+- PROJ-8-Field-Hiding-Warnung im Editor (Spec-Punkt: „Feld X ist in den EEG-Einstellungen nicht aktiv"). Backend liefert Vorschau-Werte ohnehin leer für versteckte Felder, der explizite Editor-Badge fehlt aber. Add im `/qa` falls priorisiert.
+- Drag-and-Drop für Spalten-Sortierung (Spec: V2)
+- Detailansicht / Status-Log pro Job-Klick in BackOffice-Liste (für V1 nicht spezifiziert; aktuell nur Inline-Daten)
 
 ---
 

@@ -1382,3 +1382,236 @@ export function bulkAction(
     { method: "POST", body: JSON.stringify({ action, ids, reason }) }
   );
 }
+
+// ---------- PROJ-60: Data Export (plugin framework) ----------
+
+export type DataExportJobStatus =
+  | "queued"
+  | "running"
+  | "done"
+  | "failed"
+  | "expired";
+
+export interface DataExportStandardConfigInfo {
+  name: string;
+  config: Record<string, unknown>;
+}
+
+export interface DataExportPluginInfo {
+  type: string;
+  displayName: string;
+  standardConfigs: DataExportStandardConfigInfo[];
+}
+
+export interface DataExportConfigResponse {
+  id: string;
+  rcNumber: string;
+  pluginType: string;
+  name: string;
+  config: Record<string, unknown>;
+  isObsolete: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DataExportConfigRequest {
+  pluginType: string;
+  name: string;
+  config: Record<string, unknown>;
+}
+
+export interface DataExportPreviewRequest {
+  pluginType: string;
+  rcNumber: string;
+  config: Record<string, unknown>;
+}
+
+export interface DataExportPreviewResponse {
+  headers: string[];
+  rows: Array<Record<string, unknown>>;
+  note?: string;
+}
+
+export interface DataExportJobResponse {
+  id: string;
+  rcNumber: string;
+  configId?: string;
+  configName?: string;
+  pluginType: string;
+  status: DataExportJobStatus;
+  adminUserId: string;
+  processedCount: number;
+  totalCount: number;
+  resultSummary?: Record<string, unknown>;
+  errorMessage?: string;
+  retryCount: number;
+  hasResult: boolean;
+  resultFileName?: string;
+  resultFileSize?: number;
+  createdAt: string;
+  startedAt?: string;
+  finishedAt?: string;
+}
+
+export interface DataExportJobsListResponse {
+  jobs: DataExportJobResponse[];
+  failedLast7Days: number;
+  nextCursor?: string;
+}
+
+export interface DataExportTriggerRequest {
+  configId: string;
+  applicationIds: string[];
+}
+
+export function listDataExportPlugins(token?: string): Promise<{ plugins: DataExportPluginInfo[] }> {
+  return adminRequest<{ plugins: DataExportPluginInfo[] }>(
+    "/api/admin/data-export/plugins",
+    token,
+  );
+}
+
+export function listDataExportConfigs(
+  rcNumber: string,
+  token?: string,
+): Promise<{ configs: DataExportConfigResponse[] }> {
+  return adminRequest<{ configs: DataExportConfigResponse[] }>(
+    `/api/admin/data-export/configs?rc_number=${encodeURIComponent(rcNumber)}`,
+    token,
+  );
+}
+
+export function createDataExportConfig(
+  rcNumber: string,
+  body: DataExportConfigRequest,
+  token?: string,
+): Promise<DataExportConfigResponse> {
+  return adminRequest<DataExportConfigResponse>(
+    `/api/admin/data-export/configs?rc_number=${encodeURIComponent(rcNumber)}`,
+    token,
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
+export function updateDataExportConfig(
+  rcNumber: string,
+  id: string,
+  body: DataExportConfigRequest,
+  token?: string,
+): Promise<DataExportConfigResponse> {
+  return adminRequest<DataExportConfigResponse>(
+    `/api/admin/data-export/configs/${id}?rc_number=${encodeURIComponent(rcNumber)}`,
+    token,
+    { method: "PUT", body: JSON.stringify(body) },
+  );
+}
+
+export function deleteDataExportConfig(
+  rcNumber: string,
+  id: string,
+  token?: string,
+): Promise<void> {
+  return adminRequest<void>(
+    `/api/admin/data-export/configs/${id}?rc_number=${encodeURIComponent(rcNumber)}`,
+    token,
+    { method: "DELETE" },
+  );
+}
+
+export function previewDataExportConfig(
+  rcNumber: string,
+  body: DataExportPreviewRequest,
+  token?: string,
+): Promise<DataExportPreviewResponse> {
+  return adminRequest<DataExportPreviewResponse>(
+    `/api/admin/data-export/configs/preview?rc_number=${encodeURIComponent(rcNumber)}`,
+    token,
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
+export function triggerDataExportJob(
+  rcNumber: string,
+  body: DataExportTriggerRequest,
+  token?: string,
+): Promise<DataExportJobResponse> {
+  return adminRequest<DataExportJobResponse>(
+    `/api/admin/data-export/jobs?rc_number=${encodeURIComponent(rcNumber)}`,
+    token,
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
+export function getDataExportJob(
+  rcNumber: string,
+  id: string,
+  token?: string,
+  signal?: AbortSignal,
+): Promise<DataExportJobResponse> {
+  return adminRequest<DataExportJobResponse>(
+    `/api/admin/data-export/jobs/${id}?rc_number=${encodeURIComponent(rcNumber)}`,
+    token,
+    { signal },
+  );
+}
+
+export interface ListDataExportJobsParams {
+  status?: DataExportJobStatus | "";
+  since?: string;
+  until?: string;
+  cursor?: string;
+  limit?: number;
+}
+
+export function listDataExportJobs(
+  rcNumber: string,
+  params: ListDataExportJobsParams,
+  token?: string,
+): Promise<DataExportJobsListResponse> {
+  const qs = new URLSearchParams({ rc_number: rcNumber });
+  if (params.status) qs.set("status", params.status);
+  if (params.since) qs.set("since", params.since);
+  if (params.until) qs.set("until", params.until);
+  if (params.cursor) qs.set("cursor", params.cursor);
+  if (params.limit) qs.set("limit", String(params.limit));
+  return adminRequest<DataExportJobsListResponse>(
+    `/api/admin/data-export/jobs?${qs.toString()}`,
+    token,
+  );
+}
+
+export function retryDataExportJob(
+  rcNumber: string,
+  id: string,
+  token?: string,
+): Promise<DataExportJobResponse> {
+  return adminRequest<DataExportJobResponse>(
+    `/api/admin/data-export/jobs/${id}/retry?rc_number=${encodeURIComponent(rcNumber)}`,
+    token,
+    { method: "POST" },
+  );
+}
+
+// Streams the BLOB. Same pattern as downloadApplicationExcel — we need the
+// raw Response so we can read the filename from Content-Disposition.
+export async function downloadDataExportResult(
+  rcNumber: string,
+  id: string,
+  token?: string,
+): Promise<{ blob: Blob; filename: string }> {
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(
+    `${API_URL}/api/admin/data-export/jobs/${id}/download?rc_number=${encodeURIComponent(rcNumber)}`,
+    { headers },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ code: "internal_error", message: "Download fehlgeschlagen." }));
+    throw new ApiResponseError(body as ApiError);
+  }
+  const blob = await res.blob();
+  const disposition = res.headers.get("Content-Disposition") ?? "";
+  const match = disposition.match(/filename="([^"]+)"/);
+  const filename = match ? match[1] : `export-${id}.bin`;
+  return { blob, filename };
+}

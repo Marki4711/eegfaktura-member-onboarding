@@ -14,6 +14,8 @@ import { AdminStatusActions } from "@/components/admin-status-actions";
 import { AdminImportUnstuckBanner } from "@/components/admin-import-unstuck-banner";
 import { AdminNoteEditor } from "@/components/admin-note-editor";
 import { AdminEditForm } from "@/components/admin-edit-form";
+import { DataExportTriggerDialog } from "@/components/data-export/trigger-dialog";
+import { DataExportJobStatusModal } from "@/components/data-export/job-status-modal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -83,6 +85,9 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
   const [excelError, setExcelError] = useState<string | null>(null);
   const [downloadingPDF, setDownloadingPDF] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  // PROJ-60: single-application data-forwarding.
+  const [dataExportOpen, setDataExportOpen] = useState(false);
+  const [dataExportJobId, setDataExportJobId] = useState<string | null>(null);
 
   const handleExcelDownload = async () => {
     if (!application) return;
@@ -298,6 +303,10 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
               {downloadingPDF ? "Wird erstellt…" : "Beitrittsbestätigung herunterladen"}
             </Button>
           )}
+          {/* PROJ-60: Datenweiterleitung — verfügbar für jeden Status */}
+          <Button variant="outline" size="sm" onClick={() => setDataExportOpen(true)}>
+            Datenweiterleitung
+          </Button>
           {(application.status === "draft" || application.status === "rejected") && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -685,6 +694,20 @@ export function AdminApplicationDetail({ id, returnTo }: Props) {
           onRefresh={fetchApplication}
         />
       )}
+
+      {/* PROJ-60: data-export trigger + status modal for single application */}
+      <DataExportTriggerDialog
+        rcNumber={application.rcNumber}
+        applicationIds={[application.id]}
+        open={dataExportOpen}
+        onClose={() => setDataExportOpen(false)}
+        onJobStarted={(jobId) => setDataExportJobId(jobId)}
+      />
+      <DataExportJobStatusModal
+        rcNumber={application.rcNumber}
+        jobId={dataExportJobId}
+        onClose={() => setDataExportJobId(null)}
+      />
     </>
   );
 }
