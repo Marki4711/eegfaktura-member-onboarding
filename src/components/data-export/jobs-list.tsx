@@ -30,6 +30,7 @@ import {
   type DataExportJobStatus,
 } from "@/lib/api";
 import { formatDate } from "@/lib/datetime";
+import { formatValidationError } from "./error-utils";
 
 const STATUS_LABELS: Record<DataExportJobStatus, string> = {
   queued: "In Warteschlange",
@@ -84,7 +85,7 @@ export function DataExportJobsList({ rcNumber, onTrackJob, reloadKey }: Props) {
         if (append && jobs) setJobs([...jobs, ...res.jobs]);
         else setJobs(res.jobs);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Jobs konnten nicht geladen werden.");
+        setError(formatValidationError(err).join(" — "));
       } finally {
         setLoading(false);
         setLoadingMore(false);
@@ -111,7 +112,7 @@ export function DataExportJobsList({ rcNumber, onTrackJob, reloadKey }: Props) {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Download fehlgeschlagen");
+      setError(formatValidationError(err).join(" — "));
     } finally {
       setBusyId(null);
     }
@@ -124,7 +125,7 @@ export function DataExportJobsList({ rcNumber, onTrackJob, reloadKey }: Props) {
       onTrackJob?.(newJob.id);
       await load(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Retry fehlgeschlagen");
+      setError(formatValidationError(err).join(" — "));
     } finally {
       setBusyId(null);
     }

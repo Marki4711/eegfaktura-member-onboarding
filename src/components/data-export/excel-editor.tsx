@@ -33,6 +33,7 @@ import {
   type DataExportPreviewResponse,
   type DataExportStandardConfigInfo,
 } from "@/lib/api";
+import { formatValidationError } from "./error-utils";
 import {
   defaultFormatForType,
   EXCEL_FIELD_CATALOG,
@@ -56,6 +57,14 @@ interface Props {
 
 function emptyConfig(): ExcelConfig {
   return { format: "xlsx", columns: [] };
+}
+
+// isConfigComplete returns true when every column has both a non-empty
+// header and a selected field. Used to suppress noisy preview API calls
+// while the admin is mid-edit on a new column.
+function isConfigComplete(cfg: ExcelConfig): boolean {
+  if (cfg.columns.length === 0) return false;
+  return cfg.columns.every((c) => c.header.trim() !== "" && c.field !== "");
 }
 
 function parseConfig(raw: Record<string, unknown> | undefined): ExcelConfig {
@@ -82,29 +91,32 @@ export function DataExportExcelEditor({ rcNumber, initial, template, onSaved, on
     return emptyConfig();
   });
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<string[]>([]);
 
   const [preview, setPreview] = useState<DataExportPreviewResponse | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
-  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewErrors, setPreviewErrors] = useState<string[]>([]);
 
-  // Debounced live-preview: rebuild whenever the config changes.
+  // Debounced live-preview: rebuild whenever the config changes. Skipped
+  // while the admin is still filling in a new column (no header / no field
+  // selected yet) — otherwise the backend returns a noisy validation error
+  // for every keystroke before the column is usable.
   useEffect(() => {
-    if (config.columns.length === 0) {
+    if (!isConfigComplete(config)) {
       setPreview(null);
-      setPreviewError(null);
+      setPreviewErrors([]);
       return;
     }
     const handle = window.setTimeout(() => {
       setPreviewLoading(true);
-      setPreviewError(null);
+      setPreviewErrors([]);
       previewDataExportConfig(
         rcNumber,
         { pluginType: "excel", rcNumber, config: config as unknown as Record<string, unknown> },
         session?.accessToken,
       )
         .then((res) => setPreview(res))
-        .catch((err: Error) => setPreviewError(err.message ?? "Vorschau fehlgeschlagen"))
+        .catch((err: unknown) => setPreviewErrors(formatValidationError(err)))
         .finally(() => setPreviewLoading(false));
     }, 400);
     return () => window.clearTimeout(handle);
@@ -152,14 +164,14 @@ export function DataExportExcelEditor({ rcNumber, initial, template, onSaved, on
 
   async function handleSave() {
     if (!name.trim()) {
-      setError("Name ist erforderlich.");
+      setErrors(["Name ist erforderlich."]);
       return;
     }
     if (config.columns.length === 0) {
-      setError("Mindestens eine Spalte ist erforderlich.");
+      setErrors(["Mindestens eine Spalte ist erforderlich."]);
       return;
     }
-    setError(null);
+    setErrors([]);
     setSaving(true);
     try {
       const body = {
@@ -174,7 +186,7 @@ export function DataExportExcelEditor({ rcNumber, initial, template, onSaved, on
       }
       onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Speichern fehlgeschlagen");
+      setErrors(formatValidationError(err));
     } finally {
       setSaving(false);
     }
@@ -357,8 +369,15 @@ export function DataExportExcelEditor({ rcNumber, initial, template, onSaved, on
       <div className="space-y-2">
         <Label>Vorschau (letzte 5 importierte Mitglieder)</Label>
         {previewLoading && <Skeleton className="h-24 w-full" />}
-        {previewError && (
-          <p className="text-sm text-destructive">{previewError}</p>
+        {previewErrors.length > 0 && (
+          <div className="rounded border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+            <p className="font-medium">Vorschau nicht möglich:</p>
+            <ul className="mt-1 list-disc pl-5 space-y-0.5">
+              {previewErrors.map((msg, i) => (
+                <li key={i}>{msg}</li>
+              ))}
+            </ul>
+          </div>
         )}
         {preview && !previewLoading && (
           <div className="rounded border overflow-auto">
@@ -397,7 +416,16 @@ export function DataExportExcelEditor({ rcNumber, initial, template, onSaved, on
         )}
       </div>
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {errors.length > 0 && (
+        <div className="rounded border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+          <p className="font-medium">Speichern nicht möglich:</p>
+          <ul className="mt-1 list-disc pl-5 space-y-0.5">
+            {errors.map((msg, i) => (
+              <li key={i}>{msg}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onCancel} disabled={saving}>

@@ -18,6 +18,7 @@ import {
   triggerDataExportJob,
   type DataExportConfigResponse,
 } from "@/lib/api";
+import { formatValidationError } from "./error-utils";
 
 interface Props {
   rcNumber: string;
@@ -59,7 +60,7 @@ export function DataExportTriggerDialog({
         // hide obsolete configs from the trigger dialog (spec criterion).
         setConfigs(res.configs.filter((c) => !c.isObsolete));
       })
-      .catch((err) => setError(err instanceof Error ? err.message : "Konfigurationen konnten nicht geladen werden."))
+      .catch((err) => setError(formatValidationError(err).join(" — ")))
       .finally(() => setLoading(false));
   }, [open, rcNumber, session?.accessToken]);
 
@@ -75,7 +76,7 @@ export function DataExportTriggerDialog({
       onJobStarted(job.id);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Job konnte nicht gestartet werden.");
+      setError(formatValidationError(err).join(" — "));
     } finally {
       setTriggeringId(null);
     }

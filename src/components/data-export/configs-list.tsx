@@ -40,6 +40,7 @@ import {
   type DataExportStandardConfigInfo,
 } from "@/lib/api";
 import { DataExportExcelEditor } from "./excel-editor";
+import { formatValidationError } from "./error-utils";
 
 interface Props {
   rcNumber: string;
@@ -71,7 +72,7 @@ export function DataExportConfigsList({ rcNumber }: Props) {
       setConfigs(c.configs);
       setPlugins(p.plugins);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Konfigurationen konnten nicht geladen werden.");
+      setError(formatValidationError(err).join(" — "));
     } finally {
       setLoading(false);
     }
@@ -90,7 +91,7 @@ export function DataExportConfigsList({ rcNumber }: Props) {
       setDeleteTarget(null);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Löschen fehlgeschlagen");
+      setError(formatValidationError(err).join(" — "));
     } finally {
       setDeleting(false);
     }

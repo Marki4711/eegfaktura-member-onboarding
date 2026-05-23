@@ -19,6 +19,7 @@ import {
   retryDataExportJob,
   type DataExportJobResponse,
 } from "@/lib/api";
+import { formatValidationError } from "./error-utils";
 
 interface Props {
   rcNumber: string;
@@ -46,7 +47,7 @@ export function DataExportJobStatusModal({ rcNumber, jobId, onClose }: Props) {
         return j;
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return null;
-        setError(err instanceof Error ? err.message : "Status konnte nicht geladen werden.");
+        setError(formatValidationError(err).join(" — "));
         return null;
       }
     },
@@ -96,7 +97,7 @@ export function DataExportJobStatusModal({ rcNumber, jobId, onClose }: Props) {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Download fehlgeschlagen");
+      setError(formatValidationError(err).join(" — "));
     } finally {
       setDownloading(false);
     }
@@ -110,7 +111,7 @@ export function DataExportJobStatusModal({ rcNumber, jobId, onClose }: Props) {
       activeJobIdRef.current = newJob.id;
       setJob(newJob);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Retry fehlgeschlagen");
+      setError(formatValidationError(err).join(" — "));
     } finally {
       setRetrying(false);
     }
