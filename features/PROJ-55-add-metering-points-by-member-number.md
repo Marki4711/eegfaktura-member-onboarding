@@ -1,9 +1,26 @@
 # PROJ-55 — Nachmelden von Zählpunkten anhand der Mitgliedsnummer
 
-**Status:** Planned (Idea — Tester-Vorschlag, noch ohne ausformulierte Requirements)
+**Status:** Planned (Idea — wird in ein größeres Self-Service-Portal-Konzept aufgehen, siehe Hinweis unten)
 **Erstellt:** 2026-05-21
-**Quelle:** Tester-Feedback
+**Letzte Klärung:** 2026-05-23 — Scope erweitert, separater Strang
+**Quelle:** Tester-Feedback (ursprünglich), inzwischen Owner-Direction
 **Abhängigkeiten:** PROJ-32 (EEG-Stammdaten + Mitgliederliste aus Core), evtl. PROJ-31 (E-Mail-Bestätigung als Auth-Hebel)
+
+> **Scope-Hinweis (2026-05-23):** Diese Spec war ursprünglich eine punktuelle
+> Erweiterung („Zählpunkt nachmelden mit Mitgliedsnummer"). Owner hat
+> entschieden, dass das stattdessen Bestandteil eines **Self-Service-Portals
+> für bestehende EEG-Mitglieder** werden soll — also ein eigener Bereich, in
+> dem Mitglieder über die Onboarding-App hinaus ihre Daten einsehen und
+> pflegen können (Zählpunkte nachmelden, Stammdaten ändern, Status verfolgen,
+> evtl. weitere Aktionen). Das ist ein größerer Umbau / eine
+> Weiterentwicklung der Lösung — nicht eine simple Feature-Erweiterung.
+>
+> Der genaue Umfang muss separat definiert werden (eigener `/requirements`-
+> Lauf mit Scope-Diskussion: welche Mitglieder-Aktionen sind im Self-Service
+> erlaubt, Auth-Modell, Abgrenzung zum Admin-Bereich, Verhältnis zum
+> eegFaktura-Core-Mitgliederbereich). Diese Spec hier bleibt bis dahin als
+> Idee-Ablage liegen — bei der späteren Self-Service-Portal-Spec wird sie
+> als ein abgedeckter Use Case darin aufgehen oder geschlossen werden.
 
 ---
 
