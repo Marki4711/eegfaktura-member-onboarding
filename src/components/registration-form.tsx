@@ -281,7 +281,13 @@ function buildFormSchema(
       (m) => m?.direction === "CONSUMPTION",
     );
     if (hasConsumption) {
-      requireNum("persons_in_household", "personsInHousehold", "Anzahl Personen im Haushalt");
+      // "Personen im Haushalt" ist konzeptuell nur bei natürlichen Personen
+      // (Privatperson, Landwirt) sinnvoll und wird im UI auch nur dort
+      // gerendert (shouldShow). Required-Check muss hier dieselbe Bedingung
+      // tragen, sonst hängt der Submit für Org-Mitgliedstypen still.
+      if (isPerson) {
+        requireNum("persons_in_household", "personsInHousehold", "Anzahl Personen im Haushalt");
+      }
       // PROJ-49: consumption_*, feed_in_forecast, pv_power_kwp werden jetzt
       // pro Zählpunkt validiert (Backend) — keine app-level Required-Checks mehr.
       requireNum("heat_pump", "heatPump", "Wärmepumpe vorhanden");
@@ -502,9 +508,14 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
     "persons_in_household",
     "heat_pump", "electric_vehicle", "electric_hot_water",
   ]);
+  // Felder, die nur bei natürlichen Personen (Privatperson, Landwirt)
+  // konzeptuell anwendbar sind. Bei Org-Mitgliedstypen werden sie nicht
+  // gezeigt und serverseitig auf NULL gesetzt.
+  const naturalPersonFields = new Set(["persons_in_household"]);
   function shouldShow(name: string): boolean {
     if (fs(name) === "hidden") return false;
     if (consumptionFields.has(name) && !hasConsumption) return false;
+    if (naturalPersonFields.has(name) && !isPerson) return false;
     return true;
   }
 

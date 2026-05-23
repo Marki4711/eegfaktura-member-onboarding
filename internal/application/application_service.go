@@ -1203,7 +1203,12 @@ func validateConfigurableRequiredFields(app *shared.Application, fieldConfig map
 	requiredIfMissing("bank_name", "bankName", "Bankname", missingStr(app.BankName))
 	requiredIfMissing("uid_number", "uidNumber", "UID-Nummer", missingStr(app.UIDNumber))
 	requiredIfMissing("membership_start_date", "membershipStartDate", "Beitrittsdatum", app.MembershipStartDate == nil)
-	requiredIfMissingTyped("persons_in_household", "personsInHousehold", "Anzahl Personen im Haushalt", app.PersonsInHousehold == nil, hasConsumption)
+	// "Personen im Haushalt" gilt nur für natürliche Personen (Privatperson,
+	// Landwirt). Bei Org-Mitgliedstypen wäre die Required-Validierung ein
+	// Submit-Hänger (Feld wird FE nicht gezeigt, Field-State zeigt es aber
+	// als required). Gate hier doppelt: Mitgliedstyp UND hasConsumption.
+	isNaturalPerson := app.MemberType == shared.MemberTypePrivate || app.MemberType == shared.MemberTypeFarmer
+	requiredIfMissingTyped("persons_in_household", "personsInHousehold", "Anzahl Personen im Haushalt", app.PersonsInHousehold == nil, hasConsumption && isNaturalPerson)
 	// PROJ-49: consumption_previous_year, consumption_forecast,
 	// feed_in_forecast, pv_power_kwp werden jetzt pro Zählpunkt validiert
 	// (validateConfigurableMeteringPointFields), nicht mehr hier.
@@ -1576,10 +1581,16 @@ func clearMemberTypeFields(app *shared.Application) {
 		app.BirthDate = nil
 		app.UIDNumber = nil
 		app.RegisterNumber = nil
+		// "Personen im Haushalt" ist nur bei natürlichen Personen
+		// (private/farmer) konzeptuell sinnvoll — defence-in-depth gegen
+		// forged Clients und gegen Required-Validierung, die sonst bei
+		// EEG-config "required" einen Submit-Hänger erzeugt.
+		app.PersonsInHousehold = nil
 	case shared.MemberTypeMunicipality, shared.MemberTypeCompany, shared.MemberTypeAssociation:
 		app.Firstname = nil
 		app.Lastname = nil
 		app.BirthDate = nil
+		app.PersonsInHousehold = nil
 	}
 }
 

@@ -53,8 +53,8 @@ export const CONFIGURABLE_FIELDS: {
     { name: "bank_name",               label: "Bankname",                        defaultState: "optional" },
     { name: "membership_start_date",   label: "Aktiv am (Beitrittsdatum)",       defaultState: "hidden"   },
     { name: "persons_in_household",    label: "Anzahl Personen im Haushalt",     defaultState: "hidden",
-      visibilityTags: ["consumption"],
-      visibilityHint: "Wird nur angezeigt, wenn der Antrag mindestens einen Verbraucher-Zählpunkt enthält." },
+      visibilityTags: ["consumption", "natural_person"],
+      visibilityHint: "Wird nur angezeigt, wenn der Antrag mindestens einen Verbraucher-Zählpunkt enthält UND Mitgliedstyp Privatperson oder Landwirt ist. Bei Organisationen (Kleinunternehmer, Unternehmen, Verein, Gemeinde) wird der Wert serverseitig auf NULL gesetzt." },
     // PROJ-49: consumption_*, feed_in_forecast, pv_power_kwp wandern in den
     // meteringPoint-Block (siehe unten). Hier nichts mehr.
     { name: "heat_pump",               label: "Wärmepumpe vorhanden",            defaultState: "hidden",
