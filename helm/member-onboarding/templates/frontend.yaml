@@ -47,20 +47,15 @@ spec:
               value: {{ .Values.frontend.keycloakIssuer | quote }}
             - name: KEYCLOAK_CLIENT_ID
               value: {{ .Values.frontend.keycloakClientId | quote }}
-            # CORE_AUTH_MODE=exchange: the silent-SSO bootstrap needs both
-            # the Keycloak issuer (re-using KEYCLOAK_ISSUER) and the public
-            # client-id of the Faktura-frontend Keycloak client. The
-            # NEXT_PUBLIC_ prefix exposes them to the browser bundle —
-            # neither is a secret.
-            - name: NEXT_PUBLIC_KEYCLOAK_ISSUER
-              value: {{ .Values.frontend.keycloakIssuer | quote }}
-            - name: NEXT_PUBLIC_KEYCLOAK_CORE_CLIENT_ID
-              value: {{ .Values.frontend.keycloakCoreClientId | default "" | quote }}
-            - name: NEXT_PUBLIC_CORE_AUTH_MODE
+            # CORE_AUTH_MODE=exchange: the silent-SSO bootstrap is mounted
+            # in the admin server-layout, which reads these env vars at
+            # runtime and passes them as props to the client component.
+            # No NEXT_PUBLIC_ prefix — those would be baked at build time
+            # and a helm-only toggle would have no effect on a deployed
+            # image. KEYCLOAK_ISSUER is reused from the existing variable
+            # above; only the two below are auth-mode specific.
+            - name: CORE_AUTH_MODE
               value: {{ .Values.frontend.coreAuthMode | default "direct" | quote }}
-            # Server-side: same client-id without the NEXT_PUBLIC_ prefix
-            # for the /api/auth/core-token route that exchanges the auth
-            # code for an access token.
             - name: KEYCLOAK_CORE_CLIENT_ID
               value: {{ .Values.frontend.keycloakCoreClientId | default "" | quote }}
             - name: NEXTAUTH_SECRET

@@ -78,7 +78,11 @@ export default async function AdminLayout({
       <main className="max-w-7xl mx-auto px-6 py-8">{children}</main>
       <Toaster />
       <SessionRefreshGuard />
-      <CoreAuthBootstrap />
+      <CoreAuthBootstrap
+        authMode={process.env.CORE_AUTH_MODE ?? "direct"}
+        issuer={process.env.KEYCLOAK_ISSUER ?? ""}
+        coreClientId={process.env.KEYCLOAK_CORE_CLIENT_ID ?? ""}
+      />
     </div>
   );
 }

@@ -7,6 +7,10 @@ import { useSession } from "next-auth/react";
 // token in the NextAuth session when CORE_AUTH_MODE=exchange. Runs only on
 // the admin pages (mounted from admin/layout.tsx).
 //
+// Config is passed as props from the parent server-component because
+// Next.js inlines `process.env.NEXT_PUBLIC_*` at build-time into client
+// bundles — runtime helm env changes would otherwise have no effect.
+//
 // State machine:
 //   - No coreAccessToken at all → trigger full Authorize-Flow (top-level
 //     redirect to Keycloak with prompt=none).
@@ -32,7 +36,17 @@ const refreshLeadSeconds = 60;
 // expiresAt timestamp.
 const refreshCheckIntervalMs = 30_000;
 
-export function CoreAuthBootstrap() {
+interface Props {
+  // "direct" | "exchange" — passed from the server layout so we don't
+  // depend on build-time inlining of NEXT_PUBLIC_* in this client bundle.
+  authMode: string;
+  // Keycloak issuer URL (e.g. https://login.eegfaktura.at/realms/EEGFaktura).
+  issuer: string;
+  // Public client-id of the Faktura-frontend Keycloak client.
+  coreClientId: string;
+}
+
+export function CoreAuthBootstrap({ authMode, issuer, coreClientId }: Props) {
   const { data: session, status, update } = useSession();
 
   // Guards against concurrent refresh attempts (e.g. if two interval ticks
@@ -41,7 +55,7 @@ export function CoreAuthBootstrap() {
   const refreshInFlight = useRef(false);
 
   useEffect(() => {
-    if (process.env.NEXT_PUBLIC_CORE_AUTH_MODE !== "exchange") return;
+    if (authMode !== "exchange") return;
     if (status !== "authenticated" || !session) return;
 
     let cancelled = false;
@@ -107,11 +121,9 @@ export function CoreAuthBootstrap() {
       const returnTo = window.location.pathname + window.location.search;
       sessionStorage.setItem("core-auth:return-to", returnTo);
 
-      const issuer = process.env.NEXT_PUBLIC_KEYCLOAK_ISSUER;
-      const coreClientId = process.env.NEXT_PUBLIC_KEYCLOAK_CORE_CLIENT_ID;
       if (!issuer || !coreClientId) {
         console.error(
-          "[core-auth] NEXT_PUBLIC_KEYCLOAK_ISSUER or NEXT_PUBLIC_KEYCLOAK_CORE_CLIENT_ID not set — cannot bootstrap core auth",
+          "[core-auth] issuer or coreClientId not set on CoreAuthBootstrap props — cannot bootstrap core auth",
         );
         return;
       }
@@ -133,7 +145,7 @@ export function CoreAuthBootstrap() {
 
       window.location.href = authorizeUrl.toString();
     }
-  }, [session, status, update]);
+  }, [session, status, update, authMode, issuer, coreClientId]);
 
   return null;
 }
