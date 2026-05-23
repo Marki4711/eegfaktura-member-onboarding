@@ -89,6 +89,7 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 | PROJ-56 | Netzbetreiber-Info-Seite im Beitrittsbestätigungs-PDF | Zwei optionale Felder (Kundennummer, Inventarnummer), nur sichtbar bei aktiver Vollmacht |
 | PROJ-57 | Ansprechperson für Org-Mitgliedstypen | v3-Design: drei Subfelder einzeln per field_config, Checkbox erscheint automatisch — kein Master-Switch |
 | PROJ-58 | Abweichende Rechnungs-E-Mail | Toggle + E-Mail in der Bankverbindungs-Section, nur bei Org-Mitgliedstypen |
+| PROJ-59 | BgA / Hoheitsbereich-Vermerk im Anlagennamen | Reiner Hilfetext-Vermerk bei Gemeinden — kein Schema, keine Validierung; Admin liest beim Tarif-Setzen |
 
 ### Approved (wartet auf Deployment-Bündelung)
 

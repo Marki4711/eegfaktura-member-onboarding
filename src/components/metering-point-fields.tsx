@@ -516,7 +516,14 @@ function MeteringPointRow({
                         <Info className="h-3.5 w-3.5 text-muted-foreground" />
                       </PopoverTrigger>
                       <PopoverContent className="max-w-60 text-sm">
-                        Der Anlagenname ist eine Bezeichnung des Zählpunkts und wird auch auf der Rechnung ausgewiesen, z. B. Hauptanlage, Nebengebäude, Warmwasser, …
+                        <p>
+                          Der Anlagenname ist eine Bezeichnung des Zählpunkts und wird auch auf der Rechnung ausgewiesen, z. B. Hauptanlage, Nebengebäude, Warmwasser, …
+                        </p>
+                        {form.watch("memberType") === "municipality" && (
+                          <p className="mt-2">
+                            <strong>Gemeinden:</strong> bitte hier auch vermerken, ob der Zählpunkt zu einem <strong>Betrieb gewerblicher Art (BgA)</strong> gehört oder im <strong>Hoheitsbereich</strong> liegt — z. B. „Bauhof — BgA" oder „Rathaus — Hoheit". Die EEG braucht die Info für die Tarif-Zuordnung.
+                          </p>
+                        )}
                       </PopoverContent>
                     </Popover>
                   </div>

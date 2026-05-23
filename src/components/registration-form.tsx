@@ -853,6 +853,11 @@ export function RegistrationForm({ config }: RegistrationFormProps) {
                                   <strong>hoheitlich:</strong> bitte die Steuerbefreiung angeben.
                                 </li>
                               </ul>
+                              <p className="mt-2">
+                                Bitte je Zählpunkt im Feld <em>Anlagenname</em> vermerken, ob er zu einem
+                                Betrieb gewerblicher Art oder zum Hoheitsbereich gehört (z. B. „Bauhof — BgA",
+                                „Rathaus — Hoheit"). Die EEG benötigt diese Info für die Tarif-Zuordnung.
+                              </p>
                             </dd>
                           </div>
                         </dl>

@@ -59,6 +59,11 @@ Eine eigene Public-Strecke `/add-meter/<RC>` (oder vergleichbar), die:
 - **EEG-Mitglieder ohne Onboarding-System-Eintrag:** Was, wenn das
   Mitglied nicht über Onboarding gekommen ist (manuell im Core erfasst)?
   Soll der Flow trotzdem funktionieren?
+- **PROJ-59 (BgA/Hoheitsbereich-Vermerk im Anlagennamen):** Wenn der
+  Nachmelde-Flow für ein Gemeinde-Mitglied (`member_type=municipality`)
+  genutzt wird, sollte beim Anlagenname-Feld derselbe Hilfetext erscheinen
+  wie im normalen Public-Form (Vermerk „BgA" bzw. „Hoheit" mit eintragen).
+  Keine strukturelle Validierung erforderlich.
 
 ## Nächster Schritt
 
