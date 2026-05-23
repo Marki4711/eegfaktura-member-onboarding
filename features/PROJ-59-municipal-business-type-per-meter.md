@@ -153,4 +153,40 @@ Keine.
 **READY** — alle ACs erfüllt, CI grün (außer pre-existing Snyk), keine Regression-Risiken, keine Security-Implikationen. Status kann auf **Approved** wechseln und beim nächsten Deploy mitlaufen.
 
 ## Deployment
-_To be added by /deploy_
+
+**Deployed:** _pending operator helm upgrade_ (Chart-Version + Image-SHA committed 2026-05-23)
+**Chart version:** 1.9.2 / appVersion 1.9.2
+**Image SHA:** `sha-6740c1b` (PROJ-59 frontend edit)
+**Git tag:** `v1.9.2-PROJ-59`
+**Migration:** none — reine Frontend-Änderung, keine Schema-Modifikation
+**Rollback:** `helm rollback member-onboarding` zur vorherigen Revision; keine DB-Reverts nötig
+
+### Deployment checklist
+- [x] `go build ./...` grün (CI auf `6740c1b` + `56f7bb4`)
+- [x] `go test ./...` grün (CI)
+- [x] Frontend `tsc --noEmit` + `next build` grün (CI)
+- [x] Vitest grün (CI)
+- [x] QA abgenommen, keine Bugs gefunden
+- [x] Snyk-CI grün (continue-on-error am Monitor-Step gefixt)
+- [x] Kein neues Environment Variable, kein neuer Kubernetes Secret
+- [x] Helm chart `appVersion` auf 1.9.2 gebumpt
+- [x] Image SHA in `values.yaml` über CI auto-gesetzt (`sha-6740c1b`)
+- [ ] Operator führt `helm upgrade` aus (manueller Schritt)
+- [ ] Post-Deploy: Browser-Smoke (Mitgliedstyp Gemeinde wählen → Anlagenname-Popover prüfen)
+
+### Deploy-Befehl (für Operator)
+
+```bash
+cd helm/
+helm upgrade member-onboarding ./member-onboarding \
+  -n member-onboarding \
+  -f values-env.yaml \
+  --atomic \
+  --timeout 5m
+```
+
+Optional vorher Plan prüfen:
+```bash
+helm diff upgrade member-onboarding ./member-onboarding \
+  -n member-onboarding -f values-env.yaml
+```
