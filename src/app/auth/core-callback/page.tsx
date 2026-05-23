@@ -111,15 +111,26 @@ function CoreCallbackInner() {
         return res.json();
       })
       .then(async (data: { access_token: string; refresh_token?: string; expires_at: number }) => {
-        await update({
-          type: "core-token",
-          accessToken: data.access_token,
-          refreshToken: data.refresh_token,
+        console.log("[core-callback] token exchange success", {
+          accessTokenLen: data.access_token?.length,
+          hasRefreshToken: !!data.refresh_token,
           expiresAt: data.expires_at,
         });
+        try {
+          const updateResult = await update({
+            type: "core-token",
+            accessToken: data.access_token,
+            refreshToken: data.refresh_token,
+            expiresAt: data.expires_at,
+          });
+          console.log("[core-callback] update() resolved with", updateResult);
+        } catch (e) {
+          console.error("[core-callback] update() threw", e);
+        }
         // Clear the bootstrap cooldown marker so a future expiry can again
         // trigger an authorize-flow without waiting for the 5 s timeout.
         localStorage.removeItem("core-auth:last-redirect");
+        console.log("[core-callback] navigating to", returnTo);
         // Hard navigation (not router.replace) so the destination page's
         // useSession() reads the freshly-updated cookie. Client-side routing
         // would reuse the in-memory session snapshot and CoreAuthBootstrap
