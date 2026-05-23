@@ -92,6 +92,8 @@ spec:
               value: {{ .Values.backend.coreBaseUrl | quote }}
             - name: CORE_TIMEOUT_SECONDS
               value: {{ .Values.backend.coreTimeoutSeconds | default 30 | quote }}
+            - name: CORE_AUTH_MODE
+              value: {{ .Values.backend.coreAuthMode | default "direct" | quote }}
             - name: ADMIN_BASE_URL
               value: {{ .Values.backend.adminBaseUrl | quote }}
             - name: TRUSTED_PROXY_CIDRS

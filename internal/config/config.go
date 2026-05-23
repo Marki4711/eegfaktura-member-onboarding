@@ -45,9 +45,26 @@ type Config struct {
 //   - GraphQL    — {BaseURL}/api/query (PROJ-32)
 // Phase 2 (logo) will append `/cash/api/billingConfigs/...` to the same
 // hostname. Empty BaseURL disables every core-dependent feature.
+//
+// AuthMode — selects how REST-Calls to the core are authenticated:
+//   - "direct"   (default) — the admin's Onboarding-Keycloak access-token is
+//     forwarded verbatim. Works iff the Faktura backend whitelists the
+//     `eegfaktura-member-onboarding` Keycloak-client as a legitimate `azp`.
+//   - "exchange" — the Frontend obtains a second access-token via silent
+//     SSO against the Faktura-Frontend Keycloak-client (`at.ourproject.vfeeg.app`)
+//     and forwards it in the `X-Core-Authorization` header. The Onboarding-
+//     Backend uses that token for REST-Calls instead of the admin's session
+//     token. Workaround for a stealth `azp`-filter in the Faktura backend
+//     that returns 200+empty for non-whitelisted clients.
+//
+// The mode is a global helm-deploy decision (not per-EEG) because the
+// underlying constraint is the Faktura backend's filter, which is shared
+// across all tenants. Switch to "direct" once the Faktura maintainer
+// extends the filter.
 type CoreConfig struct {
 	BaseURL        string
 	TimeoutSeconds int
+	AuthMode       string
 }
 
 // CentralPolicyConfig holds title and URL of the operator's central privacy policy.
@@ -147,6 +164,7 @@ func Load() (*Config, error) {
 		Core: CoreConfig{
 			BaseURL:        getEnv("CORE_BASE_URL", ""),
 			TimeoutSeconds: getIntEnv("CORE_TIMEOUT_SECONDS", 30),
+			AuthMode:       getEnv("CORE_AUTH_MODE", "direct"),
 		},
 		AdminBaseURL:      getEnv("ADMIN_BASE_URL", ""),
 		PublicBaseURL:     getEnv("PUBLIC_BASE_URL", ""),

@@ -109,6 +109,14 @@ backend:
   coreBaseUrl: "https://eegfaktura.example.at"
   coreTimeoutSeconds: 30
 
+  # coreAuthMode — Authentifizierung der REST-Calls an den Faktura-Core.
+  # "direct"   (Default): Admin-Onboarding-Token wird 1:1 weitergereicht.
+  # "exchange": Frontend holt via Silent-SSO einen zweiten Token gegen den
+  #             Faktura-Frontend-Client (at.ourproject.vfeeg.app) und sendet
+  #             ihn im X-Core-Authorization-Header. Workaround für versteckten
+  #             azp-Filter im Faktura-Backend.
+  coreAuthMode: "direct"
+
   # Admin-UI Basis-URL — eingebettet als Admin-Detail-Link in EEG-Submission-
   # Mails (PROJ-20). Leer = kein Link in der Mail.
   adminBaseUrl: "https://admin.member-onboarding.example.at"

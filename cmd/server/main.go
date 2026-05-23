@@ -142,6 +142,8 @@ func main() {
 	registrationHandler := internalhttp.NewRegistrationHandler(registrationService)
 	applicationHandler := internalhttp.NewApplicationHandler(applicationService, cfg.Turnstile.SecretKey)
 	adminHandler := internalhttp.NewAdminHandler(adminService, entrypointRepo, apiKeyRepo, legalDocumentRepo, importService, coreHTTPClient)
+	adminHandler.SetCoreAuthMode(cfg.Core.AuthMode)
+	slog.Info("core auth mode configured", "mode", cfg.Core.AuthMode)
 	externalHandler := internalhttp.NewExternalHandler(applicationService)
 	healthHandler := internalhttp.NewHealthHandler(db)
 

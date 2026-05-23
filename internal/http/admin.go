@@ -80,9 +80,16 @@ type AdminHandler struct {
 	coreClient *coreclient.HTTPCoreClient
 	// eegCache memoises FetchEEGMasterData calls from CompareEEGSettingsWithCore
 	// for eegMasterDataCacheTTL. Always non-nil.
-	eegCache  *eegMasterDataCache
-	validate  *validator.Validate
-	sanitizer *bluemonday.Policy
+	eegCache *eegMasterDataCache
+	// coreAuthMode selects how outgoing REST calls to the eegFaktura core are
+	// authenticated. "direct" forwards the admin's session token as-is (works
+	// once the Faktura backend whitelists our azp). "exchange" uses a separate
+	// Faktura-side token that the frontend obtains via silent SSO against the
+	// Faktura-frontend Keycloak-client and forwards in the X-Core-Authorization
+	// header. Set via SetCoreAuthMode; default "direct".
+	coreAuthMode string
+	validate     *validator.Validate
+	sanitizer    *bluemonday.Policy
 }
 
 // NewAdminHandler creates a new AdminHandler. Both importService and coreClient
@@ -108,9 +115,40 @@ func NewAdminHandler(
 		importService:     importService,
 		coreClient:        coreClient,
 		eegCache:          &eegMasterDataCache{},
+		coreAuthMode:      "direct",
 		validate:          validator.New(),
 		sanitizer:         p,
 	}
+}
+
+// SetCoreAuthMode configures whether outgoing core calls reuse the admin's
+// session token ("direct") or expect a separate Faktura-side token forwarded
+// in the X-Core-Authorization header ("exchange"). Unknown values fall back
+// to "direct". Called once from main during startup.
+func (h *AdminHandler) SetCoreAuthMode(mode string) {
+	if mode == "exchange" {
+		h.coreAuthMode = "exchange"
+		return
+	}
+	h.coreAuthMode = "direct"
+}
+
+// coreBearerToken returns the token that should be used for an outgoing call
+// to the eegFaktura core, based on the configured coreAuthMode:
+//   - "direct"   — the admin's Onboarding session token (Authorization header).
+//   - "exchange" — the Faktura-side token forwarded in X-Core-Authorization;
+//     falls back to the session token when missing so that GraphQL endpoints
+//     (PROJ-32 EEG-Stammdaten, PROJ-33 Logo), which sit on a different code
+//     path in the Faktura backend that still accepts the Onboarding client,
+//     keep working even when the frontend has no Faktura-token yet.
+func (h *AdminHandler) coreBearerToken(r *http.Request) string {
+	if h.coreAuthMode == "exchange" {
+		raw := r.Header.Get("X-Core-Authorization")
+		if strings.HasPrefix(raw, "Bearer ") {
+			return strings.TrimPrefix(raw, "Bearer ")
+		}
+	}
+	return extractBearerToken(r)
 }
 
 // parseRCAndCheck reads the rc_number query parameter and verifies that the
@@ -1105,7 +1143,7 @@ func (h *AdminHandler) ImportApplication(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	bearerToken := extractBearerToken(r)
+	bearerToken := h.coreBearerToken(r)
 	if bearerToken == "" {
 		// Dev mode without Keycloak: forwarding to the core would fail anyway,
 		// because the core enforces JWT auth. Reject early with a clear message.
@@ -1236,7 +1274,7 @@ func (h *AdminHandler) CheckActivation(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	bearerToken := extractBearerToken(r)
+	bearerToken := h.coreBearerToken(r)
 	if bearerToken == "" {
 		h.writeJSON(w, http.StatusServiceUnavailable, shared.ErrorResponse{
 			Code:    "service_unavailable",
@@ -1299,7 +1337,7 @@ func (h *AdminHandler) ListTariffs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bearerToken := extractBearerToken(r)
+	bearerToken := h.coreBearerToken(r)
 	if bearerToken == "" {
 		h.writeJSON(w, http.StatusServiceUnavailable, shared.ErrorResponse{
 			Code:    "service_unavailable",
@@ -1362,7 +1400,7 @@ func (h *AdminHandler) SuggestNextMemberNumber(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	bearerToken := extractBearerToken(r)
+	bearerToken := h.coreBearerToken(r)
 	if bearerToken == "" {
 		h.writeJSON(w, http.StatusServiceUnavailable, shared.ErrorResponse{
 			Code:    "service_unavailable",

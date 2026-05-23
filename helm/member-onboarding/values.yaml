@@ -27,11 +27,11 @@ ingress:
 images:
   backend:
     repository: ""
-    tag: sha-e58ca24
+    tag: sha-e933f8a
     pullPolicy: IfNotPresent
   frontend:
     repository: ""
-    tag: sha-e58ca24
+    tag: sha-e933f8a
     pullPolicy: IfNotPresent
 # ── PostgreSQL ─────────────────────────────────────────────────────────────────
 postgres:
@@ -78,6 +78,18 @@ backend:
   # Leer = Import-Endpoint + Stammdaten-Sync-Endpoints liefern 503.
   coreBaseUrl: "" # z.B. https://eegfaktura.example.at
   coreTimeoutSeconds: 30
+  # coreAuthMode steuert die Authentifizierung der REST-Calls an den Core:
+  #   - "direct"   (Default): der Admin-Onboarding-Token wird 1:1 weitergereicht.
+  #     Setzt voraus, dass das Faktura-Backend den Onboarding-Keycloak-Client
+  #     (eegfaktura-member-onboarding) als legitimen azp akzeptiert.
+  #   - "exchange": das Frontend holt via Silent-SSO einen zweiten Token gegen
+  #     den Faktura-Frontend-Client (at.ourproject.vfeeg.app) und sendet ihn
+  #     im X-Core-Authorization-Header. Der Backend nutzt diesen Token für
+  #     REST-Core-Calls statt des Session-Tokens. Workaround, wenn das
+  #     Faktura-Backend einen versteckten azp-Filter hat.
+  # Globale Einstellung — kein Per-EEG-Switch. Nach Faktura-Patch wieder
+  # auf "direct" umstellen + Redeploy.
+  coreAuthMode: "direct"
   # Admin-UI Basis-URL — wird in EEG-Submission-Mails (PROJ-20) als Admin-
   # Detail-Link eingebettet. Leer = kein Link in der Mail (graceful fallback).
   adminBaseUrl: "" # z.B. https://admin.member-onboarding.example.at
