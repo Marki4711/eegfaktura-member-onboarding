@@ -1,6 +1,6 @@
 # PROJ-58 — Abweichende Rechnungs-E-Mail für Org-Mitgliedstypen
 
-**Status:** In Review
+**Status:** Deployed
 **Implementiert:** 2026-05-21
 **Erstellt:** 2026-05-21
 **Quelle:** Owner-Anforderung
@@ -86,3 +86,16 @@ billing_email als Versand-Adresse genutzt.
 - Abweichende Rechnungs-Adresse (Straße/PLZ) — nur Email
 - Rolle der Rechnungs-Email (z. B. „Buchhaltung")
 - BCC / CC-Logik beim tatsächlichen Versand (kommt mit Billing-Modul)
+
+---
+
+## Deployment
+
+**Deployed:** 2026-05-21 (Implementierung + Helm-Tag-Bump), Bookkeeping post-hoc 2026-05-23
+**Chart version:** 1.9.1
+**Image SHA:** `sha-dd2376c` (Stand inkl. Docs-Sync für PROJ-56/57/58)
+**Helm-Tag-Bump-Commit:** `42d4f34`
+**Git tag:** `v1.9.1-PROJ-56-57-58` (bundled)
+**Migration:** Schema-Migration `000051_billing_email` lief automatisch über pre-upgrade Hook-Job
+
+Bookkeeping wurde am 2026-05-23 nachgezogen. Feature ist seit 2026-05-21 in Prod.

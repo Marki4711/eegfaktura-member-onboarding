@@ -1,6 +1,6 @@
 # PROJ-57 — Ansprechperson für Org-Mitgliedstypen
 
-**Status:** In Review
+**Status:** Deployed
 **Erstellt:** 2026-05-21
 **Implementiert:** 2026-05-21
 **Quelle:** Owner-Anforderung
@@ -164,3 +164,16 @@ im Public-Formular wird aus den drei Sub-Feldern abgeleitet.
 **Migration:** EEGs, die zuvor `contact_person=optional` gesetzt hatten,
 müssen die drei Subfelder neu konfigurieren. Da das Feature heute
 frisch eingeführt wurde, ist der Migrations-Aufwand minimal.
+
+---
+
+## Deployment
+
+**Deployed:** 2026-05-21 (Implementierung + Helm-Tag-Bump), Bookkeeping post-hoc 2026-05-23
+**Chart version:** 1.9.1
+**Image SHA:** `sha-dd2376c` (Stand inkl. Docs-Sync für PROJ-56/57/58)
+**Helm-Tag-Bump-Commit:** `42d4f34`
+**Git tag:** `v1.9.1-PROJ-56-57-58` (bundled)
+**Migration:** Schema-Migration `000050_contact_person` lief automatisch über pre-upgrade Hook-Job
+
+Bookkeeping wurde am 2026-05-23 nachgezogen. Feature ist seit 2026-05-21 in Prod, inkl. der v3-Refaktorierung (Master-Switch entfällt, drei Subfelder einzeln steuerbar).

@@ -69,9 +69,9 @@ Central tracking for all features.
 | PROJ-53 | Aktivierungs-Modus pro EEG + Beitrittsbestätigung erst bei `activated` | Deployed | `features/PROJ-53-activation-mode-and-deferred-approval-mail.md` | 2026-05-19 |
 | PROJ-54 | Aufteilung in öffentliches Schaufenster + privates Hauptrepo | Deployed | `features/PROJ-54-public-private-repo-split.md` | 2026-05-20 |
 | PROJ-55 | Nachmelden von Zählpunkten anhand der Mitgliedsnummer | Planned | `features/PROJ-55-add-metering-points-by-member-number.md` | 2026-05-21 |
-| PROJ-56 | Netzbetreiber-Info-Seite im Beitrittsbestätigungs-PDF | In Review | `features/PROJ-56-network-operator-info-pdf.md` | 2026-05-21 |
-| PROJ-57 | Ansprechperson für Org-Mitgliedstypen | In Review | `features/PROJ-57-contact-person.md` | 2026-05-21 |
-| PROJ-58 | Abweichende Rechnungs-E-Mail für Org-Mitgliedstypen | In Review | `features/PROJ-58-billing-email.md` | 2026-05-21 |
+| PROJ-56 | Netzbetreiber-Info-Seite im Beitrittsbestätigungs-PDF | Deployed | `features/PROJ-56-network-operator-info-pdf.md` | 2026-05-21 |
+| PROJ-57 | Ansprechperson für Org-Mitgliedstypen | Deployed | `features/PROJ-57-contact-person.md` | 2026-05-21 |
+| PROJ-58 | Abweichende Rechnungs-E-Mail für Org-Mitgliedstypen | Deployed | `features/PROJ-58-billing-email.md` | 2026-05-21 |
 | PROJ-59 | BgA / Hoheitsbereich-Vermerk im Anlagennamen bei Gemeinden | Deployed | `features/PROJ-59-municipal-business-type-per-meter.md` | 2026-05-23 |
 
 ## Next Available ID: PROJ-60

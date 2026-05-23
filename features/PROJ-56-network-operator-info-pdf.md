@@ -1,6 +1,6 @@
 # PROJ-56 — Netzbetreiber-Info-Seite im Beitrittsbestätigungs-PDF
 
-**Status:** In Review
+**Status:** Deployed
 **Erstellt:** 2026-05-21
 **Implementiert:** 2026-05-21
 **Quelle:** Owner-Anforderung mit konkretem Layout-Bild
@@ -142,3 +142,16 @@ application.network_operator_authorization === true
 8. **CHANGELOG + INDEX.md** aktualisieren
 
 Geschätzter Aufwand: 2–3 Stunden in mehreren sauber geschnittenen Commits.
+
+---
+
+## Deployment
+
+**Deployed:** 2026-05-21 (Implementierung + Helm-Tag-Bump), Bookkeeping post-hoc 2026-05-23
+**Chart version:** 1.9.1
+**Image SHA:** `sha-dd2376c` (Stand inkl. Docs-Sync für PROJ-56/57/58)
+**Helm-Tag-Bump-Commit:** `42d4f34`
+**Git tag:** `v1.9.1-PROJ-56-57-58` (bundled)
+**Migration:** keine — additive Felder ohne Schema-Change in dieser Spec; PROJ-49/56 deckte die nötigen Spalten bereits ab
+
+Bookkeeping wurde am 2026-05-23 nachgezogen, weil die ursprüngliche Implementierung in Stoßzeit lief und die formale Deploy-Section übersprungen wurde. Feature ist seit 2026-05-21 in Prod.
