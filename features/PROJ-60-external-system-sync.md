@@ -1,331 +1,212 @@
-# PROJ-60 — Datenweiterleitung an externe Systeme nach Import
+# PROJ-60: Datenweiterleitung an externe Systeme nach Import
 
-## Status: Planned (Idea — Erst-Konzept, noch ohne ausformulierte Requirements)
+## Status: Planned
 **Created:** 2026-05-23
-**Last Updated:** 2026-05-23 (MVP-Pivot: Excel-Export statt Zoho)
+**Last Updated:** 2026-05-23 (`/requirements` abgeschlossen)
 **Quelle:** Owner-Anforderung
 
 ## Dependencies
-- Requires: PROJ-4 (Core Import) — Daten-Export erfolgt nach erfolgreichem Core-Import
-- Berührt: PROJ-17 (Excel-Export für eegFaktura-Import) — anderer Use-Case, gleiche `excelize`-Library wiederverwendbar
-- Berührt: PROJ-46 (Post-Import-Stati) — Trigger / Filter könnte auf verschiedene Status ausgerichtet sein
-- Berührt: PROJ-8 (konfigurierbare Felder pro EEG) — pro EEG aktivierbar
-- Berührt: DSGVO-Auftragsverarbeitungs-Gefüge (bei Phase 2 ggü. externen Diensten)
-
----
-
-## Idee in einem Satz
-
-Nach erfolgreichem Import eines Mitglieds in den eegFaktura-Core
-sollen Mitgliedsdaten in **externe Systeme** weitergeleitet werden,
-damit die EEG das Mitglied dort parallel pflegen kann.
+- Requires: PROJ-4 (Core Import) — Export sinnvollerweise nach `imported`/`activated`
+- Requires: PROJ-17 (Excel-Export für eegFaktura-Import) — `excelize`-Library wird wiederverwendet
+- Requires: PROJ-25 (Bulk-Aktionen) — Export ist neue Bulk-Aktion in der Antragsliste
+- Berührt: PROJ-46 (Post-Import-Stati) — exportierbar für jeden Status
+- Berührt: PROJ-8 (konfigurierbare Felder pro EEG) — nur konfigurierte Felder werden als Spalten-Optionen angeboten
 
 ## Hintergrund
 
 EEG-Vereine pflegen ihre Mitglieder teils nicht nur im
 eegFaktura-Core, sondern parallel in einem eigenen System — z. B.
 einem CRM (Zoho, HubSpot, Salesforce), Newsletter-Tool, Vereins-
-Datenbank oder schlicht einer Excel-Datei für interne Auswertungen.
+Datenbank oder Excel-Datei für interne Auswertungen.
 
 Aktuell muss der EEG-Admin diese parallele Pflege manuell machen:
-- Mitglied im Onboarding-System genehmigen → Import in Core
-- EEG-Admin muss die Daten **manuell** ins externe System übertragen
+Antrag im Onboarding-System öffnen → Stammdaten herauskopieren →
+ins externe System einfügen. Das ist fehleranfällig, ineffizient
+und nicht skalierbar.
 
-Das ist fehleranfällig, ineffizient und nicht skalierbar.
+**Phase 1 (dieses PROJ-60):** Excel/CSV-Export mit pro EEG
+konfigurierbarem Spalten-Mapping, getriggert aus der Antragsliste
+(Bulk-Aktion) oder Antrags-Detail (Single-Action).
 
-## Phasen-Strategie
+**Phase 2 (späteres PROJ):** Push-basierte CRM-API-Integration
+(Zoho/HubSpot/…) auf demselben Plugin-/Adapter-Framework. Skizze
+in Sektion „Phase 2 Ausblick" unten.
 
-| Phase | Use Case | Mechanik | Aufwand |
-|---|---|---|---|
-| **Phase 1 (MVP)** | **Excel-Export mit konfigurierbarem Spalten-Mapping** | Pull: Admin klickt „Export" oder Cron erzeugt periodisch | ~3–4 Tage |
-| **Phase 2** | CRM-API-Integration (Zoho als erster Adapter) | Push: real-time bei Status-Übergang | ~5–7 Tage |
-| **Phase 3 (optional)** | Weitere CRMs (HubSpot, Salesforce, Pipedrive) | gleicher Adapter-Pattern | je ~1–2 Tage pro Adapter |
+## User Stories
 
-Phase 1 zuerst, weil:
-- **Niedrigere Komplexität** (kein OAuth, kein externer Service, keine Webhook-Reconciliation)
-- **Universell anschlussfähig** — jedes CRM/Newsletter-Tool kann Excel importieren
-- **DSGVO-einfacher** (Daten bleiben „im Haus" der EEG, kein Third-Party-Datentransfer)
-- **Admin kann sofort experimentieren** mit Mapping-Konfiguration, ohne dass jemand einen Zoho-Vertrag haben muss
-- **Liefert sofort Nutzen** für EEGs, die kein CRM nutzen (sondern z. B. einfache Datei-basierte Pflege)
+- Als **EEG-Admin** möchte ich pro EEG mehrere Export-Templates speichern können (z. B. „Newsletter", „CRM-Stammdaten", „Bank-Backup"), sodass ich verschiedene Zielsysteme aus derselben Datenbasis bedienen kann.
+- Als **EEG-Admin** möchte ich beim Erstellen eines Templates frei auswählen, welche Onboarding-Felder als Spalten erscheinen, welche Header-Texte sie haben und in welcher Reihenfolge, sodass das Excel exakt zum Ziel-System passt.
+- Als **EEG-Admin** möchte ich beim Editieren eines Templates eine Vorschau mit Beispiel-Daten sehen, sodass ich das Mapping ohne ständigen Test-Download verifizieren kann.
+- Als **EEG-Admin** möchte ich in der Antragsliste mehrere Anträge per Checkbox selektieren und als Bulk-Aktion in ein vorab gewähltes Template exportieren, sodass ich nicht jeden Antrag einzeln verarbeiten muss.
+- Als **EEG-Admin** möchte ich in der Antrags-Detail-Ansicht einen Single-Export-Button haben, sodass ich einzelne Mitglieder ad-hoc weiterleiten kann.
+- Als **EEG-Admin** möchte ich vorgefertigte Standard-Templates nutzen können (Newsletter, CRM, Buchhaltung), die ich bei Bedarf klonen und anpassen kann, sodass ich nicht von Grund auf alles selbst bauen muss.
+- Als **vfeeg-Betreiber** möchte ich, dass die Bedienung dem etablierten Bulk-Action-Pattern (PROJ-25) folgt, sodass Admins kein neues Konzept lernen müssen.
 
-Phase 2 (Zoho-Adapter) wird der nächste Schritt, sobald Phase 1
-produktiv läuft und die ersten EEGs nach Real-Time-API-Sync fragen.
-
----
-
-# Phase 1 (MVP): Excel-Export mit konfigurierbarem Spalten-Mapping
-
-## Skizze
-
-### Architektur
-
-```
-Admin-UI (EEG-Settings)
-  ├─ Sektion „Daten-Export"
-  ├─ Liste der gespeicherten Export-Templates
-  ├─ Template anlegen/editieren:
-  │    ├─ Name (z. B. „CRM-Monatsexport")
-  │    ├─ Format: XLSX | CSV
-  │    ├─ Spalten-Liste:
-  │    │    ├─ Spalte 1: Header-Text + Onboarding-Feld + Format
-  │    │    ├─ Spalte 2: …
-  │    │    └─ + Hinzufügen
-  │    ├─ Filter (optional):
-  │    │    ├─ Status (imported / activated / …)
-  │    │    ├─ Zeitraum (importiert seit Datum X)
-  │    │    └─ Mitgliedstyp
-  │    └─ Speichern
-  └─ Aktionen pro Template:
-       ├─ „Jetzt exportieren" → Download
-       ├─ „E-Mail an mich senden"
-       └─ „Periodisch versenden" (Cron, V2-Idee)
-
-Backend
-  ├─ Tabelle: export_template (pro EEG mehrere Templates)
-  ├─ Service: ExportService.generate(templateId, eegId)
-  │    → liest Mitglieder gemäß Filter
-  │    → mappt Felder gemäß Spalten-Konfig
-  │    → erzeugt XLSX/CSV via excelize (PROJ-17-Pattern)
-  │    → Download-Stream oder Speicherung im DOC-Archiv
-  └─ HTTP-Endpoint: GET /admin/export-templates/{id}/run → Datei-Download
-```
-
-### Konfigurations-Modell
-
-```
-export_template
-  id              UUID PK
-  rc_number       FK auf registration_entrypoint
-  name            TEXT (z. B. „CRM-Monatsexport")
-  format          ENUM (xlsx | csv)
-  columns         JSONB (geordnete Liste von Spalten-Definitionen)
-  filter          JSONB (Status-Filter, Zeitraum, Typ-Filter)
-  schedule        TEXT NULL (Cron-Expression für V2-Auto-Versand)
-  recipient_email TEXT NULL (für V2-Auto-Versand)
-  created_at, updated_at
-  
-column-Schema in JSONB:
-[
-  {
-    "header": "Vorname",
-    "field": "firstname",
-    "format": "string" | "date_dmy" | "boolean_jn" | "enum_label" | …
-  },
-  {
-    "header": "Mitgliedsnummer",
-    "field": "member_number",
-    "format": "string"
-  },
-  …
-]
-```
-
-### Verfügbare Felder zur Auswahl
-
-Das Mapping-UI bietet eine Dropdown-Liste der exportierbaren
-Onboarding-Felder. Vorschlag der Kategorien:
-
-**Stammdaten:**
-- Mitgliedstyp (`member_type`)
-- Anrede (`titel`)
-- Vorname (`firstname`)
-- Nachname (`lastname`)
-- Titel nach (`titel_nach`)
-- Firmenname (`company_name`)
-- UID-Nummer (`uid_number`)
-- Firmenbuch-Nummer (`register_number`)
-- Geburtsdatum (`birth_date`)
-
-**Kontakt:**
-- E-Mail (`email`)
-- Telefon (`phone`)
-
-**Adresse:**
-- Straße + Hausnummer (`resident_street` + `_number`)
-- PLZ (`resident_zip`)
-- Ort (`resident_city`)
-
-**Bank / Zahlung:**
-- IBAN (`iban`) — **mit Confirm-Dialog beim Hinzufügen** wegen DSGVO-Sensibilität
-- Kontoinhaber (`account_holder`)
-- Einzugsart (`einzugsart`)
-
-**EEG-spezifisch:**
-- RC-Nummer (`rc_number`)
-- Referenznummer (`reference_number`)
-- Mitgliedsnummer (`member_number`)
-- Beitrittsdatum (`membership_start_date`)
-- Status (`status`)
-- Importiert am (`imported_at`)
-- Aktiviert am (`activated_at`)
-
-**Zählpunkte** (multi-value — pro Mitglied evtl. mehrere):
-- Anzahl Zählpunkte
-- Zählpunkt-Nummer(n) (komma-getrennt oder separate Zeile pro Zählpunkt?)
-- Direction (CONSUMPTION/PRODUCTION)
-- Adresse pro Zählpunkt
-
-**Konfigurierbare Felder** (PROJ-8, je EEG aktiv): nur die exportieren,
-die die EEG auch erfasst.
-
-### Wert-Transformationen (V1 minimal)
-
-| Format-Tag | Wirkung | Beispiel |
-|---|---|---|
-| `string` | unverändert | „Max Mustermann" |
-| `date_dmy` | Datum als DD.MM.YYYY | 23.05.2026 |
-| `date_iso` | Datum als YYYY-MM-DD | 2026-05-23 |
-| `boolean_jn` | `true`/`false` → „Ja"/„Nein" | „Ja" |
-| `boolean_10` | `true`/`false` → 1/0 | 1 |
-| `enum_label` | Member-Type-Wert → lesbares Label | „Privatperson" statt „private" |
-| `number_de` | Zahlen mit Komma als Dezimal | „1.234,56" |
-
-Wenig — V1 ist „basics decken". V2 könnte custom transformations bringen.
-
-### Excel/CSV-Generierung
-
-PROJ-17 hat bereits `internal/excel/generator.go` mit `excelize` —
-gleiche Library für PROJ-60 wiederverwenden, aber mit dynamischen
-Spalten basierend auf Template statt hardcoded.
-
-CSV mit Standard-Konventionen:
-- UTF-8 mit BOM (für Excel-Kompatibilität)
-- Semikolon-Separator (DACH-Standard für deutsche Excel-Installationen)
-- Quotes um Werte mit Sonderzeichen
-
-### Trigger / Versand
-
-**V1 (MVP):**
-- **Manuell:** Admin klickt im UI „Jetzt exportieren" → Download
-- **Auf Anfrage:** Admin klickt „E-Mail an mich" → eine Mail mit Datei-Anhang an die hinterlegte E-Mail
-
-**V2 (später, falls Bedarf):**
-- **Cron:** Schedule pro Template (z. B. „1. jeden Monats"), Datei wird automatisch generiert und an Recipient-E-Mail geschickt
-- **API:** externer Service kann den Export per HTTP-Endpoint anfordern (Auth via Admin-API-Key)
-
-### Speicherung der Exports
-
-**Pro generierter Export wird** der Zeitpunkt + Datei optional im DOC-Archiv (FreeFinance via DOC-API, sobald Billing-Stack läuft — siehe PROJ-Pricing-Memo) oder lokal im Onboarding-Filesystem für Audit/Wiederholbarkeit abgelegt. V1: vermutlich nicht persistieren — Admin lädt herunter, kann jederzeit neu generieren.
-
-## Acceptance Criteria (vorläufig)
+## Acceptance Criteria
 
 ### Template-Verwaltung
-- [ ] EEG-Admin sieht im Admin-UI eine neue Sektion „Daten-Export" mit Liste der Templates
-- [ ] Admin kann ein neues Template anlegen mit Name, Format, Spalten-Liste, Filter
+
+- [ ] EEG-Admin sieht im Admin-UI eine neue Sektion „Export-Templates" unter EEG-Settings
+- [ ] Admin kann ein neues Template anlegen mit: Name (1–100 Zeichen, pflicht), Format (XLSX oder CSV), Spalten-Liste (geordnet)
 - [ ] Admin kann ein bestehendes Template editieren oder löschen
-- [ ] Templates sind pro EEG separat (kein Cross-EEG-Sharing)
-- [ ] Pro EEG mehrere Templates möglich (z. B. „CRM-Monatsexport", „Adressliste für Newsletter", „Bank-Stamm­daten-Backup")
+- [ ] Templates sind pro EEG separat (Tenant-isoliert)
+- [ ] Pro EEG bis zu **10 Templates** möglich (Limit als Anti-Misuse, kann später erhöht werden)
+- [ ] Eindeutige Namen pro EEG (Duplikat-Validierung)
+
+### Standard-Templates (vordefiniert)
+
+- [ ] Beim ersten Aufruf der Export-Templates-Sektion werden für die EEG drei vordefinierte Templates als Klon-Vorlagen angeboten:
+  1. **„Newsletter-Adressliste"** — Vorname, Nachname (oder Firma), E-Mail, Anrede
+  2. **„CRM-Stammdaten"** — Vorname, Nachname (oder Firma), E-Mail, Telefon, Adresse, Mitgliedsnummer, Beitrittsdatum
+  3. **„Buchhaltungs-Export"** — Mitgliedsnummer, Vorname, Nachname (oder Firma), Rechnungsadresse, IBAN, UID-Nummer
+- [ ] Admin klickt „Aus Vorlage erstellen" → neues Template wird mit den Default-Spalten initialisiert, Admin kann es anpassen
+- [ ] Vordefinierte Vorlagen sind read-only (können nur als Basis dienen, nicht direkt editiert werden)
 
 ### Spalten-Mapping-UI
-- [ ] Dropdown mit allen verfügbaren Feldern, gruppiert nach Kategorie
-- [ ] Pro Spalte: Header-Text frei wählbar, Feld-Auswahl, Format-Auswahl
-- [ ] Drag-and-Drop oder Auf/Ab-Buttons zum Sortieren der Spalten
-- [ ] Live-Preview der ersten 5 Zeilen mit aktuellem Template
 
-### Filter
-- [ ] Status-Filter (Multi-Select: imported, activated, ready_for_activation, etc.)
-- [ ] Zeitraum (`imported_at` zwischen X und Y)
-- [ ] Mitgliedstyp-Filter (Multi-Select)
-- [ ] Filter sind optional — leerer Filter = alle Mitglieder dieser EEG
+- [ ] Dropdown mit allen verfügbaren Onboarding-Feldern, gruppiert nach Kategorie:
+  - **Stammdaten**: member_type, titel, firstname, lastname, titel_nach, company_name, uid_number, register_number, birth_date
+  - **Kontakt**: email, phone
+  - **Adresse**: resident_street (+ _number), resident_zip, resident_city
+  - **Bank**: iban, account_holder, einzugsart
+  - **EEG**: rc_number, reference_number, member_number, membership_start_date, status, imported_at, activated_at
+  - **Zählpunkte**: meter_count, meter_numbers (komma-getrennt)
+  - **Konfigurierbar (PROJ-8)**: nur die Felder, die für diese EEG aktiv sind (heat_pump, electric_vehicle, …)
+- [ ] Pro Spalte editierbar: Header-Text (frei wählbar), Feld-Auswahl (Dropdown), Format (Dropdown der Format-Optionen für den jeweiligen Feld-Typ)
+- [ ] Reihenfolge per Auf/Ab-Buttons änderbar (Drag-Drop kann später ergänzt werden)
+- [ ] Mindestens 1 Spalte pro Template, maximal 50 Spalten
 
-### Export-Ausführung
-- [ ] „Jetzt exportieren"-Button erzeugt Datei und triggert Download
-- [ ] XLSX und CSV beide unterstützt
-- [ ] Dateiname: `{eeg_name}-{template_name}-{YYYY-MM-DD}.{xlsx|csv}`
-- [ ] „E-Mail an mich"-Button erzeugt Datei und versendet sie an die hinterlegte Admin-E-Mail
+### Wert-Transformationen (Format-Optionen pro Feld-Typ)
 
-### Datenschutz
-- [ ] Beim Hinzufügen sensitiver Felder (IBAN, Geburtsdatum) erscheint ein Hinweis: „Sie tragen Verantwortung dafür, wo und wie diese Daten weiterverarbeitet werden — beachten Sie DSGVO Art. 32 (Sicherheit der Verarbeitung)."
-- [ ] Admin-Aktion (Template erstellt, exportiert) wird im `status_log` oder eigenem Audit-Log festgehalten
-- [ ] Cross-Tenant-Schutz: EEG-Admin kann nur Daten ihrer eigenen EEG exportieren (via `checkTenantAccess`)
+- [ ] **Text-Felder**: nur Format „Text" (1:1)
+- [ ] **Datum-Felder**: „DD.MM.YYYY" (Default), „YYYY-MM-DD" (ISO), „DD.MM.YYYY HH:MM" (für Timestamps)
+- [ ] **Boolean-Felder**: „Ja/Nein" (Default), „true/false", „1/0", „Y/N"
+- [ ] **Enum-Felder** (member_type, status, einzugsart): „Wert" (Roh-String) oder „Label" (lesbares Deutsch — z. B. „Privatperson" statt „private")
+- [ ] **Zahl-Felder**: „DE-Format" (Komma als Dezimal, Punkt als Tausender), „ISO" (Punkt als Dezimal)
+
+### Vorschau im Template-Editor
+
+- [ ] Live-Preview zeigt die **letzten 5 importierten Mitglieder** dieser EEG mit dem aktuellen Mapping
+- [ ] Preview aktualisiert sich bei jeder Spalten-Änderung in der UI
+- [ ] Preview-Zeilen sind read-only (rein zur Visualisierung)
+- [ ] Wenn die EEG keine importierten Mitglieder hat: Preview zeigt Beispiel-Daten („Max Mustermann", anonymisiert) mit Hinweis „Beispiel-Daten — sobald Sie Mitglieder importiert haben, sehen Sie hier echte Vorschau"
+
+### Trigger: Bulk-Export aus Antragsliste
+
+- [ ] In der Antragsliste (`admin-application-table.tsx`) ist Excel-Export eine neue Bulk-Aktion (analog zu „Genehmigen"/„Ablehnen" aus PROJ-25)
+- [ ] Bei ≥1 selektiertem Antrag erscheint in der Aktionsleiste „Excel-Export" als zusätzliche Option
+- [ ] Klick öffnet einen Dialog: „Welches Template verwenden?" mit Dropdown der vom EEG gespeicherten Templates + dem ausgewählten Format
+- [ ] Bestätigung triggert Generierung + Download (XLSX oder CSV gemäß Template)
+- [ ] **Anzahl der selektierten Anträge ist die Export-Menge** — kein zusätzlicher Filter, weil die Antragsliste bereits gefiltert ist (existierende Filter aus PROJ-3)
+- [ ] Maximum 1.000 Anträge pro Bulk-Export (Performance-Cap, darüber Hinweis „bitte filtern oder mehrere Exports")
+
+### Trigger: Single-Export aus Antrags-Detail
+
+- [ ] In `admin-application-detail.tsx` gibt es im Aktionen-Menü einen Eintrag „Excel-Export"
+- [ ] Klick öffnet denselben Template-Auswahl-Dialog
+- [ ] Bestätigung erzeugt Datei mit **einer einzelnen Zeile** (dem aktuellen Antrag)
+- [ ] Verfügbar für **jeden** Antragsstatus (auch draft, submitted) — Felder ohne Wert (z. B. `member_number` vor Import) bleiben leer
+
+### Dateigenerierung + Download
+
+- [ ] Dateiname: `{rc_number}-{template_name}-{YYYY-MM-DD}.{xlsx|csv}` — z. B. `RC456-CRM-Stammdaten-2026-05-23.xlsx`
+- [ ] XLSX-Generierung via `excelize` (wie PROJ-17, aber dynamische Spalten)
+- [ ] CSV-Generierung: UTF-8 mit BOM, Semikolon als Separator, Werte mit Sonderzeichen in Anführungszeichen
+- [ ] Streaming-Download (kein In-Memory-Buffer-Build) für Exports >100 Zeilen
+- [ ] Audit-Log-Eintrag in `status_log` oder neuer `export_log`-Tabelle: Admin-User, Template-ID, Antrags-Count, Zeitpunkt — **nicht** die Inhalte, nur Metadata
 
 ### Zählpunkte (Multi-Value)
-- [ ] Im Mapping-UI Klärung, wie mit Multi-Value-Feldern umgegangen wird:
-  - Option A: pro Zählpunkt **eine Spalte** mit komma-getrennten Werten („AT0031000…, AT0031000…")
-  - Option B: pro Zählpunkt **eine Zeile** (Mitgliedsdaten wiederholt) — relational sauber, EEG-Admin muss sich für eines entscheiden
-  - Vorschlag V1: Option A als Standard, Option B als Template-Toggle für fortgeschrittene Nutzer
 
-## Edge Cases (vorläufig)
+- [ ] Spalte „Zählpunkte" enthält **komma-getrennte Liste** der Zählpunkt-Nummern des Mitglieds (z. B. „AT001234..., AT001235...")
+- [ ] Spalte „Anzahl Zählpunkte" als optionale numerische Spalte verfügbar
+- [ ] Detail-Felder pro Zählpunkt (Richtung, Adresse) sind in V1 **nicht exportierbar** — für solche Detail-Auswertungen muss die EEG die Datenbank-View oder einen Sonder-Export nutzen (V2-Erweiterung möglich, z. B. „Zeile pro Zählpunkt"-Toggle pro Template)
 
-- Was passiert, wenn ein Mitglied zwischen Template-Erstellung und Export gelöscht wird? → Nur Mitglieder mit aktuellen Daten exportieren (LEFT JOIN ist falsch — INNER JOIN ist korrekt; oder: anzeigen „Mitglied X wurde gelöscht und nicht enthalten")
-- Was, wenn ein Feld in einem alten Template entfernt wurde (z. B. konfigurierbares Feld wurde im EEG-Setting hidden gestellt)? → Spalte wird leer / mit „—" gefüllt; Template-Edit-UI zeigt Warnung
-- Was, wenn der Export sehr groß wird (1.000+ Mitglieder bei großer EEG)? → Streaming-Generierung (kein In-Memory-Buffer), Limit der Filter-Filterung beachten
-- Was passiert mit Sonderzeichen in Mitgliedsdaten (z. B. Umlaute, Semikolon im Namen)? → Korrektes Escaping in CSV, UTF-8-Encoding mit BOM
-- Was, wenn das Template gerade vom Admin editiert wird und gleichzeitig ein zweiter Admin den Export auslöst? → Last-Write-Wins, kein Locking nötig (Templates sind selten und nicht hochfrequent geändert)
-- Was passiert bei mehreren parallelen Export-Anfragen für dieselbe EEG? → unkritisch (read-only Operation), evtl. Rate-Limit als Schutz vor Missbrauch
+### DSGVO
 
-## Technical Requirements (vorläufig)
+- [ ] Beim Hinzufügen sensitiver Felder (IBAN, Geburtsdatum) erscheint ein Hinweis-Dialog: „Sie tragen die Verantwortung für die DSGVO-konforme Weiterverarbeitung dieser Daten im Zielsystem (Art. 32 — Sicherheit der Verarbeitung). Sind Sie sicher?"
+- [ ] Audit-Log erfasst jede Export-Aktion: wer, wann, welches Template, wie viele Zeilen (kein Datenfeld-Inhalt)
+- [ ] Cross-Tenant-Schutz: EEG-Admin kann nur Daten ihrer eigenen EEG exportieren (via `checkTenantAccess` analog zu allen anderen Admin-Endpoints)
+- [ ] Persistierung: **fly-by**, kein Datei-Speichern im V1. Audit-Log enthält nur Metadata, nicht die Datei selbst (Wiederholbarkeit über erneute Generierung aus den aktuellen Mitgliedsdaten)
 
-- **DB-Migration** für `export_template`-Tabelle
-- **excelize-Wiederverwendung** aus PROJ-17, aber als generischer Renderer mit Spalten-Definitionen statt hardcoded
-- **Streaming-Output** für große Exports (HTTP-Chunked-Transfer)
-- **Audit-Log** für Export-Aktionen (welcher Admin, welches Template, wann, wie viele Zeilen)
-- **Mail-Versand** wiederverwendet aus PROJ-6 (Postal)
-- **Front-End:** shadcn-Komponenten (Select, Input, Button, Table) — kein neues UI-Framework
+## Edge Cases
 
----
+- **EEG-Admin selektiert Anträge gemischter Status** → alle gewählten werden exportiert. Felder, die nur bei bestimmten Status Werte haben (z. B. `member_number` ist erst ab `imported` gesetzt), bleiben für andere Status leer.
+- **Template referenziert ein Feld, das die EEG nachträglich auf „hidden" gesetzt hat (PROJ-8)** → Spalte bleibt im Export leer. Template-Editor zeigt beim Bearbeiten Warnung „Feld X ist in den EEG-Einstellungen nicht aktiv".
+- **Template wird gelöscht, während es gerade in einem Export-Dialog ausgewählt ist** → Dialog refresh-t Liste, Hinweis „Template nicht mehr verfügbar". Konsistenz über Optimistic-Lock nicht nötig (Templates ändern sich selten).
+- **Mitglied wurde zwischen Selektion und Export gelöscht** → wird im Export übersprungen, Audit-Log notiert „X exportiert, Y übersprungen wegen zwischenzeitlicher Löschung".
+- **Sonderzeichen in Mitgliedsdaten** (Semikolon, Anführungszeichen, Zeilenumbruch) → korrektes CSV-Escaping (Doppel-Anführungszeichen + Wert in Quotes). XLSX nativ unproblematisch.
+- **Bulk-Export von >1.000 Anträgen** → frontendseitige Begrenzung mit Hinweis „bitte filtern oder mehrere Exports". Server-seitig zusätzlich erzwungen (Defense-in-Depth).
+- **Admin von EEG A versucht via Frontend-Hack Anträge von EEG B zu exportieren** → Server `checkTenantAccess` blockt mit 403 (Standard-Tenant-Isolation).
+- **Mitglied mit 0 Zählpunkten** (z. B. neuer draft-Antrag) → Spalte „Zählpunkte" bleibt leer, „Anzahl Zählpunkte" zeigt 0.
+- **Excel-Datei wird beim Download durch User abgebrochen** → keine Folge auf Server-Seite (Streaming-Operation), Audit-Log enthält trotzdem den Start-Zeitpunkt.
+- **Mehrere Admins exportieren parallel dasselbe Template** → unkritisch (read-only Operation), keine Locks nötig.
 
-# Phase 2 (später): CRM-API-Integration
+## Technical Requirements
 
-## Skizze
+- **DB-Migration** für `export_template`-Tabelle (rc_number FK, name UNIQUE per RC, format ENUM, columns JSONB, created_at, updated_at)
+- **Optional: `export_log`-Tabelle** für Audit (export_id, rc_number, template_id NULL falls Template gelöscht, admin_user_id, applications_count, exported_at) — alternativ in `status_log` integriert
+- **excelize-Wiederverwendung** aus `internal/excel/generator.go`, aber als generischer Renderer mit Column-Definitionen
+- **Streaming-Output** via Go's `http.ResponseWriter` mit Chunked-Transfer für große Exports
+- **Frontend**: shadcn-Komponenten (Dialog, Select, Input, Button, Table für Preview) — kein neues UI-Framework
+- **Bulk-Action-Integration**: in `admin-application-table.tsx` als neue Option in der bestehenden Bulk-Action-Leiste
+- **Single-Action-Integration**: in `admin-application-detail.tsx` als neuer Menüeintrag im Aktionen-Bereich
+- **Tenant-Isolation**: alle Endpoints via `checkTenantAccess` geschützt
+- **Auth**: `eeg_admin`-Rolle reicht (kein Superuser-Privileg nötig — EEGs verwalten ihre eigenen Templates)
 
-Wenn Excel-Export-MVP läuft und die ersten EEGs nach Real-Time-Push
-fragen: Erweiterung zur **Push-basierten Sync** mit Plugin-/Adapter-
-Pattern.
+## Resolved Decisions (aus `/requirements` 2026-05-23)
 
-### Architektur (Plugin-Pattern)
+- **Q1 Zählpunkt-Multi-Value:** komma-getrennt in einer Spalte (Standard für V1). „Zeile pro Zählpunkt" als optionale V2-Erweiterung möglich.
+- **Q2 Standard-Templates:** ja, **3 vordefinierte** (Newsletter, CRM-Stammdaten, Buchhaltung). Read-only als Klon-Basis.
+- **Q3 Filter:** kein eigener Filter im Template — Selektion erfolgt **über die Antragsliste** (existierende PROJ-3-Filter + PROJ-25-Bulk-Action-Pattern) oder **Single aus Detail**. Template-Editor zeigt nur eine **Vorschau mit den letzten 5 importierten Mitgliedern** zum Mapping-Testen.
+- **Q4 Persistierung:** fly-by im V1, Audit-Log nur mit Metadata. DOC-Archiv-Speicherung als V2-Option offen.
 
-```
-ExternalSystemAdapter (Interface)
-  ├─ ExcelExportAdapter (existiert nach Phase 1)
-  ├─ ZohoCRMAdapter (Phase 2, erster echter CRM-Adapter)
-  └─ HubSpotAdapter, SalesforceAdapter, … (Phase 3+)
+## Open Questions (für `/grill-me` zur Verschärfung)
 
-Jeder Adapter implementiert:
-  - configure(credentials, mapping)
-  - sync(member) → Push-Aktion
-  - mode: pull (Excel) | push (CRM)
-```
+Diese Punkte sollten im anschließenden `/grill-me`-Lauf stressgetestet werden:
 
-### Zoho CRM als erster Push-Adapter
-
-- **Auth:** OAuth2 mit Refresh-Tokens, per EEG gespeichert (verschlüsselt)
-- **Trigger:** asynchron bei Status-Übergang zu `imported` (oder konfigurierbar)
-- **Mapping:** ähnliches Spalten-Konzept wie Excel-Template, aber mit Zoho-Ziel-Feldern (Standard: Contact-Modul, customizable)
-- **Retry-Logik:** exponential backoff, max 3 Retries, Admin-Notification bei endgültigem Fehler
-- **Idempotenz:** via `EEG_Onboarding_ID` als Custom-Field in Zoho (Suchschlüssel für Re-Sync)
-- **Daten-Modell-Wiederverwendung:** das Excel-Mapping-Konzept aus Phase 1 lässt sich für Zoho-Field-Mapping wiederverwenden (Source-Feld → Target-Feld, mit Format-Transformation)
-
-### Open Questions für Phase 2 (vor späterem `/requirements`-Lauf)
-
-- **MVP-Umfang Phase 2:** nur Zoho oder gleich generisches Plugin-Framework?
-- **Bidirektionalität:** CRM-Änderungen zurück ins Onboarding-System? Vermutlich Out-of-Scope auch in Phase 2.
-- **DSGVO-Verantwortung:** EEG muss eigenen AVV mit Zoho haben. Wir sind als Onboarding-Anbieter „Datendurchleitung", nicht Auftragsverarbeiter für die Zoho-Daten — Hinweistext im Setup-Flow.
-- **Field-Mapping**: Wiederverwendung des Excel-Template-Konzepts? Oder eigenes UI für CRM-Mapping?
-- **Konflikt-Strategie**: Mitglied existiert im CRM schon (z. B. manuell angelegt) — skip / overwrite / merge / Admin-Entscheidung?
-
----
+- **Header-Sprache bei Standard-Templates**: nur Deutsch oder auch Englisch/mehrsprachig? (Newsletter-Tools sind oft englisch-konfiguriert.)
+- **Maximum Anzahl Anträge pro Bulk-Export**: 1.000 als Erstwert — performance-getestet?
+- **Audit-Log-Aufbewahrung**: indefinite oder mit Retention-Policy (z. B. 2 Jahre)?
+- **Versionierung von Templates**: was passiert mit alten Audit-Log-Einträgen, wenn ein Template später geändert wird? Spalten-Konfig in Audit-Log snapshotten oder nur Template-ID referenzieren?
+- **Standard-Template-Sprache bei EEG mit englischen Mitgliedern**: wird das Label-Format (z. B. „Privatperson") immer Deutsch sein, oder konfigurierbar?
+- **Performance bei XLSX vs. CSV**: für >500 Zeilen ist XLSX deutlich langsamer (excelize-Overhead). Hinweis im UI?
 
 ## Notes
 
-- **Excel-Export ist universell anschlussfähig** und liefert sofort Nutzen, ohne dass eine EEG einen CRM-Vertrag haben muss
-- **Phase 2 (Zoho) bleibt im Auge**, aber separater PROJ oder Erweiterung von PROJ-60 — Entscheidung wenn Phase 1 läuft
-- **PROJ-17 (Excel-Export für eegFaktura-Import)** und PROJ-60 nutzen die gleiche Library, aber sind funktional getrennt: PROJ-17 ist ein **hardcoded Format** für genau einen Anwendungsfall (Core-Import), PROJ-60 ist **frei konfigurierbar** für beliebige externe Konsumenten
-- **Wenn PROJ-55 (Self-Service-Portal) kommt:** kann der Excel-Export auch dort als „Mein Verein bekommt automatisch jeden Monat eine Mitglieder-Liste" auftauchen — Synergie-Effekt
-- **Vermarktungs-Argument**: für EEGs, die Excel-basiert arbeiten (vermutlich die Mehrheit der kleineren Vereine), ist der Excel-Export bereits ein vollwertiges „CRM-Sync"-Feature ohne weitere Tool-Pflicht
+- **Phase 2 wird ein separates PROJ** (CRM-API-Integration), wenn Phase 1 produktiv läuft. Plugin-Architektur dieser Spec soll Phase-2-Erweiterung möglichst ohne Refactoring erlauben.
+- **PROJ-25 (Bulk-Aktionen)** stellt das etablierte UI-Pattern bereit — Export ist semantisch nur eine weitere Bulk-Aktion (neben Genehmigen/Ablehnen/Zur-Prüfung).
+- **Re-Use-Potenzial:** Das Mapping-Konzept (Source-Feld → Target-Feld mit Format-Transformation) wird in Phase 2 (Zoho/HubSpot-Adapter) nahezu 1:1 wiederverwendet.
 
-## Nächster Schritt
+---
 
-Bei tatsächlicher Aufnahme der Spec: `/requirements`-Lauf mit dieser
-Datei als Ausgangspunkt für **Phase 1**, um zu klären:
-1. **Mapping-UI**: Drag-Drop vs. Up/Down-Buttons, Live-Preview-Tiefe
-2. **Filter-Granularität**: welche Filter sind V1, welche V2
-3. **Multi-Value-Handling für Zählpunkte**: Spalte mit Liste vs. Zeile pro Zählpunkt
-4. **DSGVO-Hinweistexte**: exakter Wortlaut für IBAN-/Geburtsdatum-Warnung
-5. **Persistierung von Exports**: V1 fly-by oder schon Archivierung im DOC-Archiv
+# Phase 2 Ausblick: CRM-API-Integration
 
-Dann `/architecture` für die DB-Struktur + excelize-Generalisierung,
-dann `/backend` + `/frontend` für die Implementierung.
+(Separates späteres PROJ, wenn Phase 1 produktiv läuft und EEG-Bedarf nach Real-Time-Push besteht.)
 
-Phase 2 (Zoho) wird separat angegangen, sobald Phase 1 in Produktion
-und erste EEG-Bedarfe nach Real-Time-Sync auftreten.
+## Skizze
+
+- **Plugin-/Adapter-Pattern**: `ExternalSystemAdapter`-Interface, erster Adapter `ZohoCRMAdapter`, später HubSpot/Salesforce/Pipedrive
+- **Push-basiert**, asynchron bei Status-Übergang (z. B. `imported`)
+- **OAuth2** pro EEG für Auth, Tokens verschlüsselt in DB
+- **Mapping-Konzept aus Phase 1 wiederverwenden**: dieselbe Spalten-Definition, aber Target-Feld ist ein CRM-Field statt einer Excel-Spalte
+- **Idempotenz** via `EEG_Onboarding_ID` als Custom-Field im CRM
+- **DSGVO**: EEG braucht eigenen AVV mit CRM-Provider, Hinweistext im Setup-Flow
+
+## Phase-2-spezifische Open Questions
+
+- MVP-Umfang: nur Zoho oder gleich generisches Framework?
+- Bidirektionalität: CRM-Änderungen zurück ins Onboarding-System?
+- Konflikt-Strategie bei Duplikaten im CRM (skip / overwrite / merge)?
+- Trigger: nur bei `imported` oder auch bei späteren Updates (Adresswechsel etc.)?
+
+---
+<!-- Sections below are added by subsequent skills -->
+
+## Tech Design (Solution Architect)
+_To be added by /architecture_
+
+## QA Test Results
+_To be added by /qa_
+
+## Deployment
+_To be added by /deploy_
