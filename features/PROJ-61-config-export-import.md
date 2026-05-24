@@ -1,8 +1,8 @@
 # PROJ-61: Konfigurations-Export & -Import pro EEG
 
-## Status: Planned
+## Status: Architected
 **Created:** 2026-05-24
-**Last Updated:** 2026-05-24 (nach /grill-me — 20 Designentscheidungen eingearbeitet)
+**Last Updated:** 2026-05-24 (nach /architecture — Tech Design Sektion ergänzt)
 
 ## Dependencies
 - Requires: PROJ-5 (Keycloak-Admin-Auth) — Tenant-Isolation für Zugriffsprüfung
@@ -389,7 +389,251 @@ ausarbeiten.
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+
+**Stand:** 2026-05-24
+
+### Leitidee: Assembly bestehender Bausteine
+
+Das Feature führt **keine neue Tabelle, keine Migration und keine neuen
+Drittabhängigkeiten** ein. Alle vier Sub-Typen haben bereits
+Repositories mit den nötigen Save-Primitiven, alle Validation-Pipelines
+existieren bereits an anderer Stelle. Das Tech-Design ist primär
+**Orchestrierung**: ein Exporter, der vier Repos liest, ein Importer,
+der vier Repos schreibt — beide eingerahmt durch JSON-Serialisierung,
+Validation, Diff-Generation und Transaktions-Schutz.
+
+### A) Komponenten-Struktur
+
+#### Frontend
+
+```
+/admin/settings/import-export                   (neue Sub-Seite)
++-- Export-Card
+|   +-- 4 Per-Sub-Typ-Buttons (Settings | Field-Config | Legal-Docs | Data-Export)
+|   +-- 1 Bundle-Button (alle 4)
+|   +-- Tipp-Box "Sichere deine Konfig vor jedem Import"
++-- Import-Card
+|   +-- File-Drop-Zone (akzeptiert .json, max 1 MB, client-side-Vor-Validierung)
+|   +-- Sektion-Auswahl (nach erfolgreichem Preview)
+|       +-- Checkboxen, alle UNAUSGEWÄHLT default
+|       +-- Pro Sektion: Diff-Tabelle alt → neu, Counts, Warn-Badges
+|       +-- Spezial-Warnungen: ROTE Box bei "lösche alle X Einträge",
+|           Warn-Icon bei Zählpunkt-Prefix, € bei Cooperative-Shares
+|   +-- Apply-Button → Bestätigungs-Modal "Wirklich apply?" → Apply
++-- Erfolgs-/Fehler-Toast nach Abschluss
+```
+
+Neue React-Komponenten unter `src/components/config-import-export/`:
+
+- `ExportButtons` — die fünf Export-Buttons + Download-Trigger
+- `ImportDropzone` — File-Upload + Preview-Request
+- `DiffPreviewPanel` — Sektion-Auswahl + Diff-Tabellen + Apply-Trigger
+- `DiffTable` — generische Tabelle alt|neu mit Highlighting
+- `ConfirmApplyDialog` — zweistufige Bestätigung
+
+Wiederverwendet: `shadcn/ui` Dialog, Card, Checkbox, Button, Alert;
+`sonner` für Toasts.
+
+#### Backend
+
+```
+internal/configexport/                          (neues Paket)
++-- schema.go        — versionierte JSON-Strukturen pro Sub-Typ
++-- exporter.go      — assembliert Snapshot aus 4 Repos
++-- importer.go      — validate + diff + apply (Tx-orchestriert)
++-- diff.go          — generische Diff-Engine pro Sub-Typ
++-- limits.go        — Item-Limits-Konstanten (100/50/50)
+
+internal/http/configexport.go                   (neuer Handler)
++-- 3 Endpoints (siehe API-Vertrag unten)
+```
+
+Bestehende Repos werden **read-only über Schnittstelle**
+weiterverwendet:
+
+- `RegistrationEntrypointRepository.GetByRCNumber` + `SaveEEGSettings`
+- `FieldConfigRepository.Get` + `Save` (atomarer Map-Replace)
+- `LegalDocumentRepository.GetByRCNumber` + `Create`/`Delete`/`Reorder`
+- `dataexport.ConfigRepository.ListByRCNumber` + `Create` +
+  `SoftDelete` + `MarkObsolete`
+
+Keine Erweiterung bestehender Repos nötig — die vorhandenen
+Save-Primitive decken alle vier Replace-Varianten ab.
+
+### B) Datenmodell
+
+**Persistenz: keine.** Es entsteht keine neue DB-Tabelle. Audit
+geschieht ausschließlich via strukturiertem `slog`-Logging
+(`event=config_import`, `rc_number`, `admin_user_id`, `sections`,
+`source_eeg`, `applied_at`).
+
+**Datei-Format: versioniertes JSON.**
+
+Hülle:
+
+```
+{
+  schemaVersion:  1                    // strict — V0/V2 abgelehnt
+  exportedAt:     ISO-8601-Timestamp
+  exportedFrom:   { rcNumber, eegName } // Wiedererkennungs-Header
+  sections: {
+    eegSettings?:        { ... 12 Felder ... }
+    fieldConfig?:        [ { name, state, adminValue? }, ... ]
+    legalDocuments?:     [ { title, url, required, sortOrder }, ... ]
+    dataExportConfigs?:  [ { name, pluginType, configJSON }, ... ]
+  }
+}
+```
+
+Sub-Type-Schemas spiegeln **bewusst nur die DB-Spalten, die
+exportiert werden** (siehe Scope V1). Identitäts-/Stammdaten-/Secret-/
+Sequence-Felder fehlen schon im Schema — Scrubbing geschieht
+deklarativ, nicht prozedural.
+
+### C) API-Vertrag (3 Endpoints)
+
+Alle drei Endpoints leben unter `/api/admin/config/*`, sind durch die
+existierende Keycloak-Auth-Middleware geschützt, prüfen Tenant-
+Zugriff via `checkTenantAccess(rcNumber)`.
+
+| Endpoint | Methode | Zweck |
+|---|---|---|
+| `/api/admin/config/export` | `GET` | Liefert das JSON-File. Query-Parameter: `rcNumber`, `sections` (Komma-Liste oder `bundle`). Response-Header: `Content-Disposition` mit dem in AC-E5 spezifizierten Dateinamen. |
+| `/api/admin/config/import/preview` | `POST` | Multipart-Upload des JSON-Files + Form-Feld `rcNumber`. Server: schema-validate, sanitize, limit-check, diff gegen aktuelle DB-Werte. Response: strukturierter Diff pro Sektion + Validierungs-/Warn-Hinweise. **Keine Mutation.** |
+| `/api/admin/config/import/apply` | `POST` | Body: JSON-File-Inhalt + `sectionsToApply: ["eegSettings", ...]`. Server: re-validiert (zero-state), re-diff (für Audit), wendet in einer einzigen Transaktion + Advisory-Lock an. Response: Counts pro Sektion oder kategorisierter Fehler. |
+
+**Bewusst gewählt: kein Preview-Token-State.** Der `apply`-Endpoint
+re-validiert das File. Das kostet ~100 ms doppelte Validation, spart
+aber ein In-Memory-Cache oder eine neue Tabelle für Preview-Sessions.
+Sub-Sekunde, akzeptable Vereinfachung. Konsequenz: der Apply-Body
+muss das vollständige File mitschicken (nicht nur eine Preview-ID).
+
+### D) Transaktions-Modell
+
+Alle vier Sektionen in einer einzigen DB-Transaktion:
+
+1. Beginnen mit `pg_advisory_xact_lock(hashtext(rc_number))` —
+   serialisiert konkurrierende Imports pro EEG. `lock_timeout` 10 s,
+   sonst 409.
+2. Pro ausgewählter Sektion: Aktuellen Stand lesen (für Re-Diff im
+   Audit-Log) → Save-Primitive ausführen (siehe Mapping unten).
+3. Commit. Bei Fehler in irgendeiner Sektion: Rollback der gesamten
+   Transaktion → kategorisierter Fehler ans Frontend.
+
+**Sektion-zu-Save-Mapping:**
+
+| Sektion | Apply-Strategie |
+|---|---|
+| `eegSettings` | `RegistrationEntrypointRepository.SaveEEGSettings` — atomarer Update der 12 Spalten. Nicht im File enthaltene Felder bleiben unverändert (Forward-Compat-Garantie). |
+| `fieldConfig` | `FieldConfigRepository.Save(rcNumber, fullMap)` — bestehender atomarer Replace (interne `DELETE + INSERT` in derselben Tx). |
+| `legalDocuments` | Bestehende per-EEG `Delete-all` + `Create`-Loop in der Apply-Tx. Reorder folgt aus `sortOrder`-Feld. |
+| `dataExportConfigs` | Pro existierender Eintrag: `SoftDelete`. Pro File-Eintrag: `Create` mit neuer ID. Plugin-Drift via `MarkObsolete` nach dem Insert-Loop. |
+
+### E) Validation-Pipeline beim Import
+
+Beim `preview` UND beim `apply` läuft jedes Feld durch dieselbe
+Pipeline, die das reguläre UI-Save schon nutzt — Wiederverwendung
+statt Parallelpfad:
+
+1. **Schema-Check**: `schemaVersion == 1`, JSON-Struktur stimmt mit
+   erwarteten Sub-Type-Schemas überein, Pflichtfelder vorhanden.
+2. **Per-Sektion-Limit-Check**: `len(fieldConfig) ≤ 100`,
+   `legalDocuments ≤ 50`, `dataExportConfigs ≤ 50`.
+3. **Sanitize/Validate** pro Feld (siehe AC-I11 in Spec):
+   - `intro_text` → `bluemonday`-Renderer
+   - `legal_document.url` → Format-Check (HTTPS-only, Längen-Limit)
+   - `field_config.name` → gegen `CONFIGURABLE_FIELDS`-Master-Katalog
+   - `field_config.state` → ENUM-Check
+   - `metering_point_prefix_*` → DB-CHECK-Constraint-Format
+   - `activation_mode` → ENUM-Check
+   - `cooperative_*` → Positiv-Konstraint
+   - `data_export_config.column_config` → Plugin's `ValidateConfig`
+4. **Drift-Check**:
+   - `data_export_config.plugin_type` nicht registriert → `is_obsolete=true` markieren, **Warnung in Response**, kein Reject
+   - `data_export_config.column_config` referenziert unbekannte
+     Field-Keys → Spalten verwerfen, **Warnung**, kein Reject
+
+### F) Diff-Generation
+
+Pro Sektion separat. Output ist ein JSON-Strukturobjekt, das das
+Frontend direkt rendert (keine HTML-Generation im Backend):
+
+- **eegSettings**: 12 Einträge mit `field`, `oldValue`, `newValue`,
+  optional `warningType` (z. B. `network_region_specific` für die
+  beiden ZP-Prefix-Felder, `financial` für die Cooperative-Felder).
+- **fieldConfig / legalDocuments / dataExportConfigs**: Pro Eintrag
+  klassifiziert als `unchanged`, `modified`, `added`, `removed`.
+  Plus Totals: `currentCount`, `afterCount`. Bei `afterCount == 0
+  && currentCount > 0`: zusätzlich `wholeSectionDeletion: true` für
+  die ROTE Warnung im Frontend.
+
+### G) Tenant-Isolation + Permissions
+
+- Export: `checkTenantAccess(rcNumber)` ODER Superuser. Liefert nur
+  Daten der angefragten EEG.
+- Import-Preview / -Apply: gleicher Check. Quell-EEG aus
+  `exportedFrom`-Header wird **nicht** geprüft — Admin darf ein File
+  importieren, das von einer anderen EEG (oder einem Kollegen)
+  stammt; der Tenant-Check gilt nur für die **Ziel-EEG**.
+
+### H) Fehlerbehandlung
+
+- **Schema-Fehler** (kein JSON, falsche `schemaVersion`, fehlende
+  Pflichtfelder) → 400 mit konkretem Hinweis, kein Apply.
+- **Validation-Fehler** in einer Sektion → 400 mit Sektion + Feld;
+  bei Multi-Sektion-Bundle wird die GANZE Apply abgelehnt (atomar).
+- **Apply-Tx-Fehler** (z. B. DB-Constraint nach Sanitize) → 500 mit
+  kategorisierter Meldung „Apply in Sektion <X> fehlgeschlagen,
+  rollbacked"; roher DB-Error nur im `slog`.
+- **Advisory-Lock-Timeout** → 409 „EEG wird gerade konfiguriert".
+- **File zu groß** → 413 (durch existierende
+  `MaxBodySize`-Middleware, hier auf 1 MB konfiguriert).
+
+### I) Performance-Überlegung
+
+- Export: 1 Query pro Sub-Typ-Repo, alle parallel-isierbar; bei
+  realistischer Datenmenge (max ~200 Einträge gesamt) deutlich
+  unter 500 ms.
+- Preview: 1× Validate + 4× Repo-Read + 4× Diff = sub-second.
+- Apply: 4× Repo-Schreibe in einem Tx + Advisory-Lock-Setup ≈
+  300-800 ms im Median.
+
+Item-Limits (100/50/50) garantieren, dass die O(n)-Operationen
+nicht entartet werden.
+
+### J) Was die Tech-Design-Entscheidung NICHT macht
+
+- Keine neue DB-Tabelle für Audit (bewusste Owner-Entscheidung).
+- Keine Migration nötig.
+- Keine neuen Drittabhängigkeiten (kein neuer Validator-Library,
+  alles via existierende Imports).
+- Kein Cleanup-CronJob für Soft-Deleted `data_export_config` —
+  bestehender PROJ-60-Cleanup-Job (siehe `cmd/cleanup`/CronJob in
+  Helm) deckt die Akkumulation automatisch ab.
+- Kein Preview-Token / kein Server-State zwischen Preview und Apply.
+
+### K) Test-Strategie (Hinweise für /qa)
+
+- **Backend-Unit**: Validation-Pipeline pro Sub-Typ (Happy + Reject),
+  Diff-Engine (alle 4 Kategorien: unchanged/modified/added/removed),
+  Schema-Version-Strenge, Limit-Checks.
+- **Backend-Integration**: vollständiger Roundtrip Export → Preview
+  → Apply gegen Test-DB; Concurrent-Apply mit zwei Goroutines (zweiter
+  bekommt 409 nach 10 s); Plugin-Drift mit unbekanntem `pluginType`.
+- **Frontend-Vitest**: Diff-Tabelle-Rendering, Sektion-Checkbox-
+  Default-State, Bestätigungs-Dialog.
+- **E2E (Playwright)**: Export-Bundle → File-Download in Browser →
+  File-Upload → Preview-Render → Apply mit Section-Check → Toast.
+
+### L) Dependencies
+
+Keine neuen Pakete.
+
+Frontend: bereits installiert — `shadcn/ui`, `sonner`, `next/dynamic`
+(für Drop-Zone), File-Reader-API ist nativ.
+
+Backend: bereits importiert — `bluemonday` für HTML-Sanitize,
+`encoding/json`, `database/sql`, `pq` für Advisory-Lock.
 
 ## QA Test Results
 _To be added by /qa_
