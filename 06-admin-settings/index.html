@@ -762,6 +762,7 @@
 <p>In diesem Abschnitt steuerst du die öffentliche Registrierung und hinterlegst die Stammdaten für das SEPA-Lastschriftmandat.</p>
 <p><img alt="EEG-Einstellungen" src="../images/admin-settings-eeg.png" /></p>
 <h3 id="mitgliederregistrierung-aktiv">Mitgliederregistrierung aktiv<a class="headerlink" href="#mitgliederregistrierung-aktiv" title="Permanent link">&para;</a></h3>
+<p><img alt="Mitgliederregistrierung aktiv" src="../images/admin-settings-eeg-registration.png" /></p>
 <p>Der Toggle ganz oben steuert, ob der öffentliche Registrierungslink für deine EEG aktiv ist.</p>
 <ul>
 <li><strong>Aktiv</strong>: Interessenten können sich über den Registrierungslink anmelden.</li>
@@ -812,6 +813,7 @@
 </ul>
 <p><strong>Erstmaliger Sync nach Inbetriebnahme:</strong> klicke einmal „Aus eegFaktura aktualisieren", damit die Stammdaten in die Onboarding-Datenbank kopiert werden. Bis dahin sind die Felder leer und die Hinweis-Box weist dich darauf hin.</p>
 <h3 id="sepa-lastschriftmandat">SEPA-Lastschriftmandat<a class="headerlink" href="#sepa-lastschriftmandat" title="Permanent link">&para;</a></h3>
+<p><img alt="SEPA-Lastschriftmandat" src="../images/admin-settings-eeg-sepa.png" /></p>
 <ul>
 <li><strong>SEPA-Mandat von der EEG bereitstellen</strong>: Wenn aktiv, generiert das Onboarding automatisch ein SEPA-Mandats-PDF.</li>
 <li><strong>Firmenlastschrift (B2B) für Unternehmen und Gemeinden anbieten</strong>: Erscheint nur wenn SEPA aktiv ist. Aktiviere diese Option, wenn Unternehmen und Gemeinden ein B2B-Mandat erhalten sollen. Welche Mandats-Variante (Basislastschrift CORE oder Firmenlastschrift B2B) ein konkreter Antrag bekommt, wird <strong>nicht</strong> automatisch aus dem Mitgliedstyp abgeleitet — die Wahl trifft die Admin pro Antrag über das Feld „Einzugsart" (<code>core</code> / <code>b2b</code> / <code>kein_sepa</code>, Default <code>core</code>).</li>
@@ -821,6 +823,7 @@
 <p><strong>Hinweis:</strong> Wenn das SEPA-Mandat aktiviert ist, aber Stammdaten fehlen, erscheint eine Warnung. Solange Felder fehlen, wird kein PDF generiert.</p>
 </blockquote>
 <h3 id="genossenschaftsanteile">Genossenschaftsanteile<a class="headerlink" href="#genossenschaftsanteile" title="Permanent link">&para;</a></h3>
+<p><img alt="Genossenschaftsanteile" src="../images/admin-settings-eeg-cooperative.png" /></p>
 <p>Nur relevant für EEGs, deren Rechtsträger eine Genossenschaft ist:</p>
 <ul>
 <li><strong>Genossenschaftsanteile erfassen</strong>: Wenn aktiv, sehen neue Mitglieder im Registrierungsformular einen eigenen Block „Genossenschaftsanteile" mit Eingabefeld für die Anzahl gezeichneter Anteile und Live-Berechnung des Gesamtbetrags.</li>
@@ -830,6 +833,7 @@
 <p>Beide Wert-Felder sind nur sichtbar, wenn der Toggle aktiv ist. Änderungen wirken <strong>prospektiv</strong> — bestehende Anträge bleiben unverändert, auch wenn das Pflichtmaß später angehoben wird. Falls ein Antrag dadurch unter dem aktuellen Pflichtmaß liegt, zeigt das Antrags-Detail einen orangen Hinweis, der Antrag bleibt aber unverändert.</p>
 <p>Die Anteilsinformation wird <strong>nicht</strong> an eegFaktura übertragen — sie ist reine Onboarding-Erfassung als Buchhaltungs-Beleg.</p>
 <h3 id="zahlpunkt-prefixes">Zählpunkt-Prefixes<a class="headerlink" href="#zahlpunkt-prefixes" title="Permanent link">&para;</a></h3>
+<p><img alt="Zählpunkt-Prefixes" src="../images/admin-settings-eeg-mp-prefix.png" /></p>
 <p>Mitglieder müssen heute eine 33-stellige Zählpunktnummer eintippen. Wenn die Zählpunkte deiner EEG mehrheitlich vom selben Netzbetreiber + Postleitzahl-Bereich kommen, kannst du hier den festen Anfang vorgeben — das Mitglied tippt dann nur noch die individuellen letzten Stellen.</p>
 <ul>
 <li><strong>Verbraucher-Prefix</strong>: Vorbelegung für Verbraucher-Zählpunkte (CONSUMPTION).</li>
@@ -844,6 +848,7 @@
 - Beim Verlassen des Eingabefelds werden fehlende Stellen zwischen Prefix und Mitglieds-Eingabe mit führenden Nullen aufgefüllt (z. B. tippt das Mitglied <code>12345</code> und bekommt nach dem Klick weg <code>[Prefix]000000000012345</code>).
 - Backend prüft beim Submit zusätzlich, dass jeder Zählpunkt mit dem konfigurierten Prefix der jeweiligen Richtung beginnt (defense-in-depth).</p>
 <h3 id="aktivierungs-kriterium">Aktivierungs-Kriterium<a class="headerlink" href="#aktivierungs-kriterium" title="Permanent link">&para;</a></h3>
+<p><img alt="Aktivierungs-Kriterium" src="../images/admin-settings-eeg-activation.png" /></p>
 <p>Steuert, wann eine Anwendung von <strong>„Bereit zur Aktivierung"</strong> auf <strong>„Aktiviert"</strong> wechselt. Beim Übergang auf „Aktiviert" wird automatisch die volle Beitrittsbestätigungs-Mail mit PDF an das Mitglied versandt (und eine Kopie an den EEG-Contact).</p>
 <p>Zwei Optionen:</p>
 <ul>
@@ -858,6 +863,7 @@
 </ul>
 <p>Der Wechsel selbst wird in beiden Fällen entweder <strong>per Antrag manuell</strong> ausgelöst (Button „Als aktiv markieren") oder über den Batch-Button <strong>„Aktivierung im Core prüfen"</strong> in der Antragsübersicht — der nimmt das hier gewählte Kriterium dann automatisch für deine ganze EEG.</p>
 <h3 id="e-mail-adresse-bestatigen">E-Mail-Adresse bestätigen<a class="headerlink" href="#e-mail-adresse-bestatigen" title="Permanent link">&para;</a></h3>
+<p><img alt="E-Mail-Adresse bestätigen" src="../images/admin-settings-eeg-email-confirm.png" /></p>
 <ul>
 <li><strong>E-Mail-Adresse bestätigen</strong>: Wenn aktiv, erhält das neue Mitglied in der Bestätigungs-Mail einen Button „E-Mail-Adresse bestätigen". Erst nach dem Klick wechselt der Antrag in den Status <strong>„E-Mail bestätigt"</strong> und ist für deine Bearbeitung freigegeben. Solange die Bestätigung aussteht, siehst du den Antrag mit dem Status „Eingereicht" und einer Warnung in der Detail-Ansicht.</li>
 </ul>
