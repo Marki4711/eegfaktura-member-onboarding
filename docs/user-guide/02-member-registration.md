@@ -20,15 +20,15 @@ Diesen Link erhältst du von deinem EEG-Betreiber (z.B. per E-Mail oder auf der 
 
 Wähle den zutreffenden Mitgliedstyp:
 
-| Typ | Beschreibung | USt.-Hinweis im Dropdown |
-|-----|-------------|--------------------------|
-| **Privatperson** | Natürliche Person | `(0 % USt.)` |
-| **Pauschalierter Landwirt** | Land- und forstwirtschaftlicher Betrieb | `(13 % USt.)` |
-| **Unternehmen** | Einzelunternehmer, GmbH, AG, OG, KG etc. — sowohl regulär umsatzsteuerpflichtig als auch Kleinunternehmerregelung (§ 6 Abs 1 Z 27 UStG) | `(0 % oder 20 % USt.)` |
-| **Gemeinde / öffentliche Körperschaft** | Hoheitsbereich vs. Betrieb gewerblicher Art (BgA) | `(0 % oder 20 % USt.)` |
-| **Verein** | Eingetragener Verein — ideeller Bereich vs. wirtschaftliche Tätigkeit | `(0 % oder 20 % USt.)` |
+| Typ | Beschreibung |
+|-----|-------------|
+| **Privatperson** | Natürliche Person |
+| **Pauschalierter Landwirt** | Land- und forstwirtschaftlicher Betrieb |
+| **Unternehmen** | Einzelunternehmer, GmbH, AG, OG, KG etc. — sowohl regulär umsatzsteuerpflichtig als auch Kleinunternehmerregelung (§ 6 Abs 1 Z 27 UStG) |
+| **Gemeinde / öffentliche Körperschaft** | Hoheitsbereich vs. Betrieb gewerblicher Art (BgA) |
+| **Verein** | Eingetragener Verein — ideeller Bereich vs. wirtschaftliche Tätigkeit |
 
-Je nach Mitgliedstyp werden unterschiedliche Felder angezeigt (z. B. Firmenname statt Vorname/Nachname). Der USt.-Hinweis in Klammern dient der Orientierung — er zeigt, welchen Steuersatz deine Rechnungen aus der EEG voraussichtlich tragen werden.
+Je nach Mitgliedstyp werden unterschiedliche Felder angezeigt (z. B. Firmenname statt Vorname/Nachname). Die umsatzsteuerliche Einstufung wird nicht im Dropdown erfragt, sondern ergibt sich aus deinen Angaben in den Folgefeldern (z. B. UID-Nummer bei Unternehmen).
 
 > **Kleinunternehmer-Pfad:** Wähle **Unternehmen** und lass die UID-Nummer leer — das signalisiert dem System die Kleinunternehmerregelung (0 % USt.). Mit ausgefüllter UID-Nummer wird der reguläre Unternehmenspfad (20 % USt.) angenommen. Eine separate „Kleinunternehmer"-Option gibt es seit Mai 2026 nicht mehr.
 

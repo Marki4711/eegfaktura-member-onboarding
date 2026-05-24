@@ -10,6 +10,25 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### PROJ-62 — Follow-up: USt-Hints aus Mitgliedstyp-Dropdown entfernt *(2026-05-24)*
+
+Owner-Feedback: USt-Sätze in der Auswahlbox sind irreführend, da
+Kleinunternehmerregelung und UID-Vorhandensein orthogonal sind (auch
+Firmen mit UID können Kleinunternehmer sein). Die tatsächliche USt-
+Einordnung ergibt sich aus den Folgefeldern und wird in der Abrechnung
+geklärt.
+
+- **`src/components/registration-form.tsx`**: `MEMBER_TYPE_OPTIONS`
+  liefert nur noch `value` + `label` (kein `hint` mehr). `SelectItem`-
+  Render zeigt nur das Label, ohne den `(… % USt.)`-Suffix.
+- **`tests/PROJ-7-member-types.spec.ts`** AC-3: Assertion auf „13 %
+  USt." / „20 % USt." im Listbox entfernt — stattdessen Prüfung, dass
+  alle 5 erwarteten Mitgliedstyp-Labels als Options sichtbar sind.
+- **`docs/user-guide/02-member-registration.md`**: USt.-Hinweis-Spalte
+  aus der Mitgliedstyp-Tabelle entfernt, erklärender Satz angepasst.
+- **`docs/user-guide/changelog.md`**: Eintrag „USt.-Hinweise im Dropdown
+  vereinheitlicht" auf „… entfernt" reformuliert.
+
 ### PROJ-62 — Frontend: sole_proprietor entfernt *(2026-05-24)*
 
 Build-Failure-driven Refactor analog zum Backend, gesteuert über
