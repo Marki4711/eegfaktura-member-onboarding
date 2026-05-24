@@ -770,7 +770,129 @@ Insgesamt ~3-4 Tage backend + ~2 Tage frontend bei konzentriertem
 Arbeiten.
 
 ## QA Test Results
-_To be added by /qa_
+
+**Stand:** 2026-05-24
+**Modus:** Code-Audit + automatisierte Tests (lokal kein Backend lauffähig
+zur manuellen Browser-Klick-Verifikation).
+
+### Zusammenfassung
+
+| | |
+|---|---|
+| Akzeptanzkriterien geprüft | 22 (E1-6, I1-14 inkl. I4b/c/d, P1-2) |
+| Voll erfüllt | 20 |
+| Teilerfüllt | 1 (AC-E1: Tab statt Sub-Page, funktional äquivalent) |
+| Verletzt | 1 (AC-I10) |
+| Security-Smoke-Findings | 0 Critical, 0 High, 2 Low |
+| Bugs gesamt | 1 High, 2 Low |
+| Tests neu | 16 Playwright E2E + 0 Vitest (E2E reicht; reine Backend-Flow) |
+| Tests bestehende | 25 Go-Unit-Tests (configexport) + 4 (test_header_auth) bestehen weiter |
+
+### Acceptance-Criteria-Matrix
+
+| AC | Status | Befund |
+|---|---|---|
+| AC-E1 (dedizierte Sub-Seite) | ⚠️ Teilerfüllt | Implementiert als 7. Tab in `/admin/settings`, NICHT als separate Route. Funktional äquivalent, aber Spec-Wortlaut weicht ab → Spec sollte „Tab" statt „Sub-Seite" sagen. |
+| AC-E2 (4 Buttons + Bundle) | ✓ | `ExportButtons` |
+| AC-E3 (JSON-Header) | ✓ | `File`-Struct |
+| AC-E4 (Scrubbing) | ✓ | `EEGSettingsSection` enthält bewusst nur die 12 Felder; verifiziert via E2E-Test |
+| AC-E5 (Filename-Pattern) | ✓ | Handler `Export()`, verifiziert via E2E-Test |
+| AC-E6 (read-only) | ✓ | Exporter ruft nur Get/List auf Repos |
+| AC-I1 (Import-Button + Upload) | ✓ | `ImportDropzone` |
+| AC-I2 (Strict Schema-Validation) | ✓ | `ParseFile`, verifiziert via E2E (v0, v2, malformed) |
+| AC-I3 (Default UNAUSGEWÄHLT) | ✓ | `DiffPreviewPanel: useState<Set>(new Set())` |
+| AC-I4 (Diff-Preview) | ✓ | `DiffTable` + Tabellen pro Sektion |
+| AC-I4b (Rote Warnung leere Sektion) | ✓ | `WholeSectionDeletionWarning` |
+| AC-I4c (ZP-Prefix Warn-Icon) | ✓ | WarningType `network_region_specific` mit Network-Icon-Tooltip |
+| AC-I4d (Cents-zu-EUR) | ✓ | `renderValue` mit field+warningType check |
+| AC-I5 (Zweistufige Bestätigung) | ✓ | `ConfirmApplyDialog` |
+| AC-I6 (All-or-nothing-Tx) | ✓ | `Importer.Apply`: single Tx mit `defer tx.Rollback`. Integration-Test in /qa erst möglich wenn Test-DB-Infrastruktur eingerichtet (separate Sub-Ticket) |
+| AC-I7 (Replace-Semantik) | ✓ | Mapping in importer.go (4 Sub-Type-Branches) |
+| AC-I8 (slog-Audit) | ✓ | `slog.Info("config_import applied", event=..., rc_number=..., …)` |
+| AC-I9 (Plugin-Drift → is_obsolete) | ✓ | `IsObsolete: dataexport.Get(...) == nil` + `collectDriftWarnings` |
+| **AC-I10 (Field-Catalog-Drift)** | ❌ **VERLETZT** | Excel-Plugin's `ValidateConfig` **rejected** unknown field-keys mit 400, statt sie zu verwerfen + warnen wie spezifiziert. Siehe Bug #1 |
+| AC-I11 (Re-Sanitisierung) | ✓ | `validateAndSanitize` — verifiziert via E2E (javascript-URL, ENUM, Cross-Field) |
+| AC-I12 (Per-Sektion-Limits 100/50/50) | ✓ | `validateAndSanitize` — verifiziert via E2E (101 Field-Configs → 400) |
+| AC-I13 (Kategorisierter Apply-Fehler) | ✓ | `ValidationError` mit section + field + message |
+| AC-I14 (Advisory-Lock + 10s Timeout) | ⚠️ | Funktioniert, aber Error-Message wird auch bei NICHT-Lock-Fehlern als „EEG wird gerade konfiguriert" zurückgegeben — siehe Bug #3 |
+| AC-P1 (Tenant-Admin/Superuser sehen UI) | ✓ | Tab in Settings, RC-Selector vorhanden |
+| AC-P2 (checkTenantAccess am Ziel) | ✓ | `checkTenantAccessForRC` in allen 3 Handlern. Quell-EEG nicht geprüft (spec-konform) |
+
+### Bugs
+
+#### Bug #1 — AC-I10 verletzt: Field-Catalog-Drift blockt statt zu verwerfen
+
+| Severity | Datei | Funktion | Risiko | Exploit-Szenario | Fix-Empfehlung | Confidence |
+|---|---|---|---|---|---|---|
+| **High** | `internal/configexport/importer.go` (validateAndSanitize, data_export_config-Branch) | Validation-Pipeline | Verletzung explizit dokumentierter AC; Import aus älterem File auf neueres Deployment scheitert, statt zu degradieren | Admin exportiert auf Instanz mit Field-X, Field-X wird in einem späteren Release entfernt; Import desselben Files auf der neueren Instanz → 400 statt graceful Verwerfen | Vor `plugin.ValidateConfig`-Aufruf: prüfe `columns[].field` gegen `excel.AvailableFields`, entferne unbekannte Spalten mit Drift-Warning, dann ValidateConfig auf gefiltertem Set | High |
+
+**Vorgeschlagener Fix:** im Importer eine plugin-spezifische Drift-Filterung VOR `plugin.ValidateConfig`. Alternativ: bei Excel-Plugin's `ValidateConfig` einen Modus „strict / lenient" — aber das ändert Verhalten anderer Aufrufer, weniger empfehlenswert.
+
+#### Bug #2 — `intro_text` ohne Längenlimit auf Import-Pfad
+
+| Severity | Datei | Funktion | Risiko | Exploit-Szenario | Fix-Empfehlung | Confidence |
+|---|---|---|---|---|---|---|
+| **Low** | `internal/configexport/importer.go` (validateAndSanitize, EEG-Settings-Branch) | Sanitize-Pipeline | Self-inflicted DoS-Vektor: Admin lädt 800 KB intro_text-Blob hoch (innerhalb des 1-MB-File-Limits), füllt DB-Zeile. Carry-over vom UI-Save-Pfad. | Authenticated-Admin-Pfad, Self-EEG → low impact | `sanitize.HTML` zusätzlich um Längenlimit (z. B. 50 KB nach Sanitize) ergänzen; dann auch auf UI-Save-Pfad nutzen. Sub-Ticket. | Medium |
+
+#### Bug #3 — AC-I14: Lock-Error-Message zu generisch
+
+| Severity | Datei | Funktion | Risiko | Exploit-Szenario | Fix-Empfehlung | Confidence |
+|---|---|---|---|---|---|---|
+| **Low** | `internal/configexport/importer.go::Apply` | Advisory-Lock-Erwerb | UX-Issue: jeder Fehler beim Lock-Erwerb (auch DB-Connection-Fehler) zeigt „EEG wird gerade konfiguriert" — verwirrend bei Infrastrukturproblemen | Admin sieht 409 obwohl DB nicht erreichbar | Lock-Error-Pfad: `lock_timeout`-Erreichen erkennen (PostgreSQL gibt sql-state `55P03` zurück); nur dann „EEG wird gerade konfiguriert"-Message, sonst 500 | High |
+
+### Security-Smoke
+
+| Punkt | Befund |
+|---|---|
+| 3.1 Auth/Authz | ✓ Keycloak-Middleware aktiv; `checkTenantAccessForRC` in allen 3 Handlern; Quell-EEG-Bypass per Spec OK |
+| 3.2 Injection | ✓ Alle SQL parametrisiert; Filename via `safeFilenameComponent` (CR/LF/Quote-Strip) |
+| 3.3 XSS/CSRF/SSRF | ✓ bluemonday auf intro_text; URL-Format-only (kein HEAD → kein SSRF); JWT-Auth → CSRF n/a |
+| 3.4 Secrets | ✓ Export enthält keine Secrets (API-Keys explizit nicht im Schema); ApplySummary nur Counts |
+| 3.5 Dependencies | ✓ govulncheck/npm audit zeigen 4 moderate in next-auth-Kette — pre-existing, nicht durch PROJ-61 verschärft |
+| 3.6 Business Logic | ✓ Status-Modell nicht berührt; Rate-Limit für admin-Endpoints nicht spezifisch (Admin-only, Auth-gated) |
+| 3.7 Defaults | ✓ Keine neuen Defaults gesetzt |
+| 3.8 Sensible Logs | ✓ slog nutzt nur rc_number, admin_user_id, sections, source_eeg, duration_ms — kein PII |
+| 3.9 File-Uploads | ✓ Content-Disposition mit safe filename; MaxBodySize via Middleware; LimitReader als Doppel-Schutz; korrekter MIME-Type |
+| 3.10 Length-Limits | ⚠️ siehe Bug #2 (intro_text), sonst alle Felder Limit-geschützt (URL 2 KB, per-Sektion-Counts 100/50/50, File 1 MB) |
+
+**Keine Critical-/High-Findings im Smoke-Test.** Touched Bereiche
+(Keycloak-Auth-Pfad, Tenant-Isolation, neue Endpoints) rechtfertigen
+trotzdem ein `/security-review` als zweite Stufe.
+
+### Tests neu hinzugefügt
+
+**Playwright E2E**: `tests/PROJ-61-config-export-import.spec.ts` — 16 Tests gegen die Backend-API:
+- AC-P1/P2: Auth-Required, Tenant-Isolation
+- AC-E2/E4/E5: Export-Bundle, Single-Sub-Type, Scrubbing, Filename
+- AC-I2: Schema-Strenge (v0, v2, malformed JSON)
+- AC-I3: Empty sectionsToApply → 400
+- AC-I8: Export-Apply-Roundtrip
+- AC-I11: Re-Sanitisierung (javascript-URL, ENUM, Cooperative-Cross-Field)
+- AC-I12: Per-Sektion-Limit-Check
+
+Laufen in CI mit `TEST_AUTH_MODE=headers`. **Lokal mit echtem Backend
+ebenfalls lauffähig**, sofern `TEST_AUTH_MODE=headers` gesetzt ist.
+
+### Regression
+
+- **Bestehende Go-Tests**: alle 12 Test-Pakete grün
+- **Bestehende E2E-Specs**: nicht-betroffen (PROJ-61 fügt neue Tab hinzu, ändert keine bestehenden Pfade)
+- **Sanitize-Refactor**: bestehender admin.go-Pfad funktioniert weiter (admin_note + intro_text), `sanitize.HTML` ist eine 1:1-Übernahme der Inline-Policy
+
+### Production-Ready: **NEIN — wegen Bug #1 (High, AC-Verletzung)**
+
+Bug #1 muss vor Deploy gefixt werden. Bug #2 und Bug #3 sind Low und
+können optional gleich mit oder in Folge-PROJs umgesetzt werden.
+
+Außerdem: **`/security-review` empfohlen**, weil das Feature
+Keycloak-Auth, Tenant-Isolation und neue Endpoints berührt.
+
+**Verbleibende manuelle Verifikation (nicht automatisierbar):**
+- Browser-Render-Test der UI (AC-E1, AC-I3-checkboxes, AC-I4-Diff-Render, AC-I4b/c/d-Warning-Display, AC-I5-Modal)
+- Cross-Browser (Chrome/Firefox/Safari)
+- Responsive (375/768/1440px)
+- Concurrent-Apply-Verhalten (AC-I14) mit zwei parallelen Curl-Requests gegen lokales Backend
+
 
 ## Deployment
 _To be added by /deploy_
