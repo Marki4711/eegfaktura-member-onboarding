@@ -1,0 +1,1468 @@
+
+<!doctype html>
+<html lang="de" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Bedienungsanleitung für EEG-Admins und Mitglieder">
+      
+      
+        <meta name="author" content="vfeeg">
+      
+      
+        <link rel="canonical" href="https://example.invalid/06-admin-settings/">
+      
+      
+        <link rel="prev" href="../05-admin-status/">
+      
+      
+        <link rel="next" href="../07-emails-and-pdfs/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
+    
+    
+      
+        <title>Einstellungen - eegFaktura Member Onboarding — Benutzerdokumentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.6f8fc17f.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="green" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#admin-einstellungen" class="md-skip">
+          Zum Inhalt
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Kopfzeile">
+    <a href=".." title="eegFaktura Member Onboarding — Benutzerdokumentation" class="md-header__button md-logo" aria-label="eegFaktura Member Onboarding — Benutzerdokumentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            eegFaktura Member Onboarding — Benutzerdokumentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Einstellungen
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="green" data-md-color-accent="teal"  aria-label="Dunkles Theme"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Dunkles Theme" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="green" data-md-color-accent="teal"  aria-label="Helles Theme"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Helles Theme" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Suche" placeholder="Suche" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Suche">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Zurücksetzen" aria-label="Zurücksetzen" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Suche wird initialisiert
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Marki4711/eegfaktura-member-onboarding-private" title="Zum Repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8M97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    eegfaktura-member-onboarding
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Hauptnavigation" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../01-overview/" class="md-tabs__link">
+        
+  
+    
+  
+  Überblick
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../02-member-registration/" class="md-tabs__link">
+        
+  
+    
+  
+  Mitglieder-Registrierung
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../03-admin-login/" class="md-tabs__link">
+          
+  
+  Admin
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../07-emails-and-pdfs/" class="md-tabs__link">
+        
+  
+    
+  
+  E-Mails & PDFs
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="eegFaktura Member Onboarding — Benutzerdokumentation" class="md-nav__button md-logo" aria-label="eegFaktura Member Onboarding — Benutzerdokumentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    eegFaktura Member Onboarding — Benutzerdokumentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Marki4711/eegfaktura-member-onboarding-private" title="Zum Repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8M97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    eegfaktura-member-onboarding
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01-overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Überblick
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02-member-registration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Mitglieder-Registrierung
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Admin
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Admin
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03-admin-login/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Anmeldung
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04-admin-applications/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Anträge verwalten
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05-admin-status/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Statusverwaltung
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Einstellungen
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Einstellungen
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Inhaltsverzeichnis">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Inhaltsverzeichnis
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#eeg-auswahlen" class="md-nav__link">
+    <span class="md-ellipsis">
+      EEG auswählen
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#eeg-stammdaten-sepa-mandat" class="md-nav__link">
+    <span class="md-ellipsis">
+      EEG-Stammdaten &amp; SEPA-Mandat
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="EEG-Stammdaten & SEPA-Mandat">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mitgliederregistrierung-aktiv" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mitgliederregistrierung aktiv
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#eeg-stammdaten-logo-aus-eegfaktura" class="md-nav__link">
+    <span class="md-ellipsis">
+      EEG-Stammdaten &amp; Logo — aus eegFaktura
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sepa-lastschriftmandat" class="md-nav__link">
+    <span class="md-ellipsis">
+      SEPA-Lastschriftmandat
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#genossenschaftsanteile-proj-37" class="md-nav__link">
+    <span class="md-ellipsis">
+      Genossenschaftsanteile (PROJ-37)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#zahlpunkt-prefixes-proj-52" class="md-nav__link">
+    <span class="md-ellipsis">
+      Zählpunkt-Prefixes (PROJ-52)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#aktivierungs-kriterium-proj-53" class="md-nav__link">
+    <span class="md-ellipsis">
+      Aktivierungs-Kriterium (PROJ-53)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#e-mail-adresse-bestatigen" class="md-nav__link">
+    <span class="md-ellipsis">
+      E-Mail-Adresse bestätigen
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#einleitungstext" class="md-nav__link">
+    <span class="md-ellipsis">
+      Einleitungstext
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#formular-felder-zahlpunktfelder" class="md-nav__link">
+    <span class="md-ellipsis">
+      Formular-Felder &amp; Zählpunktfelder
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Formular-Felder & Zählpunktfelder">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#typabhangige-sichtbarkeit-proj-45-badges" class="md-nav__link">
+    <span class="md-ellipsis">
+      Typabhängige Sichtbarkeit (PROJ-45, Badges)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spezielle-konfigurierbare-felder" class="md-nav__link">
+    <span class="md-ellipsis">
+      Spezielle konfigurierbare Felder
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rechtsdokumente" class="md-nav__link">
+    <span class="md-ellipsis">
+      Rechtsdokumente
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Rechtsdokumente">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dokument-hinzufugen" class="md-nav__link">
+    <span class="md-ellipsis">
+      Dokument hinzufügen
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dokument-bearbeiten-oder-loschen" class="md-nav__link">
+    <span class="md-ellipsis">
+      Dokument bearbeiten oder löschen
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#externe-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      Externe API
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#datenweiterleitung" class="md-nav__link">
+    <span class="md-ellipsis">
+      Datenweiterleitung
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Datenweiterleitung">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#daten-weiterleiten" class="md-nav__link">
+    <span class="md-ellipsis">
+      Daten weiterleiten
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#job-ubersicht" class="md-nav__link">
+    <span class="md-ellipsis">
+      Job-Übersicht
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#konfiguration-import-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      Konfiguration Import / Export
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Konfiguration Import / Export">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#export" class="md-nav__link">
+    <span class="md-ellipsis">
+      Export
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#import-mit-diff-preview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Import mit Diff-Preview
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07-emails-and-pdfs/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    E-Mails & PDFs
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Inhaltsverzeichnis">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Inhaltsverzeichnis
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#eeg-auswahlen" class="md-nav__link">
+    <span class="md-ellipsis">
+      EEG auswählen
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#eeg-stammdaten-sepa-mandat" class="md-nav__link">
+    <span class="md-ellipsis">
+      EEG-Stammdaten &amp; SEPA-Mandat
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="EEG-Stammdaten & SEPA-Mandat">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mitgliederregistrierung-aktiv" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mitgliederregistrierung aktiv
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#eeg-stammdaten-logo-aus-eegfaktura" class="md-nav__link">
+    <span class="md-ellipsis">
+      EEG-Stammdaten &amp; Logo — aus eegFaktura
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sepa-lastschriftmandat" class="md-nav__link">
+    <span class="md-ellipsis">
+      SEPA-Lastschriftmandat
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#genossenschaftsanteile-proj-37" class="md-nav__link">
+    <span class="md-ellipsis">
+      Genossenschaftsanteile (PROJ-37)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#zahlpunkt-prefixes-proj-52" class="md-nav__link">
+    <span class="md-ellipsis">
+      Zählpunkt-Prefixes (PROJ-52)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#aktivierungs-kriterium-proj-53" class="md-nav__link">
+    <span class="md-ellipsis">
+      Aktivierungs-Kriterium (PROJ-53)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#e-mail-adresse-bestatigen" class="md-nav__link">
+    <span class="md-ellipsis">
+      E-Mail-Adresse bestätigen
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#einleitungstext" class="md-nav__link">
+    <span class="md-ellipsis">
+      Einleitungstext
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#formular-felder-zahlpunktfelder" class="md-nav__link">
+    <span class="md-ellipsis">
+      Formular-Felder &amp; Zählpunktfelder
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Formular-Felder & Zählpunktfelder">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#typabhangige-sichtbarkeit-proj-45-badges" class="md-nav__link">
+    <span class="md-ellipsis">
+      Typabhängige Sichtbarkeit (PROJ-45, Badges)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spezielle-konfigurierbare-felder" class="md-nav__link">
+    <span class="md-ellipsis">
+      Spezielle konfigurierbare Felder
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rechtsdokumente" class="md-nav__link">
+    <span class="md-ellipsis">
+      Rechtsdokumente
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Rechtsdokumente">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dokument-hinzufugen" class="md-nav__link">
+    <span class="md-ellipsis">
+      Dokument hinzufügen
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dokument-bearbeiten-oder-loschen" class="md-nav__link">
+    <span class="md-ellipsis">
+      Dokument bearbeiten oder löschen
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#externe-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      Externe API
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#datenweiterleitung" class="md-nav__link">
+    <span class="md-ellipsis">
+      Datenweiterleitung
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Datenweiterleitung">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#daten-weiterleiten" class="md-nav__link">
+    <span class="md-ellipsis">
+      Daten weiterleiten
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#job-ubersicht" class="md-nav__link">
+    <span class="md-ellipsis">
+      Job-Übersicht
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#konfiguration-import-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      Konfiguration Import / Export
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Konfiguration Import / Export">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#export" class="md-nav__link">
+    <span class="md-ellipsis">
+      Export
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#import-mit-diff-preview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Import mit Diff-Preview
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="admin-einstellungen">Admin-Einstellungen<a class="headerlink" href="#admin-einstellungen" title="Permanent link">&para;</a></h1>
+<p>Die Einstellungsseite ist über <strong>Einstellungen</strong> im Admin-Bereich erreichbar. Sie enthält alle EEG-spezifischen Konfigurationen.</p>
+<h2 id="eeg-auswahlen">EEG auswählen<a class="headerlink" href="#eeg-auswahlen" title="Permanent link">&para;</a></h2>
+<p>Wenn dein Account für mehrere EEGs zuständig ist, erscheint oben rechts ein Auswahlfeld. Alle Einstellungen beziehen sich auf die gewählte EEG.</p>
+<h2 id="eeg-stammdaten-sepa-mandat">EEG-Stammdaten &amp; SEPA-Mandat<a class="headerlink" href="#eeg-stammdaten-sepa-mandat" title="Permanent link">&para;</a></h2>
+<p>In diesem Abschnitt steuerst du die öffentliche Registrierung und hinterlegst die Stammdaten für das SEPA-Lastschriftmandat.</p>
+<p><img alt="EEG-Einstellungen" src="../images/admin-settings-eeg.png" /></p>
+<h3 id="mitgliederregistrierung-aktiv">Mitgliederregistrierung aktiv<a class="headerlink" href="#mitgliederregistrierung-aktiv" title="Permanent link">&para;</a></h3>
+<p>Der Toggle ganz oben steuert, ob der öffentliche Registrierungslink für deine EEG aktiv ist.</p>
+<ul>
+<li><strong>Aktiv</strong>: Interessenten können sich über den Registrierungslink anmelden.</li>
+<li><strong>Inaktiv</strong>: Besucher des Registrierungslinks erhalten eine Fehlermeldung. Bestehende Anträge sind davon nicht betroffen.</li>
+</ul>
+<p>Neue EEGs starten standardmäßig als inaktiv. Aktiviere die Registrierung erst, wenn alle Einstellungen konfiguriert sind.</p>
+<h3 id="eeg-stammdaten-logo-aus-eegfaktura">EEG-Stammdaten &amp; Logo — aus eegFaktura<a class="headerlink" href="#eeg-stammdaten-logo-aus-eegfaktura" title="Permanent link">&para;</a></h3>
+<p>Neun Werte werden direkt aus eegFaktura übernommen und sind in der Onboarding-Oberfläche <strong>schreibgeschützt</strong> (kleines Schloss-Symbol). Änderungen erfolgen ausschließlich in eegFaktura selbst, danach hier per „Aus eegFaktura aktualisieren" synchronisieren.</p>
+<table>
+<thead>
+<tr>
+<th>Feld</th>
+<th>Verwendung im Onboarding</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Gemeinschafts-ID</strong></td>
+<td>Excel-Export (Spalte B), eegFaktura-Import</td>
+</tr>
+<tr>
+<td><strong>EEG-Name</strong></td>
+<td>Antrags-PDF, Willkommens- und Bestätigungs-Mail, SEPA-Mandat</td>
+</tr>
+<tr>
+<td><strong>Straße, Hausnummer, PLZ, Ort</strong></td>
+<td>SEPA-Mandat, Adressblock im Anschreiben</td>
+</tr>
+<tr>
+<td><strong>Creditor-ID</strong></td>
+<td>SEPA-Mandat (Pflichtfeld für gültige Lastschrift)</td>
+</tr>
+<tr>
+<td><strong>Kontakt-E-Mail</strong></td>
+<td>Empfänger-Adresse für die Admin-Benachrichtigung bei jedem neuen Antrag</td>
+</tr>
+<tr>
+<td><strong>Logo</strong></td>
+<td>Erscheint oben rechts auf Beitrittsbestätigung und SEPA-Mandat. Max 256 KB, PNG/JPEG/GIF. Bei größeren Logos in eegFaktura erscheint nach dem Sync ein orange-Hinweis unter der Logo-Vorschau („Logo überschreitet 256 KB").</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Stand-Anzeige am oberen Rand der Stammdaten-Card:</strong></p>
+<ul>
+<li><strong>Grün — „Synchron mit eegFaktura · Stand: DD.MM. HH:MM"</strong>: die Daten stimmen mit eegFaktura überein, kein Handlungsbedarf.</li>
+<li><strong>Orange — „Stammdaten weichen ab"</strong>: in eegFaktura wurden Daten geändert seit dem letzten Sync. Über <strong>„Details anzeigen ▾"</strong> sieht man eine Tabelle „Im Onboarding | In eegFaktura" je geändertem Feld. Mit <strong>„Aus eegFaktura aktualisieren"</strong> wird der lokale Stand überschrieben.</li>
+<li><strong>Grau — „eegFaktura nicht erreichbar"</strong>: temporärer Ausfall des Core-Systems. Onboarding nutzt weiter den zuletzt gesyncten Stand.</li>
+</ul>
+<p><strong>Erstmaliger Sync nach Inbetriebnahme:</strong> klicke einmal „Aus eegFaktura aktualisieren", damit die Stammdaten in die Onboarding-Datenbank kopiert werden. Bis dahin sind die Felder leer und die Hinweis-Box weist dich darauf hin.</p>
+<h3 id="sepa-lastschriftmandat">SEPA-Lastschriftmandat<a class="headerlink" href="#sepa-lastschriftmandat" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>SEPA-Mandat von der EEG bereitstellen</strong>: Wenn aktiv, generiert das Onboarding automatisch ein SEPA-Mandats-PDF.</li>
+<li><strong>Firmenlastschrift (B2B) für Unternehmen und Gemeinden anbieten</strong>: Erscheint nur wenn SEPA aktiv ist. Aktiviere diese Option, wenn Unternehmen und Gemeinden ein B2B-Mandat erhalten sollen. Welche Mandats-Variante (Basislastschrift CORE oder Firmenlastschrift B2B) ein konkreter Antrag bekommt, wird <strong>nicht</strong> automatisch aus dem Mitgliedstyp abgeleitet — die Wahl trifft die Admin pro Antrag über das Feld „Einzugsart" (<code>core</code> / <code>b2b</code> / <code>kein_sepa</code>, Default <code>core</code>).</li>
+<li><strong>SEPA-Mandat erst beim Import erzeugen</strong> <em>(PROJ-48)</em>: Wenn aktiv, wird das Mandat <strong>nicht</strong> dem Willkommensmail beigelegt, sondern erst beim Import mit der zugewiesenen Mitgliedsnummer als Mandatsreferenz ausgegeben. Sinnvoll, wenn du digitale Signatur (z. B. ID Austria) einsetzt — ein signiertes PDF darf nicht mehr verändert werden, daher muss die Mandatsreferenz vor der Signatur eingedruckt sein. Im Registrierungsformular erscheint dann ein erklärender Hinweis, dass das Mandat später folgt.</li>
+</ul>
+<blockquote>
+<p><strong>Hinweis:</strong> Wenn das SEPA-Mandat aktiviert ist, aber Stammdaten fehlen, erscheint eine Warnung. Solange Felder fehlen, wird kein PDF generiert.</p>
+</blockquote>
+<h3 id="genossenschaftsanteile-proj-37">Genossenschaftsanteile (PROJ-37)<a class="headerlink" href="#genossenschaftsanteile-proj-37" title="Permanent link">&para;</a></h3>
+<p>Nur relevant für EEGs, deren Rechtsträger eine Genossenschaft ist:</p>
+<ul>
+<li><strong>Genossenschaftsanteile erfassen</strong>: Wenn aktiv, sehen neue Mitglieder im Registrierungsformular einen eigenen Block „Genossenschaftsanteile" mit Eingabefeld für die Anzahl gezeichneter Anteile und Live-Berechnung des Gesamtbetrags.</li>
+<li><strong>Pflichtanteile je Standort</strong>: Mindestanzahl, die ein Mitglied zeichnen muss (z.B. 1, 3). Das Eingabefeld im Formular ist mit diesem Wert vorbefüllt und akzeptiert keine kleineren Werte; das Mitglied kann freiwillig mehr zeichnen.</li>
+<li><strong>Genossenschaftsanteilswert</strong>: Preis pro Anteil in Euro (z.B. 100,00). Wird im Formular als Live-Multiplikator verwendet und in der Beitrittsbestätigung als eigene Sektion „GENOSSENSCHAFTSANTEILE" mit Anzahl × Wert = Gesamtbetrag ausgewiesen.</li>
+</ul>
+<p>Beide Wert-Felder sind nur sichtbar, wenn der Toggle aktiv ist. Änderungen wirken <strong>prospektiv</strong> — bestehende Anträge bleiben unverändert, auch wenn das Pflichtmaß später angehoben wird. Falls ein Antrag dadurch unter dem aktuellen Pflichtmaß liegt, zeigt das Antrags-Detail einen orangen Hinweis, der Antrag bleibt aber unverändert.</p>
+<p>Die Anteilsinformation wird <strong>nicht</strong> an eegFaktura übertragen — sie ist reine Onboarding-Erfassung als Buchhaltungs-Beleg.</p>
+<h3 id="zahlpunkt-prefixes-proj-52">Zählpunkt-Prefixes (PROJ-52)<a class="headerlink" href="#zahlpunkt-prefixes-proj-52" title="Permanent link">&para;</a></h3>
+<p>Mitglieder müssen heute eine 33-stellige Zählpunktnummer eintippen. Wenn die Zählpunkte deiner EEG mehrheitlich vom selben Netzbetreiber + Postleitzahl-Bereich kommen, kannst du hier den festen Anfang vorgeben — das Mitglied tippt dann nur noch die individuellen letzten Stellen.</p>
+<ul>
+<li><strong>Verbraucher-Prefix</strong>: Vorbelegung für Verbraucher-Zählpunkte (CONSUMPTION).</li>
+<li><strong>Einspeisungs-Prefix</strong>: Vorbelegung für Einspeise-Zählpunkte (PRODUCTION).</li>
+<li>Beide sind unabhängig. Wenn nur eine Richtung konfiguriert ist, fällt die andere automatisch auf das reine „AT"-Pattern zurück (Mitglied tippt alle 31 Stellen nach „AT").</li>
+</ul>
+<p><strong>Format</strong>: muss mit <code>AT</code> beginnen, max 33 Stellen, danach Ziffern und Großbuchstaben (offizielle E-Control-Spec: Stellen 3–13 numerisch für Netzbetreibernummer + PLZ, Stellen 14–33 alphanumerisch für die Zählpunkt-Kennung). Whitespace, Punkte und Bindestriche werden beim Speichern automatisch entfernt — du kannst den Prefix also bequem mit Leerzeichen eintippen.</p>
+<p><strong>Live-Vorschau</strong> unter jedem Input zeigt, wie viele Stellen das Mitglied im Formular noch selbst eintippen muss („AT + 31 Stellen frei" bei leerem Feld, sonst „[Prefix] + N Stelle(n) vom Mitglied").</p>
+<p><strong>Effekt im Mitgliedsformular</strong>:
+- Beim Wechsel der Zählpunkt-Richtung wird der passende Prefix automatisch in das Zählpunkt-Feld eingetragen.
+- Der Prefix-Teil ist gelockt — das Mitglied kann ihn weder überschreiben noch backspacen.
+- Beim Verlassen des Eingabefelds werden fehlende Stellen zwischen Prefix und Mitglieds-Eingabe mit führenden Nullen aufgefüllt (z. B. tippt das Mitglied <code>12345</code> und bekommt nach dem Klick weg <code>[Prefix]000000000012345</code>).
+- Backend prüft beim Submit zusätzlich, dass jeder Zählpunkt mit dem konfigurierten Prefix der jeweiligen Richtung beginnt (defense-in-depth).</p>
+<h3 id="aktivierungs-kriterium-proj-53">Aktivierungs-Kriterium (PROJ-53)<a class="headerlink" href="#aktivierungs-kriterium-proj-53" title="Permanent link">&para;</a></h3>
+<p>Steuert, wann eine Anwendung von <strong>„Bereit zur Aktivierung"</strong> auf <strong>„Aktiviert"</strong> wechselt. Beim Übergang auf „Aktiviert" wird automatisch die volle Beitrittsbestätigungs-Mail mit PDF an das Mitglied versandt (und eine Kopie an den EEG-Contact).</p>
+<p>Zwei Optionen:</p>
+<ul>
+<li>
+<p><strong>Variante A — „Mitglied wurde laut eegFaktura in die EEG aufgenommen"</strong> (Default, rückwärtskompatibel):
+  Der Teilnehmer im eegFaktura-Core hat den Status <code>ACTIVE</code>. Klassisches Verhalten — empfohlen für EEGs, die die formale Aufnahme erst nach Abschluss der Netzbetreiber-Anmeldung sehen wollen.</p>
+</li>
+<li>
+<p><strong>Variante B — „Für die Mitgliedschaft ist die Online-Registrierung gestartet"</strong>:
+  Mindestens ein Zählpunkt im Core hat den <code>processState</code> in PENDING / APPROVED / ACTIVE — sprich der Netzbetreiber hat auf die EDA-Online-Registrierung mindestens geantwortet. Damit aktivierst du Mitglieder bereits, sobald die Anmeldung beim Netzbetreiber <strong>läuft</strong>, ohne den Abschluss abzuwarten.</p>
+</li>
+</ul>
+<p>Der Wechsel selbst wird in beiden Fällen entweder <strong>per Antrag manuell</strong> ausgelöst (Button „Als aktiv markieren") oder über den Batch-Button <strong>„Aktivierung im Core prüfen"</strong> in der Antragsübersicht — der nimmt das hier gewählte Kriterium dann automatisch für deine ganze EEG.</p>
+<h3 id="e-mail-adresse-bestatigen">E-Mail-Adresse bestätigen<a class="headerlink" href="#e-mail-adresse-bestatigen" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>E-Mail-Adresse bestätigen</strong>: Wenn aktiv, erhält das neue Mitglied in der Bestätigungs-Mail einen Button „E-Mail-Adresse bestätigen". Erst nach dem Klick wechselt der Antrag in den Status <strong>„E-Mail bestätigt"</strong> und ist für deine Bearbeitung freigegeben. Solange die Bestätigung aussteht, siehst du den Antrag mit dem Status „Eingereicht" und einer Warnung in der Detail-Ansicht.</li>
+</ul>
+<p>Empfehlung: aktivieren, wenn du regelmäßig Müll-Anträge oder Tippfehler bei der E-Mail-Adresse erlebst. Vor dem ersten Lauf prüfen, dass die SMTP-Konfiguration stabil ist — sonst können Mitglieder nicht klicken.</p>
+<p>Falls eine Bestätigungs-Mail im Spam-Ordner landet: in der Antragsdetail-Seite über <strong>„Bestätigungs-Link erneut senden"</strong> kann der Link erneut versendet werden (mit neuem Token; alter Link wird ungültig). Anträge, die 30 Tage lang nicht bestätigt werden, werden automatisch abgelehnt.</p>
+<p>Klicke auf <strong>Speichern</strong>, um alle Änderungen in diesem Abschnitt zu übernehmen.</p>
+<hr />
+<h2 id="einleitungstext">Einleitungstext<a class="headerlink" href="#einleitungstext" title="Permanent link">&para;</a></h2>
+<p><img alt="Einleitungstext" src="../images/admin-settings-intro.png" /></p>
+<p>Der Einleitungstext wird oberhalb des Registrierungsformulars angezeigt. Er kann genutzt werden, um Interessenten zu begrüßen oder Hinweise zur Registrierung zu geben.</p>
+<p>Unterstützte Formatierungen: <strong>Fett</strong>, <em>Kursiv</em>, Listen und Links. Wenn das Feld leer bleibt, wird ein Standardtext angezeigt.</p>
+<p>Klicke auf <strong>Speichern</strong>, um den Text zu übernehmen.</p>
+<hr />
+<h2 id="formular-felder-zahlpunktfelder">Formular-Felder &amp; Zählpunktfelder<a class="headerlink" href="#formular-felder-zahlpunktfelder" title="Permanent link">&para;</a></h2>
+<p><img alt="Formular-Felder" src="../images/admin-settings-fields.png" /></p>
+<p>Hier legst du fest, welche optionalen Felder im Registrierungsformular angezeigt werden.</p>
+<p>Für jedes Feld stehen vier Zustände zur Verfügung:</p>
+<table>
+<thead>
+<tr>
+<th>Zustand</th>
+<th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Ausgeblendet</strong></td>
+<td>Das Feld ist im Registrierungsformular nicht sichtbar.</td>
+</tr>
+<tr>
+<td><strong>Optional</strong></td>
+<td>Das Feld wird angezeigt, muss aber nicht ausgefüllt werden.</td>
+</tr>
+<tr>
+<td><strong>Verpflichtend</strong></td>
+<td>Das Feld muss vom Mitglied ausgefüllt werden.</td>
+</tr>
+<tr>
+<td><strong>Admin-Vorbefüllung</strong></td>
+<td>Das Feld wird nicht im Formular angezeigt. Stattdessen wird der hier eingetragene Standardwert automatisch auf neue Anträge angewendet.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="typabhangige-sichtbarkeit-proj-45-badges">Typabhängige Sichtbarkeit (PROJ-45, Badges)<a class="headerlink" href="#typabhangige-sichtbarkeit-proj-45-badges" title="Permanent link">&para;</a></h3>
+<p>Neben einigen Feldern stehen farbige <strong>Badges</strong>, die dir sofort zeigen, <strong>unter welcher Bedingung</strong> das Feld im Formular wirklich greift — auch wenn du es hier auf <strong>Verpflichtend</strong> stellst:</p>
+<ul>
+<li><strong><code>[Verbraucher]</code></strong> <em>(blau)</em> — wird nur angezeigt, wenn der Zählpunkt CONSUMPTION ist (PROJ-49) bzw. der Antrag mindestens einen Verbraucher-Zählpunkt enthält (Application-Scope). Felder: Wärmepumpe, E-Auto, Anzahl E-Fahrzeuge, Jahres-Kilometer, Warmwasser elektrisch, Personen im Haushalt, Verbrauch Vorjahr, Verbrauch Prognose.</li>
+<li><strong><code>[Einspeisung]</code></strong> <em>(amber)</em> — wird nur bei Erzeuger-Zählpunkten angezeigt (PROJ-49). Felder: Einspeisung Prognose (alle Erzeugungsformen).</li>
+<li><strong><code>[PV]</code></strong> <em>(orange, zusätzlich)</em> — gilt zusätzlich zu <code>[Einspeisung]</code> für Felder, die nur bei Erzeugungsform „PV" sinnvoll sind. Felder: Größe Batterie (kWh), Hersteller Wechselrichter, PV-Leistung (kWp), Einspeiselimit (kW).</li>
+<li><strong><code>[+E-Auto]</code></strong> <em>(lila, zusätzlich)</em> — gilt zusätzlich zu <code>[Verbraucher]</code> für Felder, die nur greifen, wenn das Mitglied „E-Auto vorhanden" mit Ja beantwortet hat. Felder: Anzahl E-Fahrzeuge, Jahres-Kilometer.</li>
+<li><strong><code>[+Speicher]</code></strong> <em>(grün, zusätzlich)</em> — gilt zusätzlich zu <code>[Einspeisung] [PV]</code> für Felder, die im Mitgliedsformular hinter dem Master-Toggle „Batteriespeicher vorhanden" gruppiert sind. Felder: Größe Batterie (kWh), Hersteller Wechselrichter, Speichersteuerung im Sinne der EEG vorstellbar?. Hinweis: Die Pflicht-Validierung der Speichersteuerungs-Frage greift zusätzlich nur dann, wenn das Mitglied tatsächlich Batterie-Daten gesetzt hat.</li>
+</ul>
+<p>Neben jedem Feld mit Badge steht ein kleines <strong>Info-Icon</strong> — Klick/Hover zeigt die exakte Bedingung in Worten. Die Badges sind Single Source of Truth: ändert sich die Bedingung im Code, ändert sich auch die Badge ohne separate Pflege.</p>
+<h3 id="spezielle-konfigurierbare-felder">Spezielle konfigurierbare Felder<a class="headerlink" href="#spezielle-konfigurierbare-felder" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Netzbetreiber-Vollmacht</strong> <em>(PROJ-44, Application-Scope)</em> — das Mitglied erteilt der EEG die Vollmacht, in seinem Namen mit dem Netzbetreiber zu agieren (notwendig z. B. bei Netz OÖ). Der Volltext der Vollmacht ist <strong>fest im Code</strong> und kann hier nicht editiert werden — du steuerst lediglich, ob die Checkbox überhaupt erscheinen soll. Default: <code>Ausgeblendet</code>. Bei <code>Verpflichtend</code> muss das Mitglied das Häkchen aktiv setzen, sonst wird der Antrag nicht submitted.</li>
+<li><strong>Größe Batterie (kWh) / Hersteller Wechselrichter</strong> <em>(PROJ-45, Zählpunkt-Scope)</em> — sammeln Speicher- und WR-Daten für PV-Erzeuger-Zählpunkte, um die EEG-Bewirtschaftung zu optimieren. Im Mitgliedsformular gruppiert hinter dem Master-Toggle „Batteriespeicher vorhanden". Default: <code>Ausgeblendet</code>.</li>
+<li><strong>Speichersteuerung im Sinne der EEG vorstellbar?</strong> <em>(PROJ-49 follow-up, Zählpunkt-Scope, nur PV)</em> — Mitglied-Einverständnis, dass die EEG den Heimspeicher gemeinsam mit anderen Speichern der Mitglieder steuern darf. Sichtbar im Mitgliedsformular nur, wenn das Mitglied den Master-Toggle „Batteriespeicher vorhanden" aktiviert hat. Default: <code>Ausgeblendet</code>. Auf <code>Verpflichtend</code> setzen, wenn ohne Einverständnis kein Antrag möglich sein soll (greift jedoch nur, wenn das Mitglied tatsächlich einen Speicher angegeben hat — sonst wird die Frage gar nicht erst gestellt).</li>
+<li><strong>Verbrauch Vorjahr / Verbrauch Prognose</strong> <em>(PROJ-49, Zählpunkt-Scope)</em> — Energiewerte pro Verbraucher-Zählpunkt. Default: <code>Ausgeblendet</code>.</li>
+<li><strong>Einspeisung Prognose</strong> <em>(PROJ-49, Zählpunkt-Scope)</em> — jährliche Einspeise-Prognose pro Erzeuger-Zählpunkt (alle Erzeugungsformen). Default: <code>Ausgeblendet</code>.</li>
+<li><strong>PV-Leistung (kWp)</strong> <em>(PROJ-49, Zählpunkt-Scope, nur PV)</em> — installierte Spitzenleistung pro PV-Zählpunkt. Default: <code>Ausgeblendet</code>.</li>
+<li><strong>Einspeiselimit (kW)</strong> <em>(PROJ-49, Zählpunkt-Scope, nur PV)</em> — maximal zulässige Einspeiseleistung, wenn der Netzanschluss begrenzt ist. Mitglied wählt zuerst Ja/Nein und gibt bei Ja den Wert in kW ein. Default: <code>Ausgeblendet</code>.</li>
+<li><strong>Bankname</strong> <em>(Application-Scope, ab 2026-05-18 konfigurierbar)</em> — bisher fix im Bankverbindungsblock angezeigt. Default <code>Optional</code> (bewahrt heutiges Verhalten). Auf <code>Ausgeblendet</code> setzen, wenn IBAN+Kontoinhaber genügen sollen; auf <code>Verpflichtend</code>, wenn der Bankname explizit gefordert ist (z. B. weil die EEG bei Auslandsüberweisungen die Bank kennen will).</li>
+<li><strong>Teilnahmefaktor (%)</strong> <em>(Zählpunkt-Scope, ab 2026-05-19 konfigurierbar)</em> — bisher fix sichtbar im Mitgliedsformular, vorbelegt mit 100 %. Default <code>Optional</code> (bewahrt heutiges Verhalten — Mitglied sieht das Feld und kann den Wert ändern). Bei <code>Ausgeblendet</code> oder <code>Admin-Vorbefüllung</code> ist das Feld im Formular weg und der Wert wird serverseitig automatisch auf <strong>100 %</strong> gesetzt. Bei <code>Verpflichtend</code> bleibt das Feld sichtbar und mit 100 % vorbelegt — der Default macht den Wert technisch nie leer, das Pflicht-Häkchen erinnert das Mitglied nur, hinzuschauen. <strong>In allen Modi</strong> zeigen Beitrittsbestätigungs-PDF, Mail und Excel-Export den Teilnahmefaktor unverändert — der Toggle steuert nur die Public-Form-Sichtbarkeit, nicht die Render-Pfade.</li>
+</ul>
+<p>Klicke auf <strong>Konfiguration speichern</strong>, um die Änderungen zu übernehmen.</p>
+<hr />
+<h2 id="rechtsdokumente">Rechtsdokumente<a class="headerlink" href="#rechtsdokumente" title="Permanent link">&para;</a></h2>
+<p><img alt="Rechtsdokumente" src="../images/admin-settings-legal.png" /></p>
+<p>Hier verwaltest du EEG-spezifische Dokumente (z.B. Satzung, Nutzungsbedingungen). Jedes Dokument wird auf eine von zwei Arten behandelt:</p>
+<table>
+<thead>
+<tr>
+<th>Modus</th>
+<th>Anzeige im Formular</th>
+<th>Was wird protokolliert</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Mitglied muss zustimmen</strong></td>
+<td>Checkbox direkt im Formular. Ohne Häkchen kann der Antrag nicht abgesendet werden.</td>
+<td>„Zugestimmt am …" mit Zeitstempel im Antrag und im Beitrittsbestätigungs-PDF.</td>
+</tr>
+<tr>
+<td><strong>Nur zur Information</strong></td>
+<td>Das Dokument erscheint als Link im Block „Zur Information", kein Häkchen.</td>
+<td>„Kenntnis genommen am …" mit Zeitstempel — die Kenntnisnahme erfolgt implizit mit dem Absenden des Antrags.</td>
+</tr>
+</tbody>
+</table>
+<p>Die Auswahl ist binär — ein „optional anhakbar" gibt es nicht mehr.</p>
+<h3 id="dokument-hinzufugen">Dokument hinzufügen<a class="headerlink" href="#dokument-hinzufugen" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Klicke auf <strong>Dokument hinzufügen</strong>.</li>
+<li>Gib einen Titel und die URL des Dokuments ein.</li>
+<li>Wähle über den Schalter <strong>„Mitglied muss zustimmen"</strong> vs <strong>„Nur zur Information"</strong> — der Hinweistext unter dem Schalter erklärt das Verhalten.</li>
+<li>Klicke auf <strong>Hinzufügen</strong>.</li>
+</ol>
+<h3 id="dokument-bearbeiten-oder-loschen">Dokument bearbeiten oder löschen<a class="headerlink" href="#dokument-bearbeiten-oder-loschen" title="Permanent link">&para;</a></h3>
+<p>Über die Symbole in der Dokumentenliste kannst du bestehende Einträge bearbeiten oder entfernen.</p>
+<blockquote>
+<p><strong>Hinweis:</strong> Die zentrale Datenschutzerklärung (für alle EEGs gemeinsam) wird über die Servereinstellungen konfiguriert, nicht hier.</p>
+</blockquote>
+<hr />
+<h2 id="externe-api">Externe API<a class="headerlink" href="#externe-api" title="Permanent link">&para;</a></h2>
+<p><img alt="Externe API" src="../images/admin-settings-api.png" /></p>
+<p>Dieser Abschnitt zeigt den API-Key für die externe Registrierungs-API. Der Key ermöglicht das Einreichen von Mitgliedsanträgen über eine eigene Integration (z.B. ein Formular auf deiner Website).</p>
+<blockquote>
+<p><strong>Sicherheitshinweis:</strong> Der API-Key darf ausschließlich server-seitig verwendet werden — niemals direkt in Browser-seitigem Code. Behandle ihn wie ein Passwort.</p>
+</blockquote>
+<p>Über <strong>Neuen Key generieren</strong> kannst du den bestehenden Key ungültig machen und einen neuen ausstellen.</p>
+<hr />
+<h2 id="datenweiterleitung">Datenweiterleitung<a class="headerlink" href="#datenweiterleitung" title="Permanent link">&para;</a></h2>
+<p><img alt="Datenweiterleitung" src="../images/admin-settings-datenweiterleitung.png" /></p>
+<p>Asynchrone Weitergabe von Antragsdaten an externe Systeme (PROJ-60). Aktuell verfügbar:</p>
+<ul>
+<li><strong>Excel/CSV-Export</strong> — generiert eine Datei mit konfigurierbarem Feldsatz; pro-EEG anpassbar (welche Felder enthalten sind, in welcher Reihenfolge, mit welcher Spaltenüberschrift).</li>
+<li>Weitere Plugins (Zoho, HubSpot, …) lassen sich später als zusätzliche Implementierungen ergänzen — der Mechanismus dahinter ist generisch.</li>
+</ul>
+<h3 id="daten-weiterleiten">Daten weiterleiten<a class="headerlink" href="#daten-weiterleiten" title="Permanent link">&para;</a></h3>
+<p>Aus der <strong>Antragsliste</strong>:
+1. Mehrere Anträge per Checkbox auswählen
+2. Bulk-Aktion <strong>Datenweiterleitung</strong> klicken → Plugin wählen → Job läuft im Hintergrund</p>
+<p>Aus dem <strong>Antragsdetail</strong>:
+- Schaltfläche <strong>Datenweiterleitung</strong> in der Aktionsleiste — leitet den einzelnen Antrag weiter.</p>
+<h3 id="job-ubersicht">Job-Übersicht<a class="headerlink" href="#job-ubersicht" title="Permanent link">&para;</a></h3>
+<p>Auf dieser Seite siehst du den Verlauf aller Jobs (Status, Anzahl Anträge, Zeitpunkt, Ergebnisdatei zum Download). Fehlerhafte Jobs erzeugen automatisch eine Benachrichtigungs-E-Mail an die EEG-Kontaktadresse.</p>
+<blockquote>
+<p><strong>DSGVO-Hinweis:</strong> Beim Hinzufügen sensibler Felder (IBAN, Geburtsdatum) zu einer Exportkonfiguration zeigt die UI eine Warnung. Die Verantwortung für die rechtmäßige Weiterverarbeitung liegt beim Empfänger-System.</p>
+</blockquote>
+<hr />
+<h2 id="konfiguration-import-export">Konfiguration Import / Export<a class="headerlink" href="#konfiguration-import-export" title="Permanent link">&para;</a></h2>
+<p><img alt="Konfiguration Import/Export" src="../images/admin-settings-import-export.png" /></p>
+<p>Sicherung und Übertragung der per-EEG-Konfiguration als versionierte JSON-Datei (PROJ-61). Nützlich um:</p>
+<ul>
+<li>mehrere EEGs auf eine gemeinsame Grund-Konfiguration zu bringen,</li>
+<li>vor einem riskanten Apply den Ist-Zustand zu sichern,</li>
+<li>Konfigurations-Stände nachvollziehbar in Git zu halten.</li>
+</ul>
+<h3 id="export">Export<a class="headerlink" href="#export" title="Permanent link">&para;</a></h3>
+<p>Vier Sektionen sind einzeln oder als <strong>Komplett-Bundle</strong> exportierbar:</p>
+<table>
+<thead>
+<tr>
+<th>Sektion</th>
+<th>Inhalt</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EEG-Einstellungen</td>
+<td>Stammdaten, SEPA-Mandat-Settings, Aktivierungsmodus, Mitgliedsnummern-Startwert, Einleitungstext</td>
+</tr>
+<tr>
+<td>Formular-Felder</td>
+<td>Sichtbarkeit/Pflicht/Admin-only-Status aller konfigurierbaren Felder</td>
+</tr>
+<tr>
+<td>Rechtsdokumente</td>
+<td>Liste aller hinterlegten Dokumente mit Titel, URL und Zustimmungsmodus</td>
+</tr>
+<tr>
+<td>Datenweiterleitungs-Konfig</td>
+<td>Plugin-Konfigurationen für die Datenweiterleitung</td>
+</tr>
+</tbody>
+</table>
+<p>Dateiname enthält RC-Nummer und Zeitstempel — manuelle Versionierung in Git oder einem Backup-System ist damit unproblematisch.</p>
+<h3 id="import-mit-diff-preview">Import mit Diff-Preview<a class="headerlink" href="#import-mit-diff-preview" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Datei hochladen</strong> (Drag-and-Drop oder Auswahldialog) — max 1 MB, nur <code>.json</code>. Die Datei wird serverseitig schemavalidiert; bei Fehlern wird der Upload abgelehnt.</li>
+<li><strong>Diff-Preview</strong> zeigt pro Sektion was sich ändert: hinzugefügt, modifiziert, entfernt oder unverändert.</li>
+<li><strong>Sektionen aus-/abwählen</strong> — nur ausgewählte werden tatsächlich angewendet.</li>
+<li><strong>Apply</strong> schreibt die Änderungen atomar (pro Sektion eine Transaktion). Apply ist <strong>nicht</strong> automatisch reversibel — daher der Hinweis oben, vorher die aktuelle Konfig zu exportieren.</li>
+</ol>
+<blockquote>
+<p><strong>Tipp:</strong> Apply läuft mit einer <code>pg_advisory_xact_lock</code> — parallele Konfig-Änderungen über mehrere Browser-Tabs werden serialisiert, niemand überschreibt sich gegenseitig.</p>
+</blockquote>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Zurück zum Seitenanfang
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Fußzeile" >
+        
+          
+          <a href="../05-admin-status/" class="md-footer__link md-footer__link--prev" aria-label="Zurück: Statusverwaltung">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Zurück
+              </span>
+              <div class="md-ellipsis">
+                Statusverwaltung
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../07-emails-and-pdfs/" class="md-footer__link md-footer__link--next" aria-label="Weiter: E-Mails &amp; PDFs">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Weiter
+              </span>
+              <div class="md-ellipsis">
+                E-Mails & PDFs
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.tabs.link"], "search": "../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "In Zwischenablage kopiert", "clipboard.copy": "In Zwischenablage kopieren", "search.result.more.one": "1 weiteres Suchergebnis auf dieser Seite", "search.result.more.other": "# weitere Suchergebnisse auf dieser Seite", "search.result.none": "Keine Suchergebnisse", "search.result.one": "1 Suchergebnis", "search.result.other": "# Suchergebnisse", "search.result.placeholder": "Suchbegriff eingeben", "search.result.term.missing": "Es fehlt", "select.version": "Version ausw\u00e4hlen"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.88dd0f4e.min.js"></script>
+      
+    
+  </body>
+</html>
