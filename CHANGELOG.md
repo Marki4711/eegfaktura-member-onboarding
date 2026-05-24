@@ -10,6 +10,71 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### PROJ-61 — Konfigurations-Export & -Import pro EEG (Backend) *(2026-05-24)*
+
+Neues Feature: Tenant-Admin kann die Konfig einer EEG als versionierte
+JSON-Datei exportieren und auf eine andere EEG (für die er auch
+Admin-Rechte hat) importieren. Vier Sub-Typen: EEG-Einstellungen,
+Field-Config, Legal-Documents, Data-Export-Configs. Replace-Semantik
+mit Diff-Preview und Cross-Section-Atomarität.
+
+**Refactoring (Schritt 1):**
+- Neues Paket `internal/sanitize/` extrahiert die bluemonday-Policy
+  + URL-Format-Validator + ENUM-Checks aus `internal/http/admin.go`.
+  Sowohl HTTP-Handler-Pfad als auch der neue Import-Pfad nutzen
+  denselben Code (kein Drift-Risiko).
+- 16 Unit-Tests für sanitize-Paket.
+
+**Repo-Erweiterungen (Schritt 2):**
+- 7 Tx-Variant-Methoden für Cross-Section-Atomarität:
+  - `RegistrationEntrypointRepository.SaveAllEEGSettingsTx`
+    (konsolidiert: 12 Felder in 1 UPDATE statt 6 separater Save-Aufrufe)
+  - `FieldConfigRepository.SaveTx`
+  - `LegalDocumentRepository.DeleteByRCNumberTx` + `CreateTx`
+  - `dataexport.ConfigRepository.CreateTx` + `SoftDeleteByRCNumberTx`
+    + `MarkObsoleteTx`
+- Bestehende non-Tx-Methoden bleiben unverändert für UI-Pfade.
+
+**Neues Paket `internal/configexport/`:**
+- `schema.go` — versionierte JSON-Strukturen, SchemaVersion=1 strict
+- `limits.go` — Per-Sektion-Item-Limits (100/50/50), MaxFileSize 1 MB
+- `exporter.go` — assembliert Snapshot aus 4 Repos
+- `diff.go` — Diff-Engine: per-Name-Match für field_config +
+  data_export_configs, Komplett-Replace-Diff für legal_documents
+  (kein UNIQUE auf title), per-Feld-Diff mit Warning-Types für
+  EEG-Settings (network_region_specific, financial)
+- `importer.go` — Validate + Sanitize + Diff + Apply in Tx mit
+  `pg_advisory_xact_lock(hashtext(rc_number))` (10 s Timeout → 409),
+  Stateless-Apply (Re-Validation statt Preview-Token), Drift-Warnings
+  für unknown plugin_type
+- 25 Unit-Tests (Parse, Diff-Engine, Validator-Pipeline)
+
+**HTTP-Handler `internal/http/configexport.go`:**
+- `GET /api/admin/config/export?rcNumber=...&sections=...` — JSON-
+  Download mit Content-Disposition-Filename
+- `POST /api/admin/config/import/preview` — Multipart-Upload,
+  Response: strukturierter Diff
+- `POST /api/admin/config/import/apply` — JSON-Body mit
+  `sectionsToApply`, Response: ApplySummary mit Counts pro Sektion
+- Tenant-Auth via existierende KeycloakAuthMiddleware +
+  per-Handler-rcNumber-Check
+- 1 MB File-Size-Limit (auch via MaxBodySize-Middleware)
+- UTF-8-BOM beim Parse stripped (manche Editoren fügen es hinzu)
+- Kategorisierte Fehler-Responses (ValidationError mit section + field)
+
+**Bewusst NICHT implementiert:**
+- Keine neue DB-Tabelle, keine Migration (Owner-Entscheidung:
+  Minimal-Audit nur via slog, kein DB-Audit-Log)
+- Keine Pre-State-Auto-Backup (Admin-Verantwortung)
+- Keine Preview-Token-State (Apply re-validiert komplett, stateless)
+- Keine HEAD-Request-URL-Validation (SSRF-Vermeidung)
+- Keine Frontend-Komponenten — kommen im nächsten Schritt
+
+**Bleibt für /qa und /frontend:**
+- Integration-Tests gegen Test-DB (Apply-Pfad mit Tx + Advisory-Lock)
+- Frontend-UI unter `/admin/settings/import-export`
+- E2E-Roundtrip-Tests (Export → Upload → Preview → Apply)
+
 ### PROJ-60 — EEG-Stammdaten als exportierbare Spalten *(2026-05-24)*
 
 Eigentümer-Anforderung: Mitglieder-Backup-Liste außerhalb des Systems
