@@ -180,7 +180,7 @@ func main() {
 	dataExportConfigRepo := dataexport.NewConfigRepository(db)
 	dataExportJobRepo := dataexport.NewJobRepository(db)
 	dataExportResultRepo := dataexport.NewResultRepository(db)
-	dataExportAppLoader := dataexport.NewAppLoader(appRepo, meteringRepo)
+	dataExportAppLoader := dataexport.NewAppLoader(appRepo, meteringRepo, entrypointRepo)
 	dataExportConfigService := dataexport.NewConfigService(dataExportConfigRepo, dataExportAppLoader)
 	dataExportJobService := dataexport.NewJobService(dataExportConfigRepo, dataExportJobRepo, dataExportResultRepo, dataExportAppLoader)
 

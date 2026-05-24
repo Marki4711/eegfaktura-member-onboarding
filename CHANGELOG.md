@@ -10,6 +10,32 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### PROJ-60 — EEG-Stammdaten als exportierbare Spalten *(2026-05-24)*
+
+Eigentümer-Anforderung: Mitglieder-Backup-Liste außerhalb des Systems
+braucht EEG-Stammdaten (Name, Adresse, Creditor-ID, …) als Spalten —
+diese leben auf `registration_entrypoint` und waren bisher in PROJ-60
+nicht exportierbar.
+
+- `ApplicationSnapshot` (`internal/dataexport/plugin.go`) bekommt
+  `Entrypoint *shared.RegistrationEntrypoint`-Feld; Loader lädt die
+  Entrypoint-Zeile einmal pro Job (1 RC = 1 Entrypoint) und teilt den
+  Pointer auf alle Snapshots — keine N-Roundtrips.
+- `AppLoader`-Konstruktor erwartet jetzt zusätzlich
+  `*RegistrationEntrypointRepository` (Aufruf in `cmd/server/main.go`
+  angepasst).
+- Neue Field-Kategorie **„EEG-Stammdaten"** mit 8 Spalten in
+  `internal/dataexport/excel/fields.go` + Mirror in
+  `src/lib/data-export-fields.ts`:
+  - `eeg_name`, `eeg_street`, `eeg_street_number`, `eeg_zip`, `eeg_city`
+  - `eeg_id` (Core-Referenz)
+  - `eeg_creditor_id` (SEPA-Gläubiger-ID)
+  - `eeg_contact_email`
+- Helper `entrypointStr()` fängt nil-Entrypoint sauber ab — Plugin-
+  Vertrag bleibt defensive auch ohne Loader-Hilfe nutzbar.
+- 3 neue Go-Unit-Tests in `internal/dataexport/excel/plugin_test.go`
+  (Happy-Path, nil-Entrypoint, NULL-Optionalfelder).
+
 ### Welle 11 — Severity-Drift + Tot-Code in metrics *(2026-05-24)*
 
 Sub-Tickets **3d + 3e** aus AUDIT-TODO. Reine Cleanup-Welle.

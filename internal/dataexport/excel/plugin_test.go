@@ -517,3 +517,86 @@ func min(a, b int) int {
 	}
 	return b
 }
+
+// =====================================================================
+// EEG-Stammdaten-Felder
+// =====================================================================
+
+func TestEntrypointFields_ExtractValues(t *testing.T) {
+	name := "Test-EEG Wien"
+	street := "Beispielstraße"
+	streetNo := "12a"
+	zip := "1010"
+	city := "Wien"
+	eegID := "EEG-WIEN-001"
+	creditor := "AT12ZZZ00000000001"
+	contact := "office@test-eeg.example"
+	app := dataexport.ApplicationSnapshot{
+		Application: &shared.Application{ID: uuid.New(), RCNumber: "RC0001"},
+		Entrypoint: &shared.RegistrationEntrypoint{
+			RCNumber:        "RC0001",
+			EEGName:         &name,
+			EEGStreet:       &street,
+			EEGStreetNumber: &streetNo,
+			EEGZip:          &zip,
+			EEGCity:         &city,
+			EegID:           &eegID,
+			CreditorID:      &creditor,
+			ContactEmail:    &contact,
+		},
+	}
+	cases := []struct {
+		key  string
+		want string
+	}{
+		{"eeg_name", name},
+		{"eeg_street", street},
+		{"eeg_street_number", streetNo},
+		{"eeg_zip", zip},
+		{"eeg_city", city},
+		{"eeg_id", eegID},
+		{"eeg_creditor_id", creditor},
+		{"eeg_contact_email", contact},
+	}
+	for _, tc := range cases {
+		def, ok := AvailableFields[tc.key]
+		if !ok {
+			t.Fatalf("field %q not in catalog", tc.key)
+		}
+		got := formatValue(def.Extract(app), def.Type, "", def.EnumLabels)
+		if got != tc.want {
+			t.Errorf("field %q: got %q, want %q", tc.key, got, tc.want)
+		}
+	}
+}
+
+func TestEntrypointFields_NilEntrypointYieldsEmpty(t *testing.T) {
+	app := dataexport.ApplicationSnapshot{
+		Application: &shared.Application{ID: uuid.New(), RCNumber: "RC0001"},
+		Entrypoint:  nil,
+	}
+	for _, key := range []string{"eeg_name", "eeg_street", "eeg_zip", "eeg_id", "eeg_creditor_id", "eeg_contact_email"} {
+		def := AvailableFields[key]
+		got := formatValue(def.Extract(app), def.Type, "", def.EnumLabels)
+		if got != "" {
+			t.Errorf("field %q with nil Entrypoint: got %q, want empty", key, got)
+		}
+	}
+}
+
+func TestEntrypointFields_NilOptionalFieldsYieldEmpty(t *testing.T) {
+	// Entrypoint vorhanden, aber die optionalen Stammdaten-Felder sind NULL.
+	app := dataexport.ApplicationSnapshot{
+		Application: &shared.Application{ID: uuid.New(), RCNumber: "RC0001"},
+		Entrypoint: &shared.RegistrationEntrypoint{
+			RCNumber: "RC0001",
+		},
+	}
+	for _, key := range []string{"eeg_name", "eeg_street", "eeg_zip", "eeg_id", "eeg_creditor_id", "eeg_contact_email"} {
+		def := AvailableFields[key]
+		got := formatValue(def.Extract(app), def.Type, "", def.EnumLabels)
+		if got != "" {
+			t.Errorf("field %q with NULL field: got %q, want empty", key, got)
+		}
+	}
+}

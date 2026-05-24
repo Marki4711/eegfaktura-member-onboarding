@@ -64,10 +64,13 @@ type StandardConfig struct {
 
 // ApplicationSnapshot is the read-only view of an application that
 // plugins receive. Contains application data plus its metering points
-// — both already loaded from the database.
+// and the EEG's master data (Entrypoint) — all already loaded from
+// the database. Entrypoint is shared across all snapshots in one job
+// (one job = one RC number = one entrypoint row).
 type ApplicationSnapshot struct {
 	Application    *shared.Application
 	MeteringPoints []shared.MeteringPoint
+	Entrypoint     *shared.RegistrationEntrypoint
 }
 
 // Result is the polymorphic outcome of Plugin.Process. Either a

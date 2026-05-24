@@ -392,6 +392,59 @@ var AvailableFields = map[string]FieldDefinition{
 			return out
 		},
 	},
+
+	// EEG-Stammdaten (aus registration_entrypoint, per RC einmalig geladen)
+	"eeg_name": {
+		Key: "eeg_name", Label: "EEG-Name", Category: "EEG-Stammdaten",
+		Type:    FieldTypeText,
+		Extract: func(a dataexport.ApplicationSnapshot) interface{} { return entrypointStr(a, func(ep *shared.RegistrationEntrypoint) *string { return ep.EEGName }) },
+	},
+	"eeg_street": {
+		Key: "eeg_street", Label: "EEG-Straße", Category: "EEG-Stammdaten",
+		Type:    FieldTypeText,
+		Extract: func(a dataexport.ApplicationSnapshot) interface{} { return entrypointStr(a, func(ep *shared.RegistrationEntrypoint) *string { return ep.EEGStreet }) },
+	},
+	"eeg_street_number": {
+		Key: "eeg_street_number", Label: "EEG-Hausnummer", Category: "EEG-Stammdaten",
+		Type:    FieldTypeText,
+		Extract: func(a dataexport.ApplicationSnapshot) interface{} { return entrypointStr(a, func(ep *shared.RegistrationEntrypoint) *string { return ep.EEGStreetNumber }) },
+	},
+	"eeg_zip": {
+		Key: "eeg_zip", Label: "EEG-PLZ", Category: "EEG-Stammdaten",
+		Type:    FieldTypeText,
+		Extract: func(a dataexport.ApplicationSnapshot) interface{} { return entrypointStr(a, func(ep *shared.RegistrationEntrypoint) *string { return ep.EEGZip }) },
+	},
+	"eeg_city": {
+		Key: "eeg_city", Label: "EEG-Ort", Category: "EEG-Stammdaten",
+		Type:    FieldTypeText,
+		Extract: func(a dataexport.ApplicationSnapshot) interface{} { return entrypointStr(a, func(ep *shared.RegistrationEntrypoint) *string { return ep.EEGCity }) },
+	},
+	"eeg_id": {
+		Key: "eeg_id", Label: "EEG-ID (Core)", Category: "EEG-Stammdaten",
+		Type:    FieldTypeText,
+		Extract: func(a dataexport.ApplicationSnapshot) interface{} { return entrypointStr(a, func(ep *shared.RegistrationEntrypoint) *string { return ep.EegID }) },
+	},
+	"eeg_creditor_id": {
+		Key: "eeg_creditor_id", Label: "EEG-Creditor-ID (SEPA)", Category: "EEG-Stammdaten",
+		Type:    FieldTypeText,
+		Extract: func(a dataexport.ApplicationSnapshot) interface{} { return entrypointStr(a, func(ep *shared.RegistrationEntrypoint) *string { return ep.CreditorID }) },
+	},
+	"eeg_contact_email": {
+		Key: "eeg_contact_email", Label: "EEG-Kontakt-E-Mail", Category: "EEG-Stammdaten",
+		Type:    FieldTypeText,
+		Extract: func(a dataexport.ApplicationSnapshot) interface{} { return entrypointStr(a, func(ep *shared.RegistrationEntrypoint) *string { return ep.ContactEmail }) },
+	},
+}
+
+// entrypointStr extracts an optional string field from the snapshot's
+// Entrypoint. Returns nil (→ "" im Export) wenn der Entrypoint nicht geladen
+// oder das Feld leer ist; verhindert Nil-Pointer-Panic, falls ein Plugin
+// jemals ohne Loader-Hilfe gebaut wird.
+func entrypointStr(a dataexport.ApplicationSnapshot, get func(*shared.RegistrationEntrypoint) *string) interface{} {
+	if a.Entrypoint == nil {
+		return nil
+	}
+	return derefStr(get(a.Entrypoint))
 }
 
 // suppress unused import warnings for shared package referenced via types

@@ -56,6 +56,16 @@ export const EXCEL_FIELD_CATALOG: ExcelFieldDef[] = [
   // Zählpunkte
   { key: "meter_count", label: "Anzahl Zählpunkte", category: "Zählpunkte", type: "number" },
   { key: "meter_numbers", label: "Zählpunkte", category: "Zählpunkte", type: "multi" },
+
+  // EEG-Stammdaten (aus registration_entrypoint, identisch für alle Anträge eines Exports)
+  { key: "eeg_name", label: "EEG-Name", category: "EEG-Stammdaten", type: "text" },
+  { key: "eeg_street", label: "EEG-Straße", category: "EEG-Stammdaten", type: "text" },
+  { key: "eeg_street_number", label: "EEG-Hausnummer", category: "EEG-Stammdaten", type: "text" },
+  { key: "eeg_zip", label: "EEG-PLZ", category: "EEG-Stammdaten", type: "text" },
+  { key: "eeg_city", label: "EEG-Ort", category: "EEG-Stammdaten", type: "text" },
+  { key: "eeg_id", label: "EEG-ID (Core)", category: "EEG-Stammdaten", type: "text" },
+  { key: "eeg_creditor_id", label: "EEG-Creditor-ID (SEPA)", category: "EEG-Stammdaten", type: "text" },
+  { key: "eeg_contact_email", label: "EEG-Kontakt-E-Mail", category: "EEG-Stammdaten", type: "text" },
 ];
 
 export const EXCEL_FIELD_CATEGORIES = [
@@ -65,6 +75,7 @@ export const EXCEL_FIELD_CATEGORIES = [
   "Bank",
   "EEG",
   "Zählpunkte",
+  "EEG-Stammdaten",
 ];
 
 export interface ExcelFormatOption {

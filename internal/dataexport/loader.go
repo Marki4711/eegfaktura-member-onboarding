@@ -13,14 +13,20 @@ import (
 )
 
 // AppLoader is the concrete ApplicationLoader implementation that wraps
-// the existing ApplicationRepository + MeteringPointRepository.
+// the existing ApplicationRepository + MeteringPointRepository +
+// RegistrationEntrypointRepository.
 type AppLoader struct {
-	appRepo   *application.ApplicationRepository
-	meterRepo *application.MeteringPointRepository
+	appRepo        *application.ApplicationRepository
+	meterRepo      *application.MeteringPointRepository
+	entrypointRepo *application.RegistrationEntrypointRepository
 }
 
-func NewAppLoader(appRepo *application.ApplicationRepository, meterRepo *application.MeteringPointRepository) *AppLoader {
-	return &AppLoader{appRepo: appRepo, meterRepo: meterRepo}
+func NewAppLoader(
+	appRepo *application.ApplicationRepository,
+	meterRepo *application.MeteringPointRepository,
+	entrypointRepo *application.RegistrationEntrypointRepository,
+) *AppLoader {
+	return &AppLoader{appRepo: appRepo, meterRepo: meterRepo, entrypointRepo: entrypointRepo}
 }
 
 // LoadForExport fetches the given application IDs and their metering points
@@ -79,11 +85,20 @@ func (l *AppLoader) LoadForExport(_ context.Context, rcNumber string, ids []uuid
 		return nil, fmt.Errorf("batch load metering points: %w", err)
 	}
 
+	// One job = one RC = one entrypoint row. Load once and share the
+	// pointer across snapshots — keeps EEG-Stammdaten-Felder im Export
+	// verfügbar ohne pro-Antrag-Roundtrip.
+	entrypoint, err := l.entrypointRepo.GetByRCNumber(rcNumber)
+	if err != nil {
+		return nil, fmt.Errorf("load entrypoint for export: %w", err)
+	}
+
 	out := make([]ApplicationSnapshot, 0, len(keepApps))
 	for _, app := range keepApps {
 		out = append(out, ApplicationSnapshot{
 			Application:    app,
 			MeteringPoints: meters[app.ID], // nil-safe: missing key returns nil slice
+			Entrypoint:     entrypoint,
 		})
 	}
 	return out, nil
@@ -170,6 +185,13 @@ func (l *AppLoader) LoadRecentImportedForPreview(_ context.Context, rcNumber str
 		return nil, fmt.Errorf("batch load preview metering points: %w", err)
 	}
 
+	// Entrypoint einmal pro RC (siehe LoadForExport). Preview-Pfad nutzt
+	// die EEG-Stammdaten in derselben Form wie der echte Export.
+	entrypoint, err := l.entrypointRepo.GetByRCNumber(rcNumber)
+	if err != nil {
+		return nil, fmt.Errorf("load entrypoint for preview: %w", err)
+	}
+
 	// Preserve sort order from the pooled List() result by mapping by ID.
 	byID := make(map[uuid.UUID]*shared.Application, len(apps))
 	for _, app := range apps {
@@ -184,6 +206,7 @@ func (l *AppLoader) LoadRecentImportedForPreview(_ context.Context, rcNumber str
 		out = append(out, ApplicationSnapshot{
 			Application:    app,
 			MeteringPoints: meters[it.ID],
+			Entrypoint:     entrypoint,
 		})
 	}
 	return out, nil
