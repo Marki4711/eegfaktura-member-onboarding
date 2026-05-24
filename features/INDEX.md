@@ -41,10 +41,10 @@ Central tracking for all features.
 | PROJ-24 | OpenAPI/Swagger Dokumentation | Deployed | `features/PROJ-24-openapi-documentation.md` | 2026-04-29 |
 | PROJ-25 | Bulk-Aktionen im Admin | Deployed | `features/PROJ-25-bulk-actions.md` | 2026-04-29 |
 | PROJ-26 | Eigener Mailserver pro EEG | On Hold | `features/PROJ-26-per-eeg-smtp-override.md` | 2026-05-08 |
-| PROJ-27 | Tarif-Auswahl beim Import | Approved | `features/PROJ-27-tariff-selection-on-import.md` | 2026-05-09 |
-| PROJ-28 | Trennung Privat / Kleinunternehmer | Approved | `features/PROJ-28-split-private-and-kleinunternehmer.md` | 2026-05-12 |
-| PROJ-29 | IBAN-Eingabe mit visueller Gruppierung | Approved | `features/PROJ-29-iban-visual-grouping.md` | 2026-05-12 |
-| PROJ-30 | Reset eines importierten Antrags auf approved | Approved | `features/PROJ-30-reset-imported-to-approved.md` | 2026-05-12 |
+| PROJ-27 | Tarif-Auswahl beim Import | Deployed | `features/PROJ-27-tariff-selection-on-import.md` | 2026-05-09 |
+| PROJ-28 | Trennung Privat / Kleinunternehmer | Deployed | `features/PROJ-28-split-private-and-kleinunternehmer.md` | 2026-05-12 |
+| PROJ-29 | IBAN-Eingabe mit visueller Gruppierung | Deployed | `features/PROJ-29-iban-visual-grouping.md` | 2026-05-12 |
+| PROJ-30 | Reset eines importierten Antrags auf approved | Deployed | `features/PROJ-30-reset-imported-to-approved.md` | 2026-05-12 |
 | PROJ-31 | E-Mail-Adresse-Bestätigung (Anti-Abuse) | Deployed | `features/PROJ-31-email-confirmation.md` | 2026-05-14 |
 | PROJ-32 | EEG-Stammdaten aus Core (Phase 1 – ohne Logo) | Deployed | `features/PROJ-32-eeg-master-data-from-core.md` | 2026-05-14 |
 | PROJ-33 | EEG-Logo aus Core (Phase 2 von PROJ-32) | Deployed | `features/PROJ-33-eeg-logo-from-core.md` | 2026-05-14 |
@@ -73,6 +73,6 @@ Central tracking for all features.
 | PROJ-57 | Ansprechperson für Org-Mitgliedstypen | Deployed | `features/PROJ-57-contact-person.md` | 2026-05-21 |
 | PROJ-58 | Abweichende Rechnungs-E-Mail für Org-Mitgliedstypen | Deployed | `features/PROJ-58-billing-email.md` | 2026-05-21 |
 | PROJ-59 | BgA / Hoheitsbereich-Vermerk im Anlagennamen bei Gemeinden | Deployed | `features/PROJ-59-municipal-business-type-per-meter.md` | 2026-05-23 |
-| PROJ-60 | Datenweiterleitung an externe Systeme — Async-Plugin-Framework mit Job-Queue + In-App-Worker; Excel/CSV-Plugin als erste Implementierung; Bulk-Action aus Antragsliste oder Single aus Detail; Phase 2 = weitere Plugins (Zoho/HubSpot/…) | Approved | `features/PROJ-60-external-system-sync.md` | 2026-05-23 |
+| PROJ-60 | Datenweiterleitung an externe Systeme — Async-Plugin-Framework mit Job-Queue + In-App-Worker; Excel/CSV-Plugin als erste Implementierung; Bulk-Action aus Antragsliste oder Single aus Detail; Phase 2 = weitere Plugins (Zoho/HubSpot/…) | Deployed | `features/PROJ-60-external-system-sync.md` | 2026-05-23 |
 
 ## Next Available ID: PROJ-61
