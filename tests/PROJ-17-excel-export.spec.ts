@@ -9,14 +9,14 @@ const BACKEND = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 test("AC-BE1: GET /api/admin/applications/{id}/export/excel requires authentication", async ({
   request,
 }) => {
-  test.skip(process.env.CI === "true", "AUDIT-TODO §5h Auth-Fixture: CI deaktiviert Keycloak (KEYCLOAK_JWKS_URL leer), Endpoint liefert 200 statt 401 — Test wird grün, sobald Auth-Bypass-Header oder Test-Token-Fixture etabliert ist");
   await skipIfBackendDown(request);
 
   // Request without auth token must be rejected
   const res = await request.get(
     `${BACKEND}/api/admin/applications/00000000-0000-0000-0000-000000000000/export/excel`
   );
-  // Keycloak middleware returns 401 for missing JWT
+  // Keycloak middleware returns 401 for missing JWT;
+  // TestHeaderAuthMiddleware liefert dasselbe 401, wenn keine X-Test-* Header gesetzt sind.
   expect(res.status()).toBe(401);
 });
 
@@ -99,7 +99,6 @@ test("AC-FE4: Admin detail page renders without JS errors", async ({ page }) => 
 test("AC-BE5: Export endpoint sets correct Content-Type and Content-Disposition (auth required)", async ({
   request,
 }) => {
-  test.skip(process.env.CI === "true", "AUDIT-TODO §5h Auth-Fixture: erwartet 401, bekommt 200 in CI (Keycloak disabled)");
   await skipIfBackendDown(request);
 
   // Confirm that without auth the endpoint is properly protected (401 not 500)

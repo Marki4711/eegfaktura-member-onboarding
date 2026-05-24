@@ -10,6 +10,35 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Welle 10 — E2E-Auth-Fixture (Header-basierte Test-Claims) *(2026-05-24)*
+
+Sub-Ticket **5h** aus AUDIT-TODO. Schaltet authenticated-Pfade in
+CI-Tests frei, ohne dass Keycloak in CI laufen muss.
+
+- **Backend** (`internal/http/auth_middleware.go`): neue Middleware
+  `TestHeaderAuthMiddleware()` liest synthetische Claims aus
+  Request-Headern:
+  - `X-Test-Tenant: RC123,RC456` → Tenant-Admin
+  - `X-Test-Superuser: true` → Superuser-Realm-Rolle
+  - `X-Test-Subject: <id>` → optionaler Subject
+  - Beide leer → 401 (Tests können auth-required asserten)
+  - Nur ein Tenant ohne Superuser → 403 (genau wie produktiv-Middleware)
+- **`cmd/server/main.go`**: aktiviert die Test-Middleware wenn
+  `TEST_AUTH_MODE=headers`, ersetzt dann `KeycloakAuthMiddleware`.
+  Sicherheitsguard: `log.Fatalf` wenn `ENVIRONMENT=production` mit
+  diesem Flag — die `X-Test-*`-Header sind triviale Forgery.
+  `slog.Warn` zum Startup, damit der Modus im Audit-Log sichtbar ist.
+- **Tests** (`internal/http/test_header_auth_test.go`): 4 Go-Unit-Tests
+  decken alle Modi ab (ohne Header → 401, Tenant-Header → 200, Superuser
+  → 200, Custom-Subject).
+- **Frontend** (`tests/helpers/auth.ts`): `adminAuthHeaders()`,
+  `tenantAdminHeaders()`, `superuserHeaders()`-Conveniences. Smoke-Spec
+  `tests/helpers-auth.spec.ts` mit 3 Tests gegen den neuen Mode.
+- **CI** (`.github/workflows/ci.yml`): `TEST_AUTH_MODE: headers`
+  env-Var im `e2e`-Job; aktiviert damit die Test-Middleware.
+- **PROJ-17** AC-BE1 und AC-BE5: `test.skip(CI)` entfernt — die Tests
+  prüfen jetzt korrekt 401 ohne Header.
+
 ### Welle 9 — Playwright in CI + `skipIfBackendDown`-Konsolidierung *(2026-05-24)*
 
 Sub-Ticket **5a + 5i** aus AUDIT-TODO (Audit-Marathon-Restschuld).

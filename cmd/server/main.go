@@ -96,6 +96,13 @@ func main() {
 		log.Fatalf("KEYCLOAK_JWKS_URL must be set in production")
 	}
 
+	// E2E-Test-Auth-Modus: Header-basierte synthetische Claims für CI.
+	// Verweigert den Start in Production — die Header sind triviale Forgery.
+	testAuthMode := os.Getenv("TEST_AUTH_MODE")
+	if testAuthMode == "headers" && os.Getenv("ENVIRONMENT") == "production" {
+		log.Fatalf("TEST_AUTH_MODE=headers is forbidden in production (X-Test-* headers are trivially forgeable)")
+	}
+
 	// Connect to database
 	db, err := sql.Open("postgres", cfg.Database.DSN())
 	if err != nil {
@@ -284,7 +291,12 @@ func main() {
 	// Admin routes — protected by Keycloak JWT middleware
 	r.Route("/api/admin", func(r chi.Router) {
 		r.Use(internalhttp.MaxBodySize(adminBodyMax))
-		r.Use(internalhttp.KeycloakAuthMiddleware(cfg.Keycloak.JWKSUrl, cfg.Keycloak.Issuer))
+		if testAuthMode == "headers" {
+			slog.Warn("TEST_AUTH_MODE=headers active — admin routes accept X-Test-* headers as auth (E2E only, NEVER for production)")
+			r.Use(internalhttp.TestHeaderAuthMiddleware())
+		} else {
+			r.Use(internalhttp.KeycloakAuthMiddleware(cfg.Keycloak.JWKSUrl, cfg.Keycloak.Issuer))
+		}
 		r.Post("/sync", adminHandler.SyncEntrypoints)
 		r.Get("/tariffs", adminHandler.ListTariffs)
 		r.Route("/applications", func(r chi.Router) {

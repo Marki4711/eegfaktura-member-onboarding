@@ -129,6 +129,69 @@ func KeycloakAuthMiddleware(jwksURL, issuer string) func(http.Handler) http.Hand
 	}
 }
 
+// TestHeaderAuthMiddleware liest Test-Claims aus Request-Headern statt aus
+// einem signierten JWT. Ausschließlich für E2E-Tests in CI gedacht — ist
+// `cmd/server/main.go` so verdrahtet, dass diese Middleware verweigert
+// startet, wenn `ENVIRONMENT=production`.
+//
+// Headers:
+//
+//	X-Test-Tenant      — Komma-Liste von RC-Numbers (z. B. "RC123456,RC456")
+//	X-Test-Superuser   — "true" → Superuser-Rolle injiziert
+//	X-Test-Subject     — optionaler Subject-Claim (sonst "e2e-test-user")
+//
+// Verhalten:
+//
+//   - Beide Header fehlen → 401 (Tests können auth-required asserten)
+//   - X-Test-Superuser=true → Claims mit Realm-Role "superuser"
+//   - X-Test-Tenant gesetzt → Claims mit Tenant-RC-Numbers
+//   - Sonst → 403 (kein Tenant, kein Superuser)
+//
+// Sicherheits-Kontext: die Header sind triviale Forgery-Möglichkeiten und
+// dürfen NIE auf einem öffentlich erreichbaren Endpoint stehen. Die
+// `ENVIRONMENT=production`-Sperre in main.go ist der einzige Schutz.
+func TestHeaderAuthMiddleware() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			tenantHeader := r.Header.Get("X-Test-Tenant")
+			superuser := r.Header.Get("X-Test-Superuser") == "true"
+			subject := r.Header.Get("X-Test-Subject")
+			if subject == "" {
+				subject = "e2e-test-user"
+			}
+			if tenantHeader == "" && !superuser {
+				writeJSON(w, http.StatusUnauthorized, map[string]string{
+					"code":    "unauthorized",
+					"message": "Authentifizierung erforderlich.",
+				})
+				return
+			}
+			claims := &KeycloakClaims{}
+			claims.Subject = subject
+			if superuser {
+				claims.RealmAccess.Roles = []string{"superuser"}
+			}
+			if tenantHeader != "" {
+				for _, rc := range strings.Split(tenantHeader, ",") {
+					rc = strings.TrimSpace(rc)
+					if rc != "" {
+						claims.Tenant = append(claims.Tenant, rc)
+					}
+				}
+			}
+			if !claims.IsSuperuser() && !claims.IsTenantAdmin() {
+				writeJSON(w, http.StatusForbidden, map[string]string{
+					"code":    "forbidden",
+					"message": "Kein Zugriff auf den Admin-Bereich.",
+				})
+				return
+			}
+			ctx := context.WithValue(r.Context(), keycloakClaimsKey, claims)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
 func extractBearerToken(r *http.Request) string {
 	h := r.Header.Get("Authorization")
 	if strings.HasPrefix(h, "Bearer ") {
