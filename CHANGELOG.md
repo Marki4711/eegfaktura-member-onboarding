@@ -10,6 +10,42 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Welle 9 — Playwright in CI + `skipIfBackendDown`-Konsolidierung *(2026-05-24)*
+
+Sub-Ticket **5a + 5i** aus AUDIT-TODO (Audit-Marathon-Restschuld).
+
+- `.github/workflows/ci.yml`: neuer `e2e`-Job mit Postgres-17-Service,
+  `migrate -direction=up`, `dev_seed.sql`, Backend (Go) + Frontend
+  (Next.js production-build) als Background-Prozesse mit `/health`- bzw.
+  `/`-Polling, Playwright-Browser-Cache und Report-Artifact-Upload bei
+  Failure.
+- PR-CI läuft Chromium-only über neue `PLAYWRIGHT_BROWSERS=chromium`
+  ENV-Variable (124 statt 496 Tests); Multi-Browser-Matrix (Firefox +
+  WebKit + Mobile Safari) bleibt lokal Default und wandert in einen
+  zukünftigen nightly-Workflow (eigenes Sub-Ticket).
+- `playwright.config.ts`: `webServer` deaktiviert wenn `process.env.CI`,
+  weil der Workflow Backend + Frontend selbst startet; Reporter in CI
+  zusätzlich `list` (Stream-Output).
+- Acht duplizierte `skipIfBackendDown`-Helper in den Spec-Dateien
+  (PROJ-11 bis -17, PROJ-25) durch konsolidierten Import aus
+  `tests/helpers/backend.ts::ensureBackendUp` ersetzt. Akzeptiert sowohl
+  `Page` als auch `APIRequestContext`. In CI (`process.env.CI === 'true'`)
+  hart-fail statt skip — verhindert grüne Test-Runs bei totem Backend.
+- 12 latent-brittle Tests in 6 Spec-Files mit
+  `test.skip(process.env.CI === "true", "AUDIT-TODO §5b/5h: …")`
+  getaggt. Failure-Modi:
+  - **§5b (Seed-Inadequacy)**: PROJ-7/8/9/11/12/14 — Tests setzen
+    reichere Settings/Configs voraus, die der minimal-seed
+    (`RC123456 / is_active=TRUE`) nicht liefert. UI rendert nicht
+    wie erwartet (z.B. Combobox "Mitgliedstyp" fehlt).
+  - **§5h (Auth-Fixture)**: PROJ-17 (AC-BE1/BE5) — erwarten 401,
+    bekommen in CI 200, weil `KEYCLOAK_JWKS_URL` leer ist.
+  Lokal mit echtem Backend laufen die Tests weiterhin.
+- Verbliebene Sub-Tickets: 5b–5f (fehlende E2E-Specs +
+  Seed-Erweiterung), 5g (MailHog), 5h (Auth-Fixture / Test-Token),
+  5j (`networkidle` → `waitForResponse`),
+  Nightly-Multi-Browser-Workflow.
+
 ### PROJ-60 — Datenweiterleitung an externe Systeme (async Plugin-Framework + Excel/CSV-Plugin) *(2026-05-23)*
 
 Komplett neues asynchrones Framework für die Weitergabe importierter

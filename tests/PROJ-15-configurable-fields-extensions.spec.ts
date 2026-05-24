@@ -1,18 +1,8 @@
 import { test, expect } from "@playwright/test";
+import { ensureBackendUp as skipIfBackendDown } from "./helpers/backend";
 
 const RC = process.env.TEST_RC_NUMBER ?? "RC123456";
 const BACKEND = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
-
-async function skipIfBackendDown(request: import("@playwright/test").APIRequestContext) {
-  try {
-    const res = await request.get(`${BACKEND}/api/public/registration/${RC}`);
-    if (!res.ok() && res.status() !== 410 && res.status() !== 404) {
-      test.skip(true, "Backend not available — skipping test");
-    }
-  } catch {
-    test.skip(true, "Backend not available — skipping test");
-  }
-}
 
 // ─── A: Hilfetext für "Aktiv am" ─────────────────────────────────────────────
 

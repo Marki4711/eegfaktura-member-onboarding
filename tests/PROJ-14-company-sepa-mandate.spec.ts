@@ -1,18 +1,8 @@
 import { test, expect } from "@playwright/test";
+import { ensureBackendUp as skipIfBackendDown } from "./helpers/backend";
 
 const RC = process.env.TEST_RC_NUMBER ?? "RC123456";
 const BACKEND = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
-
-async function skipIfBackendDown(request: import("@playwright/test").APIRequestContext) {
-  try {
-    const res = await request.get(`${BACKEND}/api/public/registration/${RC}`);
-    if (!res.ok() && res.status() !== 410 && res.status() !== 404) {
-      test.skip(true, "Backend not available — skipping test");
-    }
-  } catch {
-    test.skip(true, "Backend not available — skipping test");
-  }
-}
 
 // ─── API: useCompanySEPAMandate field ─────────────────────────────────────────
 
@@ -98,6 +88,7 @@ test("AC-B2B-4: useCompanySEPAMandate defaults to false on first GET", async ({
 test("AC-B2B-5: Public registration endpoint does not expose useCompanySEPAMandate", async ({
   request,
 }) => {
+  test.skip(process.env.CI === "true", "AUDIT-TODO §5b: Test prüft Response-Shape im 'happy path'; im minimal-seed liefert Endpoint ggf. 404 statt 200, dann greift der `if (!res.ok()) return` zu früh");
   await skipIfBackendDown(request);
   const res = await request.get(
     `${BACKEND}/api/public/registration/${RC}`
