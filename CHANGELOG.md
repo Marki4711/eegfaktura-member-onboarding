@@ -10,6 +10,49 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### PROJ-61 — Konfigurations-Export & -Import pro EEG (Frontend) *(2026-05-24)*
+
+5 React-Komponenten unter `src/components/config-import-export/` +
+neuer Tab „Import / Export" in `/admin/settings`. Frontend nutzt die
+3 Backend-Endpoints unter `/api/admin/config/*`.
+
+- **`ExportButtons`**: 4 Per-Sub-Typ-Buttons + 1 Komplett-Bundle-Button.
+  Pro Klick: `GET /export?sections=...` → JSON-Blob → Browser-Download
+  via dynamisches `<a download>`-Element.
+- **`ImportDropzone`**: File-Drop-Zone + File-Picker mit
+  Client-Side-Validation (`.json`-Extension + ≤ 1 MB). Lädt das File
+  zweimal — einmal als FormData für `POST /import/preview`, einmal als
+  parsed JSON für späteren Apply-Body (Stateless-Apply).
+- **`DiffTable`** (vier Spezialisierungen):
+  - `EEGSettingsDiffTable` — 12 Felder; ZP-Prefix mit Network-Icon-
+    Tooltip „Netzbetreiber-spezifisch", Cooperative-Shares mit
+    Euro-Icon und Cents-zu-EUR-Formatierung
+  - `FieldConfigDiffTable` — Name + alt/neu State + Change-Badge
+  - `DataExportConfigDiffTable` — Name + Plugin + Change-Badge
+  - `LegalDocumentsDiffPanel` — zwei-Spalten-Layout
+    „Werden entfernt | Werden hinzugefügt" (kein Match-Key, weil title
+    nicht UNIQUE)
+  - `WholeSectionDeletionWarning` — rote Box für AC-I4b
+- **`DiffPreviewPanel`**: Sektion-Checkboxes (Default: UNAUSGEWÄHLT),
+  pro Sektion eine Diff-Card, Apply-Button mit Section-Count-Label,
+  Warnings-Block für Drift-Hinweise (Unknown plugin_type).
+- **`ConfirmApplyDialog`**: AlertDialog mit Sektion-Liste +
+  Irreversibilitäts-Hinweis. Apply läuft erst nach explizitem Klick.
+- **`ConfigImportExportSection`** (Top-Level): Tipp-Box „Vor Import
+  absichern" + Export-Card + Import-Card mit Drop-Zone-oder-Diff-State.
+
+API-Layer in `src/lib/api.ts` erweitert um:
+- TypeScript-Interfaces, die das Backend-Schema spiegeln
+  (`ConfigExportFile`, `ConfigDiff`, `ConfigApplySummary`, …)
+- `downloadConfigExport`, `previewConfigImport`, `applyConfigImport`
+- `triggerBrowserDownload`-Helper (für File-Blob → Browser-Download)
+
+Tab-Integration: 7. Tab „Import / Export" in `/admin/settings/page.tsx`
+(Sub-Seiten-Idee aus Tech-Design durch Tab ersetzt — bewusst, weil das
+das etablierte UX-Pattern ist und keine parallele Route nötig wird).
+
+`npm run build` läuft sauber durch.
+
 ### PROJ-61 — Konfigurations-Export & -Import pro EEG (Backend) *(2026-05-24)*
 
 Neues Feature: Tenant-Admin kann die Konfig einer EEG als versionierte
