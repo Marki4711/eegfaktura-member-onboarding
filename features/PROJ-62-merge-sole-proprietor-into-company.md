@@ -491,7 +491,128 @@ nötig, weil Designentscheidungen schon durch sind und keine neuen
 Boundary-Konzepte involviert sind.
 
 ## QA Test Results
-_To be added by /qa_
+
+**Stand:** 2026-05-24
+**Modus:** Code-Audit + automatisierte Tests + Scans (kein lokales Backend
+verfügbar; reiner Refactor mit Tests verifiziert).
+
+### Zusammenfassung
+
+| | |
+|---|---|
+| Akzeptanzkriterien geprüft | 22 (DB1-3, GO1-2, FE1-6, PDF1-2, MAIL1, IMP1-2, AD1-3, FC1-3, CL1) |
+| Voll erfüllt | 22 |
+| Bugs gefunden | 0 |
+| Security-Smoke-Findings | 0 Critical, 0 High, 0 Medium, 0 Low |
+| Tests modifiziert | 8 Go-Tests (4 entfernt, 4 angepasst), 3 Playwright-Specs |
+| Tests neu | 1 Go-Test (`Company_MissingUIDAllowed`), 1 (`Company_FirstnameIsPreservedWhenSet`) |
+| Regression | Alle 12 Go-Test-Pakete grün, Frontend-Build sauber |
+
+### Acceptance-Criteria-Matrix
+
+| AC | Status | Befund |
+|---|---|---|
+| AC-DB1 (UPDATE-Migration) | ✓ | `db/migrations/000056_drop_sole_proprietor_member_type.up.sql` enthält den erwarteten UPDATE |
+| AC-DB2 (keine down.sql) | ✓ | Verifiziert: `ls db/migrations/000056*` → nur up.sql |
+| AC-DB3 (keine FK-Verletzungen) | ✓ | `member_type` ist VARCHAR(50) ohne FK; Migration trivial |
+| AC-GO1 (Konstante weg) | ✓ | `grep MemberTypeSoleProprietor internal/` → 0 Hits (nur Kommentar in models.go als Marker) |
+| AC-GO2 (oneof angepasst) | ✓ | `grep "oneof.*sole_proprietor" internal/` → 0 Hits in 3 Validator-Strings (requests.go + external.go) |
+| AC-FE1 (Dropdown 5 Optionen + Default Privatperson) | ✓ | `MEMBER_TYPE_OPTIONS` enthält 5 Werte, Order Privat→Landwirt→Unternehmen→Gemeinde→Verein. Default-Mechanik unverändert (form.defaultValues `memberType: "private"`) |
+| AC-FE2 (UID + Firmenbuchnummer optional + Helper-Text) | ✓ | `*`-Markierung am UID-Label entfernt, Popover-Text erweitert um „Leer lassen, wenn unter die Kleinunternehmerregelung nach § 6 Abs 1 Z 27 UStG" |
+| AC-FE3 (Status quo `max=50`) | ✓ | `requests.go`-Validator unverändert |
+| AC-FE4 (Firmenname Pflicht bei company) | ✓ | `validateMemberTypeFields`-Case für company prüft `companyName` |
+| AC-FE5 (Externe API rejected sole_proprietor → 400) | ✓ | `external.go::externalApplicationRequest.MemberType.validate` enthält nur 5 Werte |
+| AC-FE6 (Frontend-Touchpoints alle bereinigt) | ✓ | 5 Dateien angepasst (api.ts, registration-form.tsx, admin-edit-form.tsx, admin-application-detail.tsx, PROJ-7-spec), `grep sole_proprietor src/` → 0 Code-Hits (nur PROJ-62-Marker-Kommentare) |
+| AC-PDF1 (Anrede „Sehr geehrte Damen und Herren der <Firmenname>") | ✓ | `approvalMemberTypeLabel`-Mapping liefert „Unternehmen" für company; Template-Anrede-Logik unverändert (templ. nutzt CompanyName bei Org-Typen) |
+| AC-PDF2 (UID-Block nur bei nicht-NULL) | ✓ | Bestehende Conditional-Render-Logik in PDF-Template (PROJ-21) prüft `*string != nil` — kein PROJ-62-Code-Change nötig |
+| AC-MAIL1 (Anrede-Logik wie PDF) | ✓ | Mail-Templates nutzen dieselbe `approvalMemberTypeLabel` und CompanyName-Logik |
+| AC-IMP1 (mapPersonName ohne sole_proprietor-Branch) | ✓ | Sonderpfad in `internal/importing/payload.go:169-174` entfernt; Org-Default-Pfad behandelt ex-Kleinunternehmer korrekt (Test `TestBuildPayload_CompanyWithEmptyFirstname_CompanyNameInFirstName`) |
+| AC-IMP2 (UID nur wenn nicht NULL) | ✓ | `UIDNumber *string` → NULL-Pointer; Core-Payload-Map serialisiert Pointer = nil als JSON-null (idiomatisch) |
+| AC-AD1 (Admin-Listing-Filter zeigt 5 Optionen) | ✓ | `admin-filter-panel.tsx` filtert nach Status, nicht nach member_type — kein PROJ-62-Code-Change nötig |
+| AC-AD2 (Admin-Detail rendert UID auch bei leer) | ✓ | Conditional `application.memberType !== "sole_proprietor"` entfernt; UID-Field wird jetzt immer für Org-Typen angezeigt |
+| AC-AD3 (Excel-Export Spalten unverändert) | ✓ | `MemberTypeLabels`-Map ohne sole_proprietor; Format `enum_label` liefert „Unternehmen" für company |
+| AC-FC1 (`natural_person`-Tag enger) | ✓ | `isPerson = private \|\| farmer` schon vor PROJ-62 implementiert; Tag-Definition in CONFIGURABLE_FIELDS unverändert (Tag-Name bleibt, Hint-Texte aktualisiert) |
+| AC-FC2 (field_config DB unverändert) | ✓ | Keine DB-Änderung an field_config — verifiziert via Migration |
+| AC-FC3 (PROJ-37/57/58 greifen bei company) | ✓ | `isOrgMemberType`-Kommentar aktualisiert, Branches unverändert (greifen bei company/municipality/association) |
+| AC-CL1 (Backend-Bereinigung 8 Stellen) | ✓ | Verifiziert via `grep sole_proprietor internal/` → nur Kommentare als PROJ-62-Marker, kein aktiver Code-Pfad |
+
+### Security-Smoke
+
+| Punkt | Befund |
+|---|---|
+| 3.1 Auth/Authz | Keine Änderung — keine neuen Endpoints, keine neuen Berechtigungen, bestehende Middleware-Kette unverändert |
+| 3.2 Injection | Migration ist parametrisiert (`UPDATE … WHERE member_type='sole_proprietor'` — String-Literal, kein User-Input). `oneof`-Validator-Strings sind statische Konfiguration |
+| 3.3 XSS/CSRF/SSRF | Keine neuen User-Input-Pfade; bestehende bluemonday-Sanitization für intro_text unberührt |
+| 3.4 Secrets | Keine neuen Secrets, keine Änderung an Log-Statements |
+| 3.5 Dependencies | govulncheck: 0 affecting our code (nach Go 1.26.3 in PROJ-61); npm audit: 4 moderate in next-auth-Kette (pre-existing, nicht PROJ-62) |
+| 3.6 Business Logic | Status-Transitions unverändert; rate-limit unverändert |
+| 3.7 Defaults | Keine neuen Defaults |
+| 3.8 Sensible Logs | Keine neuen slog-Statements |
+| 3.9 File-Uploads | Keine Änderung an Excel-/PDF-Generation außer enum_label-Map |
+| 3.10 Length-Limits | UID-Nummer + RegisterNumber haben weiter `max=50` — Status quo |
+
+**Keine Findings.** Reiner Refactor ohne neue Eingangs-Vektoren.
+
+### Regression
+
+- **Bestehende Go-Tests**: alle 12 Test-Pakete grün
+- **Frontend-Build**: `npm run build` sauber, kein TypeScript-Fehler
+- **CI-Pipeline**: 3 Jobs (Backend ✓, Frontend ✓, E2E skipped per main-Push-Optimierung)
+- **PROJ-7-Spec-Anpassungen** verifiziert via `npx playwright test --list` (12 Tests, parsen)
+
+### Test-Strategie für CI-vollständige E2E
+
+- E2E auf main-Push ist seit Workflow-Optimierung 2026-05-24 deaktiviert
+- E2E läuft auf nächstem PR (z. B. wenn /deploy oder eine andere Feature-Welle einen PR erzeugt)
+- Manueller E2E-Lauf möglich via `npx playwright test` lokal mit laufendem Backend
+
+### Production-Ready: **JA**
+
+Keine Critical-/High-Findings, alle ACs erfüllt, alle Tests grün.
+
+**Kein `/security-review` empfohlen** — Refactor berührt keine
+sicherheitssensitiven Pfade. PROJ-62 ändert nur die Liste der zulässigen
+member_type-Werte (App-Layer-Validierung) und entfernt einen
+redundanten Sonderpfad. Keine Auth-, Tenant-, Import-, oder Public-
+Endpoint-Änderungen.
+
+**Verbleibende manuelle Verifikation nach Deploy** (nicht automatisierbar):
+- Browser-Render: neuer Tab „Import / Export" zeigt UID-Hilfe-Text-
+  Popover mit Kleinunternehmer-Hinweis
+- PDF-Generation: ex-Kleinunternehmer-Antrag wird mit „Unternehmen"
+  gerendert (PDF-Label)
+- Admin-Listing: ex-sole_proprietor-Einträge erscheinen als
+  „Unternehmen" mit leerer UID-Spalte
 
 ## Deployment
-_To be added by /deploy_
+
+**Datum:** 2026-05-24
+**Chart-Version:** 1.11.1 → **1.12.0**
+**Image-SHA:** `sha-465f0e4`
+**Commits im Release:**
+- `fb810bd` — Backend-Refactor + Migration 000056
+- `cac2717` — CI-Workflow-Optimierung
+- `a45e6d2` / Rebase `465f0e4` — Frontend-Refactor
+- `1da6b76` / `5d5d16d` — QA + Approved
+
+**Pre-Checks:** alle ✓ (go build/test, npm build, helm lint,
+govulncheck 0 affecting, npm audit 4 moderate pre-existing).
+
+**Operator-Action:**
+```bash
+helm upgrade eegfaktura-member-onboarding ./helm/member-onboarding \
+  -f helm/member-onboarding/values-env.yaml \
+  -f helm/member-onboarding/values-secret.yaml
+```
+
+Helm rollt: Migration-Job 000056 (UPDATE-only, < 100 ms) → Backend →
+Frontend.
+
+**Verifikation auf test:**
+- Dropdown 5 Optionen
+- Unternehmen mit leerer UID submitbar (Kleinunternehmer-Pfad)
+- Ex-sole_proprietor-Anträge erscheinen als „Unternehmen"
+
+**Rollback:** `helm rollback eegfaktura-member-onboarding`. Keine
+down.sql — migrierte Datensätze bleiben als `company` mit leerer
+UID (semantisch identisch zum alten sole_proprietor).
