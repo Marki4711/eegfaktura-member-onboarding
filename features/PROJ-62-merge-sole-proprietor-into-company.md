@@ -1,8 +1,8 @@
 # PROJ-62: Mitgliedstypen Kleinunternehmer + Unternehmen zusammenführen
 
-## Status: Planned
+## Status: Architected
 **Created:** 2026-05-24
-**Last Updated:** 2026-05-24
+**Last Updated:** 2026-05-24 (nach /architecture — Tech Design ergänzt)
 
 ## Dependencies
 
@@ -53,20 +53,18 @@ Kleinunternehmer" ergibt sich implizit aus dem UID-Feld.
 
 ### Datenmodell
 
-- [ ] **AC-DB1**: DB-Migration entfernt `sole_proprietor` aus dem
-  `member_type`-CHECK-Constraint und behält nur:
-  `private | farmer | municipality | company | association` (5 statt 6).
-- [ ] **AC-DB2**: DB-Migration setzt alle bestehenden Datensätze mit
+- [ ] **AC-DB1**: DB-Migration setzt alle bestehenden Datensätze mit
   `member_type='sole_proprietor'` auf `member_type='company'`. UID-
   Nummer + Firmenbuchnummer bleiben NULL (waren in PROJ-28-Phase
-  unterdrückt).
-- [ ] **AC-DB3**: Down-Migration ist umsetzbar (für rollback): fügt
-  `sole_proprietor` wieder zum CHECK-Constraint dazu und setzt die in
-  Schritt AC-DB2 migrierten Datensätze zurück. **Caveat dokumentieren**:
-  Datensätze, die nach AC-DB2 als `company` mit UID-leer angelegt wurden,
-  würden in der Down-Migration als `company` bleiben (kein zuverlässiger
-  Reverse-Mapping möglich) — Down ist daher Best-Effort.
-- [ ] **AC-DB4**: Keine FK-Verletzungen — `member_type` ist ein String-
+  unterdrückt). **Kein CHECK-Constraint zu ändern** — `member_type` ist
+  laut Migration 000007 ein `VARCHAR(50)` ohne CHECK, Validierung
+  passiert ausschließlich im App-Layer (`oneof`-Validator in
+  `internal/shared/requests.go`).
+- [ ] **AC-DB2**: **Keine Down-Migration** (Grilling-Decision 9): wir
+  sind in Test-Phase, harte Bereinigung ist akzeptabel. Migrations-File
+  enthält explizit nur `up.sql`, keine `down.sql`. Bricht die
+  Projekt-Konvention bewusst.
+- [ ] **AC-DB3**: Keine FK-Verletzungen — `member_type` ist ein String-
   Feld ohne referenzierte Fremdschlüssel auf andere Tabellen.
 
 ### Go-Code-Modell
@@ -81,21 +79,42 @@ Kleinunternehmer" ergibt sich implizit aus dem UID-Feld.
 ### Form (Public + Externe API)
 
 - [ ] **AC-FE1**: Im Registrierungsformular zeigt das Mitgliedstyp-
-  Dropdown 5 Optionen: Privatperson, Pauschalierter Landwirt, Gemeinde,
-  Unternehmen, Verein. Default bleibt Privatperson.
+  Dropdown 5 Optionen in der Reihenfolge: Privatperson, Pauschalierter
+  Landwirt, Unternehmen, Gemeinde, Verein. Default bleibt Privatperson.
 - [ ] **AC-FE2**: Beim Typ „Unternehmen" sind UID-Nummer und Firmenbuch-
   Nummer als **optional** dargestellt (keine `*`-Markierung). Hilfe-
   Text am UID-Feld: „Leer lassen, wenn Kleinunternehmer nach § 6 Abs 1
   Z 27 UStG."
-- [ ] **AC-FE3**: Validierung serverseitig: bei `member_type=company`
-  ist UID-Nummer optional; falls gesetzt, muss sie das österreichische
-  Format (`ATU` + 8 Ziffern) erfüllen. Firmenbuchnummer ebenfalls
-  optional; Format wie heute (max-Länge).
+- [ ] **AC-FE3**: Validierung serverseitig: UID-Nummer ist optional
+  (`validate:"omitempty,max=50"` wie heute — Grilling-Decision 1, kein
+  neuer ATU-Format-Check, weil das Scope-Creep wäre und bestehende
+  freie-Format-Werte brechen könnte). Firmenbuchnummer ebenfalls
+  optional, max-Länge wie heute.
 - [ ] **AC-FE4**: Firmenname bleibt Pflicht bei `company` (wie heute).
 - [ ] **AC-FE5**: Externe API `/api/external/v1/applications` lehnt
   `memberType: "sole_proprietor"` mit 400 ab; Fehlermeldung:
   „memberType 'sole_proprietor' wurde durch 'company' ersetzt (UID-
-  Nummer leer = Kleinunternehmer)."
+  Nummer leer = Kleinunternehmer)." **Keine API-Client-Outreach nötig**
+  — Grilling-Decision 3: es existieren noch keine aktiven externen
+  API-Clients.
+- [ ] **AC-FE6**: Frontend-Touchpoints (Grilling-Decision 2 — explizite
+  AC-Liste, damit nichts vergessen wird):
+  - `src/components/registration-form.tsx`: `MEMBER_TYPE_OPTIONS`-
+    Konstante (Eintrag entfernen), Zod-Enum (Wert entfernen),
+    `isPerson`-Logik (sole_proprietor war schon nicht drin → keine
+    Änderung), Org-Label-Branch (`'sole_proprietor' → 'Firmenbezeichnung'`-
+    Zeile entfernen)
+  - `src/components/admin-edit-form.tsx`: `SelectItem` für
+    sole_proprietor entfernen, Reset-Branch (`value === 'sole_proprietor'`)
+    entfernen
+  - `src/components/admin-application-detail.tsx`: `MEMBER_TYPE_LABELS`-
+    Eintrag entfernen, `memberType !== 'sole_proprietor'`-Branch
+    bereinigen
+  - `src/lib/api.ts`: `MemberType`-TypeScript-Type, `sole_proprietor`
+    aus Union entfernen
+  - `src/lib/api.ts::CONFIGURABLE_FIELDS`: `visibilityTags` und
+    `visibilityHint`-Texte bereinigen (Kleinunternehmer aus den
+    Erläuterungen entfernen, weil jetzt company)
 
 ### PDF / Mail
 
@@ -111,9 +130,14 @@ Kleinunternehmer" ergibt sich implizit aus dem UID-Feld.
 
 ### Import in eegFaktura-Core
 
-- [ ] **AC-IMP1**: Für `company` (egal ob UID gesetzt oder leer) wird
-  beim Import via `internal/importing/payload.go` weiterhin
-  `firstname = company_name` gemappt. Konsistent zu PROJ-28-Verhalten.
+- [ ] **AC-IMP1**: Bestehende `mapPersonName`-Logik
+  (`internal/importing/payload.go`) bleibt **unverändert**
+  (Grilling-Decision 7): wenn `firstname` leer UND `company_name`
+  gesetzt → `firstName = company_name`. Wenn `firstname` gesetzt (z. B.
+  via Admin-Edit), wird `firstName` beibehalten. Der bisherige
+  `sole_proprietor`-Branch (Zeilen 169–174) wird entfernt — der
+  reguläre Org-Pfad deckt das Verhalten korrekt ab, weil migrierte
+  Anträge `firstname=NULL` haben.
 - [ ] **AC-IMP2**: UID-Nummer wird nur ans Core gesendet, wenn nicht
   NULL. Bei Kleinunternehmer (UID leer) wird das entsprechende Feld
   im Core-Payload weggelassen oder explizit NULL.
@@ -128,13 +152,41 @@ Kleinunternehmer" ergibt sich implizit aus dem UID-Feld.
   Kleinunternehmer dieselben Spalten wie für reguläre Unternehmen —
   UID-Spalte ist leer.
 
-### Field-Config (PROJ-8)
+### Field-Config (PROJ-8) + Abhängige Features
 
 - [ ] **AC-FC1**: Frontend-Konstante `CONFIGURABLE_FIELDS` in
   `src/lib/api.ts`: Tag `natural_person` wird enger gefasst auf
   `private | farmer`. Kein `sole_proprietor` mehr in der Liste.
 - [ ] **AC-FC2**: Bestehende `field_config`-DB-Einträge bleiben
   unverändert (sind field-name-basiert, nicht member_type-basiert).
+- [ ] **AC-FC3**: PROJ-37 (Cooperative-Shares) + PROJ-57
+  (Ansprechperson) + PROJ-58 (Billing-Email) greifen wie heute bei
+  `company` — also auch bei ex-Kleinunternehmer
+  (Grilling-Decision 8). Keine Sonderbehandlung für UID-leer-Fälle.
+  EEG-Admin steuert weiterhin via field_config, ob das Mitglied das
+  ausfüllen muss.
+
+### Bereinigung Backend-Konstanten + Enum-Labels
+
+- [ ] **AC-CL1**: Harte Bereinigung (Grilling-Decision 10): wir sind
+  in Test-Phase, keine Legacy-Fallbacks. Alle nachfolgend genannten
+  Stellen löschen — Build-Failure-Pfad ist die Wahrheit:
+  - `internal/shared/models.go`: Konstante `MemberTypeSoleProprietor`
+  - `internal/application/admin_service.go::approvalMemberTypeLabel`:
+    `case shared.MemberTypeSoleProprietor` (gibt „Kleinunternehmer"-
+    Label zurück) — Zeile entfernen, fallback liefert raw value (sollte
+    nach Migration nie auftreten)
+  - `internal/dataexport/excel/fields.go::MemberTypeLabels`: Eintrag
+    `"sole_proprietor": "Kleinunternehmer"` entfernen
+  - `internal/importing/payload.go::mapPersonName`: sole_proprietor-
+    Branch entfernen (Zeilen 169–174)
+  - `internal/shared/requests.go`: `oneof`-Validator-Werte anpassen
+    (3 Stellen, jeweils Zeile 21/126/307)
+  - `internal/application/application_service_test.go`: Test-Cases
+    bereinigen
+  - `internal/http/external.go`: falls dort auch validiert wird
+  - `internal/importing/payload_test.go`: Test-Cases bereinigen
+  - `docs/docs.go` (Swagger): regeneriert via `swag init` o. ä.
 
 ## Edge Cases
 
@@ -192,27 +244,251 @@ Kleinunternehmer" ergibt sich implizit aus dem UID-Feld.
 
 ## Operator-Action vor Deploy
 
-- **Bestehende externe API-Clients informieren**: Mail/Doku-Update an
-  alle bekannten Integratoren, die `/api/external/v1/applications`
-  nutzen. Hinweis: ab Release-Datum X führt `memberType: "sole_proprietor"`
-  zu 400. Clients müssen vor diesem Datum auf `"company"` umstellen.
-  Bekannte Integratoren laut Memory: prüfen via `external_api_key`-
-  Tabelle, welche EEGs einen aktiven API-Key haben.
+**Keine.** Grilling-Decision 3: es existieren noch keine externen
+API-Clients (Test-Phase). Kein Outreach nötig. Sollte sich das ändern
+bevor Deploy, müsste die Operator-Action ergänzt werden.
+
+## Grilling-Ergebnisse (2026-05-24)
+
+11 Designentscheidungen in 3 Runden geklärt; Spec entsprechend
+angepasst.
+
+### Scope-Korrekturen
+
+- **AC-DB1 falsch formuliert**: es gibt **keinen CHECK-Constraint** auf
+  `member_type` (Migration 000007 ist `VARCHAR(50) DEFAULT 'private'`
+  ohne CHECK). Validierung ist App-Layer-only (Grilling-Decision 5).
+  AC-DB1 entsprechend umformuliert.
+- **AC-FE3 (UID-Format)**: heute existiert KEIN ATU-Format-Check, nur
+  `max=50`. Ein neuer strenger Check wäre Scope-Creep und würde
+  bestehende Datensätze brechen (Grilling-Decision 1). AC-FE3 bleibt
+  bei Status quo.
+- **Keine API-Client-Outreach**: Grilling-Decision 3 entdeckt: es gibt
+  noch keine aktiven externen Clients. Operator-Action-Sektion
+  entsprechend reduziert.
+
+### Architektur-Entscheidungen
+
+- **Keine Down-Migration** (Grilling-Decision 9): Test-Phase, harte
+  Bereinigung akzeptabel. Bricht Projekt-Konvention bewusst.
+- **mapPersonName-Logik bleibt** (Grilling-Decision 7): regulärer
+  Org-Pfad deckt das Verhalten korrekt ab; sole_proprietor-Sonderpfad
+  in `internal/importing/payload.go:169-174` entfällt.
+- **PDF-Label-Change akzeptiert** (Grilling-Decision 6): on-demand-
+  regenerierte Approval-PDFs zeigen nach Migration „Unternehmen" statt
+  „Kleinunternehmer". Status-Log ist unberührt (kein member_type drin).
+- **PROJ-37/57/58 greifen wie heute bei company** (Grilling-Decision 8):
+  alle drei Features sind bereits über `organization`-Tag aktiv; keine
+  Sonderbehandlung für UID-leer.
+
+### Frontend-Touchpoints
+
+- **AC-FE6 neu**: 5 konkrete Dateien + die jeweilige Änderung explizit
+  aufgelistet, damit /frontend nichts vergisst (Grilling-Decision 2).
+
+### Bereinigung
+
+- **AC-CL1 neu**: harte Bereinigung aller Backend-Konstanten/Enum-
+  Labels (Grilling-Decision 10): wir sind in Test-Phase, keine
+  Legacy-Fallbacks. 8 konkrete Code-Stellen aufgelistet.
+
+### UX-Detail
+
+- **Dropdown-Reihenfolge** (Grilling-Decision 11): Privatperson →
+  Landwirt → Unternehmen → Gemeinde → Verein. Default bleibt
+  Privatperson.
 
 ## Recommended Next Step
 
-`/grill-me` — die Spec berührt ein Domain-Konzept (Mitgliedstypen),
-eine DB-Migration mit Daten-Mutation, Backward-Compat einer externen API
-und mehrere abhängige Features (PDF, Mail, Import, Reporting, Field-
-Config). Klassischer Grill-Kandidat: Annahmen über UID-Validierung,
-Field-Config-Tag-Implikationen, Down-Migration-Strategie sollten
-stressgetestet werden, bevor `/architecture` startet.
+`/architecture` — Designentscheidungen sind durch, Tech-Design kann
+konkret die Migration-Datei + Code-Refactor-Reihenfolge + Test-Strategie
+ausarbeiten. Kein weiterer Grill nötig: Migration ist trivial
+(1 UPDATE), keine neuen Tabellen, keine Auth-Logik, keine neue API-
+Endpunkte.
 
 ---
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+
+**Stand:** 2026-05-24
+
+### Leitidee: Reiner Refactor, kein neues System
+
+PROJ-62 baut **keine neuen Komponenten, keine neuen Endpoints, keine
+neuen Tabellen**. Es ist ein Cleanup-Feature: ein Mitgliedstyp wird
+entfernt, sein Verhalten in einen bestehenden konsolidiert. Tech-Design
+ist daher primär eine **Sequenz aus Migrationsschritt + Build-Failure-
+Driven-Refactor**.
+
+### A) Was sich verändert (Visual Tree)
+
+```
+PROJ-62-Änderungen
++-- 1 DB-Migration (000056_drop_sole_proprietor_member_type)
+|   +-- UPDATE application SET member_type='company' WHERE …='sole_proprietor'
+|   (kein Schema-Change, kein DROP, kein down.sql)
+|
++-- Backend (~8 Code-Stellen)
+|   +-- internal/shared/models.go            — Konstante entfernen
+|   +-- internal/shared/requests.go          — `oneof`-Werte anpassen (3×)
+|   +-- internal/application/admin_service.go — approvalMemberTypeLabel
+|   +-- internal/importing/payload.go         — mapPersonName-Sonderpfad
+|   +-- internal/dataexport/excel/fields.go   — MemberTypeLabels
+|   +-- internal/http/external.go             — Reject-Pfad
+|   +-- internal/application/application_service_test.go
+|   +-- internal/importing/payload_test.go
+|   +-- docs/docs.go (Swagger-Regen)
+|
++-- Frontend (5 Komponenten + 1 Type)
+|   +-- src/components/registration-form.tsx       — Option, Zod, Org-Label
+|   +-- src/components/admin-edit-form.tsx         — Select, Reset
+|   +-- src/components/admin-application-detail.tsx — Label, Conditional
+|   +-- src/lib/api.ts                              — MemberType-Union
+|   +-- src/lib/api.ts::CONFIGURABLE_FIELDS         — visibility-Texte
+|
++-- Tests
+    +-- Anpassung existierender Go- und Playwright-Tests, die
+        `sole_proprietor` referenzieren (grep-Liste)
+```
+
+### B) Datenmodell
+
+**Keine neue Tabelle, keine neue Spalte, kein Constraint-Change.**
+
+`member_type` bleibt `VARCHAR(50)` (Migration 000007). Die Liste der
+gültigen Werte schrumpft von 6 auf 5:
+
+```
+Vorher: private | sole_proprietor | farmer | municipality | company | association
+Nachher: private | farmer | municipality | company | association
+```
+
+Validierung bleibt App-Layer-only (`oneof`-Validator).
+
+**Migrationssemantik:**
+- Bestehende Datensätze mit `member_type='sole_proprietor'` werden auf
+  `'company'` gesetzt. UID-Nummer + Firmenbuchnummer bleiben NULL.
+- Keine `down.sql` (Grilling-Decision 9: Test-Phase, harte Bereinigung
+  bricht Projekt-Konvention bewusst).
+- Erwartete Laufzeit: < 100 ms auch bei Tausenden Anträgen (Plain
+  UPDATE auf indexierte Spalte).
+
+### C) API-Vertrag-Änderungen
+
+Drei betroffene Endpoints — alle bestehend, kein neuer.
+
+| Endpoint | Änderung |
+|---|---|
+| `POST /api/public/applications` | Lehnt `memberType: "sole_proprietor"` mit 400 ab. Validierung ohnehin App-Layer. |
+| `POST /api/external/v1/applications` | Identisch — explizite Fehlermeldung: „memberType 'sole_proprietor' wurde durch 'company' ersetzt (UID leer = Kleinunternehmer)." |
+| `PUT /api/admin/applications/{id}` | Identisch. |
+
+`GET`-Pfade liefern nach Migration nur noch `member_type='company'` (oder die anderen 4) — Frontend muss nichts anpassen außer dem Dropdown-Filter.
+
+### D) Refactor-Reihenfolge (Build-Failure-Driven)
+
+Der Refactor nutzt den Go-Compiler als Sicherheitsnetz. Reihenfolge:
+
+1. **Migration anlegen** (`db/migrations/000056_drop_sole_proprietor_member_type.up.sql`)
+   — bewusst noch nicht anwenden lokal, falls Rollback einfacher ist.
+2. **`shared/models.go::MemberTypeSoleProprietor` löschen**
+   → Build bricht an allen Aufrufer-Stellen. Folge der Compiler-
+   Fehlermeldungen sequenziell ab:
+   a. `admin_service.go::approvalMemberTypeLabel` — case-Branch raus
+   b. `importing/payload.go::mapPersonName` — sole_proprietor-Branch raus
+   c. `dataexport/excel/fields.go::MemberTypeLabels` — Map-Eintrag raus
+   d. `application_service_test.go`, `payload_test.go` — Test-Cases bereinigen
+3. **`shared/requests.go::oneof`** an 3 Stellen anpassen — Validator-
+   Strings sind String-Literale, daher kein Build-Fail, nur Tests fallen.
+4. **Frontend**: dieselbe Build-Failure-driven-Logik via TypeScript:
+   `src/lib/api.ts::MemberType`-Union ändern → `tsc --noEmit` zeigt
+   alle Aufrufer.
+5. **Tests anpassen**: Playwright-Specs in `tests/PROJ-7-member-types.spec.ts`
+   und `tests/PROJ-28-*` (falls existiert) auf 5 Optionen umstellen.
+6. **Swagger regenerieren** (`swag init` o. ä.) — `docs/docs.go`
+   sole_proprietor entfernt sich automatisch, weil aus shared/models
+   erzeugt.
+
+**Reihenfolge im Git:** ein einziger Commit (atomarer Refactor),
+**nicht** in Phasen splitten — sole_proprietor in der Codebase ist nur
+in einem konsistenten Zustand sinnvoll (drin oder draußen, nicht halb).
+
+### E) Tenant-Isolation + Permissions
+
+**Keine Änderung.** Migration läuft als Schema-Owner via Helm-Init-Job.
+Application-Endpoints behalten KeycloakAuthMiddleware +
+checkTenantAccess. RC-Number-Filter unverändert (`member_type` ist
+keine Tenant-Boundary).
+
+### F) Fehlerbehandlung
+
+| Pfad | Verhalten |
+|---|---|
+| Public-Form-Submit mit `sole_proprietor` (alte Browser-Tab) | 400 Validierungs-Fehler, Mitglied wählt anderen Typ im Form |
+| Externe API-Submit mit `sole_proprietor` | 400 mit klarer Migrations-Hinweis-Message (AC-FE5) |
+| Admin-Edit-Form lädt alten Antrag mit `member_type='company'` (war ex-sole_proprietor) | Normal — kein Sonderverhalten, Felder werden Org-typisch gerendert |
+| On-demand Approval-PDF eines ex-sole_proprietor-Antrags | Label „Unternehmen" statt „Kleinunternehmer" — akzeptiert (Grilling-Decision 6) |
+
+### G) Test-Strategie
+
+**Backend** (Go-Unit-Tests):
+- Migration-Reverse-Test entfällt (keine down.sql)
+- `payload_test.go`: bestehende sole_proprietor-Cases auf `company`
+  umstellen, prüfen dass `mapPersonName` für `company` mit
+  `firstname=NULL + companyName=X` → `(X, "")` liefert
+- `application_service_test.go`: Validator akzeptiert die 5
+  verbleibenden Werte, rejectt `sole_proprietor` mit 400
+- `requests_test.go` (falls existiert): `oneof`-Validator-Coverage
+
+**Frontend** (Vitest + Playwright):
+- `tests/PROJ-7-member-types.spec.ts` auf 5 Optionen umstellen
+- AC: `MEMBER_TYPE_OPTIONS` enthält keinen sole_proprietor-Eintrag mehr
+- AC: Org-Label-Branch liefert „Firmenname" für company, nicht
+  „Firmenbezeichnung"
+
+**Integration** (nach Deploy):
+- Roundtrip: Public-Form-Submit als company mit UID-leer → Antrag
+  landet korrekt, Mail/PDF nutzen Firmenname als Anrede
+- Admin-Listing zeigt ex-sole_proprietor jetzt als „Unternehmen"
+
+### H) Performance-Überlegung
+
+- Migration: 1 UPDATE auf `application`-Tabelle, gefiltert über
+  `member_type='sole_proprietor'`. Bei tausenden Anträgen < 100 ms.
+- Keine neuen Indizes nötig. Keine Indexscan-Performance-Änderung
+  (`member_type` hatte und hat keinen Index).
+
+### I) Was die Tech-Design-Entscheidung NICHT macht
+
+- Keine neue Tabelle, kein neuer Index, kein CHECK-Constraint.
+- Keine Down-Migration.
+- Kein API-Outreach (keine Clients).
+- Kein Audit-Log-Snapshot des Original-Member-Types.
+- Keine Tag-Differenzierung für ex-sole_proprietor in PROJ-37/57/58
+  (alle greifen wie heute bei company).
+- Kein UID-Format-Check (Status quo: `max=50`).
+
+### J) Dependencies
+
+Keine neuen Packages.
+
+### K) Reihenfolge der Implementierung (für `/backend`)
+
+1. **Migration-File** anlegen + lokal Migration-Job laufen lassen.
+2. **Backend-Cleanup-Welle** in einem Commit (Build-Failure-driven, ~8
+  Stellen).
+3. **Backend-Tests anpassen** + `go test ./...` grün.
+4. **Frontend-Cleanup** in zweitem Commit (5 Stellen + Type).
+5. **Frontend-Tests anpassen** + `npm run build` + Playwright-Spec-
+  Update.
+6. **Swagger regenerieren** (`swag init` oder analog).
+7. **CHANGELOG-Eintrag** + Commit-Push.
+
+Geschätzter Aufwand: **~3-4 Stunden** konzentrierter Arbeit (Backend 1
+h, Frontend 1 h, Tests 1 h, Verifikation 30 min). Kein /grill-me-Loop
+nötig, weil Designentscheidungen schon durch sind und keine neuen
+Boundary-Konzepte involviert sind.
 
 ## QA Test Results
 _To be added by /qa_

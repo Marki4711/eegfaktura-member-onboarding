@@ -10,6 +10,52 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### PROJ-62 — Backend: Mitgliedstypen Kleinunternehmer + Unternehmen zusammenführen *(2026-05-24)*
+
+`sole_proprietor` (PROJ-28) wird mit `company` verschmolzen. UID-Nummer
+wird optional — leer impliziert Kleinunternehmerregelung
+(§ 6 Abs 1 Z 27 UStG). Frontend folgt im nächsten Commit.
+
+- **Migration `000056_drop_sole_proprietor_member_type.up.sql`**:
+  einfaches `UPDATE application SET member_type='company' WHERE
+  member_type='sole_proprietor'`. Kein CHECK-Constraint (es gab keinen),
+  keine down.sql (Test-Phase, harte Bereinigung).
+- **`internal/shared/models.go`**: Konstante `MemberTypeSoleProprietor`
+  entfernt.
+- **`internal/shared/requests.go`**: `oneof`-Validator an 3 Stellen auf
+  5 Werte reduziert (private/farmer/municipality/company/association).
+- **`internal/http/external.go`**: Externe API rejected
+  `memberType="sole_proprietor"` jetzt mit 400 statt es zu akzeptieren.
+- **`internal/application/application_service.go`**:
+  - `clearTypeIrrelevantFields`: sole_proprietor-Branch entfernt
+    (Org-Branch deckt das Verhalten ab)
+  - `validateMemberTypeFields`: sole_proprietor-Case entfernt; bei
+    `company` ist UID-Nummer jetzt **optional** (Kleinunternehmer-Pfad)
+  - `isOrgMemberType`-Kommentar aktualisiert
+- **`internal/application/admin_service.go::approvalMemberTypeLabel`**:
+  Kleinunternehmer-Label-Eintrag entfernt.
+- **`internal/importing/payload.go::mapPersonName`**: sole_proprietor-
+  Sonderpfad entfernt. Org-Default-Pfad behandelt ex-Kleinunternehmer
+  korrekt (firstname leer + companyName gesetzt → firstName=companyName).
+  Wenn ein company-Antrag explizit firstname gesetzt hat (z. B. via
+  Admin-Edit), wird der **beibehalten** statt überschrieben.
+- **`internal/dataexport/excel/fields.go::MemberTypeLabels`**:
+  `sole_proprietor`-Eintrag entfernt.
+- **Tests**:
+  - 4 PROJ-28-spezifische sole_proprietor-Tests entfernt (Verhalten
+    existiert nicht mehr)
+  - `Company_MissingUID`-Test umgedreht: erwartet jetzt KEINEN Fehler
+    bei leerer UID (`Company_MissingUIDAllowed`)
+  - 2 payload-Tests umgeschrieben: ex-sole_proprietor läuft als
+    `company`, plus neuer Test: firstname-Beibehaltung bei company
+  - `TestBuildPayload_BusinessRoleAndRole`-Tabelle: sole_proprietor-
+    Zeile entfernt (BusinessRole für company bleibt EEG_BUSINESS)
+- **Swagger** regeneriert via `swag init` — sole_proprietor aus
+  `docs/{docs.go,swagger.json,swagger.yaml}` entfernt.
+
+Alle Go-Tests grün. Frontend-Refactor (5 Komponenten + 1 Type) folgt
+im nächsten Commit via /frontend-Skill.
+
 ### PROJ-61 — Security-Review-Findings gefixt *(2026-05-24)*
 
 Fünf Findings aus dem /security-review umgesetzt; PROJ-61 ist jetzt

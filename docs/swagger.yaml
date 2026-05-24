@@ -27,6 +27,9 @@ definitions:
           markiert Bestandsanträge per Migration als "schon versandt".
         type: string
       adminNote:
+        description: |-
+          reviewed_by_user_id wurde 2026-05-24 (Audit-Welle 8) gedroppt —
+          echtes Tot-Datum, Audit-Quelle ist status_log.changed_by_user_id.
         type: string
       approvedAt:
         type: string
@@ -203,8 +206,6 @@ definitions:
         type: string
       residentZip:
         type: string
-      reviewedByUserId:
-        type: string
       sepaMandateAccepted:
         type: boolean
       sepaMandateAcceptedAt:
@@ -275,7 +276,6 @@ definitions:
       memberType:
         enum:
         - private
-        - sole_proprietor
         - farmer
         - municipality
         - company
@@ -565,7 +565,6 @@ definitions:
       memberType:
         enum:
         - private
-        - sole_proprietor
         - farmer
         - municipality
         - company
@@ -756,6 +755,125 @@ definitions:
     - direction
     - meteringPoint
     type: object
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportConfigRequest:
+    properties:
+      config:
+        additionalProperties: true
+        type: object
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+      pluginType:
+        maxLength: 50
+        type: string
+    required:
+    - config
+    - name
+    - pluginType
+    type: object
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportConfigResponse:
+    properties:
+      config:
+        additionalProperties: true
+        type: object
+      createdAt:
+        type: string
+      id:
+        type: string
+      isObsolete:
+        type: boolean
+      name:
+        type: string
+      pluginType:
+        type: string
+      rcNumber:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportJobResponse:
+    properties:
+      adminUserId:
+        type: string
+      configId:
+        type: string
+      configName:
+        type: string
+      createdAt:
+        type: string
+      errorMessage:
+        type: string
+      finishedAt:
+        type: string
+      hasResult:
+        type: boolean
+      id:
+        type: string
+      pluginType:
+        type: string
+      processedCount:
+        type: integer
+      rcNumber:
+        type: string
+      resultFileName:
+        type: string
+      resultFileSize:
+        type: integer
+      resultSummary:
+        additionalProperties: true
+        type: object
+      retryCount:
+        type: integer
+      startedAt:
+        type: string
+      status:
+        type: string
+      totalCount:
+        type: integer
+    type: object
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportJobTriggerRequest:
+    properties:
+      applicationIds:
+        items:
+          type: string
+        maxItems: 1000
+        minItems: 1
+        type: array
+      configId:
+        type: string
+    required:
+    - applicationIds
+    - configId
+    type: object
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportPreviewRequest:
+    properties:
+      config:
+        additionalProperties: true
+        type: object
+      pluginType:
+        type: string
+      rcNumber:
+        type: string
+    required:
+    - config
+    - pluginType
+    - rcNumber
+    type: object
+  github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportPreviewResponse:
+    properties:
+      headers:
+        items:
+          type: string
+        type: array
+      note:
+        type: string
+      rows:
+        items:
+          additionalProperties: true
+          type: object
+        type: array
+    type: object
   github_com_your-org_eegfaktura-member-onboarding_internal_shared.DocumentConsentView:
     properties:
       consentType:
@@ -868,7 +986,6 @@ definitions:
   github_com_your-org_eegfaktura-member-onboarding_internal_shared.MemberType:
     enum:
     - private
-    - sole_proprietor
     - farmer
     - municipality
     - company
@@ -876,7 +993,6 @@ definitions:
     type: string
     x-enum-varnames:
     - MemberTypePrivate
-    - MemberTypeSoleProprietor
     - MemberTypeFarmer
     - MemberTypeMunicipality
     - MemberTypeCompany
@@ -1147,7 +1263,6 @@ definitions:
       memberType:
         enum:
         - private
-        - sole_proprietor
         - farmer
         - municipality
         - company
@@ -1245,7 +1360,6 @@ definitions:
       memberType:
         enum:
         - private
-        - sole_proprietor
         - farmer
         - municipality
         - company
@@ -2198,6 +2312,449 @@ paths:
       summary: Delete all draft applications
       tags:
       - Admin
+  /api/admin/data-export/configs:
+    get:
+      parameters:
+      - description: EEG RC number (must be in the admin's tenant claim)
+        in: query
+        name: rc_number
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List data-export configurations (PROJ-60)
+      tags:
+      - data-export
+    post:
+      consumes:
+      - application/json
+      description: 'Plugin-specific config validated by Plugin.ValidateConfig. Enforced
+        limits: max 20 non-deleted configs per EEG, unique name per EEG across plugin
+        types.'
+      parameters:
+      - description: EEG RC number
+        in: query
+        name: rc_number
+        required: true
+        type: string
+      - description: Plugin type, name, plugin-specific config
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportConfigRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportConfigResponse'
+        "400":
+          description: validation_error — field-level errors under `fields` (e.g.
+            `columns[1].header`)
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create data-export configuration (PROJ-60)
+      tags:
+      - data-export
+  /api/admin/data-export/configs/{id}:
+    delete:
+      description: Sets deleted_at = NOW. Running jobs keep their snapshot. Hard-delete
+        via cleanup CronJob after 7 years (DSGVO § 132 BAO).
+      parameters:
+      - description: Config UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: EEG RC number
+        in: query
+        name: rc_number
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Soft-delete data-export configuration (PROJ-60)
+      tags:
+      - data-export
+    get:
+      parameters:
+      - description: Config UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: EEG RC number
+        in: query
+        name: rc_number
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportConfigResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get data-export configuration (PROJ-60)
+      tags:
+      - data-export
+    put:
+      consumes:
+      - application/json
+      description: Same shape as create. pluginType cannot be changed. Obsolete configs
+        are read-only.
+      parameters:
+      - description: Config UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: EEG RC number
+        in: query
+        name: rc_number
+        required: true
+        type: string
+      - description: Updated plugin config
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportConfigRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportConfigResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update data-export configuration (PROJ-60)
+      tags:
+      - data-export
+  /api/admin/data-export/configs/preview:
+    post:
+      consumes:
+      - application/json
+      description: Returns headers + rows as JSON (not file bytes) — used by the editor
+        for instant feedback. Falls back to the plugin's synthetic sample when the
+        EEG has no imported members yet.
+      parameters:
+      - description: EEG RC number
+        in: query
+        name: rc_number
+        required: true
+        type: string
+      - description: Plugin type + config to preview
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportPreviewRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportPreviewResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Live-preview a data-export config (PROJ-60)
+      tags:
+      - data-export
+  /api/admin/data-export/jobs:
+    get:
+      description: Cursor-based pagination via created_at. Includes failedLast7Days
+        for the red-badge counter.
+      parameters:
+      - description: EEG RC number
+        in: query
+        name: rc_number
+        required: true
+        type: string
+      - description: queued | running | done | failed | expired
+        in: query
+        name: status
+        type: string
+      - description: Filter created_at >= RFC3339
+        in: query
+        name: since
+        type: string
+      - description: Filter created_at < RFC3339
+        in: query
+        name: until
+        type: string
+      - description: Pagination cursor (RFC3339Nano of last item)
+        in: query
+        name: cursor
+        type: string
+      - description: Page size (default 50, max 200)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List data-export jobs (BackOffice, PROJ-60)
+      tags:
+      - data-export
+    post:
+      consumes:
+      - application/json
+      description: 'Limits: 1..1000 application IDs, max 3 active jobs per EEG (soft,
+        tolerates 4-5 burst). Config snapshot is frozen at trigger time so subsequent
+        config edits don''t affect this run. Returns 409 during graceful shutdown.'
+      parameters:
+      - description: EEG RC number
+        in: query
+        name: rc_number
+        required: true
+        type: string
+      - description: Config ID + application IDs
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportJobTriggerRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportJobResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "404":
+          description: Config not found
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "409":
+          description: Config obsolete or server shutting down
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Trigger data-export job (PROJ-60)
+      tags:
+      - data-export
+  /api/admin/data-export/jobs/{id}:
+    get:
+      description: Polled every 2-5 seconds while the job is queued/running. errorMessage
+        is always user-safe text (never contains stack traces or DB internals).
+      parameters:
+      - description: Job UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: EEG RC number
+        in: query
+        name: rc_number
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportJobResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get data-export job status (PROJ-60)
+      tags:
+      - data-export
+  /api/admin/data-export/jobs/{id}/download:
+    get:
+      description: Filename pattern `{rc_number}-{config_name}-{YYYY-MM-DD}.{xlsx|csv}`
+        with path-traversal sanitization. CSV includes UTF-8 BOM + semicolon (DACH-Excel
+        convention). All cell values whose first non-whitespace char is `=+-@\t\r`
+        are prefixed with `'` to defang CSV/Excel-injection.
+      parameters:
+      - description: Job UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: EEG RC number
+        in: query
+        name: rc_number
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: 'Binary stream with Content-Disposition: attachment'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "404":
+          description: Job unknown or result expired
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "409":
+          description: Job not in done status
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Download data-export result (PROJ-60)
+      tags:
+      - data-export
+  /api/admin/data-export/jobs/{id}/retry:
+    post:
+      description: Original job is unaffected (audit-trail preserved). Returns 409
+        during graceful shutdown.
+      parameters:
+      - description: Original job UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: EEG RC number
+        in: query
+        name: rc_number
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportJobResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+        "409":
+          description: Server shutting down
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Retry a data-export job (PROJ-60)
+      tags:
+      - data-export
+  /api/admin/data-export/plugins:
+    get:
+      description: Returns all plugins compiled into the backend with their built-in
+        standard templates. Global — no rc_number filter.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List registered data-export plugins (PROJ-60)
+      tags:
+      - data-export
   /api/admin/settings/eeg/core-comparison:
     get:
       description: Fetches the EEG master data from the core via GraphQL and diffs

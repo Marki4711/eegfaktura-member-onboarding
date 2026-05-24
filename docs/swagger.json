@@ -1305,6 +1305,671 @@
                 }
             }
         },
+        "/api/admin/data-export/configs": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "data-export"
+                ],
+                "summary": "List data-export configurations (PROJ-60)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "EEG RC number (must be in the admin's tenant claim)",
+                        "name": "rc_number",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Plugin-specific config validated by Plugin.ValidateConfig. Enforced limits: max 20 non-deleted configs per EEG, unique name per EEG across plugin types.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "data-export"
+                ],
+                "summary": "Create data-export configuration (PROJ-60)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "EEG RC number",
+                        "name": "rc_number",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Plugin type, name, plugin-specific config",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportConfigRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportConfigResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "validation_error — field-level errors under `fields` (e.g. `columns[1].header`)",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/data-export/configs/preview": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns headers + rows as JSON (not file bytes) — used by the editor for instant feedback. Falls back to the plugin's synthetic sample when the EEG has no imported members yet.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "data-export"
+                ],
+                "summary": "Live-preview a data-export config (PROJ-60)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "EEG RC number",
+                        "name": "rc_number",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Plugin type + config to preview",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportPreviewRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportPreviewResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/data-export/configs/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "data-export"
+                ],
+                "summary": "Get data-export configuration (PROJ-60)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Config UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "EEG RC number",
+                        "name": "rc_number",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportConfigResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Same shape as create. pluginType cannot be changed. Obsolete configs are read-only.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "data-export"
+                ],
+                "summary": "Update data-export configuration (PROJ-60)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Config UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "EEG RC number",
+                        "name": "rc_number",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated plugin config",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportConfigRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportConfigResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sets deleted_at = NOW. Running jobs keep their snapshot. Hard-delete via cleanup CronJob after 7 years (DSGVO § 132 BAO).",
+                "tags": [
+                    "data-export"
+                ],
+                "summary": "Soft-delete data-export configuration (PROJ-60)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Config UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "EEG RC number",
+                        "name": "rc_number",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/data-export/jobs": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cursor-based pagination via created_at. Includes failedLast7Days for the red-badge counter.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "data-export"
+                ],
+                "summary": "List data-export jobs (BackOffice, PROJ-60)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "EEG RC number",
+                        "name": "rc_number",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "queued | running | done | failed | expired",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter created_at \u003e= RFC3339",
+                        "name": "since",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter created_at \u003c RFC3339",
+                        "name": "until",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (RFC3339Nano of last item)",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default 50, max 200)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Limits: 1..1000 application IDs, max 3 active jobs per EEG (soft, tolerates 4-5 burst). Config snapshot is frozen at trigger time so subsequent config edits don't affect this run. Returns 409 during graceful shutdown.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "data-export"
+                ],
+                "summary": "Trigger data-export job (PROJ-60)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "EEG RC number",
+                        "name": "rc_number",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Config ID + application IDs",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportJobTriggerRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportJobResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Config not found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Config obsolete or server shutting down",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/data-export/jobs/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Polled every 2-5 seconds while the job is queued/running. errorMessage is always user-safe text (never contains stack traces or DB internals).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "data-export"
+                ],
+                "summary": "Get data-export job status (PROJ-60)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Job UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "EEG RC number",
+                        "name": "rc_number",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportJobResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/data-export/jobs/{id}/download": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Filename pattern `{rc_number}-{config_name}-{YYYY-MM-DD}.{xlsx|csv}` with path-traversal sanitization. CSV includes UTF-8 BOM + semicolon (DACH-Excel convention). All cell values whose first non-whitespace char is `=+-@\\t\\r` are prefixed with `'` to defang CSV/Excel-injection.",
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "tags": [
+                    "data-export"
+                ],
+                "summary": "Download data-export result (PROJ-60)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Job UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "EEG RC number",
+                        "name": "rc_number",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Binary stream with Content-Disposition: attachment"
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Job unknown or result expired",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Job not in done status",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/data-export/jobs/{id}/retry": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Original job is unaffected (audit-trail preserved). Returns 409 during graceful shutdown.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "data-export"
+                ],
+                "summary": "Retry a data-export job (PROJ-60)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Original job UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "EEG RC number",
+                        "name": "rc_number",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportJobResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Server shutting down",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/data-export/plugins": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all plugins compiled into the backend with their built-in standard templates. Global — no rc_number filter.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "data-export"
+                ],
+                "summary": "List registered data-export plugins (PROJ-60)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_your-org_eegfaktura-member-onboarding_internal_shared.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/settings/eeg/core-comparison": {
             "get": {
                 "security": [
@@ -2015,6 +2680,7 @@
                     "type": "string"
                 },
                 "adminNote": {
+                    "description": "reviewed_by_user_id wurde 2026-05-24 (Audit-Welle 8) gedroppt —\nechtes Tot-Datum, Audit-Quelle ist status_log.changed_by_user_id.",
                     "type": "string"
                 },
                 "approvedAt": {
@@ -2212,9 +2878,6 @@
                 "residentZip": {
                     "type": "string"
                 },
-                "reviewedByUserId": {
-                    "type": "string"
-                },
                 "sepaMandateAccepted": {
                     "type": "boolean"
                 },
@@ -2313,7 +2976,6 @@
                     "type": "string",
                     "enum": [
                         "private",
-                        "sole_proprietor",
                         "farmer",
                         "municipality",
                         "company",
@@ -2720,7 +3382,6 @@
                     "type": "string",
                     "enum": [
                         "private",
-                        "sole_proprietor",
                         "farmer",
                         "municipality",
                         "company",
@@ -2920,6 +3581,180 @@
                 }
             }
         },
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportConfigRequest": {
+            "type": "object",
+            "required": [
+                "config",
+                "name",
+                "pluginType"
+            ],
+            "properties": {
+                "config": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                },
+                "pluginType": {
+                    "type": "string",
+                    "maxLength": 50
+                }
+            }
+        },
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportConfigResponse": {
+            "type": "object",
+            "properties": {
+                "config": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "isObsolete": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "pluginType": {
+                    "type": "string"
+                },
+                "rcNumber": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportJobResponse": {
+            "type": "object",
+            "properties": {
+                "adminUserId": {
+                    "type": "string"
+                },
+                "configId": {
+                    "type": "string"
+                },
+                "configName": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "errorMessage": {
+                    "type": "string"
+                },
+                "finishedAt": {
+                    "type": "string"
+                },
+                "hasResult": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "pluginType": {
+                    "type": "string"
+                },
+                "processedCount": {
+                    "type": "integer"
+                },
+                "rcNumber": {
+                    "type": "string"
+                },
+                "resultFileName": {
+                    "type": "string"
+                },
+                "resultFileSize": {
+                    "type": "integer"
+                },
+                "resultSummary": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "retryCount": {
+                    "type": "integer"
+                },
+                "startedAt": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "totalCount": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportJobTriggerRequest": {
+            "type": "object",
+            "required": [
+                "applicationIds",
+                "configId"
+            ],
+            "properties": {
+                "applicationIds": {
+                    "type": "array",
+                    "maxItems": 1000,
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "configId": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportPreviewRequest": {
+            "type": "object",
+            "required": [
+                "config",
+                "pluginType",
+                "rcNumber"
+            ],
+            "properties": {
+                "config": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "pluginType": {
+                    "type": "string"
+                },
+                "rcNumber": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_your-org_eegfaktura-member-onboarding_internal_shared.DataExportPreviewResponse": {
+            "type": "object",
+            "properties": {
+                "headers": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "note": {
+                    "type": "string"
+                },
+                "rows": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                    }
+                }
+            }
+        },
         "github_com_your-org_eegfaktura-member-onboarding_internal_shared.DocumentConsentView": {
             "type": "object",
             "properties": {
@@ -3074,7 +3909,6 @@
             "type": "string",
             "enum": [
                 "private",
-                "sole_proprietor",
                 "farmer",
                 "municipality",
                 "company",
@@ -3082,7 +3916,6 @@
             ],
             "x-enum-varnames": [
                 "MemberTypePrivate",
-                "MemberTypeSoleProprietor",
                 "MemberTypeFarmer",
                 "MemberTypeMunicipality",
                 "MemberTypeCompany",
@@ -3415,7 +4248,6 @@
                     "type": "string",
                     "enum": [
                         "private",
-                        "sole_proprietor",
                         "farmer",
                         "municipality",
                         "company",
@@ -3554,7 +4386,6 @@
                     "type": "string",
                     "enum": [
                         "private",
-                        "sole_proprietor",
                         "farmer",
                         "municipality",
                         "company",
