@@ -11,6 +11,17 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-send-timeout: {{ .Values.ingress.proxySendTimeout | quote }}
     nginx.ingress.kubernetes.io/proxy-buffer-size: {{ .Values.ingress.proxyBufferSize | quote }}
     nginx.ingress.kubernetes.io/proxy-buffers-number: {{ .Values.ingress.proxyBuffersNumber | quote }}
+    # Defense-in-Depth: TLS extern (Cloudflare/cert-manager), aber Ingress
+    # erzwingt zusätzlich Redirect + Security-Headers. HSTS für 6 Monate
+    # (180 d) — Reverse-Proxy gibt sonst keine HSTS-Header weiter.
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: {{ .Values.ingress.proxyBodySize | default "10m" | quote }}
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "Strict-Transport-Security: max-age=15552000; includeSubDomains";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "Referrer-Policy: strict-origin-when-cross-origin";
+      more_set_headers "X-Frame-Options: SAMEORIGIN";
 spec:
   ingressClassName: {{ .Values.ingress.className }}
   rules:
@@ -35,6 +46,13 @@ metadata:
   annotations:
     nginx.ingress.kubernetes.io/proxy-read-timeout: {{ .Values.ingress.proxyReadTimeout | quote }}
     nginx.ingress.kubernetes.io/proxy-send-timeout: {{ .Values.ingress.proxySendTimeout | quote }}
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: {{ .Values.ingress.proxyBodySize | default "10m" | quote }}
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "Strict-Transport-Security: max-age=15552000; includeSubDomains";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "Referrer-Policy: strict-origin-when-cross-origin";
 spec:
   ingressClassName: {{ .Values.ingress.className }}
   rules:

@@ -9,12 +9,17 @@ This ensures no name collisions when co-deployed in a shared namespace.
 
 {{/*
 Common labels applied to every resource.
+`app.kubernetes.io/version` mappt auf `.Chart.AppVersion` statt auf den
+Backend-Image-Tag — vorher landete `sha-XXXXXX` als Version-Label auch
+auf Postgres, Frontend und kubectl-CronJob (irreführend, weil die ein
+eigenes Image haben). Image-spezifische Tags stehen ohnehin auf den
+einzelnen Pods (`image: registry/...:tag`).
 */}}
 {{- define "member-onboarding.labels" -}}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
-app.kubernetes.io/version: {{ .Values.images.backend.tag | quote }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 
 {{/*

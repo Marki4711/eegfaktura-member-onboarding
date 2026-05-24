@@ -28,10 +28,17 @@ spec:
           ["/bin/sh","-c","PGPASSWORD=\"$POSTGRES_PASSWORD\" psql -U {{ .Values.postgres.user }} -d {{ .Values.postgres.database }} -c CHECKPOINT;"]
         pre.hook.backup.velero.io/timeout: 60s
     spec:
+      # 60 s gibt Postgres genug Zeit für "smart" shutdown (Connections
+      # zu Ende abarbeiten, dann sauberer Checkpoint vor SIGKILL). Default
+      # 30 s wäre zu knapp und kann zu inkonsistenten WAL-Zuständen führen.
+      terminationGracePeriodSeconds: 60
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 999
         fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: postgres
           image: postgres:16-alpine
@@ -68,6 +75,21 @@ spec:
                 - {{ .Values.postgres.database | quote }}
             initialDelaySeconds: 5
             periodSeconds: 5
+          # Liveness restartet hängende Postgres-Prozesse (Kernel-OOM,
+          # Disk-Full, Connection-Pool-Exhaustion). Höheres failureThreshold
+          # als readiness, weil ein kurzzeitig überlasteter Postgres nicht
+          # gleich neugestartet werden soll.
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - {{ .Values.postgres.user | quote }}
+                - -d
+                - {{ .Values.postgres.database | quote }}
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 5
   volumeClaimTemplates:
     - metadata:
         name: data

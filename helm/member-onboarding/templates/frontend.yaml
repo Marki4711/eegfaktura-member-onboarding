@@ -17,17 +17,26 @@ spec:
       labels:
         app: {{ include "member-onboarding.fullname" . }}-frontend
     spec:
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: frontend
           image: {{ .Values.images.frontend.repository }}:{{ .Values.images.frontend.tag }}
           imagePullPolicy: {{ .Values.images.frontend.pullPolicy }}
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
+          volumeMounts:
+            # Next.js Standalone schreibt nur in /tmp (Hot-Module-Replacement
+            # ist im prod-Build deaktiviert, .next ist im Image read-only).
+            - name: tmp
+              mountPath: /tmp
           ports:
             - containerPort: 3000
           env:
@@ -86,6 +95,18 @@ spec:
             initialDelaySeconds: 30
             periodSeconds: 30
             failureThreshold: 3
+          # Next.js Cold-Start kann 10-20 s dauern (Standalone-Bundle laden,
+          # NextAuth-Init, KEYCLOAK-JWKS-Fetch). Ohne startupProbe würde
+          # livenessProbe ggf. killen, bevor App ready ist.
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            failureThreshold: 30
+            periodSeconds: 2
+      volumes:
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service

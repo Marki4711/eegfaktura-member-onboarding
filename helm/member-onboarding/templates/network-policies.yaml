@@ -86,10 +86,11 @@ spec:
   policyTypes:
     - Ingress
   ingress:
-    # Backend (steady-state), migrate (helm pre-upgrade hook) and seed
-    # (helm post-install hook) are the only legitimate Postgres clients.
-    # Notably: frontend cannot reach Postgres even though both pods live
-    # in the same namespace.
+    # Backend (steady-state), migrate (helm pre-upgrade hook), seed
+    # (helm post-install hook) und data-export-cleanup (PROJ-60 cron,
+    # alle 10 min) sind die legitimen Postgres-Clients. Notably: frontend
+    # cannot reach Postgres even though both pods live in the same
+    # namespace.
     - from:
         - podSelector:
             matchLabels:
@@ -100,6 +101,9 @@ spec:
         - podSelector:
             matchLabels:
               app: {{ include "member-onboarding.fullname" . }}-seed
+        - podSelector:
+            matchLabels:
+              app: {{ include "member-onboarding.fullname" . }}-data-export-cleanup
       ports:
         - port: 5432
           protocol: TCP

@@ -61,6 +61,20 @@ Phase 2 (Zoho, HubSpot, …) baut ohne Framework-Eingriff auf.
 - `LoadForExport`-Fehlermessage entfernt die RC-Nummer aus dem User-Error (defensiver gegen Cross-Tenant-Info-Leak)
 - TODO-docs-sync.md-Drift gefixt (alte §3.6/3.7/3.8-Referenz)
 
+**Helm-Deep-Audit-Welle 4 (2026-05-24):**
+- **Produktiver Bug behoben**: `data-export-cleanup`-CronJob (PROJ-60) war nicht in der Postgres-NetworkPolicy-Allowlist → wäre bei strikten CNIs (Calico/Cilium) bei jedem Run gescheitert. Vierter `podSelector`-Eintrag ergänzt.
+- Konsistente Härtung über alle 8 Pod-Workloads: `seccompProfile: RuntimeDefault`, `automountServiceAccountToken: false` (wo möglich), `readOnlyRootFilesystem: true`, drop-ALL-capabilities, `allowPrivilegeEscalation: false` (vorher nur backend + data-export-cleanup gehärtet)
+- Postgres: livenessProbe (höheres `failureThreshold` als readiness), `terminationGracePeriodSeconds: 60` für sauberen smart-shutdown, cpu-Limit
+- Frontend: startupProbe für Next.js Cold-Start (failureThreshold 30 × 2 s), tmp-emptyDir für readOnlyRootFilesystem
+- Ingress: `ssl-redirect` + HSTS (180 d) + X-Content-Type-Options + Referrer-Policy + X-Frame-Options + proxy-body-size 10 MB
+- Namespace: PSA `restricted` enforced + audit + warn (defensive: zukünftige nicht-konforme Workloads werden vom API-Server rejected)
+- seed-job: SQL-Injection-Vektor geschlossen — `values.seed.*` werden jetzt als Env-Vars in psql gesetzt + `\set` + `:'name'`-Safe-Quoting statt Template-Inline-Interpolation
+- restart-cronjob: `startingDeadlineSeconds: 300`, Pod- und Container-Security-Context
+- `_helpers.tpl`: `app.kubernetes.io/version`-Label auf `.Chart.AppVersion` statt Backend-Image-Tag (war für Postgres/Frontend/CronJob irreführend)
+- **Resource-Requests minimiert** (Owner-Entscheidung): backend 50→10 m, postgres 100→25 m, frontend 100→25 m, jobs 10→5 m. Cluster-Sizing-Kosten gering halten solange wir noch nicht produktiv sind. Limits bleiben großzügig für Peak.
+
+Bewusst aufgeschoben in `docs/AUDIT-TODO.md` 5a–5f: TLS-Block (cert-manager), SealedSecrets-Migration, Egress-NetPol, HA + PDB, HPA, Postgres-Backup-Doku.
+
 ### PROJ-57 v3 — Ansprechperson ohne Master-Switch, drei Felder einzeln steuerbar *(2026-05-21)*
 
 Vereinfachung des Konfigurations-Modells: der separate

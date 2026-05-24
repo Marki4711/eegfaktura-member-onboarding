@@ -51,6 +51,10 @@ spec:
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
+  # Verhindert Backlog-Akkumulation bei Cluster-Downtime (Default unendlich
+  # könnte zu vielen verpassten Runs auf einmal führen). 300 s ist deutlich
+  # mehr als die ~30 s typische Run-Dauer.
+  startingDeadlineSeconds: 300
   jobTemplate:
     spec:
       template:
@@ -60,10 +64,24 @@ spec:
         spec:
           serviceAccountName: {{ include "member-onboarding.fullname" . }}-restarter
           restartPolicy: OnFailure
+          # Pod braucht K8s-API-Zugriff via dedicated SA (oben) — kein
+          # automountServiceAccountToken: false hier, weil das Pod-Level-
+          # automount steuert. Der serviceAccountName + dessen Token wird
+          # weiterhin gemountet.
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            seccompProfile:
+              type: RuntimeDefault
           containers:
             - name: kubectl
               image: {{ .Values.restart.kubectlImage | quote }}
               imagePullPolicy: IfNotPresent
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
               command:
                 - kubectl
                 - rollout
@@ -72,4 +90,11 @@ spec:
                 - deployment/{{ include "member-onboarding.fullname" . }}-frontend
                 - --namespace
                 - {{ include "member-onboarding.namespace" . }}
+              resources:
+                requests:
+                  cpu: 5m
+                  memory: 16Mi
+                limits:
+                  cpu: 100m
+                  memory: 128Mi
 {{- end }}
