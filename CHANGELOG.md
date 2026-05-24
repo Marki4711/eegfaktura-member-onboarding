@@ -10,6 +10,32 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### PROJ-61 — Security-Review-Findings gefixt *(2026-05-24)*
+
+Fünf Findings aus dem /security-review umgesetzt; PROJ-61 ist jetzt
+deploy-ready ohne offene Sub-Tickets aus dem Review.
+
+- **Finding #1 (Medium)**: Längen-Limits für `legal_document.title`
+  (500 Zeichen) und `data_export_config.name` (200 Zeichen) als
+  Konstanten in `internal/configexport/limits.go` + Check in
+  `validateAndSanitize`.
+- **Finding #2 (Medium)**: Error-Log-Hygiene in
+  `internal/http/configexport.go`. Raw DB-Fehler werden mit
+  `error_class`-Kategorie + `.Error()`-String geloggt — verhindert
+  Schema-/Query-Leaks in Pod-Logs.
+- **Finding #3 (Low)**: Defense-in-Depth-Limit auf
+  `?sections=`-Query-Param: max 20 Items (`MaxSectionsQueryItems`).
+- **Finding #4 (Info)**: Audit-Log-Key `source_eeg` →
+  `claimed_source_eeg`. Markiert klar, dass der Wert User-controlled
+  ist; echte verifizierte Ziel-EEG bleibt in `rc_number`.
+- **Finding #5 (Info)**: Go-Toolchain `go.mod` `1.26.2` → `1.26.3`.
+  Schließt 6 Stdlib-CVEs (XSS in html/template, HTTP/2-Loop,
+  quadratic net/mail, NUL-Byte net/Dial). `govulncheck` nach Bump:
+  0 Vulnerabilities im eigenen Code.
+
+3 neue Unit-Tests (LegalDocumentTitleTooLong/AtLimitOK,
+DataExportConfigNameTooLong).
+
 ### PROJ-61 — Bug-Fixes nach QA-Run *(2026-05-24)*
 
 Drei Bugs aus dem /qa-Run gefixt; PROJ-61 ist jetzt Production-Ready.
