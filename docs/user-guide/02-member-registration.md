@@ -16,6 +16,8 @@ Diesen Link erhältst du von deinem EEG-Betreiber (z.B. per E-Mail oder auf der 
 
 ## Schritt 2: Mitgliedstyp auswählen
 
+![Mitgliedstyp-Auswahl](images/register-form-mitgliedstyp.png)
+
 Wähle den zutreffenden Mitgliedstyp:
 
 | Typ | Beschreibung | USt.-Hinweis im Dropdown |
@@ -32,6 +34,8 @@ Je nach Mitgliedstyp werden unterschiedliche Felder angezeigt (z. B. Firmenname 
 
 ## Schritt 3: Persönliche Daten eingeben
 
+![Persönliche Daten](images/register-form-personendaten.png)
+
 Fülle alle Pflichtfelder aus (mit * markiert):
 
 - **Vorname / Nachname** (bei Privatpersonen und Landwirten)
@@ -40,7 +44,13 @@ Fülle alle Pflichtfelder aus (mit * markiert):
 - **Telefon** (optional, sofern von deiner EEG aktiviert)
 - **Wohnadresse** (Straße, Hausnummer, PLZ, Ort)
 
+Direkt darunter erscheint die Adress-Sektion (Rechnungsadresse):
+
+![Adresse Rechnungsadresse](images/register-form-adresse.png)
+
 ## Schritt 4: Bankverbindung eingeben
+
+![Bankverbindung](images/register-form-bankverbindung.png)
 
 Gib deine IBAN und den Kontoinhaber an. Mit dem Setzen des Häkchens bei **SEPA-Lastschriftmandat** erteilst du der EEG die Erlaubnis, Beiträge einzuziehen.
 
@@ -82,6 +92,8 @@ Nach der Zählpunkt-Eingabe erscheint — sofern deine EEG die zugehörigen Feld
 
 ## Schritt 5a: Genossenschaftsanteile (nur bei aktivierten EEGs)
 
+![Genossenschaftsanteile](images/register-form-genossenschaft.png)
+
 Wenn deine EEG als Genossenschaft organisiert ist und in den Einstellungen die Anteils-Erfassung aktiviert hat, erscheint ein zusätzlicher Block **„Genossenschaftsanteile"** im Formular:
 
 - **Pflichtanteil je Standort** — der von der EEG festgelegte Mindestwert (z.B. „1 Anteil"). Reiner Hinweistext, kann nicht geändert werden.
@@ -91,6 +103,8 @@ Wenn deine EEG als Genossenschaft organisiert ist und in den Einstellungen die A
 Wenn deine EEG dieses Feature nicht aktiviert hat, ist der Block ausgeblendet und du kannst diesen Schritt überspringen.
 
 ## Schritt 6: Datenschutz und Einreichung
+
+![Einwilligungen](images/register-form-einwilligungen.png)
 
 - Stimme der **Datenschutzerklärung** zu
 - Bestätige die **Richtigkeit deiner Angaben**

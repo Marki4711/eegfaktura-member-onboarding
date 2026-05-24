@@ -157,6 +157,18 @@ Neben einigen Feldern stehen farbige **Badges**, die dir sofort zeigen, **unter 
 
 Neben jedem Feld mit Badge steht ein kleines **Info-Icon** — Klick/Hover zeigt die exakte Bedingung in Worten. Die Badges sind Single Source of Truth: ändert sich die Bedingung im Code, ändert sich auch die Badge ohne separate Pflege.
 
+### Antragsteller-Felder (Application-Scope)
+
+![Antragsteller-Felder](images/admin-settings-fields-applicant.png)
+
+Felder, die einmal pro Antrag erfasst werden. Badges zeigen typabhängige Sichtbarkeit (siehe oben).
+
+### Zählpunkt-Felder (Zählpunkt-Scope)
+
+![Zählpunkt-Felder](images/admin-settings-fields-metering.png)
+
+Felder, die pro Zählpunkt im Mitgliedsformular erscheinen — bei mehreren Zählpunkten entsprechend mehrfach.
+
 ### Spezielle konfigurierbare Felder
 
 - **Netzbetreiber-Vollmacht** *(Application-Scope)* — das Mitglied erteilt der EEG die Vollmacht, in seinem Namen mit dem Netzbetreiber zu agieren (notwendig z. B. bei Netz OÖ). Der Volltext der Vollmacht ist **fest im Code** und kann hier nicht editiert werden — du steuerst lediglich, ob die Checkbox überhaupt erscheinen soll. Default: `Ausgeblendet`. Bei `Verpflichtend` muss das Mitglied das Häkchen aktiv setzen, sonst wird der Antrag nicht submitted.
@@ -187,6 +199,8 @@ Hier verwaltest du EEG-spezifische Dokumente (z.B. Satzung, Nutzungsbedingungen)
 Die Auswahl ist binär — ein „optional anhakbar" gibt es nicht mehr.
 
 ### Dokument hinzufügen
+
+![Dokument hinzufügen — Dialog](images/admin-settings-legal-add.png)
 
 1. Klicke auf **Dokument hinzufügen**.
 2. Gib einen Titel und die URL des Dokuments ein.
@@ -233,6 +247,8 @@ Aus dem **Antragsdetail**:
 
 ### Job-Übersicht
 
+![Datenweiterleitung Jobs](images/admin-settings-datenweiterleitung-jobs.png)
+
 Auf dieser Seite siehst du den Verlauf aller Jobs (Status, Anzahl Anträge, Zeitpunkt, Ergebnisdatei zum Download). Fehlerhafte Jobs erzeugen automatisch eine Benachrichtigungs-E-Mail an die EEG-Kontaktadresse.
 
 > **DSGVO-Hinweis:** Beim Hinzufügen sensibler Felder (IBAN, Geburtsdatum) zu einer Exportkonfiguration zeigt die UI eine Warnung. Die Verantwortung für die rechtmäßige Weiterverarbeitung liegt beim Empfänger-System.
@@ -251,6 +267,8 @@ Sicherung und Übertragung der per-EEG-Konfiguration als versionierte JSON-Datei
 
 ### Export
 
+![Export-Bereich](images/admin-settings-import-export-export.png)
+
 Vier Sektionen sind einzeln oder als **Komplett-Bundle** exportierbar:
 
 | Sektion | Inhalt |
@@ -263,6 +281,8 @@ Vier Sektionen sind einzeln oder als **Komplett-Bundle** exportierbar:
 Dateiname enthält RC-Nummer und Zeitstempel — manuelle Versionierung in Git oder einem Backup-System ist damit unproblematisch.
 
 ### Import mit Diff-Preview
+
+![Import-Bereich](images/admin-settings-import-export-import.png)
 
 1. **Datei hochladen** (Drag-and-Drop oder Auswahldialog) — max 1 MB, nur `.json`. Die Datei wird serverseitig schemavalidiert; bei Fehlern wird der Upload abgelehnt.
 2. **Diff-Preview** zeigt pro Sektion was sich ändert: hinzugefügt, modifiziert, entfernt oder unverändert.
