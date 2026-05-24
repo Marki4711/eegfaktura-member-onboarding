@@ -375,9 +375,9 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#schritt-5b-weitere-angaben-typabhangig-proj-45" class="md-nav__link">
+  <a href="#schritt-5b-weitere-angaben-typabhangig" class="md-nav__link">
     <span class="md-ellipsis">
-      Schritt 5b: Weitere Angaben (typabhängig, PROJ-45)
+      Schritt 5b: Weitere Angaben (typabhängig)
     </span>
   </a>
   
@@ -661,7 +661,7 @@
 </table>
 <p>Je nach Mitgliedstyp werden unterschiedliche Felder angezeigt (z. B. Firmenname statt Vorname/Nachname). Der USt.-Hinweis in Klammern dient der Orientierung — er zeigt, welchen Steuersatz deine Rechnungen aus der EEG voraussichtlich tragen werden.</p>
 <blockquote>
-<p><strong>Kleinunternehmer-Pfad:</strong> Wähle <strong>Unternehmen</strong> und lass die UID-Nummer leer — das signalisiert dem System die Kleinunternehmerregelung (0 % USt.). Mit ausgefüllter UID-Nummer wird der reguläre Unternehmenspfad (20 % USt.) angenommen. Eine separate „Kleinunternehmer"-Option gibt es seit Mai 2026 nicht mehr (PROJ-62).</p>
+<p><strong>Kleinunternehmer-Pfad:</strong> Wähle <strong>Unternehmen</strong> und lass die UID-Nummer leer — das signalisiert dem System die Kleinunternehmerregelung (0 % USt.). Mit ausgefüllter UID-Nummer wird der reguläre Unternehmenspfad (20 % USt.) angenommen. Eine separate „Kleinunternehmer"-Option gibt es seit Mai 2026 nicht mehr.</p>
 </blockquote>
 <h2 id="schritt-3-personliche-daten-eingeben">Schritt 3: Persönliche Daten eingeben<a class="headerlink" href="#schritt-3-personliche-daten-eingeben" title="Permanent link">&para;</a></h2>
 <p>Fülle alle Pflichtfelder aus (mit * markiert):</p>
@@ -684,29 +684,29 @@
 <li><strong>Richtung</strong> — Verbraucher (Strom wird bezogen) oder Erzeuger (Strom wird eingespeist)</li>
 <li><strong>Teilnahmefaktor</strong> — prozentualer Anteil der Teilnahme an der EEG (Standard: 100 %)</li>
 <li><strong>Zählpunktnummer</strong> — 33-stellige Nummer im Format <code>AT...</code> in der offiziellen E-Control-Gruppierung <code>2-6-5-20</code> (steht auf deiner Stromrechnung). Die letzten 20 Stellen können Großbuchstaben und Ziffern enthalten.</li>
-<li><strong>Prefix-Vorbelegung (PROJ-52)</strong>: Wenn deine EEG einen Zählpunkt-Prefix für die gewählte Richtung konfiguriert hat, ist dieser bereits eingetragen und kann nicht überschrieben werden — du tippst nur die individuellen letzten Stellen.</li>
+<li><strong>Prefix-Vorbelegung</strong>: Wenn deine EEG einen Zählpunkt-Prefix für die gewählte Richtung konfiguriert hat, ist dieser bereits eingetragen und kann nicht überschrieben werden — du tippst nur die individuellen letzten Stellen.</li>
 <li><strong>Auto-Pad</strong>: Wenn du das Eingabefeld verlässt und weniger Stellen als nötig eingetippt hast, werden fehlende Stellen automatisch mit führenden Nullen zwischen Prefix und deiner Eingabe ergänzt.</li>
 <li><strong>Richtungs-Wechsel</strong> löscht das Zählpunkt-Feld, damit der korrekte Prefix für die neue Richtung greifen kann.</li>
-<li><strong>Erzeugungsform</strong> <em>(PROJ-45, nur bei Erzeuger-Zählpunkten)</em> — Auswahl PV / Wasser / Wind / Biomasse, Default PV</li>
-<li><strong>Batteriespeicher vorhanden</strong> <em>(PROJ-49 follow-up, nur bei PV-Erzeugern)</em> — Master-Checkbox: nach dem Aktivieren erscheinen die drei Speicher-Felder gemeinsam:</li>
-<li><strong>Größe Batterie (kWh)</strong> <em>(PROJ-45, sofern die EEG das Feld konfiguriert hat)</em></li>
-<li><strong>Hersteller Wechselrichter</strong> <em>(PROJ-45, sofern die EEG das Feld konfiguriert hat)</em></li>
-<li><strong>Speichersteuerung im Sinne der EEG vorstellbar?</strong> <em>(PROJ-49 follow-up, sofern die EEG das Feld konfiguriert hat)</em> — Ja-/Nein-Häkchen: die EEG könnte deinen Heimspeicher gemeinsam mit anderen Speichern der Mitglieder so steuern, dass die Erzeugung innerhalb der Gemeinschaft optimal genutzt wird. Eine konkrete Steuerung wird separat abgestimmt; das Häkchen ist nur deine grundsätzliche Bereitschaft.</li>
-<li><strong>Verbrauch Vorjahr / Verbrauch Prognose (kWh)</strong> <em>(PROJ-49, nur bei Verbraucher-Zählpunkten)</em></li>
-<li><strong>Einspeisung Prognose (kWh/Jahr)</strong> <em>(PROJ-49, nur bei Erzeuger-Zählpunkten)</em></li>
-<li><strong>PV-Leistung (kWp)</strong> <em>(PROJ-49, nur bei Erzeuger-Zählpunkten mit Erzeugungsform PV)</em></li>
-<li><strong>Einspeiselimit</strong> <em>(PROJ-49, nur bei PV-Erzeugern)</em> — Checkbox „Einspeiselimit vorhanden". Bei Ja erscheint ein Eingabefeld für den maximalen Einspeisewert in kW. Hintergrund: manche Netzanschlüsse sind leistungstechnisch beschränkt, sodass nur ein Teil der erzeugten PV-Leistung tatsächlich ins Netz eingespeist werden darf.</li>
-<li><strong>Abweichende Adresse</strong> <em>(PROJ-39, optional)</em> — Checkbox einblendet vier Adressfelder, wenn der Zählpunkt nicht an deiner Wohnadresse liegt. Alle vier Felder müssen ausgefüllt werden, sobald die Checkbox aktiviert ist.</li>
+<li><strong>Erzeugungsform</strong> <em>(nur bei Erzeuger-Zählpunkten)</em> — Auswahl PV / Wasser / Wind / Biomasse, Default PV</li>
+<li><strong>Batteriespeicher vorhanden</strong> <em>(nur bei PV-Erzeugern)</em> — Master-Checkbox: nach dem Aktivieren erscheinen die drei Speicher-Felder gemeinsam:</li>
+<li><strong>Größe Batterie (kWh)</strong> <em>(sofern die EEG das Feld konfiguriert hat)</em></li>
+<li><strong>Hersteller Wechselrichter</strong> <em>(sofern die EEG das Feld konfiguriert hat)</em></li>
+<li><strong>Speichersteuerung im Sinne der EEG vorstellbar?</strong> <em>(sofern die EEG das Feld konfiguriert hat)</em> — Ja-/Nein-Häkchen: die EEG könnte deinen Heimspeicher gemeinsam mit anderen Speichern der Mitglieder so steuern, dass die Erzeugung innerhalb der Gemeinschaft optimal genutzt wird. Eine konkrete Steuerung wird separat abgestimmt; das Häkchen ist nur deine grundsätzliche Bereitschaft.</li>
+<li><strong>Verbrauch Vorjahr / Verbrauch Prognose (kWh)</strong> <em>(nur bei Verbraucher-Zählpunkten)</em></li>
+<li><strong>Einspeisung Prognose (kWh/Jahr)</strong> <em>(nur bei Erzeuger-Zählpunkten)</em></li>
+<li><strong>PV-Leistung (kWp)</strong> <em>(nur bei Erzeuger-Zählpunkten mit Erzeugungsform PV)</em></li>
+<li><strong>Einspeiselimit</strong> <em>(nur bei PV-Erzeugern)</em> — Checkbox „Einspeiselimit vorhanden". Bei Ja erscheint ein Eingabefeld für den maximalen Einspeisewert in kW. Hintergrund: manche Netzanschlüsse sind leistungstechnisch beschränkt, sodass nur ein Teil der erzeugten PV-Leistung tatsächlich ins Netz eingespeist werden darf.</li>
+<li><strong>Abweichende Adresse</strong> <em>(optional)</em> — Checkbox einblendet vier Adressfelder, wenn der Zählpunkt nicht an deiner Wohnadresse liegt. Alle vier Felder müssen ausgefüllt werden, sobald die Checkbox aktiviert ist.</li>
 </ul>
 <p>Über <strong>Zählpunkt hinzufügen</strong> kannst du bis zu 10 Zählpunkte angeben.</p>
-<h3 id="schritt-5b-weitere-angaben-typabhangig-proj-45">Schritt 5b: Weitere Angaben <em>(typabhängig, PROJ-45)</em><a class="headerlink" href="#schritt-5b-weitere-angaben-typabhangig-proj-45" title="Permanent link">&para;</a></h3>
+<h3 id="schritt-5b-weitere-angaben-typabhangig">Schritt 5b: Weitere Angaben <em>(typabhängig)</em><a class="headerlink" href="#schritt-5b-weitere-angaben-typabhangig" title="Permanent link">&para;</a></h3>
 <p>Nach der Zählpunkt-Eingabe erscheint — sofern deine EEG die zugehörigen Felder konfiguriert hat — der Block „Weitere Angaben". Welche Felder dort sichtbar sind, hängt vom Typ deiner Zählpunkte ab:</p>
 <ul>
 <li><strong>Verbraucher-Zählpunkt vorhanden:</strong> „Personen im Haushalt", „Wärmepumpe", „E-Auto" (+ optional Anzahl/Jahres-km, falls E-Auto = Ja), „Warmwasser elektrisch"</li>
 <li>Bei reinen Erzeuger-Anträgen werden diese Verbraucher-Felder ausgeblendet.</li>
 </ul>
 <blockquote>
-<p><strong>Hinweis (seit PROJ-49):</strong> Die früheren Application-Level-Felder „Verbrauch Vorjahr/Prognose", „Einspeisung Prognose" und „PV-Leistung (kWp)" werden jetzt <strong>pro Zählpunkt</strong> abgefragt — direkt im jeweiligen Zählpunkt-Block des Formulars, nicht mehr hier im allgemeinen Abschnitt. Bei mehreren Verbraucher- oder Erzeuger-Zählpunkten gibt es entsprechend mehrere Eingaben.</p>
+<p><strong>Hinweis:</strong> Die früheren Application-Level-Felder „Verbrauch Vorjahr/Prognose", „Einspeisung Prognose" und „PV-Leistung (kWp)" werden jetzt <strong>pro Zählpunkt</strong> abgefragt — direkt im jeweiligen Zählpunkt-Block des Formulars, nicht mehr hier im allgemeinen Abschnitt. Bei mehreren Verbraucher- oder Erzeuger-Zählpunkten gibt es entsprechend mehrere Eingaben.</p>
 </blockquote>
 <h2 id="schritt-5a-genossenschaftsanteile-nur-bei-aktivierten-eegs">Schritt 5a: Genossenschaftsanteile (nur bei aktivierten EEGs)<a class="headerlink" href="#schritt-5a-genossenschaftsanteile-nur-bei-aktivierten-eegs" title="Permanent link">&para;</a></h2>
 <p>Wenn deine EEG als Genossenschaft organisiert ist und in den Einstellungen die Anteils-Erfassung aktiviert hat, erscheint ein zusätzlicher Block <strong>„Genossenschaftsanteile"</strong> im Formular:</p>
@@ -721,8 +721,8 @@
 <li>Stimme der <strong>Datenschutzerklärung</strong> zu</li>
 <li>Bestätige die <strong>Richtigkeit deiner Angaben</strong></li>
 <li>Falls deine EEG zusätzliche Pflicht-Dokumente hinterlegt hat (z. B. Satzung), bestätige diese ebenfalls per Häkchen</li>
-<li>Falls deine EEG <strong>Info-Dokumente</strong> (PROJ-36) verlinkt hat (z. B. Mitgliederinfo, Hausordnung), werden diese nur zur Kenntnisnahme angezeigt — kein Häkchen, aber das Einreichen des Antrags gilt als Kenntnisnahme</li>
-<li>Falls deine EEG die <strong>Netzbetreiber-Vollmacht</strong> (PROJ-44) verlangt, lies den Volltext der Vollmacht und bestätige sie per Häkchen — damit ermächtigst du die EEG, in deinem Namen Abstimmungen mit dem Netzbetreiber durchzuführen</li>
+<li>Falls deine EEG <strong>Info-Dokumente</strong> verlinkt hat (z. B. Mitgliederinfo, Hausordnung), werden diese nur zur Kenntnisnahme angezeigt — kein Häkchen, aber das Einreichen des Antrags gilt als Kenntnisnahme</li>
+<li>Falls deine EEG die <strong>Netzbetreiber-Vollmacht</strong> verlangt, lies den Volltext der Vollmacht und bestätige sie per Häkchen — damit ermächtigst du die EEG, in deinem Namen Abstimmungen mit dem Netzbetreiber durchzuführen</li>
 <li>Klicke auf <strong>Antrag einreichen</strong></li>
 </ul>
 <p>Nach der Einreichung erhältst du eine <strong>Bestätigungs-E-Mail</strong> mit deiner Antragsnummer (Format <code>&lt;RC&gt;-&lt;Jahr&gt;-&lt;NNNN&gt;</code>, z. B. <code>RC123456-2026-0001</code>). Die E-Mail enthält zusätzlich:</p>
@@ -732,7 +732,7 @@
 <li>eine <strong>Reply-To</strong>-Adresse, über die du direkt mit deiner EEG in Kontakt treten kannst (Antworten gehen nicht an einen „noreply"-Postfach).</li>
 </ul>
 <h2 id="schritt-7-e-mail-adresse-bestatigen-nur-bei-aktivierten-eegs">Schritt 7: E-Mail-Adresse bestätigen (nur bei aktivierten EEGs)<a class="headerlink" href="#schritt-7-e-mail-adresse-bestatigen-nur-bei-aktivierten-eegs" title="Permanent link">&para;</a></h2>
-<p>Wenn deine EEG das Feature <strong>„E-Mail-Bestätigung erforderlich"</strong> (PROJ-31) aktiviert hat, enthält deine Bestätigungs-Mail zusätzlich einen gelben Hinweisblock mit einem Button <strong>„E-Mail-Adresse bestätigen"</strong>. Der Link ist 30 Tage gültig. Erst nach dem Klick wird dein Antrag von der EEG bearbeitet.</p>
+<p>Wenn deine EEG das Feature <strong>„E-Mail-Bestätigung erforderlich"</strong> aktiviert hat, enthält deine Bestätigungs-Mail zusätzlich einen gelben Hinweisblock mit einem Button <strong>„E-Mail-Adresse bestätigen"</strong>. Der Link ist 30 Tage gültig. Erst nach dem Klick wird dein Antrag von der EEG bearbeitet.</p>
 <p>In diesem Fall zeigt die Erfolgsmeldung direkt nach dem Einreichen den Hinweis <strong>„Bitte prüfe jetzt dein E-Mail-Postfach und bestätige deine E-Mail-Adresse über den zugesandten Link."</strong> statt der Standard-Meldung „wird nun von unserem Team geprüft".</p>
 <p>Ist das Feature in deiner EEG deaktiviert, entfällt dieser Schritt — der Antrag geht direkt in die Bearbeitung.</p>
 <h2 id="was-passiert-nach-der-einreichung">Was passiert nach der Einreichung?<a class="headerlink" href="#was-passiert-nach-der-einreichung" title="Permanent link">&para;</a></h2>

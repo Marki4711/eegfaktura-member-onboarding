@@ -510,27 +510,27 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#genossenschaftsanteile-proj-37" class="md-nav__link">
+  <a href="#genossenschaftsanteile" class="md-nav__link">
     <span class="md-ellipsis">
-      Genossenschaftsanteile (PROJ-37)
+      Genossenschaftsanteile
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#zahlpunkt-prefixes-proj-52" class="md-nav__link">
+  <a href="#zahlpunkt-prefixes" class="md-nav__link">
     <span class="md-ellipsis">
-      Zählpunkt-Prefixes (PROJ-52)
+      Zählpunkt-Prefixes
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#aktivierungs-kriterium-proj-53" class="md-nav__link">
+  <a href="#aktivierungs-kriterium" class="md-nav__link">
     <span class="md-ellipsis">
-      Aktivierungs-Kriterium (PROJ-53)
+      Aktivierungs-Kriterium
     </span>
   </a>
   
@@ -570,9 +570,9 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#typabhangige-sichtbarkeit-proj-45-badges" class="md-nav__link">
+  <a href="#typabhangige-sichtbarkeit-badges" class="md-nav__link">
     <span class="md-ellipsis">
-      Typabhängige Sichtbarkeit (PROJ-45, Badges)
+      Typabhängige Sichtbarkeit (Badges)
     </span>
   </a>
   
@@ -815,12 +815,12 @@
 <ul>
 <li><strong>SEPA-Mandat von der EEG bereitstellen</strong>: Wenn aktiv, generiert das Onboarding automatisch ein SEPA-Mandats-PDF.</li>
 <li><strong>Firmenlastschrift (B2B) für Unternehmen und Gemeinden anbieten</strong>: Erscheint nur wenn SEPA aktiv ist. Aktiviere diese Option, wenn Unternehmen und Gemeinden ein B2B-Mandat erhalten sollen. Welche Mandats-Variante (Basislastschrift CORE oder Firmenlastschrift B2B) ein konkreter Antrag bekommt, wird <strong>nicht</strong> automatisch aus dem Mitgliedstyp abgeleitet — die Wahl trifft die Admin pro Antrag über das Feld „Einzugsart" (<code>core</code> / <code>b2b</code> / <code>kein_sepa</code>, Default <code>core</code>).</li>
-<li><strong>SEPA-Mandat erst beim Import erzeugen</strong> <em>(PROJ-48)</em>: Wenn aktiv, wird das Mandat <strong>nicht</strong> dem Willkommensmail beigelegt, sondern erst beim Import mit der zugewiesenen Mitgliedsnummer als Mandatsreferenz ausgegeben. Sinnvoll, wenn du digitale Signatur (z. B. ID Austria) einsetzt — ein signiertes PDF darf nicht mehr verändert werden, daher muss die Mandatsreferenz vor der Signatur eingedruckt sein. Im Registrierungsformular erscheint dann ein erklärender Hinweis, dass das Mandat später folgt.</li>
+<li><strong>SEPA-Mandat erst beim Import erzeugen</strong>: Wenn aktiv, wird das Mandat <strong>nicht</strong> dem Willkommensmail beigelegt, sondern erst beim Import mit der zugewiesenen Mitgliedsnummer als Mandatsreferenz ausgegeben. Sinnvoll, wenn du digitale Signatur (z. B. ID Austria) einsetzt — ein signiertes PDF darf nicht mehr verändert werden, daher muss die Mandatsreferenz vor der Signatur eingedruckt sein. Im Registrierungsformular erscheint dann ein erklärender Hinweis, dass das Mandat später folgt.</li>
 </ul>
 <blockquote>
 <p><strong>Hinweis:</strong> Wenn das SEPA-Mandat aktiviert ist, aber Stammdaten fehlen, erscheint eine Warnung. Solange Felder fehlen, wird kein PDF generiert.</p>
 </blockquote>
-<h3 id="genossenschaftsanteile-proj-37">Genossenschaftsanteile (PROJ-37)<a class="headerlink" href="#genossenschaftsanteile-proj-37" title="Permanent link">&para;</a></h3>
+<h3 id="genossenschaftsanteile">Genossenschaftsanteile<a class="headerlink" href="#genossenschaftsanteile" title="Permanent link">&para;</a></h3>
 <p>Nur relevant für EEGs, deren Rechtsträger eine Genossenschaft ist:</p>
 <ul>
 <li><strong>Genossenschaftsanteile erfassen</strong>: Wenn aktiv, sehen neue Mitglieder im Registrierungsformular einen eigenen Block „Genossenschaftsanteile" mit Eingabefeld für die Anzahl gezeichneter Anteile und Live-Berechnung des Gesamtbetrags.</li>
@@ -829,7 +829,7 @@
 </ul>
 <p>Beide Wert-Felder sind nur sichtbar, wenn der Toggle aktiv ist. Änderungen wirken <strong>prospektiv</strong> — bestehende Anträge bleiben unverändert, auch wenn das Pflichtmaß später angehoben wird. Falls ein Antrag dadurch unter dem aktuellen Pflichtmaß liegt, zeigt das Antrags-Detail einen orangen Hinweis, der Antrag bleibt aber unverändert.</p>
 <p>Die Anteilsinformation wird <strong>nicht</strong> an eegFaktura übertragen — sie ist reine Onboarding-Erfassung als Buchhaltungs-Beleg.</p>
-<h3 id="zahlpunkt-prefixes-proj-52">Zählpunkt-Prefixes (PROJ-52)<a class="headerlink" href="#zahlpunkt-prefixes-proj-52" title="Permanent link">&para;</a></h3>
+<h3 id="zahlpunkt-prefixes">Zählpunkt-Prefixes<a class="headerlink" href="#zahlpunkt-prefixes" title="Permanent link">&para;</a></h3>
 <p>Mitglieder müssen heute eine 33-stellige Zählpunktnummer eintippen. Wenn die Zählpunkte deiner EEG mehrheitlich vom selben Netzbetreiber + Postleitzahl-Bereich kommen, kannst du hier den festen Anfang vorgeben — das Mitglied tippt dann nur noch die individuellen letzten Stellen.</p>
 <ul>
 <li><strong>Verbraucher-Prefix</strong>: Vorbelegung für Verbraucher-Zählpunkte (CONSUMPTION).</li>
@@ -843,7 +843,7 @@
 - Der Prefix-Teil ist gelockt — das Mitglied kann ihn weder überschreiben noch backspacen.
 - Beim Verlassen des Eingabefelds werden fehlende Stellen zwischen Prefix und Mitglieds-Eingabe mit führenden Nullen aufgefüllt (z. B. tippt das Mitglied <code>12345</code> und bekommt nach dem Klick weg <code>[Prefix]000000000012345</code>).
 - Backend prüft beim Submit zusätzlich, dass jeder Zählpunkt mit dem konfigurierten Prefix der jeweiligen Richtung beginnt (defense-in-depth).</p>
-<h3 id="aktivierungs-kriterium-proj-53">Aktivierungs-Kriterium (PROJ-53)<a class="headerlink" href="#aktivierungs-kriterium-proj-53" title="Permanent link">&para;</a></h3>
+<h3 id="aktivierungs-kriterium">Aktivierungs-Kriterium<a class="headerlink" href="#aktivierungs-kriterium" title="Permanent link">&para;</a></h3>
 <p>Steuert, wann eine Anwendung von <strong>„Bereit zur Aktivierung"</strong> auf <strong>„Aktiviert"</strong> wechselt. Beim Übergang auf „Aktiviert" wird automatisch die volle Beitrittsbestätigungs-Mail mit PDF an das Mitglied versandt (und eine Kopie an den EEG-Contact).</p>
 <p>Zwei Optionen:</p>
 <ul>
@@ -901,11 +901,11 @@
 </tr>
 </tbody>
 </table>
-<h3 id="typabhangige-sichtbarkeit-proj-45-badges">Typabhängige Sichtbarkeit (PROJ-45, Badges)<a class="headerlink" href="#typabhangige-sichtbarkeit-proj-45-badges" title="Permanent link">&para;</a></h3>
+<h3 id="typabhangige-sichtbarkeit-badges">Typabhängige Sichtbarkeit (Badges)<a class="headerlink" href="#typabhangige-sichtbarkeit-badges" title="Permanent link">&para;</a></h3>
 <p>Neben einigen Feldern stehen farbige <strong>Badges</strong>, die dir sofort zeigen, <strong>unter welcher Bedingung</strong> das Feld im Formular wirklich greift — auch wenn du es hier auf <strong>Verpflichtend</strong> stellst:</p>
 <ul>
-<li><strong><code>[Verbraucher]</code></strong> <em>(blau)</em> — wird nur angezeigt, wenn der Zählpunkt CONSUMPTION ist (PROJ-49) bzw. der Antrag mindestens einen Verbraucher-Zählpunkt enthält (Application-Scope). Felder: Wärmepumpe, E-Auto, Anzahl E-Fahrzeuge, Jahres-Kilometer, Warmwasser elektrisch, Personen im Haushalt, Verbrauch Vorjahr, Verbrauch Prognose.</li>
-<li><strong><code>[Einspeisung]</code></strong> <em>(amber)</em> — wird nur bei Erzeuger-Zählpunkten angezeigt (PROJ-49). Felder: Einspeisung Prognose (alle Erzeugungsformen).</li>
+<li><strong><code>[Verbraucher]</code></strong> <em>(blau)</em> — wird nur angezeigt, wenn der Zählpunkt CONSUMPTION ist bzw. der Antrag mindestens einen Verbraucher-Zählpunkt enthält (Application-Scope). Felder: Wärmepumpe, E-Auto, Anzahl E-Fahrzeuge, Jahres-Kilometer, Warmwasser elektrisch, Personen im Haushalt, Verbrauch Vorjahr, Verbrauch Prognose.</li>
+<li><strong><code>[Einspeisung]</code></strong> <em>(amber)</em> — wird nur bei Erzeuger-Zählpunkten angezeigt. Felder: Einspeisung Prognose (alle Erzeugungsformen).</li>
 <li><strong><code>[PV]</code></strong> <em>(orange, zusätzlich)</em> — gilt zusätzlich zu <code>[Einspeisung]</code> für Felder, die nur bei Erzeugungsform „PV" sinnvoll sind. Felder: Größe Batterie (kWh), Hersteller Wechselrichter, PV-Leistung (kWp), Einspeiselimit (kW).</li>
 <li><strong><code>[+E-Auto]</code></strong> <em>(lila, zusätzlich)</em> — gilt zusätzlich zu <code>[Verbraucher]</code> für Felder, die nur greifen, wenn das Mitglied „E-Auto vorhanden" mit Ja beantwortet hat. Felder: Anzahl E-Fahrzeuge, Jahres-Kilometer.</li>
 <li><strong><code>[+Speicher]</code></strong> <em>(grün, zusätzlich)</em> — gilt zusätzlich zu <code>[Einspeisung] [PV]</code> für Felder, die im Mitgliedsformular hinter dem Master-Toggle „Batteriespeicher vorhanden" gruppiert sind. Felder: Größe Batterie (kWh), Hersteller Wechselrichter, Speichersteuerung im Sinne der EEG vorstellbar?. Hinweis: Die Pflicht-Validierung der Speichersteuerungs-Frage greift zusätzlich nur dann, wenn das Mitglied tatsächlich Batterie-Daten gesetzt hat.</li>
@@ -913,13 +913,13 @@
 <p>Neben jedem Feld mit Badge steht ein kleines <strong>Info-Icon</strong> — Klick/Hover zeigt die exakte Bedingung in Worten. Die Badges sind Single Source of Truth: ändert sich die Bedingung im Code, ändert sich auch die Badge ohne separate Pflege.</p>
 <h3 id="spezielle-konfigurierbare-felder">Spezielle konfigurierbare Felder<a class="headerlink" href="#spezielle-konfigurierbare-felder" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>Netzbetreiber-Vollmacht</strong> <em>(PROJ-44, Application-Scope)</em> — das Mitglied erteilt der EEG die Vollmacht, in seinem Namen mit dem Netzbetreiber zu agieren (notwendig z. B. bei Netz OÖ). Der Volltext der Vollmacht ist <strong>fest im Code</strong> und kann hier nicht editiert werden — du steuerst lediglich, ob die Checkbox überhaupt erscheinen soll. Default: <code>Ausgeblendet</code>. Bei <code>Verpflichtend</code> muss das Mitglied das Häkchen aktiv setzen, sonst wird der Antrag nicht submitted.</li>
-<li><strong>Größe Batterie (kWh) / Hersteller Wechselrichter</strong> <em>(PROJ-45, Zählpunkt-Scope)</em> — sammeln Speicher- und WR-Daten für PV-Erzeuger-Zählpunkte, um die EEG-Bewirtschaftung zu optimieren. Im Mitgliedsformular gruppiert hinter dem Master-Toggle „Batteriespeicher vorhanden". Default: <code>Ausgeblendet</code>.</li>
-<li><strong>Speichersteuerung im Sinne der EEG vorstellbar?</strong> <em>(PROJ-49 follow-up, Zählpunkt-Scope, nur PV)</em> — Mitglied-Einverständnis, dass die EEG den Heimspeicher gemeinsam mit anderen Speichern der Mitglieder steuern darf. Sichtbar im Mitgliedsformular nur, wenn das Mitglied den Master-Toggle „Batteriespeicher vorhanden" aktiviert hat. Default: <code>Ausgeblendet</code>. Auf <code>Verpflichtend</code> setzen, wenn ohne Einverständnis kein Antrag möglich sein soll (greift jedoch nur, wenn das Mitglied tatsächlich einen Speicher angegeben hat — sonst wird die Frage gar nicht erst gestellt).</li>
-<li><strong>Verbrauch Vorjahr / Verbrauch Prognose</strong> <em>(PROJ-49, Zählpunkt-Scope)</em> — Energiewerte pro Verbraucher-Zählpunkt. Default: <code>Ausgeblendet</code>.</li>
-<li><strong>Einspeisung Prognose</strong> <em>(PROJ-49, Zählpunkt-Scope)</em> — jährliche Einspeise-Prognose pro Erzeuger-Zählpunkt (alle Erzeugungsformen). Default: <code>Ausgeblendet</code>.</li>
-<li><strong>PV-Leistung (kWp)</strong> <em>(PROJ-49, Zählpunkt-Scope, nur PV)</em> — installierte Spitzenleistung pro PV-Zählpunkt. Default: <code>Ausgeblendet</code>.</li>
-<li><strong>Einspeiselimit (kW)</strong> <em>(PROJ-49, Zählpunkt-Scope, nur PV)</em> — maximal zulässige Einspeiseleistung, wenn der Netzanschluss begrenzt ist. Mitglied wählt zuerst Ja/Nein und gibt bei Ja den Wert in kW ein. Default: <code>Ausgeblendet</code>.</li>
+<li><strong>Netzbetreiber-Vollmacht</strong> <em>(Application-Scope)</em> — das Mitglied erteilt der EEG die Vollmacht, in seinem Namen mit dem Netzbetreiber zu agieren (notwendig z. B. bei Netz OÖ). Der Volltext der Vollmacht ist <strong>fest im Code</strong> und kann hier nicht editiert werden — du steuerst lediglich, ob die Checkbox überhaupt erscheinen soll. Default: <code>Ausgeblendet</code>. Bei <code>Verpflichtend</code> muss das Mitglied das Häkchen aktiv setzen, sonst wird der Antrag nicht submitted.</li>
+<li><strong>Größe Batterie (kWh) / Hersteller Wechselrichter</strong> <em>(Zählpunkt-Scope)</em> — sammeln Speicher- und WR-Daten für PV-Erzeuger-Zählpunkte, um die EEG-Bewirtschaftung zu optimieren. Im Mitgliedsformular gruppiert hinter dem Master-Toggle „Batteriespeicher vorhanden". Default: <code>Ausgeblendet</code>.</li>
+<li><strong>Speichersteuerung im Sinne der EEG vorstellbar?</strong> <em>(Zählpunkt-Scope, nur PV)</em> — Mitglied-Einverständnis, dass die EEG den Heimspeicher gemeinsam mit anderen Speichern der Mitglieder steuern darf. Sichtbar im Mitgliedsformular nur, wenn das Mitglied den Master-Toggle „Batteriespeicher vorhanden" aktiviert hat. Default: <code>Ausgeblendet</code>. Auf <code>Verpflichtend</code> setzen, wenn ohne Einverständnis kein Antrag möglich sein soll (greift jedoch nur, wenn das Mitglied tatsächlich einen Speicher angegeben hat — sonst wird die Frage gar nicht erst gestellt).</li>
+<li><strong>Verbrauch Vorjahr / Verbrauch Prognose</strong> <em>(Zählpunkt-Scope)</em> — Energiewerte pro Verbraucher-Zählpunkt. Default: <code>Ausgeblendet</code>.</li>
+<li><strong>Einspeisung Prognose</strong> <em>(Zählpunkt-Scope)</em> — jährliche Einspeise-Prognose pro Erzeuger-Zählpunkt (alle Erzeugungsformen). Default: <code>Ausgeblendet</code>.</li>
+<li><strong>PV-Leistung (kWp)</strong> <em>(Zählpunkt-Scope, nur PV)</em> — installierte Spitzenleistung pro PV-Zählpunkt. Default: <code>Ausgeblendet</code>.</li>
+<li><strong>Einspeiselimit (kW)</strong> <em>(Zählpunkt-Scope, nur PV)</em> — maximal zulässige Einspeiseleistung, wenn der Netzanschluss begrenzt ist. Mitglied wählt zuerst Ja/Nein und gibt bei Ja den Wert in kW ein. Default: <code>Ausgeblendet</code>.</li>
 <li><strong>Bankname</strong> <em>(Application-Scope, ab 2026-05-18 konfigurierbar)</em> — bisher fix im Bankverbindungsblock angezeigt. Default <code>Optional</code> (bewahrt heutiges Verhalten). Auf <code>Ausgeblendet</code> setzen, wenn IBAN+Kontoinhaber genügen sollen; auf <code>Verpflichtend</code>, wenn der Bankname explizit gefordert ist (z. B. weil die EEG bei Auslandsüberweisungen die Bank kennen will).</li>
 <li><strong>Teilnahmefaktor (%)</strong> <em>(Zählpunkt-Scope, ab 2026-05-19 konfigurierbar)</em> — bisher fix sichtbar im Mitgliedsformular, vorbelegt mit 100 %. Default <code>Optional</code> (bewahrt heutiges Verhalten — Mitglied sieht das Feld und kann den Wert ändern). Bei <code>Ausgeblendet</code> oder <code>Admin-Vorbefüllung</code> ist das Feld im Formular weg und der Wert wird serverseitig automatisch auf <strong>100 %</strong> gesetzt. Bei <code>Verpflichtend</code> bleibt das Feld sichtbar und mit 100 % vorbelegt — der Default macht den Wert technisch nie leer, das Pflicht-Häkchen erinnert das Mitglied nur, hinzuschauen. <strong>In allen Modi</strong> zeigen Beitrittsbestätigungs-PDF, Mail und Excel-Export den Teilnahmefaktor unverändert — der Toggle steuert nur die Public-Form-Sichtbarkeit, nicht die Render-Pfade.</li>
 </ul>
@@ -973,7 +973,7 @@
 <hr />
 <h2 id="datenweiterleitung">Datenweiterleitung<a class="headerlink" href="#datenweiterleitung" title="Permanent link">&para;</a></h2>
 <p><img alt="Datenweiterleitung" src="../images/admin-settings-datenweiterleitung.png" /></p>
-<p>Asynchrone Weitergabe von Antragsdaten an externe Systeme (PROJ-60). Aktuell verfügbar:</p>
+<p>Asynchrone Weitergabe von Antragsdaten an externe Systeme. Aktuell verfügbar:</p>
 <ul>
 <li><strong>Excel/CSV-Export</strong> — generiert eine Datei mit konfigurierbarem Feldsatz; pro-EEG anpassbar (welche Felder enthalten sind, in welcher Reihenfolge, mit welcher Spaltenüberschrift).</li>
 <li>Weitere Plugins (Zoho, HubSpot, …) lassen sich später als zusätzliche Implementierungen ergänzen — der Mechanismus dahinter ist generisch.</li>
@@ -992,7 +992,7 @@
 <hr />
 <h2 id="konfiguration-import-export">Konfiguration Import / Export<a class="headerlink" href="#konfiguration-import-export" title="Permanent link">&para;</a></h2>
 <p><img alt="Konfiguration Import/Export" src="../images/admin-settings-import-export.png" /></p>
-<p>Sicherung und Übertragung der per-EEG-Konfiguration als versionierte JSON-Datei (PROJ-61). Nützlich um:</p>
+<p>Sicherung und Übertragung der per-EEG-Konfiguration als versionierte JSON-Datei. Nützlich um:</p>
 <ul>
 <li>mehrere EEGs auf eine gemeinsame Grund-Konfiguration zu bringen,</li>
 <li>vor einem riskanten Apply den Ist-Zustand zu sichern,</li>
