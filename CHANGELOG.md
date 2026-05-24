@@ -88,6 +88,16 @@ Bewusst aufgeschoben in `docs/AUDIT-TODO.md` 3a–3e (eigene PROJs):
 - 3d: Tot-Code `metrics/metrics.go:statusClassFromString` aufräumen
 - 3e: Severity-Drift bereinigen (3 Stellen `slog.Error` → `slog.Warn` für transiente/Caller-Kontext-Pfade)
 
+**DB-Performance-Audit-Welle 6 (2026-05-24, Migration 000053):**
+- **HIGH**: fehlender Index auf `external_api_key.key_hash` → jeder externe API-Call (Bearer `moak_*`) machte Seq-Scan. Neuer Partial-Index `WHERE revoked_at IS NULL` (widerrufene Keys werden ohnehin 401 abgewiesen).
+- **LOW-Cleanup**: zwei redundante Plain-B-Tree-Indizes gedroppt — `idx_application_reference_number` und `idx_registration_entrypoint_rc_number` waren Duplikate von UNIQUE-Constraints (Postgres legt für UNIQUE automatisch einen Index an). Spart Write-Amplification.
+- `docs/domain-model.md` §3.7 ergänzt um den neuen Partial-Index.
+
+Bewusst aufgeschoben in `docs/AUDIT-TODO.md` 4a–4c:
+- 4a: EXPLAIN-ANALYZE gegen Prod-DB für 6 Hot-Path-Queries (Operator-Action) + `pg_stat_user_indexes`-Auswertung nach 30 Tagen Prod-Laufzeit (DROP-Index-Kandidaten finden)
+- 4b: `idx_application_submitted_at` ggf. durch composite `(rc_number, submitted_at DESC)` ersetzen, falls EXPLAIN das nahelegt
+- 4c: Write-Amplification auf `application` (14+ Indizes) im Auge behalten
+
 ### PROJ-57 v3 — Ansprechperson ohne Master-Switch, drei Felder einzeln steuerbar *(2026-05-21)*
 
 Vereinfachung des Konfigurations-Modells: der separate

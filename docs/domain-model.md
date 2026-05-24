@@ -334,6 +334,10 @@ Fields:
 - `quota_date` — nullable DATE; date window for `daily_count` (resets at UTC midnight)
 - `created_at`
 
+Indexes:
+- UNIQUE `(rc_number)` (implicit via UNIQUE-Constraint)
+- `(key_hash) WHERE revoked_at IS NULL` *(Migration 000053)* — Partial-Index für den Lookup-Hot-Path bei jedem externen API-Call
+
 Rules:
 - At most one key record per EEG (UNIQUE on `rc_number`)
 - The plaintext API key is returned only once at generation time and never stored
