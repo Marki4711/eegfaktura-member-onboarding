@@ -616,8 +616,8 @@
 <p><strong>Mitgliedstypen vereinfacht — Kleinunternehmer entfällt als eigener Typ</strong></p>
 <p>Der Mitgliedstyp <strong>Kleinunternehmer</strong> existiert nicht mehr als eigene Auswahl. Stattdessen wählt das Mitglied <strong>Unternehmen</strong> und lässt die UID-Nummer leer — das signalisiert dem System automatisch die Kleinunternehmerregelung (§ 6 Abs 1 Z 27 UStG, 0 % USt.). Mit ausgefüllter UID greift der reguläre Unternehmens-Pfad (20 % USt.). Bestehende Anträge mit altem Typ wurden automatisch auf <code>company</code> migriert.</p>
 <p>→ <a href="../02-member-registration/#schritt-2-mitgliedstyp-auswahlen">Mitglieder-Registrierung — Mitgliedstyp auswählen</a></p>
-<p><strong>USt.-Hinweise im Dropdown vereinheitlicht</strong></p>
-<p>Alle fünf Mitgliedstypen zeigen jetzt einen konkreten USt.-Satz im Auswahl-Dropdown statt einer Mischung aus konkreten Werten und „variabel". Gemeinde und Verein bekommen <code>(0 % oder 20 % USt.)</code>, das die typischen Fälle (Hoheits- vs. BgA-Bereich bzw. ideell vs. wirtschaftliche Tätigkeit) abdeckt.</p>
+<p><strong>USt.-Hinweise aus dem Dropdown entfernt</strong></p>
+<p>Die USt.-Sätze stehen nicht mehr in den Optionen des Mitgliedstyp-Dropdowns — sie waren bei Misch-Typen (Gemeinde, Verein, Unternehmen mit/ohne Kleinunternehmerregelung) ohnehin nur ein grober Hinweis. Die tatsächliche umsatzsteuerliche Einordnung ergibt sich aus den Folgefeldern (z. B. UID-Nummer bei Unternehmen) und wird in der Abrechnung mit der EEG geklärt.</p>
 <p><strong>Neue Funktion: Konfiguration sichern und übertragen</strong></p>
 <p>Du kannst die komplette Konfiguration einer EEG (Stammdaten-Settings, Formular-Felder, Rechtsdokumente, Datenweiterleitungs-Configs) als <strong>JSON-Datei</strong> sichern und auf andere EEGs übertragen. Nützlich um:</p>
 <ul>
