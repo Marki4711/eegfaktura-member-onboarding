@@ -960,3 +960,28 @@ Helm rollt automatisch:
 helm rollback eegfaktura-member-onboarding
 ```
 PROJ-61 hat keine Schema-Migration — Rollback ist risiko-frei, kein Daten-Verlust.
+
+### Patch-Release v1.11.1 — Self-Roundtrip-Diff-Fix *(2026-05-24)*
+
+Nach Browser-Verifikation des initial-Deploys (v1.11.0) zwei Probleme
+identifiziert:
+
+- **Bug B** (echter Bug): Re-Import einer gerade exportierten Datei
+  zeigte `data_export_config` als „geändert" statt „unverändert". Root
+  cause: `data_export_config.config` ist eine JSONB-Spalte, Postgres
+  normalisiert beim Speichern (Key-Sortierung, Whitespace). Naïver
+  Byte-Vergleich in `bytesEqual` war fragil. Fix: semantischer
+  JSON-Vergleich via `Unmarshal` → `reflect.DeepEqual`.
+- **UX A**: Bei Self-Roundtrip zeigte `legalDocuments` „2 entfernt + 2
+  hinzugefügt" statt unchanged (technisch konsistent per
+  Komplett-Replace-Diff, aber irritierend). Fix:
+  `legalDocumentsEqual`-Check; bei Gleichheit setzt Backend
+  `unchanged=true`, Frontend rendert „Unverändert (N)" statt zwei
+  Spalten.
+
+**Chart-Version:** 1.11.0 → **1.11.1**
+**Image-SHA:** `sha-bdbe672`
+**Commits:** `4cfa2aa` (fix) + `34d5a19` (auto-tag-bump)
+**Tests:** 11 neue Unit-Tests (7× `bytesEqual`, 4× `legalDocumentsEqual`)
+
+**Operator-Action:** erneuter `helm upgrade` analog zu v1.11.0.
