@@ -37,9 +37,9 @@
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
-    "@tiptap/extension-link": "^3.23.4",
-    "@tiptap/react": "^3.23.4",
-    "@tiptap/starter-kit": "^3.23.4",
+    "@tiptap/extension-link": "^3.23.5",
+    "@tiptap/react": "^3.23.5",
+    "@tiptap/starter-kit": "^3.23.5",
     "@types/dompurify": "^3.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.0",
@@ -66,15 +66,15 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.1",
-    "@vitest/ui": "^4.1.5",
+    "@vitest/ui": "^4.1.7",
     "autoprefixer": "^10.5.0",
     "eslint": "^10",
     "eslint-config-next": "16.2.6",
     "jsdom": "^29.1.1",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
-    "tsx": "^4.22.1",
+    "tsx": "^4.22.3",
     "typescript": "^6",
-    "vitest": "^4.1.6"
+    "vitest": "^4.1.7"
   }
 }
