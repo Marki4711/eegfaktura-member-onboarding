@@ -10,6 +10,33 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### PROJ-63 — USt-Pflicht-Checkbox bei Unternehmen + Verein *(2026-05-24)*
+
+Frontend-only Refactor als saubere Lösung für den PROJ-62-Follow-up:
+„leere UID = Kleinunternehmer" ist mehrdeutig, weil auch Firmen mit
+UID Kleinunternehmer sein können. Statt einer DB-Spalte gating eine
+UI-Checkbox das UID-Eingabefeld:
+
+- **`src/components/registration-form.tsx`**: Checkbox „Das Unternehmen
+  / Der Verein ist umsatzsteuerpflichtig (Regelbesteuerung)" für
+  `memberType ∈ {company, association}`. Default unchecked
+  (Kleinunternehmer). UID-Feld nur sichtbar wenn Checkbox aktiv;
+  dann Pflicht (Zod-superRefine). `onMemberTypeChange` resettet
+  Toggle bei Wechsel auf Nicht-Org-Typ oder auf `municipality`.
+- **`src/components/admin-edit-form.tsx`**: Spiegel-Verhalten via
+  lokales `useState`, initialisiert aus `application.uidNumber` (truthy
+  ⇒ Toggle an). Backwards-kompatibel zu Bestandsanträgen.
+- **Gemeinde bewusst ausgeschlossen**: dort wird USt pro Zählpunkt
+  (Hoheitsbereich vs. BgA, PROJ-59) differenziert; ein pauschaler
+  Toggle wäre irreführend.
+- **Kein DB-Touchpoint, kein Backend-Touchpoint, keine Migration.**
+  Status „Kleinunternehmer" bleibt implizit aus `uid_number IS NULL`
+  ableitbar wie heute. Externe API-Aufrufer unverändert.
+- **`tests/PROJ-7-member-types.spec.ts`** AC-13..AC-15: Default-Hidden-
+  Zustand, Toggle reveals + macht UID pflicht, Untick cleart UID.
+
+`tsc --noEmit` und `go build ./...` grün.
+
 ### PROJ-62 — Follow-up: USt-Hints aus Mitgliedstyp-Dropdown entfernt *(2026-05-24)*
 
 Owner-Feedback: USt-Sätze in der Auswahlbox sind irreführend, da

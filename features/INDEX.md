@@ -76,5 +76,6 @@ Central tracking for all features.
 | PROJ-60 | Datenweiterleitung an externe Systeme — Async-Plugin-Framework mit Job-Queue + In-App-Worker; Excel/CSV-Plugin als erste Implementierung; Bulk-Action aus Antragsliste oder Single aus Detail; Phase 2 = weitere Plugins (Zoho/HubSpot/…) | Deployed | `features/PROJ-60-external-system-sync.md` | 2026-05-23 |
 | PROJ-61 | Konfigurations-Export & -Import pro EEG (4 Sub-Typen: EEG-Settings, Field-Config, Legal-Documents, Data-Export-Configs; JSON-Datei + Diff-Preview; Tenant-Admin) | Deployed | `features/PROJ-61-config-export-import.md` | 2026-05-24 |
 | PROJ-62 | Mitgliedstypen Kleinunternehmer + Unternehmen zusammenführen (sole_proprietor entfällt, company-Typ mit optionaler UID = Kleinunternehmerregelung) | Approved | `features/PROJ-62-merge-sole-proprietor-into-company.md` | 2026-05-24 |
+| PROJ-63 | USt-Pflicht-Checkbox bei Unternehmen + Verein (UI-Gate für UID-Eingabe, kein DB-Feld) | In Progress | `features/PROJ-63-vat-liability-checkbox.md` | 2026-05-24 |
 
-## Next Available ID: PROJ-63
+## Next Available ID: PROJ-64

@@ -28,9 +28,19 @@ Wähle den zutreffenden Mitgliedstyp:
 | **Gemeinde / öffentliche Körperschaft** | Hoheitsbereich vs. Betrieb gewerblicher Art (BgA) |
 | **Verein** | Eingetragener Verein — ideeller Bereich vs. wirtschaftliche Tätigkeit |
 
-Je nach Mitgliedstyp werden unterschiedliche Felder angezeigt (z. B. Firmenname statt Vorname/Nachname). Die umsatzsteuerliche Einstufung wird nicht im Dropdown erfragt, sondern ergibt sich aus deinen Angaben in den Folgefeldern (z. B. UID-Nummer bei Unternehmen).
+Je nach Mitgliedstyp werden unterschiedliche Felder angezeigt (z. B. Firmenname statt Vorname/Nachname). Die umsatzsteuerliche Einstufung wird nicht im Dropdown erfragt, sondern bei **Unternehmen** und **Verein** über eine eigene Checkbox (siehe unten).
 
-> **Kleinunternehmer-Pfad:** Wähle **Unternehmen** und lass die UID-Nummer leer — das signalisiert dem System die Kleinunternehmerregelung (0 % USt.). Mit ausgefüllter UID-Nummer wird der reguläre Unternehmenspfad (20 % USt.) angenommen. Eine separate „Kleinunternehmer"-Option gibt es seit Mai 2026 nicht mehr.
+### USt-Pflicht bei Unternehmen und Verein
+
+Bei **Unternehmen** und **Verein** erscheint nach der Typ-Auswahl eine Checkbox:
+
+> ☐ Das Unternehmen ist umsatzsteuerpflichtig (Regelbesteuerung)
+>   (bei Verein analog: „Der Verein ist umsatzsteuerpflichtig …")
+
+- **Kein Häkchen** = Kleinunternehmerregelung nach § 6 Abs 1 Z 27 UStG (USt-befreit). Das UID-Feld wird nicht angezeigt — auch wenn dein Unternehmen zufällig eine UID besitzt, wird sie für die Gutschriften der EEG nicht benötigt.
+- **Häkchen gesetzt** = Regelbesteuerung. Das UID-Feld erscheint und ist Pflicht — die UID-Nummer wird auf den Einspeisegutschriften der EEG ausgewiesen.
+
+Bei **Gemeinde / öffentliche Körperschaft** gibt es diese pauschale Checkbox bewusst nicht — dort wird die umsatzsteuerliche Einordnung pro Zählpunkt entschieden (Hoheitsbereich vs. Betrieb gewerblicher Art).
 
 ## Schritt 3: Persönliche Daten eingeben
 
