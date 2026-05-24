@@ -911,4 +911,52 @@ direkt nach diesem Commit.
 
 
 ## Deployment
-_To be added by /deploy_
+
+**Datum:** 2026-05-24
+**Chart-Version:** 1.10.0 → **1.11.0**
+**Image-SHA:** `sha-c5e3ac2`
+**Commits im Release:**
+- `5cac175` — sanitize-Refactor
+- `16330e7` — 7 Tx-Variant-Repo-Methoden
+- `dd36e87` — `internal/configexport/` + 3 HTTP-Endpoints
+- `be806ce` — Frontend (6 React-Komponenten, neuer Tab)
+- `09637a3` — QA-Run + 16 E2E-Tests
+- `0f4def0` — Bug-Fix-Welle (3 Bugs aus QA)
+- `c5e3ac2` — Security-Review-Fixes (5 Findings)
+
+**Pre-Deployment-Checks:**
+- `go build ./...` ✓
+- `go test ./...` ✓ (alle 12 Pakete grün)
+- `npm run build` ✓
+- `helm lint helm/member-onboarding/` ✓ (1 chart linted, 0 failed)
+- `govulncheck`: 0 Vulnerabilities affecting our code (nach Go-Bump auf 1.26.3)
+- CI-Pipeline: 3/3 Jobs grün (Backend, Frontend, E2E-Playwright)
+- QA-Status: Approved
+- Security-Review: Approved (alle 5 Findings gefixt)
+
+**Operator-Action für Deploy auf test-Cluster:**
+
+```bash
+helm upgrade eegfaktura-member-onboarding ./helm/member-onboarding \
+  -f helm/member-onboarding/values-env.yaml \
+  -f helm/member-onboarding/values-secret.yaml
+```
+
+Helm rollt automatisch:
+1. Migration-Job — keine neuen Migrationen in PROJ-61, sollte No-Op laufen
+2. Backend-Deployment auf `sha-c5e3ac2`
+3. Frontend-Deployment auf `sha-c5e3ac2`
+
+**Post-Deploy-Verifikation (manuell auf test-Cluster):**
+- [ ] `kubectl rollout status deployment/eegfaktura-member-onboarding-backend -n eegfaktura-member-onboarding-test`
+- [ ] `GET https://member-onboarding-test.eegfaktura.at/health` → 200
+- [ ] Im Admin: neuer Tab „Import / Export" in `/admin/settings` sichtbar
+- [ ] Export-Klick liefert JSON-Download mit korrektem Dateinamen
+- [ ] Import-Roundtrip Export → Upload → Diff → Apply funktioniert
+- [ ] `kubectl logs -n eegfaktura-member-onboarding-test -l app=eegfaktura-member-onboarding-backend --tail=50` zeigt keine Fehler
+
+**Rollback bei Problem:**
+```bash
+helm rollback eegfaktura-member-onboarding
+```
+PROJ-61 hat keine Schema-Migration — Rollback ist risiko-frei, kein Daten-Verlust.
