@@ -10,6 +10,44 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### PROJ-62 — Frontend: sole_proprietor entfernt *(2026-05-24)*
+
+Build-Failure-driven Refactor analog zum Backend, gesteuert über
+`tsc --noEmit`. 5 Frontend-Touchpoints aus AC-FE6:
+
+- **`src/lib/api.ts`**: `MemberType`-Union von 6 auf 5 Werte reduziert
+  (sole_proprietor raus). `CONFIGURABLE_FIELDS`-Hint für
+  `persons_in_household` aktualisiert (Kleinunternehmer aus der
+  Organizations-Liste entfernt).
+- **`src/components/registration-form.tsx`**:
+  - `MEMBER_TYPE_OPTIONS`-Konstante: sole_proprietor-Eintrag raus,
+    Reihenfolge auf Privat → Landwirt → Unternehmen → Gemeinde → Verein.
+    USt-Hint für Unternehmen auf „0 % oder 20 % USt." erweitert.
+  - Zod-Enum auf 5 Werte reduziert.
+  - Org-Label-Branch: sole_proprietor → „Firmenbezeichnung" entfernt;
+    company nutzt Default „Firmenname".
+  - UID-Pflicht-Validierung bei company entfernt — UID + Firmenbuch-
+    nummer sind beide optional.
+  - UID-Form-Label: `*`-Markierung entfernt.
+  - UID-Hilfe-Text-Popover erweitert um „Leer lassen, wenn unter die
+    Kleinunternehmerregelung nach § 6 Abs 1 Z 27 UStG (umsatzsteuer-
+    befreit)".
+- **`src/components/admin-edit-form.tsx`**: `SelectItem` für
+  sole_proprietor entfernt, Reset-Branch in `onMemberTypeChange` zur
+  Org-Default-Logik konsolidiert.
+- **`src/components/admin-application-detail.tsx`**:
+  - `MEMBER_TYPE_LABELS`-Eintrag entfernt + Reihenfolge umgestellt.
+  - UID-Field-Conditional entfernt (wird jetzt für alle Org-Typen
+    angezeigt, auch wenn leer = Kleinunternehmer).
+- **Tests** (`tests/PROJ-7-member-types.spec.ts`):
+  - AC-2-Label „Privatperson / Kleinunternehmer" → „Privatperson"
+  - AC-3-USt-Hint-Erwartung: „0 % USt." einzelner Check entfernt
+    (jetzt im kombinierten „0 % oder 20 % USt."-Hint enthalten)
+  - AC-11 invertiert: company mit leerer UID + leerer Firmenbuch-
+    nummer muss jetzt **erfolgreich** submitten (Kleinunternehmer-Pfad)
+
+`npm run build` läuft sauber durch. `tsc --noEmit` ohne Fehler.
+
 ### PROJ-62 — Backend: Mitgliedstypen Kleinunternehmer + Unternehmen zusammenführen *(2026-05-24)*
 
 `sole_proprietor` (PROJ-28) wird mit `company` verschmolzen. UID-Nummer
