@@ -579,6 +579,24 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#antragsteller-felder-application-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      Antragsteller-Felder (Application-Scope)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#zahlpunkt-felder-zahlpunkt-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      Zählpunkt-Felder (Zählpunkt-Scope)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#spezielle-konfigurierbare-felder" class="md-nav__link">
     <span class="md-ellipsis">
       Spezielle konfigurierbare Felder
@@ -917,6 +935,12 @@
 <li><strong><code>[+Speicher]</code></strong> <em>(grün, zusätzlich)</em> — gilt zusätzlich zu <code>[Einspeisung] [PV]</code> für Felder, die im Mitgliedsformular hinter dem Master-Toggle „Batteriespeicher vorhanden" gruppiert sind. Felder: Größe Batterie (kWh), Hersteller Wechselrichter, Speichersteuerung im Sinne der EEG vorstellbar?. Hinweis: Die Pflicht-Validierung der Speichersteuerungs-Frage greift zusätzlich nur dann, wenn das Mitglied tatsächlich Batterie-Daten gesetzt hat.</li>
 </ul>
 <p>Neben jedem Feld mit Badge steht ein kleines <strong>Info-Icon</strong> — Klick/Hover zeigt die exakte Bedingung in Worten. Die Badges sind Single Source of Truth: ändert sich die Bedingung im Code, ändert sich auch die Badge ohne separate Pflege.</p>
+<h3 id="antragsteller-felder-application-scope">Antragsteller-Felder (Application-Scope)<a class="headerlink" href="#antragsteller-felder-application-scope" title="Permanent link">&para;</a></h3>
+<p><img alt="Antragsteller-Felder" src="../images/admin-settings-fields-applicant.png" /></p>
+<p>Felder, die einmal pro Antrag erfasst werden. Badges zeigen typabhängige Sichtbarkeit (siehe oben).</p>
+<h3 id="zahlpunkt-felder-zahlpunkt-scope">Zählpunkt-Felder (Zählpunkt-Scope)<a class="headerlink" href="#zahlpunkt-felder-zahlpunkt-scope" title="Permanent link">&para;</a></h3>
+<p><img alt="Zählpunkt-Felder" src="../images/admin-settings-fields-metering.png" /></p>
+<p>Felder, die pro Zählpunkt im Mitgliedsformular erscheinen — bei mehreren Zählpunkten entsprechend mehrfach.</p>
 <h3 id="spezielle-konfigurierbare-felder">Spezielle konfigurierbare Felder<a class="headerlink" href="#spezielle-konfigurierbare-felder" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Netzbetreiber-Vollmacht</strong> <em>(Application-Scope)</em> — das Mitglied erteilt der EEG die Vollmacht, in seinem Namen mit dem Netzbetreiber zu agieren (notwendig z. B. bei Netz OÖ). Der Volltext der Vollmacht ist <strong>fest im Code</strong> und kann hier nicht editiert werden — du steuerst lediglich, ob die Checkbox überhaupt erscheinen soll. Default: <code>Ausgeblendet</code>. Bei <code>Verpflichtend</code> muss das Mitglied das Häkchen aktiv setzen, sonst wird der Antrag nicht submitted.</li>
@@ -957,6 +981,7 @@
 </table>
 <p>Die Auswahl ist binär — ein „optional anhakbar" gibt es nicht mehr.</p>
 <h3 id="dokument-hinzufugen">Dokument hinzufügen<a class="headerlink" href="#dokument-hinzufugen" title="Permanent link">&para;</a></h3>
+<p><img alt="Dokument hinzufügen — Dialog" src="../images/admin-settings-legal-add.png" /></p>
 <ol>
 <li>Klicke auf <strong>Dokument hinzufügen</strong>.</li>
 <li>Gib einen Titel und die URL des Dokuments ein.</li>
@@ -991,6 +1016,7 @@
 <p>Aus dem <strong>Antragsdetail</strong>:
 - Schaltfläche <strong>Datenweiterleitung</strong> in der Aktionsleiste — leitet den einzelnen Antrag weiter.</p>
 <h3 id="job-ubersicht">Job-Übersicht<a class="headerlink" href="#job-ubersicht" title="Permanent link">&para;</a></h3>
+<p><img alt="Datenweiterleitung Jobs" src="../images/admin-settings-datenweiterleitung-jobs.png" /></p>
 <p>Auf dieser Seite siehst du den Verlauf aller Jobs (Status, Anzahl Anträge, Zeitpunkt, Ergebnisdatei zum Download). Fehlerhafte Jobs erzeugen automatisch eine Benachrichtigungs-E-Mail an die EEG-Kontaktadresse.</p>
 <blockquote>
 <p><strong>DSGVO-Hinweis:</strong> Beim Hinzufügen sensibler Felder (IBAN, Geburtsdatum) zu einer Exportkonfiguration zeigt die UI eine Warnung. Die Verantwortung für die rechtmäßige Weiterverarbeitung liegt beim Empfänger-System.</p>
@@ -1005,6 +1031,7 @@
 <li>Konfigurations-Stände nachvollziehbar in Git zu halten.</li>
 </ul>
 <h3 id="export">Export<a class="headerlink" href="#export" title="Permanent link">&para;</a></h3>
+<p><img alt="Export-Bereich" src="../images/admin-settings-import-export-export.png" /></p>
 <p>Vier Sektionen sind einzeln oder als <strong>Komplett-Bundle</strong> exportierbar:</p>
 <table>
 <thead>
@@ -1034,6 +1061,7 @@
 </table>
 <p>Dateiname enthält RC-Nummer und Zeitstempel — manuelle Versionierung in Git oder einem Backup-System ist damit unproblematisch.</p>
 <h3 id="import-mit-diff-preview">Import mit Diff-Preview<a class="headerlink" href="#import-mit-diff-preview" title="Permanent link">&para;</a></h3>
+<p><img alt="Import-Bereich" src="../images/admin-settings-import-export-import.png" /></p>
 <ol>
 <li><strong>Datei hochladen</strong> (Drag-and-Drop oder Auswahldialog) — max 1 MB, nur <code>.json</code>. Die Datei wird serverseitig schemavalidiert; bei Fehlern wird der Upload abgelehnt.</li>
 <li><strong>Diff-Preview</strong> zeigt pro Sektion was sich ändert: hinzugefügt, modifiziert, entfernt oder unverändert.</li>
