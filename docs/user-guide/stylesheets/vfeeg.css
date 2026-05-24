@@ -10,11 +10,14 @@
 
 :root,
 [data-md-color-scheme="default"] {
-  --md-primary-fg-color:        #1a3a3d;   /* dark teal — header bar */
-  --md-primary-fg-color--light: #2a5054;
-  --md-primary-fg-color--dark:  #112528;
-  --md-primary-bg-color:        #fbf6e2;   /* cream */
-  --md-primary-bg-color--light: #fbf6e2;
+  /* Header bar uses the app's exact `--background` HSL (not a hex
+   * approximation — that drifted blue-grey). The app's color is teal
+   * with a hint of green, hue 176. */
+  --md-primary-fg-color:        hsl(176, 26%, 14%);   /* app --background */
+  --md-primary-fg-color--light: hsl(176, 26%, 20%);   /* app --card */
+  --md-primary-fg-color--dark:  hsl(176, 26%, 10%);
+  --md-primary-bg-color:        hsl(48, 60%, 95%);    /* app --foreground (cream) */
+  --md-primary-bg-color--light: hsl(48, 60%, 95%);
 
   --md-accent-fg-color:         #1c8a6f;   /* darker mint for AA contrast on cream */
   --md-accent-fg-color--transparent: rgba(28, 138, 111, 0.1);

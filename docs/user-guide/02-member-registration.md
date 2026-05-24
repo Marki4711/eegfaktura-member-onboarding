@@ -20,14 +20,15 @@ Wähle den zutreffenden Mitgliedstyp:
 
 | Typ | Beschreibung | USt.-Hinweis im Dropdown |
 |-----|-------------|--------------------------|
-| **Privatperson** | Natürliche Person | — |
-| **Kleinunternehmer** | Einzelunternehmer mit Kleinunternehmer-Regelung | `(0 % USt.)` |
+| **Privatperson** | Natürliche Person | `(0 % USt.)` |
 | **Pauschalierter Landwirt** | Land- und forstwirtschaftlicher Betrieb | `(13 % USt.)` |
-| **Gemeinde / öffentliche Körperschaft** | — | `(variabel)` |
-| **Unternehmen** | Juristische Person / GmbH, AG, etc. | `(20 % USt.)` |
-| **Verein** | Eingetragener Verein | `(variabel)` |
+| **Unternehmen** | Einzelunternehmer, GmbH, AG, OG, KG etc. — sowohl regulär umsatzsteuerpflichtig als auch Kleinunternehmerregelung (§ 6 Abs 1 Z 27 UStG) | `(0 % oder 20 % USt.)` |
+| **Gemeinde / öffentliche Körperschaft** | Hoheitsbereich vs. Betrieb gewerblicher Art (BgA) | `(0 % oder 20 % USt.)` |
+| **Verein** | Eingetragener Verein — ideeller Bereich vs. wirtschaftliche Tätigkeit | `(0 % oder 20 % USt.)` |
 
 Je nach Mitgliedstyp werden unterschiedliche Felder angezeigt (z. B. Firmenname statt Vorname/Nachname). Der USt.-Hinweis in Klammern dient der Orientierung — er zeigt, welchen Steuersatz deine Rechnungen aus der EEG voraussichtlich tragen werden.
+
+> **Kleinunternehmer-Pfad:** Wähle **Unternehmen** und lass die UID-Nummer leer — das signalisiert dem System die Kleinunternehmerregelung (0 % USt.). Mit ausgefüllter UID-Nummer wird der reguläre Unternehmenspfad (20 % USt.) angenommen. Eine separate „Kleinunternehmer"-Option gibt es seit Mai 2026 nicht mehr (PROJ-62).
 
 ## Schritt 3: Persönliche Daten eingeben
 
