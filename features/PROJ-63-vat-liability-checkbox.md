@@ -158,3 +158,17 @@ Externe API-Aufrufer sind nicht betroffen.
   ergänzt.
 - Doku: `docs/user-guide/02-member-registration.md` + `changelog.md`
   + `CHANGELOG.md` nachgezogen.
+- Deploy: Helm-Upgrade auf Test-Cluster am 2026-05-24 durchgeführt.
+
+## Open Follow-ups
+
+- [ ] **Screenshots regenerieren.** Der bestehende Screenshot
+  `register-form-mitgliedstyp.png` zeigt noch den Stand vor PROJ-63
+  (ohne die USt-Pflicht-Checkbox). Beim nächsten lokalen
+  `npm run screenshots`-Lauf den Generator ggf. um einen
+  Sub-Section-Shot für „USt-Pflicht bei Unternehmen und Verein"
+  ergänzen (Pattern: `shootCard` oder `shootSettingsSection`
+  unter dem Mitgliedstyp-Block — siehe Memory
+  `project-user-guide-authoring`).
+- [ ] Spec-Status auf **Deployed** setzen, sobald die Screenshots
+  nachgezogen sind.

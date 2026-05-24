@@ -10,6 +10,18 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### PROJ-63 — Follow-up: Firmenbuchnummer-/UID-Label-Alignment *(2026-05-24)*
+
+Owner-Beobachtung im Test-Deploy: die Firmenbuchnummer-Zelle saß ein
+paar Pixel über der UID-Zelle. Ursache war der `flex items-center gap-1`-
+Wrapper um das UID-Label (für den Info-Icon-Popover) — die Nachbar-
+Zelle ohne Wrapper hatte minimal andere Vertikal-Metriken.
+
+Fix: Firmenbuchnummer-Label in dieselbe Flex-Struktur gewickelt (ohne
+Icon-Slot), damit beide Grid-Cells strukturgleich rendern und pixelgenau
+alignen. Spec PROJ-63 um „Open Follow-ups" (Screenshots nachziehen)
+ergänzt.
+
 ### PROJ-63 — USt-Pflicht-Checkbox bei Unternehmen + Verein *(2026-05-24)*
 
 Frontend-only Refactor als saubere Lösung für den PROJ-62-Follow-up:
