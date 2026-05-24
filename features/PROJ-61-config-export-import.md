@@ -1,8 +1,8 @@
 # PROJ-61: Konfigurations-Export & -Import pro EEG
 
-## Status: Architected
+## Status: Approved
 **Created:** 2026-05-24
-**Last Updated:** 2026-05-24 (nach 2× /grill-me und /architecture — Tech Design auf Code-Realität abgeglichen, 12 weitere Decisions eingearbeitet)
+**Last Updated:** 2026-05-24 (nach /qa-Bug-Fix-Welle — alle 3 Bugs gefixt)
 
 ## Dependencies
 - Requires: PROJ-5 (Keycloak-Admin-Auth) — Tenant-Isolation für Zugriffsprüfung
@@ -879,13 +879,29 @@ ebenfalls lauffähig**, sofern `TEST_AUTH_MODE=headers` gesetzt ist.
 - **Bestehende E2E-Specs**: nicht-betroffen (PROJ-61 fügt neue Tab hinzu, ändert keine bestehenden Pfade)
 - **Sanitize-Refactor**: bestehender admin.go-Pfad funktioniert weiter (admin_note + intro_text), `sanitize.HTML` ist eine 1:1-Übernahme der Inline-Policy
 
-### Production-Ready: **NEIN — wegen Bug #1 (High, AC-Verletzung)**
+### Production-Ready: **JA** *(nach Bug-Fix-Welle 2026-05-24)*
 
-Bug #1 muss vor Deploy gefixt werden. Bug #2 und Bug #3 sind Low und
-können optional gleich mit oder in Folge-PROJs umgesetzt werden.
+Alle 3 Bugs aus dem QA-Run sind gefixt:
+
+- **Bug #1 (High, AC-I10)**: Optionales `DriftFilter`-Interface in
+  `internal/dataexport/plugin.go` ergänzt; Excel-Plugin implementiert
+  es (filtert unknown column field-keys). Importer ruft es via
+  Type-Assertion vor `plugin.ValidateConfig` auf, gefilterte Config
+  wird zurück ins File-Struct geschrieben, Warning erscheint im Diff.
+- **Bug #2 (Low)**: `MaxIntroTextLength = 50 KB` in
+  `internal/configexport/limits.go`-Konstante; `validateAndSanitize`
+  prüft nach Sanitisierung. Carry-over im UI-Save-Pfad bleibt — siehe
+  Sub-Ticket-Hinweis.
+- **Bug #3 (Low, AC-I14)**: `isLockTimeoutErr`-Helper erkennt
+  PostgreSQL-SQLSTATE `55P03`; nur dann „EEG wird gerade konfiguriert"-
+  Message, sonst generischer 500.
+
+Tests: 8 neue Unit-Tests in `internal/configexport/importer_validate_test.go`
+(intro_text-Limit + Drift-Filter + isLockTimeoutErr alle Pfade).
 
 Außerdem: **`/security-review` empfohlen**, weil das Feature
-Keycloak-Auth, Tenant-Isolation und neue Endpoints berührt.
+Keycloak-Auth, Tenant-Isolation und neue Endpoints berührt — folgt
+direkt nach diesem Commit.
 
 **Verbleibende manuelle Verifikation (nicht automatisierbar):**
 - Browser-Render-Test der UI (AC-E1, AC-I3-checkboxes, AC-I4-Diff-Render, AC-I4b/c/d-Warning-Display, AC-I5-Modal)

@@ -10,6 +10,50 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### PROJ-61 — Bug-Fixes nach QA-Run *(2026-05-24)*
+
+Drei Bugs aus dem /qa-Run gefixt; PROJ-61 ist jetzt Production-Ready.
+
+- **Bug #1 (High, AC-I10)**: Field-Catalog-Drift blockte mit 400 statt
+  zu verwerfen + warnen wie spezifiziert. Fix:
+  - Neues optionales Capability-Interface `dataexport.DriftFilter` in
+    `internal/dataexport/plugin.go`. Plugins, die Config-References auf
+    katalog-globale Field-Sets enthalten, implementieren es.
+  - Excel-Plugin implementiert `FilterUnknownFields`: filtert
+    `columns[].field`-Einträge, die nicht in `AvailableFields` stehen,
+    gibt verworfene Field-Keys für die Diff-Warning zurück.
+  - `internal/configexport/importer.go::validateAndSanitize` ruft per
+    Type-Assertion `DriftFilter` auf, bevor `plugin.ValidateConfig`
+    läuft. Gefilterte Config wird in das File-Struct zurückgeschrieben
+    (Apply speichert die gefilterte Variante). Warning erscheint im
+    Diff-Preview.
+- **Bug #2 (Low)**: `intro_text` ohne Längenlimit. Fix:
+  - Neue Konstante `MaxIntroTextLength = 50 KB` in `limits.go`.
+  - `validateAndSanitize` prüft die Länge nach Sanitisierung; bei
+    Überschreitung 400 mit klarer Fehlermeldung. Carry-over im
+    UI-Save-Pfad bleibt — eigenes Sub-Ticket zum Konsolidieren.
+- **Bug #3 (Low, AC-I14)**: Lock-Error-Message zu generisch. Fix:
+  - Neue Helper-Funktion `isLockTimeoutErr` erkennt SQLSTATE `55P03`
+    via SQLState()-Interface + Fallback-String-Match.
+  - Nur bei echtem lock_timeout → 409 mit „EEG wird gerade konfiguriert";
+    andere Lock-Erwerbs-Fehler → 500 mit generischer Meldung. Verhindert
+    irreführende UX bei DB-Connection-Problemen.
+
+**Architektur-Verbesserung als Nebeneffekt**: `validateAndSanitize`
+gibt jetzt `(warnings []string, err error)` zurück statt nur `error`.
+Die alte `collectDriftWarnings`-Funktion ist obsolet (Compat-Pfad
+bleibt für externe Aufrufer).
+
+Tests: 8 neue Unit-Tests in `importer_validate_test.go`:
+- intro_text-Längenlimit (Reject + Just-Under-OK)
+- Excel-DriftFilter (drops + warns + Config-Re-Marshal)
+- ValidateConfig rejected weiterhin invalid format
+- Plugin-Type-Drift-Warning via validateAndSanitize-Return
+- isLockTimeoutErr (nil, String-Match, SQLState 55P03, other-SQLState)
+
+Side-Effect-Import des Excel-Plugins im Test-File, damit Plugin-Registry
+für DriftFilter-Tests gefüllt ist.
+
 ### PROJ-61 — Konfigurations-Export & -Import pro EEG (Frontend) *(2026-05-24)*
 
 5 React-Komponenten unter `src/components/config-import-export/` +
