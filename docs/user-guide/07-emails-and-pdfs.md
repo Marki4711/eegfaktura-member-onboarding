@@ -105,6 +105,6 @@ gefolgt von Mitgliedsname und Referenznummer in Klammern.
 
 Die Entwickler-/Operations-Sicht (welche Funktion löst aus, welches Template
 rendert, welche Metriken werden geschrieben) findet sich in
-[`docs/architecture.md`](../architecture.md#mail-flow-post-proj-46--proj-47--proj-48--proj-53)
-(Mail-Flow-Tabelle) und in [`docs/operations.md`](../operations.md)
+[`docs/architecture.md`](https://github.com/Marki4711/eegfaktura-member-onboarding/blob/main/docs/architecture.md#mail-flow-post-proj-46--proj-47--proj-48--proj-53)
+(Mail-Flow-Tabelle) und in [`docs/operations.md`](https://github.com/Marki4711/eegfaktura-member-onboarding/blob/main/docs/operations.md)
 (SMTP-Ausfall-Verhalten).

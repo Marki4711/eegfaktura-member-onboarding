@@ -54,3 +54,6 @@ next-env.d.ts
 
 # screenshot-keycloak generated credentials (per-machine, regenerated on setup)
 .env.screenshots.local
+
+# MkDocs build output (built in CI, never committed)
+/site/

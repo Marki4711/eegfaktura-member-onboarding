@@ -4,7 +4,7 @@
 
 > **Visuell:** ein vollständiges, in GitHub gerendertes Mermaid-Diagramm
 > aller 12 Stati + Übergänge findest du in
-> [`docs/architecture-diagram.md` → „Status-Übergänge (vollständig)"](../architecture-diagram.md#status-übergänge-vollständig).
+> [`docs/architecture-diagram.md` → „Status-Übergänge (vollständig)"](https://github.com/Marki4711/eegfaktura-member-onboarding/blob/main/docs/architecture-diagram.md#status-übergänge-vollständig).
 > Die ASCII-Skizze unten ist die kompakte Übersicht für den
 > Bearbeitungsalltag.
 
