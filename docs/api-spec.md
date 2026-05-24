@@ -1975,7 +1975,11 @@ The API key determines the EEG — no `rcNumber` in the body.
 
 ### memberType values
 
-Same as public API: `private` | `sole_proprietor` | `farmer` | `municipality` | `company` | `association`
+Same as public API: `private` | `farmer` | `municipality` | `company` | `association`
+
+> PROJ-62 (May 2026): `sole_proprietor` was removed. The
+> Kleinunternehmer-Pfad is now `company` with an empty `uidNumber`.
+> Requests submitting `sole_proprietor` are rejected with 400.
 
 ### Required fields
 
@@ -1984,10 +1988,13 @@ Same as public API: `private` | `sole_proprietor` | `farmer` | `municipality` | 
 `sepaMandateAccepted: true`, `meteringPoints` (min 1).
 
 For `natural_person` types (`private`, `farmer`): `firstname` + `lastname` required.
-For legal entity types (`municipality`, `company`, `association`, `sole_proprietor`): `companyName` required.
-- `sole_proprietor` (PROJ-28, Kleinunternehmer): only `companyName` required; `firstname`, `lastname`, `birth_date`, `uid_number`, `register_number` are ignored if present.
-- `company`: additionally `uidNumber` + `registerNumber` required.
-- `association`: additionally `registerNumber` required.
+For legal entity types (`municipality`, `company`, `association`): `companyName` required.
+- `company`: `uidNumber` and `registerNumber` are both **optional**. Empty
+  `uidNumber` signals the Kleinunternehmerregelung (§ 6 Abs 1 Z 27 UStG,
+  0 % USt.); a populated `uidNumber` puts the application on the regular
+  20 % USt. path.
+- `association`: `registerNumber` is optional.
+- `municipality`: no additional fields beyond `companyName`.
 
 Configurable fields follow the EEG's active `field_config` — identical rules to the public form.
 

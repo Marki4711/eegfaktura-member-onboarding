@@ -6,20 +6,17 @@ Das eegFaktura Mitglieder-Onboarding ermöglicht die **selbstständige Online-Re
 
 ## Wie funktioniert der Prozess?
 
-```
-Mitglied                    EEG-Betreiber              eegFaktura
-   |                              |                         |
-   |-- Formular ausfüllen ------->|                         |
-   |                              |                         |
-   |<-- Bestätigung per E-Mail ---|                         |
-   |                              |                         |
-   |                    Antrag prüfen                       |
-   |                    Rückfragen stellen (optional)       |
-   |                    Antrag genehmigen                   |
-   |                              |                         |
-   |                              |-- Import starten ------>|
-   |                              |   (inkl. Mitgliedsnr.)  |
-   |                              |                         |
+```mermaid
+sequenceDiagram
+    autonumber
+    participant M as Mitglied
+    participant E as EEG-Betreiber
+    participant F as eegFaktura
+    M->>E: Formular ausfüllen + absenden
+    E-->>M: Bestätigung per E-Mail
+    Note over E: Antrag prüfen<br/>Rückfragen stellen (optional)<br/>Antrag genehmigen
+    E->>F: Import starten (inkl. Mitgliedsnummer)
+    F-->>E: Antrag importiert + aktiviert
 ```
 
 > **Hinweis:** Die **Mitgliedsnummer** wird nicht beim Einreichen, sondern erst beim Import in eegFaktura vergeben. Das eegFaktura-Core schlägt die nächste freie Nummer vor (numerisch oder alphanumerisch, z. B. `A006`), die der EEG-Betreiber im Import-Dialog übernehmen oder anpassen kann.
@@ -33,23 +30,54 @@ Mitglied                    EEG-Betreiber              eegFaktura
 
 ## Antragsstatus im Überblick
 
+Der Lebenszyklus eines Antrags teilt sich in zwei Phasen: die **Review-Phase** bis zum Import in eegFaktura, und die **Post-Import-Phase** bis zur Aktivierung des Mitglieds.
+
+### Phase 1 — Review (bis Import)
+
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> draft
+    draft --> submitted: Mitglied reicht ein
+
+    submitted --> email_confirmed: EEG mit<br/>E-Mail-Bestätigung
+    submitted --> under_review: Standard
+    email_confirmed --> under_review
+
+    under_review --> needs_info: Rückfragen
+    needs_info --> under_review: Mitglied antwortet
+    under_review --> rejected
+    under_review --> approved
+
+    approved --> imported: Import in eegFaktura
+    approved --> import_failed
+    import_failed --> approved: erneut versuchen
+
+    imported --> [*]: weiter in Phase 2
 ```
-draft → submitted ─┬─ (Standard) ──→ under_review → approved → imported (Millisek.)
-                   │                       ↕            ↑          │
-                   │                  needs_info        │   ┌──────┴──────┐
-                   │                       ↕            │   ▼             ▼
-                   │                    rejected        │  b2b?         non-b2b
-                   │                                    │   │             │
-                   │                          import_failed │             │
-                   │                                        ▼             │
-                   │                          awaiting_bank_confirmation  │
-                   │                                        ↕             ↓
-                   │                                ready_for_activation ←┘
-                   │                                        ↓
-                   │                                    activated (Endzustand)
-                   │
-                   └─ (EEG mit E-Mail-Bestätigung) ─→ email_confirmed → under_review → …
+
+### Phase 2 — Post-Import (bis Aktivierung)
+
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> imported: aus Phase 1
+
+    imported --> awaiting_bank_confirmation: einzugsart=b2b
+    imported --> ready_for_activation: sonst
+    awaiting_bank_confirmation --> ready_for_activation: Bank bestätigt
+    ready_for_activation --> activated: manuell ODER<br/>Batch-Aktivierung
+
+    activated --> [*]: Endzustand
+
+    note right of imported
+        transient — Server<br/>routet sofort weiter
+    end note
 ```
+
+Aus den Stati `imported`, `awaiting_bank_confirmation` und `ready_for_activation` ist über die Aktion **Import zurücksetzen** ein Rückweg nach `approved` möglich — siehe [Statusverwaltung](05-admin-status.md#import-zurucksetzen-imported-awaiting_bank_confirmation-ready_for_activation-approved). Aus `activated` gibt es keinen Reset; ein aktives Mitglied muss zuerst im eegFaktura-Core deaktiviert werden.
+
+Details zu den einzelnen Übergängen:
 
 * `submitted → email_confirmed`: nur wenn die EEG **E-Mail-Bestätigung erforderlich** aktiviert hat — Mitglied klickt den Bestätigungs-Link in der Willkommens-Mail.
 * `import_failed → approved`: nach Fehlerbehebung kann der Import erneut versucht werden.

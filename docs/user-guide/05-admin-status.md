@@ -2,43 +2,40 @@
 
 ## Statusübergänge
 
-> **Visuell:** ein vollständiges, in GitHub gerendertes Mermaid-Diagramm
-> aller 12 Stati + Übergänge findest du in
-> [`docs/architecture-diagram.md` → „Status-Übergänge (vollständig)"](https://github.com/Marki4711/eegfaktura-member-onboarding/blob/main/docs/architecture-diagram.md#status-übergänge-vollständig).
-> Die ASCII-Skizze unten ist die kompakte Übersicht für den
-> Bearbeitungsalltag.
+Der Status eines Antrags steuert den Bearbeitungsablauf. Das Diagramm
+zeigt die wichtigsten Übergänge für den Bearbeitungsalltag — die
+zwei-Phasen-Übersicht (Review + Post-Import) steht im
+[Überblick](index.md#antragsstatus-im-uberblick).
 
-Der Status eines Antrags steuert den Bearbeitungsablauf. Folgende Übergänge sind möglich:
+```mermaid
+stateDiagram-v2
+    direction LR
+    submitted --> under_review
+    under_review --> approved
+    approved --> imported: Millisek.
+    approved --> import_failed
+    import_failed --> approved: erneut versuchen
 
+    under_review --> needs_info: Rückfragen
+    needs_info --> submitted: Mitglied ergänzt
+    under_review --> rejected
+
+    imported --> awaiting_bank_confirmation: einzugsart=b2b
+    imported --> ready_for_activation: sonst (Auto-Skip)
+    awaiting_bank_confirmation --> ready_for_activation: Admin:<br/>Bank-Bestätigung
+    ready_for_activation --> activated: Admin manuell ODER<br/>„Aktivierung im Core prüfen"
+
+    approved --> activated: PROJ-53 Skip-Import<br/>(manuell aktivieren)
+
+    awaiting_bank_confirmation --> approved: Import zurücksetzen
+    ready_for_activation --> approved: Import zurücksetzen
+    imported --> approved: Import zurücksetzen
 ```
-submitted ──→ under_review ──→ approved ──→ imported (Millisek.)
-                   │                 │             │
-                   │                 └──→ import_failed
-                   │                              │
-                   │              ┌───────────────┘
-                   │              ↓
-                   │           approved  (Import zurücksetzen)
-                   │
-                   ├──→ needs_info
-                   │       └──→ submitted (nach Ergänzung durch Mitglied)
-                   └──→ rejected
 
-Nach erfolgreichem Import (PROJ-46, automatisch):
-  imported  ──→  awaiting_bank_confirmation  (bei einzugsart=b2b)
-                       ↓ (Admin: „Bank-Bestätigung erhalten")
-                ready_for_activation
-                       ↓ (Admin manuell ODER „Aktivierung im Core prüfen")
-                  activated  (Endzustand)
-
-  imported  ──→  ready_for_activation  (bei nicht-b2b, Auto-Skip)
-                       ↓
-                  activated
-
-Ausnahmefall (PROJ-53, manueller Skip-Import):
-  approved  ──→  activated   (Admin: „Manuell aktivieren …" — überspringt
-                              den Core-Import, wenn das Mitglied im
-                              Faktura bereits manuell überschrieben wurde)
-```
+> **PROJ-53 Skip-Import:** Der direkte Weg `approved → activated` ist ein
+> Ausnahmefall — der Admin verwendet ihn, wenn das Mitglied im
+> eegFaktura-Core bereits manuell angelegt/überschrieben wurde und der
+> reguläre Import-Pfad übersprungen werden soll.
 
 * `import_failed → approved`: nach Fehlerbehebung kann der Import erneut versucht werden.
 * `imported` ist **transient** — der Server transitioniert sofort weiter (siehe PROJ-46-Diagramm oben). Wenn ein Antrag in `imported` „hängen" bleibt, ist der Auto-Branch fehlgeschlagen → über **Import zurücksetzen** lösen.

@@ -85,3 +85,18 @@
 [data-md-color-scheme="slate"] .md-tabs__link--active {
   color: hsl(157, 94%, 74%);
 }
+
+/* Mermaid diagrams: Material's default leaves them small in a wide
+ * container — the SVG keeps its intrinsic ratio so unused vertical space
+ * means small node text. Force a wider/taller render and let the SVG
+ * scale up. */
+.md-typeset .mermaid {
+  text-align: center;
+  margin: 1.5em 0;
+}
+.md-typeset .mermaid svg {
+  width: 100% !important;
+  height: auto !important;
+  max-width: 100%;
+  min-height: 350px;     /* upscale even when the diagram is short */
+}
