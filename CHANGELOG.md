@@ -47,6 +47,20 @@ Phase 2 (Zoho, HubSpot, …) baut ohne Framework-Eingriff auf.
 - `jobs-list` functional setState verhindert Race bei „Mehr laden" + Filter-Wechsel
 - Placeholder-Verstoß im Bulk-Reject-Dialog entfernt (Label trägt jetzt den Hinweis)
 
+**Audit-Welle 2 (Re-Audit-Findings, 2026-05-23):**
+- Worker-Shutdown ohne TriggerJob-Race: neuer `JobService.MarkShuttingDown()` (atomic.Bool) wird in `main.go` vor `workerCancel()` gerufen; TriggerJob/Retry returnen 409 während Drain — keine Zombie-Jobs mehr durch hastige Admins
+- `LoadForExport` hard-failt jetzt wenn alle Apps via Tenant-Filter rausfliegen (vorher: silent leerer Export wurde als „done" markiert)
+- ListJobs N+1 eliminiert: neue Repo-Methode `GetMetadataByJobIDs` reduziert ein 1+N-Listing-Query-Pattern auf 1+1
+- Retry-Modal: `onRetried`-Prop ist jetzt required (TypeScript-enforced) — Tech-Debt-Trap (silent polling-freeze nach Retry) geschlossen
+- K8s-Hardening auf den zwei PROJ-60-Templates: `automountServiceAccountToken: false` + `seccompProfile: RuntimeDefault` (lateral movement bei Container-Compromise blockiert)
+- 12 Swag-Annotationen für `internal/http/dataexport.go` (vorher: `swag init` skippte PROJ-60 silent)
+- Doku-Hygiene: domain-model.md Section-Nummern §3.6/3.7/3.8 → §3.9/3.10/3.11 (Kollision mit `document_consent`/`external_api_key`/`reference_number_counter` aufgelöst); CHANGELOG/TODO „11 Endpoints" → „12"
+
+**Audit-Welle 3 (Re-Re-Audit-Folge, 2026-05-24):**
+- `CountFailedSince`-Fehler im Jobs-Listing wird jetzt geloggt (vorher silent geswallowed → Badge zeigte stille 0)
+- `LoadForExport`-Fehlermessage entfernt die RC-Nummer aus dem User-Error (defensiver gegen Cross-Tenant-Info-Leak)
+- TODO-docs-sync.md-Drift gefixt (alte §3.6/3.7/3.8-Referenz)
+
 ### PROJ-57 v3 — Ansprechperson ohne Master-Switch, drei Felder einzeln steuerbar *(2026-05-21)*
 
 Vereinfachung des Konfigurations-Modells: der separate

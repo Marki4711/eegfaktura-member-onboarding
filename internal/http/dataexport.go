@@ -3,6 +3,7 @@ package http
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -442,9 +443,15 @@ func (h *DataExportHandler) ListJobs(w http.ResponseWriter, r *http.Request) {
 		out[i] = jobToResponse(j, hasResult, fnPtr, fsPtr)
 	}
 
-	// Also fetch failed-jobs-count for the last 7 days (UI badge).
+	// Also fetch failed-jobs-count for the last 7 days (UI badge). Failure
+	// just means the red badge stays at 0 — we still log so the operator
+	// can spot persistent failures in slog instead of silent zeros.
 	failedSince := time.Now().Add(-7 * 24 * time.Hour)
-	failedCount, _ := h.jobService.CountFailedSince(rcNumber, failedSince)
+	failedCount, err := h.jobService.CountFailedSince(rcNumber, failedSince)
+	if err != nil {
+		slog.Warn("dataexport: CountFailedSince failed (badge will render 0)",
+			"rc_number", rcNumber, "error", err)
+	}
 
 	resp := map[string]interface{}{
 		"jobs":              out,

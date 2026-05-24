@@ -66,7 +66,12 @@ func (l *AppLoader) LoadForExport(_ context.Context, rcNumber string, ids []uuid
 	// 0-row "successful" export would hand the admin a misleading file and
 	// hide the integrity issue.
 	if skippedTenant > 0 && len(keepApps) == 0 {
-		return nil, fmt.Errorf("alle %d Anträge gehören nicht (mehr) zur EEG %s — Job-Snapshot ist veraltet, bitte neu auslösen", skippedTenant, rcNumber)
+		// Bewusst KEIN rcNumber in der User-Message — die Details landen
+		// via slog.Warn oben im Audit-Log. RC-Leak im Error wäre Info-Disclosure
+		// gegenüber Cross-Tenant-Callern (Worker schreibt die Message in
+		// job.error_message, das bleibt zwar tenant-gefiltert sichtbar, aber
+		// generischer Wortlaut ist defensiver.)
+		return nil, fmt.Errorf("alle %d Anträge gehören nicht (mehr) zur EEG dieses Jobs — Snapshot ist veraltet, bitte neu auslösen", skippedTenant)
 	}
 
 	meters, err := l.meterRepo.GetByApplicationIDs(keepIDs)
