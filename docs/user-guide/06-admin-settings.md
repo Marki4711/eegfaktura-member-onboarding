@@ -14,6 +14,8 @@ In diesem Abschnitt steuerst du die öffentliche Registrierung und hinterlegst d
 
 ### Mitgliederregistrierung aktiv
 
+![Mitgliederregistrierung aktiv](images/admin-settings-eeg-registration.png)
+
 Der Toggle ganz oben steuert, ob der öffentliche Registrierungslink für deine EEG aktiv ist.
 
 - **Aktiv**: Interessenten können sich über den Registrierungslink anmelden.
@@ -44,6 +46,8 @@ Neun Werte werden direkt aus eegFaktura übernommen und sind in der Onboarding-O
 
 ### SEPA-Lastschriftmandat
 
+![SEPA-Lastschriftmandat](images/admin-settings-eeg-sepa.png)
+
 - **SEPA-Mandat von der EEG bereitstellen**: Wenn aktiv, generiert das Onboarding automatisch ein SEPA-Mandats-PDF.
 - **Firmenlastschrift (B2B) für Unternehmen und Gemeinden anbieten**: Erscheint nur wenn SEPA aktiv ist. Aktiviere diese Option, wenn Unternehmen und Gemeinden ein B2B-Mandat erhalten sollen. Welche Mandats-Variante (Basislastschrift CORE oder Firmenlastschrift B2B) ein konkreter Antrag bekommt, wird **nicht** automatisch aus dem Mitgliedstyp abgeleitet — die Wahl trifft die Admin pro Antrag über das Feld „Einzugsart" (`core` / `b2b` / `kein_sepa`, Default `core`).
 - **SEPA-Mandat erst beim Import erzeugen**: Wenn aktiv, wird das Mandat **nicht** dem Willkommensmail beigelegt, sondern erst beim Import mit der zugewiesenen Mitgliedsnummer als Mandatsreferenz ausgegeben. Sinnvoll, wenn du digitale Signatur (z. B. ID Austria) einsetzt — ein signiertes PDF darf nicht mehr verändert werden, daher muss die Mandatsreferenz vor der Signatur eingedruckt sein. Im Registrierungsformular erscheint dann ein erklärender Hinweis, dass das Mandat später folgt.
@@ -51,6 +55,8 @@ Neun Werte werden direkt aus eegFaktura übernommen und sind in der Onboarding-O
 > **Hinweis:** Wenn das SEPA-Mandat aktiviert ist, aber Stammdaten fehlen, erscheint eine Warnung. Solange Felder fehlen, wird kein PDF generiert.
 
 ### Genossenschaftsanteile
+
+![Genossenschaftsanteile](images/admin-settings-eeg-cooperative.png)
 
 Nur relevant für EEGs, deren Rechtsträger eine Genossenschaft ist:
 
@@ -63,6 +69,8 @@ Beide Wert-Felder sind nur sichtbar, wenn der Toggle aktiv ist. Änderungen wirk
 Die Anteilsinformation wird **nicht** an eegFaktura übertragen — sie ist reine Onboarding-Erfassung als Buchhaltungs-Beleg.
 
 ### Zählpunkt-Prefixes
+
+![Zählpunkt-Prefixes](images/admin-settings-eeg-mp-prefix.png)
 
 Mitglieder müssen heute eine 33-stellige Zählpunktnummer eintippen. Wenn die Zählpunkte deiner EEG mehrheitlich vom selben Netzbetreiber + Postleitzahl-Bereich kommen, kannst du hier den festen Anfang vorgeben — das Mitglied tippt dann nur noch die individuellen letzten Stellen.
 
@@ -82,6 +90,8 @@ Mitglieder müssen heute eine 33-stellige Zählpunktnummer eintippen. Wenn die Z
 
 ### Aktivierungs-Kriterium
 
+![Aktivierungs-Kriterium](images/admin-settings-eeg-activation.png)
+
 Steuert, wann eine Anwendung von **„Bereit zur Aktivierung"** auf **„Aktiviert"** wechselt. Beim Übergang auf „Aktiviert" wird automatisch die volle Beitrittsbestätigungs-Mail mit PDF an das Mitglied versandt (und eine Kopie an den EEG-Contact).
 
 Zwei Optionen:
@@ -95,6 +105,8 @@ Zwei Optionen:
 Der Wechsel selbst wird in beiden Fällen entweder **per Antrag manuell** ausgelöst (Button „Als aktiv markieren") oder über den Batch-Button **„Aktivierung im Core prüfen"** in der Antragsübersicht — der nimmt das hier gewählte Kriterium dann automatisch für deine ganze EEG.
 
 ### E-Mail-Adresse bestätigen
+
+![E-Mail-Adresse bestätigen](images/admin-settings-eeg-email-confirm.png)
 
 - **E-Mail-Adresse bestätigen**: Wenn aktiv, erhält das neue Mitglied in der Bestätigungs-Mail einen Button „E-Mail-Adresse bestätigen". Erst nach dem Klick wechselt der Antrag in den Status **„E-Mail bestätigt"** und ist für deine Bearbeitung freigegeben. Solange die Bestätigung aussteht, siehst du den Antrag mit dem Status „Eingereicht" und einer Warnung in der Detail-Ansicht.
 
