@@ -1,0 +1,84 @@
+/* VFEEG-inspired palette for mkdocs-material.
+ *
+ * Mirrors the member-onboarding app's color scheme defined in
+ * src/app/globals.css (HSL → hex). Two schemes:
+ *   - light: cream background, dark teal text, mint accent
+ *   - dark:  dark teal background, cream text, mint accent (matches the app)
+ *
+ * Activated via mkdocs.yml palette → primary: custom + accent: custom.
+ */
+
+:root,
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color:        #1a3a3d;   /* dark teal — header bar */
+  --md-primary-fg-color--light: #2a5054;
+  --md-primary-fg-color--dark:  #112528;
+  --md-primary-bg-color:        #fbf6e2;   /* cream */
+  --md-primary-bg-color--light: #fbf6e2;
+
+  --md-accent-fg-color:         #1c8a6f;   /* darker mint for AA contrast on cream */
+  --md-accent-fg-color--transparent: rgba(28, 138, 111, 0.1);
+  --md-accent-bg-color:         #fbf6e2;
+  --md-accent-bg-color--light:  #fbf6e2;
+
+  --md-typeset-a-color:         #1c8a6f;
+
+  /* Code blocks in light mode — Material's default is washed-out
+   * (light text on light grey). Force high contrast: near-black text
+   * on a slightly tinted background so ASCII-art diagrams stay legible. */
+  --md-code-bg-color:           #f2efe1;   /* warm cream, slightly darker than page */
+  --md-code-fg-color:           #142a2c;   /* near-black teal */
+}
+
+[data-md-color-scheme="slate"] {
+  --md-hue: 176;
+  --md-default-bg-color:        hsl(176, 26%, 14%);   /* app --background */
+  --md-default-bg-color--light: hsl(176, 26%, 18%);
+  --md-default-bg-color--lighter: hsl(176, 26%, 22%);
+  --md-default-bg-color--lightest: hsl(176, 26%, 26%);
+
+  --md-default-fg-color:        hsl(48, 60%, 95%);    /* app --foreground (cream) */
+  --md-default-fg-color--light: hsl(48, 60%, 85%);
+  --md-default-fg-color--lighter: hsl(48, 60%, 70%);
+  --md-default-fg-color--lightest: hsl(48, 60%, 50%);
+
+  --md-primary-fg-color:        hsl(183, 100%, 13%);  /* app --sidebar-background */
+  --md-primary-fg-color--light: hsl(183, 100%, 18%);
+  --md-primary-fg-color--dark:  hsl(183, 100%, 9%);
+  --md-primary-bg-color:        hsl(48, 60%, 95%);
+  --md-primary-bg-color--light: hsl(48, 60%, 95%);
+
+  --md-accent-fg-color:         hsl(157, 94%, 74%);   /* app --primary (mint) */
+  --md-accent-fg-color--transparent: hsla(157, 94%, 74%, 0.1);
+  --md-accent-bg-color:         hsl(183, 100%, 13%);
+  --md-accent-bg-color--light:  hsl(183, 100%, 13%);
+
+  --md-typeset-a-color:         hsl(157, 94%, 74%);
+
+  /* Code blocks: slightly lighter than the page bg for contrast */
+  --md-code-bg-color:           hsl(176, 26%, 10%);
+  --md-code-fg-color:           hsl(48, 60%, 90%);
+
+  /* Tables zebra-stripe with a subtle teal tint */
+  --md-typeset-table-color:     hsla(157, 94%, 74%, 0.05);
+  --md-typeset-table-color--light: hsla(157, 94%, 74%, 0.1);
+
+  /* Admonitions (info/warning/tip boxes) — keep them readable on dark bg */
+  --md-admonition-bg-color:     hsl(176, 26%, 18%);
+  --md-admonition-fg-color:     hsl(48, 60%, 95%);
+}
+
+/* Headline accent — mint underline for h2, matches the app's button-style */
+[data-md-color-scheme="slate"] .md-typeset h2 {
+  border-bottom: 1px solid hsla(157, 94%, 74%, 0.25);
+  padding-bottom: 0.25em;
+}
+[data-md-color-scheme="default"] .md-typeset h2 {
+  border-bottom: 1px solid rgba(28, 138, 111, 0.25);
+  padding-bottom: 0.25em;
+}
+
+/* Tab underline (selected tab in the top nav) */
+[data-md-color-scheme="slate"] .md-tabs__link--active {
+  color: hsl(157, 94%, 74%);
+}
