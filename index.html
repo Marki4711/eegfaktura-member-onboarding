@@ -555,19 +555,16 @@
 <h2 id="was-ist-das-tool">Was ist das Tool?<a class="headerlink" href="#was-ist-das-tool" title="Permanent link">&para;</a></h2>
 <p>Das eegFaktura Mitglieder-Onboarding ermöglicht die <strong>selbstständige Online-Registrierung neuer EEG-Mitglieder</strong>. Neue Mitglieder füllen ein öffentlich zugängliches Webformular aus, das über einen individuellen Link der jeweiligen EEG erreichbar ist. Die Daten werden zunächst in einem Prüfbereich gesammelt und erst nach Freigabe durch den EEG-Betreiber in eegFaktura übernommen.</p>
 <h2 id="wie-funktioniert-der-prozess">Wie funktioniert der Prozess?<a class="headerlink" href="#wie-funktioniert-der-prozess" title="Permanent link">&para;</a></h2>
-<p><code>Mitglied                    EEG-Betreiber              eegFaktura
-   |                              |                         |
-   |-- Formular ausfüllen -------&gt;|                         |
-   |                              |                         |
-   |&lt;-- Bestätigung per E-Mail ---|                         |
-   |                              |                         |
-   |                    Antrag prüfen                       |
-   |                    Rückfragen stellen (optional)       |
-   |                    Antrag genehmigen                   |
-   |                              |                         |
-   |                              |-- Import starten ------&gt;|
-   |                              |   (inkl. Mitgliedsnr.)  |
-   |                              |                         |</code></p>
+<pre class="mermaid"><code>sequenceDiagram
+    autonumber
+    participant M as Mitglied
+    participant E as EEG-Betreiber
+    participant F as eegFaktura
+    M-&gt;&gt;E: Formular ausfüllen + absenden
+    E--&gt;&gt;M: Bestätigung per E-Mail
+    Note over E: Antrag prüfen&lt;br/&gt;Rückfragen stellen (optional)&lt;br/&gt;Antrag genehmigen
+    E-&gt;&gt;F: Import starten (inkl. Mitgliedsnummer)
+    F--&gt;&gt;E: Antrag importiert + aktiviert</code></pre>
 <blockquote>
 <p><strong>Hinweis:</strong> Die <strong>Mitgliedsnummer</strong> wird nicht beim Einreichen, sondern erst beim Import in eegFaktura vergeben. Das eegFaktura-Core schlägt die nächste freie Nummer vor (numerisch oder alphanumerisch, z. B. <code>A006</code>), die der EEG-Betreiber im Import-Dialog übernehmen oder anpassen kann.</p>
 </blockquote>
@@ -594,21 +591,35 @@
 </tbody>
 </table>
 <h2 id="antragsstatus-im-uberblick">Antragsstatus im Überblick<a class="headerlink" href="#antragsstatus-im-uberblick" title="Permanent link">&para;</a></h2>
-<p><code>draft → submitted ─┬─ (Standard) ──→ under_review → approved → imported (Millisek.)
-                   │                       ↕            ↑          │
-                   │                  needs_info        │   ┌──────┴──────┐
-                   │                       ↕            │   ▼             ▼
-                   │                    rejected        │  b2b?         non-b2b
-                   │                                    │   │             │
-                   │                          import_failed │             │
-                   │                                        ▼             │
-                   │                          awaiting_bank_confirmation  │
-                   │                                        ↕             ↓
-                   │                                ready_for_activation ←┘
-                   │                                        ↓
-                   │                                    activated (Endzustand)
-                   │
-                   └─ (EEG mit E-Mail-Bestätigung) ─→ email_confirmed → under_review → …</code></p>
+<pre class="mermaid"><code>stateDiagram-v2
+    direction LR
+    [*] --&gt; draft
+    draft --&gt; submitted: Mitglied reicht ein
+
+    submitted --&gt; email_confirmed: EEG mit&lt;br/&gt;E-Mail-Bestätigung
+    submitted --&gt; under_review: Standard
+    email_confirmed --&gt; under_review
+
+    under_review --&gt; needs_info: Rückfragen
+    needs_info --&gt; under_review: Mitglied antwortet
+    under_review --&gt; rejected
+    under_review --&gt; approved
+
+    approved --&gt; imported: Import in eegFaktura
+    approved --&gt; import_failed
+    import_failed --&gt; approved: erneut versuchen
+
+    imported --&gt; awaiting_bank_confirmation: einzugsart=b2b
+    imported --&gt; ready_for_activation: sonst
+    awaiting_bank_confirmation --&gt; ready_for_activation: Bank bestätigt
+    ready_for_activation --&gt; activated: manuell ODER&lt;br/&gt;Batch-Aktivierung
+
+    activated --&gt; [*]: Endzustand
+
+    note right of imported
+        transient — Server&lt;br/&gt;routet sofort weiter
+    end note</code></pre>
+<p>Details zu den einzelnen Übergängen:</p>
 <ul>
 <li><code>submitted → email_confirmed</code>: nur wenn die EEG <strong>E-Mail-Bestätigung erforderlich</strong> aktiviert hat — Mitglied klickt den Bestätigungs-Link in der Willkommens-Mail.</li>
 <li><code>import_failed → approved</code>: nach Fehlerbehebung kann der Import erneut versucht werden.</li>
