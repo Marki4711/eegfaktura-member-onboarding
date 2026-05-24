@@ -88,6 +88,21 @@ Bewusst aufgeschoben in `docs/AUDIT-TODO.md` 3a–3e (eigene PROJs):
 - 3d: Tot-Code `metrics/metrics.go:statusClassFromString` aufräumen
 - 3e: Severity-Drift bereinigen (3 Stellen `slog.Error` → `slog.Warn` für transiente/Caller-Kontext-Pfade)
 
+**E2E-Test-Coverage-Audit-Welle 7 (2026-05-24):**
+- Browser-Matrix erweitert in `playwright.config.ts`: Desktop-Firefox + Desktop-WebKit (Safari-Engine) ergänzt; vorher nur Chromium + Mobile-Safari.
+- Neue Helper `tests/helpers/test-data.ts` mit `uniqueEmail()`/`uniqueRef()`/`TEST_RC_NUMBER`. Verhindert Akkumulations-Flakes durch fixed-string-Collisions (`test@example.at` etc.) und nutzt `@e2e.local` (RFC 6761-reserviert, kann nicht resolven).
+- API-Vertrag-Drift in `tests/PROJ-12-sepa-mandate-pdf.spec.ts:156` gefixt: Backend liefert `active` (per `shared.RegistrationConfig`), Spec hatte `isActive` → `toHaveProperty` lief silent grün gegen nicht-existente Property.
+
+Coverage-Score nach Audit: 11 von ~50 Deployed/Approved-PROJs haben eine Spec; 4 davon mit Voll-Coverage (PROJ-7/8/9/11/15), Rest sind Smoke/Auth-Wand-Tests. Top-5-Lücken: PROJ-1 Happy-Path, PROJ-31 Email-Confirmation, PROJ-46/53 Post-Import-Stati, PROJ-60 Data-Export, PROJ-2 Status-Transition-Matrix.
+
+Bewusst aufgeschoben in `docs/AUDIT-TODO.md` 5a–5j (eigene PROJs):
+- 5a **CRITICAL** — Playwright in CI aktivieren (eigener Job mit Postgres-Service-Container + globalSetup); ohne den verrotten Specs ungemerkt
+- 5b–5f: die fünf priorisierten fehlenden Top-Specs
+- 5g: MailHog/Mock-SMTP für Mail-Assertions
+- 5h: Auth-Fixture (Test-Token / NODE_ENV=test-Bypass)
+- 5i: `skipIfBackendDown` → hart-fail in CI
+- 5j: `waitForLoadState("networkidle")` → `waitForResponse(...)` an 10 Stellen
+
 **DB-Performance-Audit-Welle 6 (2026-05-24, Migration 000053):**
 - **HIGH**: fehlender Index auf `external_api_key.key_hash` → jeder externe API-Call (Bearer `moak_*`) machte Seq-Scan. Neuer Partial-Index `WHERE revoked_at IS NULL` (widerrufene Keys werden ohnehin 401 abgewiesen).
 - **LOW-Cleanup**: zwei redundante Plain-B-Tree-Indizes gedroppt — `idx_application_reference_number` und `idx_registration_entrypoint_rc_number` waren Duplikate von UNIQUE-Constraints (Postgres legt für UNIQUE automatisch einen Index an). Spart Write-Amplification.

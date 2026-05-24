@@ -151,9 +151,12 @@ test("AC-SEPA-1: GET /api/public/registration/{rc} still returns valid config", 
   expect(res.ok()).toBe(true);
 
   const body = await res.json();
-  // Should have the base fields — SEPA fields are not exposed in public config
+  // Should have the base fields — SEPA fields are not exposed in public config.
+  // Note: response key is `active` (matches shared.RegistrationConfig in
+  // internal/shared/requests.go); historical PROJ-12 versions said `isActive`
+  // — corrected 2026-05-24 after E2E-coverage audit caught the mismatch.
   expect(body).toHaveProperty("rcNumber");
-  expect(body).toHaveProperty("isActive");
+  expect(body).toHaveProperty("active");
 });
 
 // ─── Security: Keine SEPA-Daten im öffentlichen API ─────────────────────────
