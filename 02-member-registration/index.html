@@ -364,6 +364,21 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Schritt 2: Mitgliedstyp auswählen">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ust-pflicht-bei-unternehmen-und-verein" class="md-nav__link">
+    <span class="md-ellipsis">
+      USt-Pflicht bei Unternehmen und Verein
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -674,10 +689,18 @@
 </tr>
 </tbody>
 </table>
-<p>Je nach Mitgliedstyp werden unterschiedliche Felder angezeigt (z. B. Firmenname statt Vorname/Nachname). Die umsatzsteuerliche Einstufung wird nicht im Dropdown erfragt, sondern ergibt sich aus deinen Angaben in den Folgefeldern (z. B. UID-Nummer bei Unternehmen).</p>
+<p>Je nach Mitgliedstyp werden unterschiedliche Felder angezeigt (z. B. Firmenname statt Vorname/Nachname). Die umsatzsteuerliche Einstufung wird nicht im Dropdown erfragt, sondern bei <strong>Unternehmen</strong> und <strong>Verein</strong> über eine eigene Checkbox (siehe unten).</p>
+<h3 id="ust-pflicht-bei-unternehmen-und-verein">USt-Pflicht bei Unternehmen und Verein<a class="headerlink" href="#ust-pflicht-bei-unternehmen-und-verein" title="Permanent link">&para;</a></h3>
+<p>Bei <strong>Unternehmen</strong> und <strong>Verein</strong> erscheint nach der Typ-Auswahl eine Checkbox:</p>
 <blockquote>
-<p><strong>Kleinunternehmer-Pfad:</strong> Wähle <strong>Unternehmen</strong> und lass die UID-Nummer leer — das signalisiert dem System die Kleinunternehmerregelung (0 % USt.). Mit ausgefüllter UID-Nummer wird der reguläre Unternehmenspfad (20 % USt.) angenommen. Eine separate „Kleinunternehmer"-Option gibt es seit Mai 2026 nicht mehr.</p>
+<p>☐ Das Unternehmen ist umsatzsteuerpflichtig (Regelbesteuerung)
+  (bei Verein analog: „Der Verein ist umsatzsteuerpflichtig …")</p>
 </blockquote>
+<ul>
+<li><strong>Kein Häkchen</strong> = Kleinunternehmerregelung nach § 6 Abs 1 Z 27 UStG (USt-befreit). Das UID-Feld wird nicht angezeigt — auch wenn dein Unternehmen zufällig eine UID besitzt, wird sie für die Gutschriften der EEG nicht benötigt.</li>
+<li><strong>Häkchen gesetzt</strong> = Regelbesteuerung. Das UID-Feld erscheint und ist Pflicht — die UID-Nummer wird auf den Einspeisegutschriften der EEG ausgewiesen.</li>
+</ul>
+<p>Bei <strong>Gemeinde / öffentliche Körperschaft</strong> gibt es diese pauschale Checkbox bewusst nicht — dort wird die umsatzsteuerliche Einordnung pro Zählpunkt entschieden (Hoheitsbereich vs. Betrieb gewerblicher Art).</p>
 <h2 id="schritt-3-personliche-daten-eingeben">Schritt 3: Persönliche Daten eingeben<a class="headerlink" href="#schritt-3-personliche-daten-eingeben" title="Permanent link">&para;</a></h2>
 <p><img alt="Persönliche Daten" src="../images/register-form-personendaten.png" /></p>
 <p>Fülle alle Pflichtfelder aus (mit * markiert):</p>

@@ -613,6 +613,9 @@
 <p>Übersicht der Änderungen der letzten Tage, die für <strong>EEG-Admins</strong> und <strong>Mitglieder</strong> spürbar sind. Technische Details, Bug-Fixes ohne UI-Auswirkung und Infrastruktur-Themen sind hier bewusst weggelassen — die finden sich in der Commit-Historie.</p>
 <hr />
 <h2 id="2026-05-24">2026-05-24<a class="headerlink" href="#2026-05-24" title="Permanent link">&para;</a></h2>
+<p><strong>Saubere Erfassung: „Umsatzsteuerpflichtig?"-Checkbox bei Unternehmen + Vereinen</strong></p>
+<p>Bei den Mitgliedstypen <strong>Unternehmen</strong> und <strong>Verein</strong> gibt es jetzt eine explizite Checkbox „… ist umsatzsteuerpflichtig (Regelbesteuerung)". Das UID-Eingabefeld erscheint nur, wenn das Häkchen gesetzt ist. So können auch Kleinunternehmer, die zufällig eine UID besitzen (z. B. für innergemeinschaftliche Erwerbe), nicht aus Reflex eine UID eintragen und damit fälschlich als regelbesteuert eingestuft werden. <strong>Gemeinden</strong> bekommen den Toggle bewusst nicht — dort wird die USt-Differenzierung über die Zählpunkte (Hoheitsbereich vs. Betrieb gewerblicher Art) abgewickelt.</p>
+<p>→ <a href="../02-member-registration/#schritt-2-mitgliedstyp-auswahlen">Mitglieder-Registrierung — Mitgliedstyp &amp; USt-Pflicht</a></p>
 <p><strong>Mitgliedstypen vereinfacht — Kleinunternehmer entfällt als eigener Typ</strong></p>
 <p>Der Mitgliedstyp <strong>Kleinunternehmer</strong> existiert nicht mehr als eigene Auswahl. Stattdessen wählt das Mitglied <strong>Unternehmen</strong> und lässt die UID-Nummer leer — das signalisiert dem System automatisch die Kleinunternehmerregelung (§ 6 Abs 1 Z 27 UStG, 0 % USt.). Mit ausgefüllter UID greift der reguläre Unternehmens-Pfad (20 % USt.). Bestehende Anträge mit altem Typ wurden automatisch auf <code>company</code> migriert.</p>
 <p>→ <a href="../02-member-registration/#schritt-2-mitgliedstyp-auswahlen">Mitglieder-Registrierung — Mitgliedstyp auswählen</a></p>
