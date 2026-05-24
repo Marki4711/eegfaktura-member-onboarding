@@ -2,7 +2,7 @@
 
 ## Status: Planned
 **Created:** 2026-05-24
-**Last Updated:** 2026-05-24
+**Last Updated:** 2026-05-24 (nach /grill-me — 20 Designentscheidungen eingearbeitet)
 
 ## Dependencies
 - Requires: PROJ-5 (Keycloak-Admin-Auth) — Tenant-Isolation für Zugriffsprüfung
@@ -51,13 +51,16 @@ Ausgangspunkt für individuelle Anpassungen anwenden.
 
 **Vier exportierbare Sub-Typen:**
 
-1. **EEG-Einstellungen** (Felder auf `registration_entrypoint`):
+1. **EEG-Einstellungen** (12 Felder auf `registration_entrypoint`):
    - `intro_text`, `show_central_policy`, `require_email_confirmation`
    - SEPA: `sepa_mandate_enabled`, `use_company_sepa_mandate`, `sepa_mandate_at_import`
    - Zählpunkt-Prefixes: `metering_point_prefix_consumption`, `metering_point_prefix_production`
    - `activation_mode` (PROJ-53)
-   - `participation_factor` (PROJ-37)
-2. **Mitgliedsfeld-Konfig** (`field_config`-Tabelle): alle Einträge der Quell-EEG
+   - Genossenschaftsanteile (PROJ-37, 3 Felder): `cooperative_shares_enabled`,
+     `cooperative_required_shares`, `cooperative_share_amount_cents`
+2. **Mitgliedsfeld-Konfig** (`field_config`-Tabelle): alle Einträge der
+   Quell-EEG (inkl. `participation_factor` — der ist ein field_config-
+   Eintrag, kein registration_entrypoint-Feld)
 3. **Rechtsdokumente** (`legal_document`-Tabelle): alle Einträge der Quell-EEG
 4. **Datenweiterleitung** (`data_export_config`-Tabelle): alle nicht-deleted Einträge der Quell-EEG
 
@@ -82,8 +85,10 @@ Ausgangspunkt für individuelle Anpassungen anwenden.
 
 ### Export
 
-- [ ] **AC-E1**: Im EEG-Admin-Bereich gibt es einen Button-Block
-  „Konfig-Export". Beim Klick wird ein JSON-File heruntergeladen.
+- [ ] **AC-E1**: Es gibt eine dedizierte Sub-Seite
+  `/admin/settings/import-export` (Sidebar-Eintrag in den
+  Admin-Settings). Dort liegen alle Export-Buttons + der Import-
+  Upload + (zukünftig erweiterbar: Audit-Liste).
 - [ ] **AC-E2**: Admin kann pro Sub-Typ (4 Buttons: „EEG-Einstellungen",
   „Feld-Konfig", „Rechtsdokumente", „Datenweiterleitung") einzeln
   exportieren ODER einen 5. Button „Komplett-Bundle" nutzen, der alle
@@ -113,22 +118,42 @@ Ausgangspunkt für individuelle Anpassungen anwenden.
 
 - [ ] **AC-I1**: Im EEG-Admin-Bereich gibt es einen Button „Konfig-
   Import". Admin wählt eine JSON-Datei aus dem lokalen Filesystem.
-- [ ] **AC-I2**: Das System validiert das File:
-  - `schemaVersion` ist bekannt (V1 akzeptiert nur `schemaVersion: 1`)
+- [ ] **AC-I2**: Das System validiert das File **strict**:
+  - `schemaVersion` muss EXAKT `1` sein — V2/V0 wird mit „Member-
+    Onboarding-Version inkompatibel" abgelehnt; keine Forward-
+    Toleranz für unbekannte schemaVersion
   - JSON-Struktur ist syntaktisch korrekt
   - Jede Sektion entspricht dem erwarteten Sub-Typ-Schema
   - Bei Fehlern wird der Import abgelehnt mit einer konkreten
     Fehlermeldung
 - [ ] **AC-I3**: Wenn das File mehrere Sektionen enthält, kann Admin
-  per Checkbox auswählen, welche er importieren will (alle als Default
-  vorausgewählt).
+  per Checkbox auswählen, welche er importieren will. **Default: alle
+  Sektionen UNAUSGEWÄHLT** — Admin muss aktiv pro Sektion ankreuzen.
+  Friction-Schutz, weil es keinen Server-side-Rollback gibt.
 - [ ] **AC-I4**: Vor dem Apply wird ein **Diff-Preview** angezeigt:
   pro ausgewählter Sektion eine Tabelle mit „aktueller Wert auf
   Ziel-EEG" → „neuer Wert aus Import". Bei Listen-Sub-Typen
   (legal_document, data_export_config, field_config) wird gezeigt:
   N Einträge auf Ziel-EEG aktuell → M Einträge nach Apply.
-- [ ] **AC-I5**: Admin bestätigt mit „Apply" — erst dann wird die
-  Mutation ausgeführt. Alternativ „Abbrechen" verwirft.
+- [ ] **AC-I4b**: Sektionen, die im File **leer** sind (z. B. 0
+  field_config-Einträge), werden als „lösche alle X bestehenden
+  Einträge" mit ROTER WARNUNG dargestellt — Admin sieht: „47
+  field_config-Einträge → 0 Einträge nach Apply" hervorgehoben.
+  Bestätigt explizit den intended-Replace.
+- [ ] **AC-I4c**: Bei den zwei netzbetreiber-spezifischen Feldern
+  `metering_point_prefix_consumption` und `_production` wird im
+  Diff zusätzlich ein Warn-Icon mit Tooltip „Netzbetreiber-
+  spezifisch — prüfen ob auf Ziel-EEG gültig" angezeigt. Verhindert
+  versehentliches Übertragen eines Prefixes aus dem Netzgebiet von
+  EEG-A auf eine EEG-B in einem anderen Netzgebiet.
+- [ ] **AC-I4d**: Bei den drei Cooperative-Shares-Feldern (geld-
+  relevant) wird der Betrag-Wert in EUR formatiert angezeigt
+  („€ 100,00" statt „10000 Cents") — Admin sieht klar, was er
+  überschreibt.
+- [ ] **AC-I5**: Admin bestätigt zweistufig: erst Diff sehen +
+  Sektionen ankreuzen, dann modaler „Wirklich apply?"-Dialog mit
+  „Apply" / „Abbrechen". Erst nach Bestätigung wird die Mutation
+  ausgeführt.
 - [ ] **AC-I6**: Beim Apply mit Multi-Section: alle ausgewählten
   Sektionen werden in **einer DB-Transaktion** angewendet — bei
   Fehler in einer Sektion wird die gesamte Änderung zurückgerollt.
@@ -148,20 +173,57 @@ Ausgangspunkt für individuelle Anpassungen anwenden.
     angelegt. Bereits abgeschlossene Jobs bleiben durch
     `config_snapshot` weiterhin auditierbar.
 - [ ] **AC-I8**: Nach dem Apply: Bestätigungs-Meldung mit Anzahl
-  geänderter Einträge pro Sektion + Audit-Log-Eintrag in
-  `status_log` (NICHT pro Application — separates Audit-Konzept; siehe
-  Tech-Design).
+  geänderter Einträge pro Sektion. Audit-Trail:
+  **`slog.Info`-Eintrag** mit Feldern `event=config_import`,
+  `rc_number`, `admin_user_id`, `sections=[...]`,
+  `source_eeg=<rcNumber>` (aus Header). **Kein DB-Audit-Log** in V1
+  (bewusste Owner-Entscheidung — Pre-State-Backup ist Admin-
+  Verantwortung).
 - [ ] **AC-I9**: Plugin-Registry-Drift: enthält ein Import einen
   `data_export_config` mit `plugin_type`, der auf der Ziel-Instanz
   nicht registriert ist, wird der Eintrag mit `is_obsolete = TRUE`
   angelegt (analog zum laufenden Sweep aus PROJ-60); kein
-  Import-Failure.
+  Import-Failure. Im Diff-Preview deutlich als Warnung markiert.
 - [ ] **AC-I10**: Field-Catalog-Drift: enthält ein
   `data_export_config` Column-Mappings auf Field-Keys, die im
   aktuellen Katalog nicht existieren (z. B. weil Field zwischen
   Quell- und Ziel-Deployment entfernt wurde), werden diese
   Column-Einträge beim Import **verworfen** mit Warn-Hinweis im
   Diff-Preview — kein Import-Failure.
+- [ ] **AC-I11**: **Re-Sanitisierung am Eingang**: jedes importierte
+  Feld läuft durch dieselbe Validation-/Sanitisierungs-Pipeline wie
+  beim regulären Speichern via Admin-UI:
+  - `intro_text` → bluemonday (XSS-Schutz)
+  - `legal_document.url` → Format-Check: `https://`-Schema,
+    keine `javascript:`/`data:`-Schemes, max 2 KB Länge
+  - `field_config.name` → gegen `CONFIGURABLE_FIELDS`-Master-Katalog
+  - `field_config.state` → ENUM-Check (`hidden`/`optional`/`required`/`admin_only`)
+  - `metering_point_prefix_*` → DB-CHECK-Constraint-Format
+    (`^AT[0-9A-Z]{0,31}$`)
+  - `data_export_config.column_config` → Plugin's bestehender
+    `ValidateConfig`
+  - `activation_mode` → ENUM-Check
+  - Cooperative-Shares → Constraint-Check (positive Werte,
+    Required-Shares > 0 wenn Enabled)
+  Garantie: ein Import kann **nichts** speichern, was nicht auch via
+  UI ginge.
+- [ ] **AC-I12**: **Per-Sektion-Item-Limits** verhindern Resource-
+  Exhaustion:
+  - `field_config`: max 100 Einträge
+  - `legal_document`: max 50 Einträge
+  - `data_export_config`: max 50 Einträge
+  Überschreitung → 400 mit konkretem Limit-Hinweis, kein Apply.
+- [ ] **AC-I13**: **Apply-Fehler-UX**: bei Apply-Fail (z. B.
+  DB-Constraint, Sanitisierung-Reject) wird ein kategorisierter
+  Fehler im Frontend angezeigt:
+  „Apply fehlgeschlagen in Sektion `<name>`: `<human-readable Grund>`.
+  Bitte File prüfen, Apply wurde komplett zurückgerollt." Roher
+  DB-Error landet nur im Backend-slog, nicht im Response.
+- [ ] **AC-I14**: **Concurrent-Lock**: pro `rc_number` läuft maximal
+  ein Import gleichzeitig — durchgesetzt via
+  `pg_advisory_xact_lock(hashtext(rc_number))` zu Beginn der Apply-
+  Transaktion. Bei laufendem Import: zweiter Apply blockiert bis 10 s,
+  dann 409 mit „EEG wird gerade konfiguriert, bitte später erneut".
 
 ### Permissions
 
@@ -177,8 +239,13 @@ Ausgangspunkt für individuelle Anpassungen anwenden.
 
 - **File falsch formatiert**: kein JSON, kein Header, falsches
   `schemaVersion` → 400 mit konkreter Fehlermeldung, kein Apply.
-- **File größer als sinnvolles Limit**: harte Grenze 1 MB (Configs sind
-  klein, alles darüber ist Angriffsvektor) → 413.
+- **File größer als sinnvolles Limit**: harte Grenze 1 MB → 413.
+  Zusätzlich Per-Sektion-Item-Limits (siehe AC-I12) als zweite
+  Verteidigungslinie.
+- **File enthält bösartiges JSON** (z. B. `intro_text` mit
+  `<script>`-Tag, `legal_document.url` mit `javascript:alert(1)`):
+  Re-Sanitisierung (AC-I11) fängt es ab; bei Reject während Apply
+  → Tx-Rollback + kategorisierter Fehler.
 - **Doppel-Klick auf Apply-Button**: idempotent durch Submit-Spinner +
   Server-side Concurrency-Check (PROJ-60 hat das schon für
   config-update, Pattern wiederverwenden).
@@ -187,16 +254,18 @@ Ausgangspunkt für individuelle Anpassungen anwenden.
   unterstützt — wird ignoriert" angezeigt, kein Import-Failure;
   Forward-Compat-Verhalten.
 - **Quell-EEG hat 0 Einträge in einer Sektion** (z. B. keine
-  Datenweiterleitungs-Configs): Export enthält leere Liste; Import
-  führt Replace mit leerer Liste aus → löscht alle Einträge der
-  Ziel-EEG in dieser Sektion. **Im Diff klar als „X Einträge → 0
-  Einträge" anzeigen**, damit Admin nicht versehentlich Daten verliert.
+  Datenweiterleitungs-Configs): siehe AC-I4b — explizites „lösche
+  alles" mit ROTER Warnung im Diff.
 - **Cross-Schema-Version-Import**: V2 wird abgelehnt mit Hinweis
-  „bitte aktuelles Member-Onboarding nutzen". V1-File auf V2-System
-  wird akzeptiert (Forward-Compat ist Server-Pflicht).
-- **Concurrent Edit**: Admin importiert, parallel ändert anderer Admin
-  ein Setting auf der Ziel-EEG. Replace-Semantik gewinnt (Last-Write-
-  Wins). Bewusste Vereinfachung; kein Optimistic-Locking in V1.
+  „bitte aktuelles Member-Onboarding nutzen". V1-File auf V2-System:
+  V2 muss `schemaVersion: 1`-Files konvertieren oder ablehnen — die
+  V2-Spec wird das festlegen, V1 hat keine Forward-Compat-Garantie
+  zu zukünftigen Versionen.
+- **Concurrent Import**: zweiter Apply blockiert via Advisory-Lock
+  (AC-I14); zweiter Admin sieht nach 10 s Timeout eine 409. Anderer
+  Edit-Pfad (UI-Save eines einzelnen Settings parallel zum Import)
+  ist nicht durch Lock geschützt — Last-Write-Wins, akzeptable
+  Vereinfachung weil regulärer UI-Save atomarer ist.
 - **Großer Diff-Preview-Output**: bei 50+ field_config-Einträgen wird
   die Diff-Tabelle lang. Pro Sub-Typ ein eigener Collapse-Block in der
   UI; default geöffnet bei Sektionen mit < 5 Änderungen, sonst
@@ -206,6 +275,15 @@ Ausgangspunkt für individuelle Anpassungen anwenden.
   per-Request, kein Cache-Invalidate nötig). Data-Export-Config-
   Änderung beeinflusst nur künftige Jobs (laufende Jobs nutzen
   `config_snapshot`).
+- **Rollback nach Apply**: V1 hat **keinen automatischen Pre-State-
+  Backup**. Admin-Workflow für Rollback:
+  1. VOR dem Import: bewusst Export der aktuellen Konfig der Ziel-EEG
+     machen + lokal sichern
+  2. Falls Apply rückgängig zu machen: gespeicherte Datei erneut
+     importieren
+  Dieser Workflow muss in der UI als Hinweis-Text sichtbar sein
+  („Tipp: Sichere deine aktuelle Konfig vor dem Import, falls du
+  zurückrollen willst").
 
 ## Non-Goals (explizit nicht in V1)
 
@@ -240,38 +318,72 @@ Ausgangspunkt für individuelle Anpassungen anwenden.
 - **Browser-Support**: Chrome, Firefox, Safari (analog Rest des Admin-
   Bereichs).
 
-## Offene Fragen für `/grill-me`
+## Grilling-Ergebnisse (2026-05-24)
 
-Folgende Punkte sind im Spec bewusst „so" entschieden, sollten aber
-gegen Edge Cases gegrillt werden:
+20 Designentscheidungen in 5 Runden geklärt. Kompakt:
 
-1. **Cross-EEG-Import-Audit**: brauchen wir ein eigenes
-   `config_import_log` oder reicht ein generischer Admin-Event-Log?
-2. **field_config-Replace-Semantik**: „komplett ersetzen" könnte Felder
-   auf hidden setzen, die der Admin bewusst gesetzt hat. Reicht der
-   Diff-Preview als Schutz?
-3. **data_export_config Soft-Delete vs Hard-Replace**: PROJ-60 nutzt
-   Soft-Delete für Audit. Beim Import löschen wir Alt-Configs soft.
-   Aber: wenn der Admin 3-mal hin- und herimportiert, sammelt sich
-   Müll in der Soft-Delete-Liste. Cleanup-Strategie?
-4. **Plugin-Registry-Drift in Praxis**: ist `is_obsolete=true`-Import
-   wirklich der richtige Default oder sollte Admin warnen + manuell
-   bestätigen?
-5. **Zählpunkt-Prefix-Übernahme**: bei zwei EEGs in unterschiedlichen
-   Netzgebieten könnten die Prefixes unterschiedlich sein. Sollte das
-   Field gesondert markiert sein („network-region-specific")?
-6. **Schema-Version-Migration**: wenn V2 Settings hinzufügt, lädt V1-
-   File V2 OK (Forward-Compat) — aber wenn V2 Settings UMBENENNT,
-   wird's brüchig. Default-Mapping-Tabelle nötig?
-7. **legal_document mit kaputter URL**: was wenn Admin EEG-A-URL
-   einfach unverändert auf EEG-B importiert? Reicht der Diff oder
-   sollte das Backend per HEAD-Request prüfen?
+### Audit & Rollback (Minimal-Linie)
+
+- **Audit**: nur `slog.Info`-Eintrag bei Apply (siehe AC-I8); keine
+  DB-Persistenz, keine Audit-UI.
+- **Pre-State-Backup**: NICHT automatisch. Admin-Verantwortung; UI
+  zeigt Hinweis-Text.
+- **Rollback**: kein dedizierter UI-Knopf. Workflow = vorher exportieren
+  + bei Bedarf erneut importieren.
+- **Konsequenz**: Apply ist faktisch irreversibel. Pre-Apply-UX
+  (Diff + Confirm) trägt das Gewicht.
+
+### Replace-Semantik
+
+- Diff-Preview-Default: alle Sektionen **UNAUSGEWÄHLT** — Admin muss
+  bewusst pro Sektion ankreuzen.
+- Leere Sektion = explizites „lösche alles" mit ROTER Warnung.
+- `data_export_config`-Replace: Soft-Delete der alten Einträge
+  (PROJ-60-Pattern), neue Einträge mit neuen IDs.
+- Confirm-UX: zweistufig (Datei → Diff → Bestätigungs-Modal → Apply).
+
+### Security beim Import
+
+- **Re-Sanitisierung**: alle Felder durchs Backend-Defense-Mesh
+  (bluemonday für intro_text, URL-Format-Check für legal_document,
+  ENUM-Check, Plugin-`ValidateConfig`, etc.) — siehe AC-I11.
+- **Per-Sektion-Item-Limits**: 100 / 50 / 50 (siehe AC-I12).
+- **Plugin-Type-Drift**: Unknown plugin_type → `is_obsolete=true`-
+  Import mit Diff-Warnung.
+- **Schema-Version-Strenge**: nur exakt `schemaVersion: 1`; V2/V0
+  abgelehnt.
+- **URL-Validation**: nur Format-Check, KEIN HEAD-Request (SSRF-Vektor
+  vermeiden).
+
+### UX / Edge Cases
+
+- UI-Plazierung: eigene Sub-Seite `/admin/settings/import-export`.
+- Concurrent-Lock: `pg_advisory_xact_lock(hashtext(rc_number))` mit
+  10 s Timeout → 409.
+- Zählpunkt-Prefix-Diff: zusätzliches Warn-Icon „Netzbetreiber-
+  spezifisch".
+- Apply-Fail-Frontend: kategorisierter Fehler + Sektion-Hinweis;
+  roher DB-Error nur im Backend-slog.
+
+### Field-Scope-Korrekturen
+
+- **EEG-Einstellungen-Sub-Typ** ergänzt um drei Cooperative-Shares-
+  Felder (PROJ-37).
+- `participation_factor` aus EEG-Einstellungen entfernt — ist
+  field_config-Eintrag, gehört in dessen Sub-Typ.
+- **EEG-Stammdaten** (eeg_name, Adresse, eeg_id, contact_email,
+  creditor_id), **Sequence-State** (member_number_start), **Identity**
+  (rc_number), **Sync-State** (last_synced_*) und **Secrets**
+  (external_api_key) bleiben außerhalb.
+- **Export-Header** `exportedFrom: { rcNumber, eegName }` bleibt drin
+  (kein Info-Leak — Tenant-Admin-sichtbar).
 
 ## Recommended Next Step
 
-`/grill-me` (Default per requirements-Skill) — die Spec berührt
-mehrere DB-Tabellen + Migration-/Forward-Compat-Logik + Audit. Findings
-fließen zurück in diese Datei, bevor `/architecture` startet.
+`/architecture` — Designentscheidungen sind durch, Tech-Design kann
+die Datenmodelle, Endpoint-Signaturen, Service-Layer-Aufteilung,
+Transaktions-Boundaries und das pg_advisory_xact_lock-Setup
+ausarbeiten.
 
 ---
 <!-- Sections below are added by subsequent skills -->
