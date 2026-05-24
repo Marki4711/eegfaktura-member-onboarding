@@ -2,7 +2,7 @@
 
 ## Status: Architected
 **Created:** 2026-05-24
-**Last Updated:** 2026-05-24 (nach /architecture — Tech Design Sektion ergänzt)
+**Last Updated:** 2026-05-24 (nach 2× /grill-me und /architecture — Tech Design auf Code-Realität abgeglichen, 12 weitere Decisions eingearbeitet)
 
 ## Dependencies
 - Requires: PROJ-5 (Keycloak-Admin-Auth) — Tenant-Isolation für Zugriffsprüfung
@@ -392,15 +392,31 @@ ausarbeiten.
 
 **Stand:** 2026-05-24
 
-### Leitidee: Assembly bestehender Bausteine
+### Leitidee: Assembly bestehender Bausteine (mit Tx-Variant-Erweiterung)
 
-Das Feature führt **keine neue Tabelle, keine Migration und keine neuen
-Drittabhängigkeiten** ein. Alle vier Sub-Typen haben bereits
-Repositories mit den nötigen Save-Primitiven, alle Validation-Pipelines
-existieren bereits an anderer Stelle. Das Tech-Design ist primär
-**Orchestrierung**: ein Exporter, der vier Repos liest, ein Importer,
-der vier Repos schreibt — beide eingerahmt durch JSON-Serialisierung,
-Validation, Diff-Generation und Transaktions-Schutz.
+Das Feature führt **keine neue Tabelle und keine Migration** ein. Alle
+vier Sub-Typen haben bereits Repositories mit Save-Primitiven; das
+Tech-Design ist primär **Orchestrierung**: ein Exporter, der vier
+Repos liest, ein Importer, der vier Repos schreibt — beide eingerahmt
+durch JSON-Serialisierung, Validation, Diff-Generation und
+Transaktions-Schutz.
+
+**Was zwei Grilling-Runden an der Code-Realität korrigiert haben:**
+
+1. Bestehende Save-Methoden öffnen ihre eigenen Tx oder nutzen
+   `r.db.Exec()` direkt — keine akzeptiert ein `*sql.Tx` von außen.
+   Für die spec-versprochene Cross-Section-Atomarität brauchen wir
+   **Tx-Variant-Methoden** (siehe Abschnitt M unten).
+2. Bluemonday-Sanitization lebt im HTTP-Handler (`internal/http/admin.go`),
+   nicht in Repos. Die Sanitize-Logik wird in ein **neues Paket
+   `internal/sanitize/`** extrahiert, damit Import- und UI-Pfad
+   denselben Code nutzen.
+3. EEG-Settings sind über 6 separate Save-Methoden verstreut. Für den
+   Importer wird **eine konsolidierte `SaveAllEEGSettingsTx`** ergänzt
+   (1 UPDATE für alle 12 exportierten Felder), die bestehenden 6
+   Methoden bleiben für UI-Pfade unverändert.
+4. `legal_document` hat kein `DeleteByRCNumber` — neue Tx-Variant-
+   Methode wird ergänzt.
 
 ### A) Komponenten-Struktur
 
@@ -444,21 +460,18 @@ internal/configexport/                          (neues Paket)
 +-- diff.go          — generische Diff-Engine pro Sub-Typ
 +-- limits.go        — Item-Limits-Konstanten (100/50/50)
 
+internal/sanitize/                              (neues Paket — Extraktion)
++-- html.go          — bluemonday-Policy (zentralisiert; aktuell in admin.go)
++-- url.go           — Legal-Document-URL-Validator
++-- enum.go          — ENUM-Member-Checks (activation_mode, field_state)
+
 internal/http/configexport.go                   (neuer Handler)
 +-- 3 Endpoints (siehe API-Vertrag unten)
 ```
 
-Bestehende Repos werden **read-only über Schnittstelle**
-weiterverwendet:
-
-- `RegistrationEntrypointRepository.GetByRCNumber` + `SaveEEGSettings`
-- `FieldConfigRepository.Get` + `Save` (atomarer Map-Replace)
-- `LegalDocumentRepository.GetByRCNumber` + `Create`/`Delete`/`Reorder`
-- `dataexport.ConfigRepository.ListByRCNumber` + `Create` +
-  `SoftDelete` + `MarkObsolete`
-
-Keine Erweiterung bestehender Repos nötig — die vorhandenen
-Save-Primitive decken alle vier Replace-Varianten ab.
+Bestehende Repos werden um Tx-Variant-Methoden ergänzt (siehe
+Abschnitt M „Repo-Erweiterungen"). Lesen geschieht über bestehende
+non-Tx-Methoden.
 
 ### B) Datenmodell
 
@@ -473,7 +486,7 @@ Hülle:
 
 ```
 {
-  schemaVersion:  1                    // strict — V0/V2 abgelehnt
+  schemaVersion:  1                    // strict — V0/V2/missing abgelehnt
   exportedAt:     ISO-8601-Timestamp
   exportedFrom:   { rcNumber, eegName } // Wiedererkennungs-Header
   sections: {
@@ -484,6 +497,17 @@ Hülle:
   }
 }
 ```
+
+**field_config-Sub-Schema** enthält bewusst **nur die user-set
+Felder** `name`, `state`, `adminValue?`. `visibilityTags` und
+`defaultState` sind Master-Catalog-Konstanten aus
+`CONFIGURABLE_FIELDS` (`src/lib/api.ts`) und werden beim Lesen aus
+dem Catalog re-hydriert — wandert NICHT in den Export. Vorteil:
+Schema bleibt stabil, wenn der Master-Catalog später erweitert wird.
+
+**UTF-8-BOM** im hochgeladenen File wird beim Parse stillschweigend
+gestripped (manche Editoren fügen es hinzu) — vermeidet diffuse
+„invalid character"-400er.
 
 Sub-Type-Schemas spiegeln **bewusst nur die DB-Spalten, die
 exportiert werden** (siehe Scope V1). Identitäts-/Stammdaten-/Secret-/
@@ -520,38 +544,57 @@ Alle vier Sektionen in einer einzigen DB-Transaktion:
 3. Commit. Bei Fehler in irgendeiner Sektion: Rollback der gesamten
    Transaktion → kategorisierter Fehler ans Frontend.
 
-**Sektion-zu-Save-Mapping:**
+**Sektion-zu-Save-Mapping** (alle innerhalb der gemeinsamen Tx
+via neuen Tx-Variant-Methoden):
 
 | Sektion | Apply-Strategie |
 |---|---|
-| `eegSettings` | `RegistrationEntrypointRepository.SaveEEGSettings` — atomarer Update der 12 Spalten. Nicht im File enthaltene Felder bleiben unverändert (Forward-Compat-Garantie). |
-| `fieldConfig` | `FieldConfigRepository.Save(rcNumber, fullMap)` — bestehender atomarer Replace (interne `DELETE + INSERT` in derselben Tx). |
-| `legalDocuments` | Bestehende per-EEG `Delete-all` + `Create`-Loop in der Apply-Tx. Reorder folgt aus `sortOrder`-Feld. |
-| `dataExportConfigs` | Pro existierender Eintrag: `SoftDelete`. Pro File-Eintrag: `Create` mit neuer ID. Plugin-Drift via `MarkObsolete` nach dem Insert-Loop. |
+| `eegSettings` | NEU: `SaveAllEEGSettingsTx(tx, rcNumber, allTwelveFields)` — ein UPDATE-Statement für alle 12 Felder. Nicht im File enthaltene Felder bleiben unverändert (Forward-Compat-Garantie). Existierende 6 separaten Save-Methoden bleiben für UI-Pfade unberührt. |
+| `fieldConfig` | NEU: `FieldConfigSaveTx(tx, rcNumber, fullMap)` — Tx-Variant von `Save`, gleiche Logik (DELETE-all + INSERT-loop), nutzt aber die outer Tx. |
+| `legalDocuments` | NEU: `LegalDocumentDeleteByRCNumberTx(tx, rcNumber)` + Loop von NEU `LegalDocumentCreateTx(tx, ...)`. Reorder durch `sort_order`-Feld beim Insert. Risiko-frei: `document_consent` hat KEINE FK auf `legal_document.id` (snapshot-Pattern), historische Zustimmungen bleiben intakt. |
+| `dataExportConfigs` | NEU: `DataExportConfigSoftDeleteByRCNumberTx(tx, rcNumber)` + Loop von NEU `DataExportConfigCreateTx(tx, ...)`. Bestehende laufende/abgeschlossene Jobs bleiben via `config_snapshot` und `ON DELETE SET NULL`-FK unangetastet. Akkumulation von Soft-Deletes wird durch bestehenden `CleanupRunner` (`internal/dataexport/cleanup.go`) periodisch abgebaut. |
 
 ### E) Validation-Pipeline beim Import
 
 Beim `preview` UND beim `apply` läuft jedes Feld durch dieselbe
-Pipeline, die das reguläre UI-Save schon nutzt — Wiederverwendung
-statt Parallelpfad:
+Pipeline (Re-Validation am Apply, weil stateless — Kosten ~100 ms,
+gewinnt Stateless-Garantie):
 
-1. **Schema-Check**: `schemaVersion == 1`, JSON-Struktur stimmt mit
-   erwarteten Sub-Type-Schemas überein, Pflichtfelder vorhanden.
-2. **Per-Sektion-Limit-Check**: `len(fieldConfig) ≤ 100`,
+1. **BOM-Strip** vor JSON-Parse.
+2. **Schema-Check**: `schemaVersion == 1` (`missing == 0 == 2 == reject`),
+   JSON-Struktur, Pflichtfelder.
+3. **Per-Sektion-Limit-Check**: `len(fieldConfig) ≤ 100`,
    `legalDocuments ≤ 50`, `dataExportConfigs ≤ 50`.
-3. **Sanitize/Validate** pro Feld (siehe AC-I11 in Spec):
-   - `intro_text` → `bluemonday`-Renderer
-   - `legal_document.url` → Format-Check (HTTPS-only, Längen-Limit)
-   - `field_config.name` → gegen `CONFIGURABLE_FIELDS`-Master-Katalog
-   - `field_config.state` → ENUM-Check
+4. **Pre-Validate-Constraints** (verhindert Tx-Rollback durch
+   DB-CHECK):
+   - Cooperative-Shares: wenn `enabled == true`, müssen
+     `required_shares != null` UND `amount_cents != null` sein.
+   - `sectionsToApply` (nur beim `apply`-Endpoint): nicht-leer, sonst
+     400 „mindestens eine Sektion auswählen".
+5. **Sanitize/Validate** pro Feld via `internal/sanitize/`-Paket:
+   - `intro_text` → `sanitize.HTML()` (bluemonday-Policy)
+   - `legal_document.url` → `sanitize.LegalDocURL()` (HTTPS-only,
+     ≤ 2 KB, kein `javascript:`/`data:`)
+   - `field_config.name` → `sanitize.FieldConfigName()` (gegen
+     `CONFIGURABLE_FIELDS`-Master-Katalog)
+   - `field_config.state` → `sanitize.FieldState()` (ENUM-Check)
    - `metering_point_prefix_*` → DB-CHECK-Constraint-Format
-   - `activation_mode` → ENUM-Check
+   - `activation_mode` → `sanitize.ActivationMode()` (ENUM-Check)
    - `cooperative_*` → Positiv-Konstraint
    - `data_export_config.column_config` → Plugin's `ValidateConfig`
-4. **Drift-Check**:
-   - `data_export_config.plugin_type` nicht registriert → `is_obsolete=true` markieren, **Warnung in Response**, kein Reject
+6. **Drift-Check**:
+   - `data_export_config.plugin_type` nicht registriert →
+     `is_obsolete=true` beim Insert markieren, **Warnung in Response**,
+     kein Reject
    - `data_export_config.column_config` referenziert unbekannte
      Field-Keys → Spalten verwerfen, **Warnung**, kein Reject
+
+**Stateless-Apply, kein File-Tampering-Schutz**: Re-Validation am
+Apply fängt Schema- + Sanitize-Fehler. Value-Changes zwischen Preview
+und Apply, die alle Checks passieren (z. B. `intro_text`
+umformuliert), gehen durch — kein Vertrauens-Boundary verletzt, weil
+Admin sein eigenes File für seine eigene EEG manipuliert. Kein
+Hash-Check, kein Optimistic-Lock.
 
 ### F) Diff-Generation
 
@@ -559,13 +602,27 @@ Pro Sektion separat. Output ist ein JSON-Strukturobjekt, das das
 Frontend direkt rendert (keine HTML-Generation im Backend):
 
 - **eegSettings**: 12 Einträge mit `field`, `oldValue`, `newValue`,
-  optional `warningType` (z. B. `network_region_specific` für die
-  beiden ZP-Prefix-Felder, `financial` für die Cooperative-Felder).
-- **fieldConfig / legalDocuments / dataExportConfigs**: Pro Eintrag
-  klassifiziert als `unchanged`, `modified`, `added`, `removed`.
-  Plus Totals: `currentCount`, `afterCount`. Bei `afterCount == 0
-  && currentCount > 0`: zusätzlich `wholeSectionDeletion: true` für
-  die ROTE Warnung im Frontend.
+  optional `warningType`:
+  - `network_region_specific` für `metering_point_prefix_consumption`
+    + `_production` (AC-I4c — Warn-Icon im Frontend)
+  - `financial` für die drei Cooperative-Shares-Felder (AC-I4d —
+    Cents-zu-EUR-Formatierung im Frontend)
+- **fieldConfig**: Match-Key `name` (eindeutig im File und in DB).
+  Pro Eintrag `unchanged`/`modified`/`added`/`removed`.
+- **dataExportConfigs**: Match-Key `name` (DB-UNIQUE auf
+  `(rc_number, name) WHERE deleted_at IS NULL` aus Migration
+  000052). Pro Eintrag `unchanged`/`modified`/`added`/`removed`.
+- **legalDocuments**: **Komplett-Replace-Diff**, weil kein natürlicher
+  Eindeutigkeits-Key existiert (kein UNIQUE auf `title`, Duplikate
+  wie zweimal „Datenschutz" sind erlaubt). Diff zeigt: alle
+  bestehenden Einträge als `removed`, alle File-Einträge als `added`,
+  plus Counts. Frontend rendert das als zwei klare Listen
+  („Diese werden entfernt: …", „Diese werden hinzugefügt: …").
+
+Zusätzlich pro Sektion: Totals `currentCount`, `afterCount`. Bei
+`afterCount == 0 && currentCount > 0`: zusätzlich
+`wholeSectionDeletion: true` für die ROTE Warnung im Frontend
+(AC-I4b).
 
 ### G) Tenant-Isolation + Permissions
 
@@ -630,10 +687,87 @@ nicht entartet werden.
 Keine neuen Pakete.
 
 Frontend: bereits installiert — `shadcn/ui`, `sonner`, `next/dynamic`
-(für Drop-Zone), File-Reader-API ist nativ.
+(für Drop-Zone), File-Reader-API ist nativ. Datei-Validierung
+client-side: nur Extension `.json` + Größe ≤ 1 MB; Inhalt wird
+serverseitig validiert.
 
-Backend: bereits importiert — `bluemonday` für HTML-Sanitize,
-`encoding/json`, `database/sql`, `pq` für Advisory-Lock.
+Backend: bereits importiert — `bluemonday` für HTML-Sanitize (wandert
+ins neue `internal/sanitize/`-Paket), `encoding/json`,
+`database/sql`, `pq` für Advisory-Lock.
+
+### M) Repo-Erweiterungen — Tx-Variant-Methoden (neue Methoden)
+
+Alle bestehenden Save-Methoden nutzen `r.db.Exec()` / `r.db.Begin()`
+intern und können nicht in eine outer Tx eingebettet werden. Für das
+„1 Tx für alle 4 Sektionen"-Versprechen aus AC-I6 müssen sieben neue
+Tx-Variant-Methoden ergänzt werden:
+
+| Repo | Neue Methode | Zweck |
+|---|---|---|
+| `RegistrationEntrypointRepository` | `SaveAllEEGSettingsTx(tx, rcNumber, eegSettings)` | Konsolidiertes UPDATE für alle 12 exportierten Felder in einem Statement (statt 6 separater Save-Aufrufe). |
+| `FieldConfigRepository` | `SaveTx(tx, rcNumber, fullMap)` | Tx-Variant von `Save` — DELETE-all + INSERT-loop in outer Tx. |
+| `LegalDocumentRepository` | `DeleteByRCNumberTx(tx, rcNumber)` | 1× DELETE-Statement mit WHERE rc_number. |
+| `LegalDocumentRepository` | `CreateTx(tx, rcNumber, title, url, required, sortOrder)` | Tx-Variant von `Create`. |
+| `dataexport.ConfigRepository` | `SoftDeleteByRCNumberTx(tx, rcNumber)` | 1× UPDATE deleted_at=NOW WHERE rc_number AND deleted_at IS NULL. |
+| `dataexport.ConfigRepository` | `CreateTx(tx, cfg)` | Tx-Variant von `Create`. |
+| `dataexport.ConfigRepository` | `MarkObsoleteTx(tx, registeredTypes)` | Tx-Variant des bestehenden globalen Sweeps; wird am Ende der dataExport-Sektion einmal aufgerufen, idempotent. |
+
+**Konvention** (analog zum existierenden Pattern in
+`internal/application/application_repo.go:UpdateStatusAdminTx`):
+- Suffix `Tx` markiert die Variant
+- Erster Parameter ist `tx *sql.Tx`
+- Identische Semantik zur non-Tx-Methode
+- Bestehende non-Tx-Methoden bleiben unverändert für UI-Pfade (kein
+  Refactoring der bestehenden Aufrufer)
+
+### N) Sanitize-Paket-Migration (neues `internal/sanitize/`)
+
+Die Sanitize-Logik liegt heute in `internal/http/admin.go` (bluemonday-
+Setup in `NewAdminHandler`, dann via `h.sanitizer` aufgerufen). Für
+PROJ-61 wird das in ein eigenständiges Paket extrahiert, damit
+Import-Pfad und HTTP-Handler-Pfad denselben Code nutzen.
+
+**Migration-Schritte:**
+
+1. Neues Paket `internal/sanitize/` anlegen, exportierte Funktionen:
+   - `HTML(input string) string` — bluemonday-Policy mit denselben
+     Einstellungen wie heute
+   - `LegalDocURL(input string) (string, error)` — Format-Check
+     (HTTPS-only, ≤ 2 KB)
+   - `FieldConfigName(input string) error` — gegen
+     `CONFIGURABLE_FIELDS`-Master-Katalog
+   - `FieldState(input string) error` — ENUM-Check
+   - `ActivationMode(input string) error` — ENUM-Check
+2. `internal/http/admin.go`: `h.sanitizer.Sanitize(...)`-Aufrufe
+   ersetzen durch `sanitize.HTML(...)`. Feld `sanitizer
+   *bluemonday.Policy` aus `AdminHandler` entfernen.
+3. Bestehende Tests bleiben, weil Verhalten identisch.
+
+**Refactor-Aufwand**: ~30 Min, ~5-10 Stellen in `admin.go`. Risiko-
+arm; sollte als eigener Commit VOR der PROJ-61-Implementierung
+laufen, damit der Diff sauber bleibt.
+
+### O) Reihenfolge der Implementierung (für `/backend`)
+
+1. **Refactor**: `internal/sanitize/`-Paket extrahieren (separater
+   Commit, keine Verhaltensänderung).
+2. **Repo-Erweiterungen**: 7 Tx-Variant-Methoden (separater Commit
+   mit Unit-Tests).
+3. **`internal/configexport/`**: schema.go, exporter.go, diff.go,
+   limits.go (TDD: Schema-Tests + Diff-Tests zuerst).
+4. **`internal/configexport/importer.go`**: Validate + Apply mit
+   Tx + Advisory-Lock.
+5. **`internal/http/configexport.go`**: 3 Endpoints, Tenant-Auth-
+   Middleware, Multipart-Upload-Parser.
+6. **Frontend**: `src/components/config-import-export/` (5 Komponenten),
+   neue Sub-Seite `/admin/settings/import-export`.
+7. **Integration-Tests**: vollständiger Roundtrip; Concurrent-Apply;
+   Plugin-Drift.
+8. **E2E-Test**: Browser-File-Download → Upload → Preview → Apply →
+   Toast.
+
+Insgesamt ~3-4 Tage backend + ~2 Tage frontend bei konzentriertem
+Arbeiten.
 
 ## QA Test Results
 _To be added by /qa_
