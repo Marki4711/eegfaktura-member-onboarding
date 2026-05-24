@@ -822,7 +822,10 @@ func (s *ApplicationService) ConfirmEmail(plaintext string) (*shared.ConfirmEmai
 	// Idempotent re-click: the token-hash row is kept after consumption
 	// (PROJ-31 Q5) so a member clicking the link twice gets a friendly
 	// "already confirmed" page instead of a generic error.
-	if app.EmailConfirmationUsedAt != nil {
+	// (Bis 2026-05-24 wurde EmailConfirmationUsedAt geprüft —
+	// funktional identisch zu EmailConfirmedAt, Spalte in Audit-Welle 8
+	// gedroppt.)
+	if app.EmailConfirmedAt != nil {
 		resp := &shared.ConfirmEmailResponse{AlreadyConfirmed: true}
 		if entrypoint, epErr := s.entrypointRepo.GetByRCNumber(app.RCNumber); epErr == nil {
 			if entrypoint.EEGName != nil {

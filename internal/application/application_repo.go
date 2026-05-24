@@ -24,7 +24,7 @@ const applicationColumns = `id, reference_number, rc_number, status, started_at,
 	resident_street, resident_street_number, resident_zip, resident_city,
 	privacy_accepted, privacy_version, privacy_accepted_at, accuracy_confirmed,
 	iban, account_holder, sepa_mandate_accepted, sepa_mandate_accepted_at,
-	reviewed_by_user_id, admin_note, needs_info_reason, target_participant_id,
+	admin_note, needs_info_reason, target_participant_id,
 	import_started_at, import_finished_at, import_error_message,
 	membership_start_date, persons_in_household,
 	heat_pump, electric_vehicle, electric_vehicle_count, electric_vehicle_annual_km, electric_hot_water,
@@ -35,7 +35,7 @@ const applicationColumns = `id, reference_number, rc_number, status, started_at,
 	network_operator_customer_number, meter_inventory_number,
 	has_contact_person, contact_person_name, contact_person_email, contact_person_phone,
 	has_billing_email, billing_email,
-	email_confirmed_at, email_confirmation_used_at,
+	email_confirmed_at,
 	email_confirmation_token_hash, email_confirmation_token_expires_at,
 	created_at, updated_at`
 
@@ -51,7 +51,7 @@ type rowScanner interface {
 // this branch since they iterate with Next()).
 func scanApplicationRow(s rowScanner) (*shared.Application, error) {
 	app := &shared.Application{}
-	var phone, privacyVersion, iban, accountHolder, reviewedByUserID, adminNote, needsInfoReason, targetParticipantID, importErrorMessage sql.NullString
+	var phone, privacyVersion, iban, accountHolder, adminNote, needsInfoReason, targetParticipantID, importErrorMessage sql.NullString
 	var titel, titelNach, firstname, lastname, companyName, uidNumber, registerNumber sql.NullString
 	var bankName, mandateReference sql.NullString
 	var birthDate, startedAt, submittedAt, approvedAt, rejectedAt, importedAt, privacyAcceptedAt, sepaMandateAcceptedAt, importStartedAt, importFinishedAt sql.NullTime
@@ -67,7 +67,7 @@ func scanApplicationRow(s rowScanner) (*shared.Application, error) {
 	var networkOperatorCustomerNumber, meterInventoryNumber sql.NullString
 	var contactPersonName, contactPersonEmail, contactPersonPhone sql.NullString
 	var billingEmail sql.NullString
-	var emailConfirmedAt, emailConfirmationUsedAt, emailConfirmationTokenExpiresAt sql.NullTime
+	var emailConfirmedAt, emailConfirmationTokenExpiresAt sql.NullTime
 	var emailConfirmationTokenHash sql.NullString
 
 	err := s.Scan(
@@ -81,7 +81,7 @@ func scanApplicationRow(s rowScanner) (*shared.Application, error) {
 		&app.ResidentStreet, &app.ResidentStreetNumber, &app.ResidentZip, &app.ResidentCity,
 		&app.PrivacyAccepted, &privacyVersion, &privacyAcceptedAt, &app.AccuracyConfirmed,
 		&iban, &accountHolder, &app.SepaMandateAccepted, &sepaMandateAcceptedAt,
-		&reviewedByUserID, &adminNote, &needsInfoReason, &targetParticipantID, &importStartedAt, &importFinishedAt,
+		&adminNote, &needsInfoReason, &targetParticipantID, &importStartedAt, &importFinishedAt,
 		&importErrorMessage,
 		&membershipStartDate, &personsInHousehold,
 		&heatPump, &electricVehicle, &electricVehicleCount, &electricVehicleAnnualKm, &electricHotWater,
@@ -92,7 +92,7 @@ func scanApplicationRow(s rowScanner) (*shared.Application, error) {
 		&networkOperatorCustomerNumber, &meterInventoryNumber,
 		&app.HasContactPerson, &contactPersonName, &contactPersonEmail, &contactPersonPhone,
 		&app.HasBillingEmail, &billingEmail,
-		&emailConfirmedAt, &emailConfirmationUsedAt,
+		&emailConfirmedAt,
 		&emailConfirmationTokenHash, &emailConfirmationTokenExpiresAt,
 		&app.CreatedAt, &app.UpdatedAt,
 	)
@@ -129,9 +129,6 @@ func scanApplicationRow(s rowScanner) (*shared.Application, error) {
 	}
 	if privacyVersion.Valid {
 		app.PrivacyVersion = &privacyVersion.String
-	}
-	if reviewedByUserID.Valid {
-		app.ReviewedByUserID = &reviewedByUserID.String
 	}
 	if adminNote.Valid {
 		app.AdminNote = &adminNote.String
@@ -260,9 +257,6 @@ func scanApplicationRow(s rowScanner) (*shared.Application, error) {
 	}
 	if emailConfirmedAt.Valid {
 		app.EmailConfirmedAt = &emailConfirmedAt.Time
-	}
-	if emailConfirmationUsedAt.Valid {
-		app.EmailConfirmationUsedAt = &emailConfirmationUsedAt.Time
 	}
 	if emailConfirmationTokenHash.Valid {
 		v := emailConfirmationTokenHash.String
@@ -1195,7 +1189,6 @@ func (r *ApplicationRepository) AssignEmailConfirmationTokenTx(tx *sql.Tx, id uu
 		UPDATE member_onboarding.application
 		SET email_confirmation_token_hash = $1,
 		    email_confirmation_token_expires_at = $2,
-		    email_confirmation_used_at = NULL,
 		    email_confirmed_at = NULL,
 		    updated_at = NOW()
 		WHERE id = $3`, tokenHash, expiresAt, id)
@@ -1235,18 +1228,20 @@ func (r *ApplicationRepository) findIDByEmailConfirmationTokenHash(tokenHash str
 }
 
 // MarkEmailConfirmedTx transitions the application to status email_confirmed
-// and stamps both email_confirmed_at and email_confirmation_used_at. The
-// token hash + expiry are deliberately kept around — a re-click on the same
-// link is then a no-op rather than a confusing "ungültig oder abgelaufen"
-// error (PROJ-31 Q5). The auto-reject job will not touch the row again
-// because email_confirmed_at is now non-null.
+// and stamps email_confirmed_at. The token hash + expiry are deliberately
+// kept around — a re-click on the same link is then a no-op rather than a
+// confusing "ungültig oder abgelaufen" error (PROJ-31 Q5). The auto-reject
+// job will not touch the row again because email_confirmed_at is now
+// non-null.
 // The status_log entry is written by the caller.
+// (Bis 2026-05-24 wurde zusätzlich email_confirmation_used_at gesetzt —
+// die Spalte war 100 % redundant zu email_confirmed_at und wurde in
+// Audit-Welle 8 / Migration 000055 entfernt.)
 func (r *ApplicationRepository) MarkEmailConfirmedTx(tx *sql.Tx, id uuid.UUID, now time.Time) error {
 	res, err := tx.Exec(`
 		UPDATE member_onboarding.application
 		SET status = $1,
 		    email_confirmed_at = $2,
-		    email_confirmation_used_at = $2,
 		    updated_at = NOW()
 		WHERE id = $3 AND status = $4`,
 		shared.StatusEmailConfirmed, now, id, shared.StatusSubmitted)
@@ -1373,9 +1368,12 @@ func (r *ApplicationRepository) UpdateStatusAdminTx(
 	expectedFrom shared.ApplicationStatus,
 	toStatus shared.ApplicationStatus,
 	submittedAt, approvedAt, rejectedAt *time.Time,
-	needsInfoReason, reviewedByUserID *string,
+	needsInfoReason *string,
 	bankConfirmedAt, activatedAt *time.Time,
 ) error {
+	// reviewed_by_user_id-Parameter wurde 2026-05-24 (Audit-Welle 8 /
+	// Migration 000054) entfernt — Spalte war Tot-Datum, Audit-Quelle
+	// ist status_log.changed_by_user_id.
 	query := `
 		UPDATE member_onboarding.application SET
 			status              = $1,
@@ -1383,13 +1381,12 @@ func (r *ApplicationRepository) UpdateStatusAdminTx(
 			approved_at         = COALESCE($3, approved_at),
 			rejected_at         = COALESCE($4, rejected_at),
 			needs_info_reason   = COALESCE($5, needs_info_reason),
-			reviewed_by_user_id = COALESCE($6, reviewed_by_user_id),
-			bank_confirmed_at   = COALESCE($7, bank_confirmed_at),
-			activated_at        = COALESCE($8, activated_at),
+			bank_confirmed_at   = COALESCE($6, bank_confirmed_at),
+			activated_at        = COALESCE($7, activated_at),
 			updated_at          = NOW()
-		WHERE id = $9 AND status = $10`
+		WHERE id = $8 AND status = $9`
 
-	res, err := tx.Exec(query, toStatus, submittedAt, approvedAt, rejectedAt, needsInfoReason, reviewedByUserID, bankConfirmedAt, activatedAt, id, expectedFrom)
+	res, err := tx.Exec(query, toStatus, submittedAt, approvedAt, rejectedAt, needsInfoReason, bankConfirmedAt, activatedAt, id, expectedFrom)
 	if err != nil {
 		return fmt.Errorf("failed to update application status: %w", err)
 	}

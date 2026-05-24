@@ -88,6 +88,13 @@ Bewusst aufgeschoben in `docs/AUDIT-TODO.md` 3a–3e (eigene PROJs):
 - 3d: Tot-Code `metrics/metrics.go:statusClassFromString` aufräumen
 - 3e: Severity-Drift bereinigen (3 Stellen `slog.Error` → `slog.Warn` für transiente/Caller-Kontext-Pfade)
 
+**Data-Model-Slimming-Audit-Welle 8 (2026-05-24, Migrationen 000054 + 000055):**
+- **DROP `application.reviewed_by_user_id`** (Migration 000054) — echtes Tot-Datum, war via COALESCE in `UpdateStatusAdminTx` gesetzt + ins JSON serialisiert, aber nirgends im Code konsumiert. Audit-Quelle für „wer hat Status geändert" ist `status_log.changed_by_user_id`. Begleitend: `UpdateStatusAdminTx`-Signatur entfernt den `reviewedByUserID`-Parameter; 3 Caller in `admin_service.go` + `importing/import_service.go` angepasst (system-actor landet weiterhin in `status_log`).
+- **DROP `application.email_confirmation_used_at`** (Migration 000055) — 100 % redundant zu `email_confirmed_at` (`MarkEmailConfirmedTx` setzte beide auf denselben NOW(); Idempotenz-Check `application_service.go:825` funktional identisch, wurde auf `EmailConfirmedAt != nil` umgestellt). Down-Migration backfillt aus `email_confirmed_at`.
+- Doku-Patches in `docs/domain-model.md` für zwei bewusste Trade-offs: §3.10 `application_ids UUID[]` als bewusste Ausnahme zur „no JSON columns"-Regel (Snapshot-Charakter) + §3.9 `is_obsolete` als bewusst materialisiertes Cache-Boolean (Registry runtime-only).
+
+**Bestätigt OK, nicht angefasst** (waren TODO-Verdacht, alle legitim): `accuracy_confirmed`, `privacy_version`, `has_contact_person`/`has_billing_email`, `processed_count`/`total_count`/`retry_count` als INT, `field_config` als sparse-table, alle PROJ-46-Lifecycle-Timestamps.
+
 **E2E-Test-Coverage-Audit-Welle 7 (2026-05-24):**
 - Browser-Matrix erweitert in `playwright.config.ts`: Desktop-Firefox + Desktop-WebKit (Safari-Engine) ergänzt; vorher nur Chromium + Mobile-Safari.
 - Neue Helper `tests/helpers/test-data.ts` mit `uniqueEmail()`/`uniqueRef()`/`TEST_RC_NUMBER`. Verhindert Akkumulations-Flakes durch fixed-string-Collisions (`test@example.at` etc.) und nutzt `@e2e.local` (RFC 6761-reserviert, kann nicht resolven).

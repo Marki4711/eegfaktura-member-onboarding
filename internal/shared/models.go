@@ -163,7 +163,8 @@ type Application struct {
 	AccountHolder           *string           `json:"accountHolder,omitempty" db:"account_holder"`
 	SepaMandateAccepted     bool              `json:"sepaMandateAccepted" db:"sepa_mandate_accepted"`
 	SepaMandateAcceptedAt   *time.Time        `json:"sepaMandateAcceptedAt,omitempty" db:"sepa_mandate_accepted_at"`
-	ReviewedByUserID        *string           `json:"reviewedByUserId,omitempty" db:"reviewed_by_user_id"`
+	// reviewed_by_user_id wurde 2026-05-24 (Audit-Welle 8) gedroppt —
+	// echtes Tot-Datum, Audit-Quelle ist status_log.changed_by_user_id.
 	AdminNote            *string           `json:"adminNote,omitempty" db:"admin_note"`
 	Einzugsart           string            `json:"einzugsart" db:"einzugsart"`
 	BankName             *string           `json:"bankName,omitempty" db:"bank_name"`
@@ -220,7 +221,10 @@ type Application struct {
 	// E-Mail-Bestätigung (PROJ-31). Token-Hash + Expiry sind interne Felder
 	// und werden nicht in API-Responses serialisiert (JSON-Tag "-").
 	EmailConfirmedAt                 *time.Time `json:"emailConfirmedAt,omitempty"      db:"email_confirmed_at"`
-	EmailConfirmationUsedAt          *time.Time `json:"-"                               db:"email_confirmation_used_at"`
+	// email_confirmation_used_at wurde 2026-05-24 (Audit-Welle 8) gedroppt
+	// — war 100 % redundant zu email_confirmed_at (MarkEmailConfirmedTx
+	// setzte beide auf denselben NOW(); Idempotenz-Check läuft jetzt
+	// gegen email_confirmed_at).
 	EmailConfirmationTokenHash       *string    `json:"-"                               db:"email_confirmation_token_hash"`
 	EmailConfirmationTokenExpiresAt  *time.Time `json:"-"                               db:"email_confirmation_token_expires_at"`
 	// EmailConfirmationPending is a derived, non-persistent flag set by the

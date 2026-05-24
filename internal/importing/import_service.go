@@ -161,9 +161,13 @@ func (s *ImportService) markActivated(id uuid.UUID, mode string) error {
 	}
 	defer tx.Rollback()
 	system := "system:activation-check"
+	// UpdateStatusAdminTx trägt seit Audit-Welle 8 / Migration 000054
+	// keinen actor-Parameter mehr (reviewed_by_user_id war Tot-Datum).
+	// system-actor landet via status_log.changed_by_user_id unten im
+	// CreateTx-Call.
 	if err := s.appRepo.UpdateStatusAdminTx(
 		tx, id, shared.StatusReadyForActivation, shared.StatusActivated,
-		nil, nil, nil, nil, &system, nil, &now,
+		nil, nil, nil, nil, nil, &now,
 	); err != nil {
 		return err
 	}
@@ -578,9 +582,11 @@ func (s *ImportService) autoTransitionAfterImport(id uuid.UUID, toStatus shared.
 	}
 	defer tx.Rollback()
 
+	// actorID-Param (reviewed_by_user_id) wurde 2026-05-24 entfernt;
+	// landet stattdessen unten in status_log.changed_by_user_id.
 	if err := s.appRepo.UpdateStatusAdminTx(
 		tx, id, shared.StatusImported, toStatus,
-		nil, nil, nil, nil, ptrOrNil(actorID), nil, nil,
+		nil, nil, nil, nil, nil, nil,
 	); err != nil {
 		return err
 	}

@@ -589,7 +589,11 @@ func (s *AdminApplicationService) ChangeStatus(id uuid.UUID, toStatus shared.App
 	}
 	defer tx.Rollback()
 
-	if err := s.appRepo.UpdateStatusAdminTx(tx, id, app.Status, toStatus, submittedAt, approvedAt, rejectedAt, needsInfoReason, actorPtr, bankConfirmedAt, activatedAt); err != nil {
+	// actorPtr-Parameter (reviewed_by_user_id) wurde 2026-05-24 entfernt
+	// (Audit-Welle 8 / Migration 000054) — Audit-Trail läuft über
+	// status_log.changed_by_user_id, das im Folge-Insert (s.u.) gesetzt
+	// wird.
+	if err := s.appRepo.UpdateStatusAdminTx(tx, id, app.Status, toStatus, submittedAt, approvedAt, rejectedAt, needsInfoReason, bankConfirmedAt, activatedAt); err != nil {
 		return nil, fmt.Errorf("failed to update status: %w", err)
 	}
 

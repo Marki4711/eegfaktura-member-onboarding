@@ -363,6 +363,12 @@ Rules:
 
 ### 3.9 `data_export_config` (PROJ-60)
 
+> **Hinweis zu `is_obsolete`** (Audit-Welle 8, 2026-05-24): Das Boolean wird
+> per `MarkObsolete`-UPDATE beim Backend-Start gesetzt, wenn `plugin_type`
+> aus der Code-Registry verschwunden ist. Es ist bewusst materialisiert
+> (kein VIEW), weil die Registry ein Code-Runtime-Wert ist, der zur DB-
+> Migrationszeit nicht bekannt wäre.
+
 Plugin-specific configurations for the asynchronous data-export framework. Each row is one
 named instance of a registered plugin (e.g. one Excel/CSV column-mapping) scoped to one EEG.
 
@@ -393,7 +399,7 @@ only blanks the BLOB and flips the status to `expired`).
 - `config_id` — UUID NULL, FK → `data_export_config(id)` ON DELETE SET NULL (allows config deletion without losing the audit trail)
 - `config_snapshot` — JSONB NOT NULL (frozen copy of `data_export_config.config` at trigger time — running jobs are immune to subsequent config edits)
 - `plugin_type` — TEXT NOT NULL (snapshot of `data_export_config.plugin_type` so plugin removal doesn't break the audit)
-- `application_ids` — UUID[] NOT NULL (snapshot of the application IDs selected by the admin; deletion of an application produces a dangling reference, which the loader silently skips)
+- `application_ids` — UUID[] NOT NULL (snapshot of the application IDs selected by the admin; deletion of an application produces a dangling reference, which the loader silently skips). **Note (Audit-Welle 8, 2026-05-24):** Array-Spalten widersprechen dem Geist der Repo-Regel „no JSON columns". Hier bewusste Ausnahme — der Snapshot-Charakter (immutability nach Job-Trigger) lässt eine Junction-Table `data_export_job_application` unattraktiv erscheinen (Backfill + Concurrency-Sicherheit beim INSERT). Falls jemals Cross-Job-Statistiken über Anträge nötig werden, ist die Normalisierung der bessere Pfad.
 - `status` — TEXT NOT NULL CHECK IN (`queued`, `running`, `done`, `failed`, `expired`)
 - `admin_user_id` — TEXT NOT NULL (Keycloak `sub` of the admin who triggered the job)
 - `processed_count` — INTEGER NOT NULL DEFAULT 0
