@@ -98,5 +98,5 @@
   width: 100% !important;
   height: auto !important;
   max-width: 100%;
-  min-height: 500px;     /* upscale even when the diagram is short */
+  min-height: 350px;     /* upscale even when the diagram is short */
 }
