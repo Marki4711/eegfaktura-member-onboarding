@@ -75,6 +75,19 @@ Phase 2 (Zoho, HubSpot, …) baut ohne Framework-Eingriff auf.
 
 Bewusst aufgeschoben in `docs/AUDIT-TODO.md` 5a–5f: TLS-Block (cert-manager), SealedSecrets-Migration, Egress-NetPol, HA + PDB, HPA, Postgres-Backup-Doku.
 
+**Observability-Audit-Welle 5 (2026-05-24):**
+- **CRITICAL — PII-Leak in Logs gefixt**: `internal/mail/service.go` loggte `app.Email` + `entrypoint.ContactEmail` voll an 5 Stellen (Verstoß gegen `.claude/rules/security.md`: „IBAN, email, phone, name must not appear in application logs"). Neue `emailDomain()`-Helper-Funktion gibt nur den `@suffix` zurück; alle 5 Stellen umgestellt auf Log-Key `to_domain`.
+- Neues Paket `internal/logfields/` zentralisiert slog-Field-Keys (`RCNumber`, `JobID`, `ApplicationID`, `Classification`, `AdminUserID`, …) plus fixiertes `classification`-Vokabular (`pii-read`, `pii-export`, `sensitive-export`). Verhindert Drift (`"rc"` vs `"rc_number"`, `"user_id"` vs `"admin_user_id"`); neue Code-Stellen sollen importieren statt Strings tippen.
+- DSGVO-Audit-Trail-Marker auf zwei weitere PII-Pfade ausgeweitet: `GetApplicationDetail` (`classification=pii-read`) und `ExportApplicationExcel` (`classification=pii-export`). Pendant zu PROJ-60 `sensitive-export`. Log-Shipper können auf `classification=`-Vokabular filtern und an die Compliance-Archivierung routen.
+- `internal/dataexport/worker.go` Sensitive-Export-Marker nutzt jetzt die `logfields`-Konstanten statt Literals.
+
+Bewusst aufgeschoben in `docs/AUDIT-TODO.md` 3a–3e (eigene PROJs):
+- 3a: 10 neue Prometheus-Metrics (`coreclient_request_duration`, `dataexport_jobs_total`, `_job_duration`, `_queue_depth`, `_workers_busy`, `_blob_bytes_total`, `_cleanup_runs_total`, `turnstile_verifications_total`, `applications_submitted_by_type_total`, `smtp_send_duration_seconds`)
+- 3b: OpenTelemetry-Tracing-Bootstrap mit 4 Stufen (CoreClient, DataExport-Pipeline, Trace-Log-Correlation, K8s-Collector)
+- 3c: Logger-Context-Middleware (`slog.With("request_id", ...)` im ctx, Helper `log.FromCtx`)
+- 3d: Tot-Code `metrics/metrics.go:statusClassFromString` aufräumen
+- 3e: Severity-Drift bereinigen (3 Stellen `slog.Error` → `slog.Warn` für transiente/Caller-Kontext-Pfade)
+
 ### PROJ-57 v3 — Ansprechperson ohne Master-Switch, drei Felder einzeln steuerbar *(2026-05-21)*
 
 Vereinfachung des Konfigurations-Modells: der separate

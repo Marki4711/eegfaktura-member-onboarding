@@ -21,6 +21,7 @@ import (
 	"github.com/your-org/eegfaktura-member-onboarding/internal/application"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/coreclient"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/importing"
+	"github.com/your-org/eegfaktura-member-onboarding/internal/logfields"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/shared"
 )
 
@@ -385,8 +386,10 @@ func (h *AdminHandler) GetApplicationDetail(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Tenant-admins may only access applications within their allowed RC numbers.
-	if claims := ClaimsFromContext(r.Context()); claims != nil && !claims.IsSuperuser() {
-		if !containsRC(claims.Tenant, resp.RCNumber) {
+	adminUserID := ""
+	if claims := ClaimsFromContext(r.Context()); claims != nil {
+		adminUserID = claims.Subject
+		if !claims.IsSuperuser() && !containsRC(claims.Tenant, resp.RCNumber) {
 			writeJSON(w, http.StatusForbidden, map[string]string{
 				"code":    "forbidden",
 				"message": "Kein Zugriff auf diesen Antrag.",
@@ -394,6 +397,18 @@ func (h *AdminHandler) GetApplicationDetail(w http.ResponseWriter, r *http.Reque
 			return
 		}
 	}
+
+	// DSGVO audit-trail: an admin actively pulled the full PII record
+	// (IBAN, birth_date, address, contact-person). Pendant zu pii-export
+	// für Download-Pfade. Loggt auf Info-Level (kein Fehler), Log-Shipper
+	// kann auf classification=pii-read filtern und an die Compliance-
+	// Archivierung routen.
+	slog.Info("admin: pii-read",
+		logfields.Classification, logfields.ClassPIIRead,
+		logfields.ApplicationID, id,
+		logfields.RCNumber, resp.RCNumber,
+		logfields.AdminUserID, adminUserID,
+	)
 
 	h.writeJSON(w, http.StatusOK, resp)
 }
@@ -1064,6 +1079,20 @@ func (h *AdminHandler) ExportApplicationExcel(w http.ResponseWriter, r *http.Req
 		h.handleServiceError(w, err)
 		return
 	}
+
+	// DSGVO audit-trail: single-application Excel-Export carries full PII
+	// (IBAN, birth_date, address). Same classification as PROJ-60 batch
+	// exports so log-shippers can route both to the compliance archive.
+	adminUserID := ""
+	if claims := ClaimsFromContext(r.Context()); claims != nil {
+		adminUserID = claims.Subject
+	}
+	slog.Info("admin: pii-export",
+		logfields.Classification, logfields.ClassPIIExport,
+		logfields.ApplicationID, id,
+		logfields.AdminUserID, adminUserID,
+		"format", "xlsx",
+	)
 
 	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 	w.Header().Set("Content-Disposition", `attachment; filename="`+filename+`"`)

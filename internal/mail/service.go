@@ -52,6 +52,18 @@ type MailService interface {
 	SendActivationNotification(app *shared.Application, entrypoint *shared.RegistrationEntrypoint, pdfBytes []byte, pdfFailed bool) error
 }
 
+// emailDomain returns just the @-suffix of an email address (incl. the @),
+// e.g. "user@example.com" → "@example.com". Used in slog statements so the
+// log keeps enough info to correlate by recipient bucket without leaking the
+// local part (which is PII per .claude/rules/security.md — IBAN/email/phone/
+// name must not appear in application logs). Returns "" for malformed input.
+func emailDomain(s string) string {
+	if i := strings.LastIndexByte(s, '@'); i >= 0 {
+		return s[i:]
+	}
+	return ""
+}
+
 // NoOpMailService silently drops all mail calls. Used when SMTP is not configured.
 type NoOpMailService struct{}
 
@@ -391,7 +403,7 @@ func memberDisplayName(app *shared.Application) string {
 // the confirmation button and the EEG-notification mail is deferred — the
 // confirm-email handler invokes SendEEGNotification once the member clicks.
 func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, meteringPoints []shared.MeteringPoint, entrypoint *shared.RegistrationEntrypoint, fieldConfig map[string]string, attachment []byte, consents []shared.DocumentConsent, emailConfirmationURL string) {
-	slog.Info("mail: sending submission emails", "application_id", app.ID, "ref", app.ReferenceNumber, "to", app.Email, "confirmation_pending", emailConfirmationURL != "")
+	slog.Info("mail: sending submission emails", "application_id", app.ID, "ref", app.ReferenceNumber, "to_domain", emailDomain(app.Email), "confirmation_pending", emailConfirmationURL != "")
 
 	memberMpViews := make([]meteringPointView, len(meteringPoints))
 	for i, mp := range meteringPoints {
@@ -475,10 +487,10 @@ func (s *SMTPMailService) SendSubmissionEmails(app *shared.Application, metering
 		}
 		if sendErr != nil {
 			metrics.MailSentTotal.WithLabelValues("member_confirmation", "failed").Inc()
-			slog.Error("mail: failed to send member confirmation", "application_id", app.ID, "to", app.Email, "error", sendErr)
+			slog.Error("mail: failed to send member confirmation", "application_id", app.ID, "to_domain", emailDomain(app.Email), "error", sendErr)
 		} else {
 			metrics.MailSentTotal.WithLabelValues("member_confirmation", "success").Inc()
-			slog.Info("mail: member confirmation sent", "application_id", app.ID, "to", app.Email, "has_attachment", len(attachment) > 0)
+			slog.Info("mail: member confirmation sent", "application_id", app.ID, "to_domain", emailDomain(app.Email), "has_attachment", len(attachment) > 0)
 		}
 	}
 
@@ -600,10 +612,10 @@ func (s *SMTPMailService) SendEEGNotification(app *shared.Application, meteringP
 	eegOpts := transactionalOpts(app.Email)
 	if err := s.sender.Send(eegOpts, *entrypoint.ContactEmail, subject, eegHTML, htmlToText(eegHTML)); err != nil {
 		metrics.MailSentTotal.WithLabelValues("eeg_notification", "failed").Inc()
-		slog.Error("mail: failed to send EEG notification", "application_id", app.ID, "to", *entrypoint.ContactEmail, "error", err)
+		slog.Error("mail: failed to send EEG notification", "application_id", app.ID, "to_domain", emailDomain(*entrypoint.ContactEmail), "error", err)
 	} else {
 		metrics.MailSentTotal.WithLabelValues("eeg_notification", "success").Inc()
-		slog.Info("mail: EEG notification sent", "application_id", app.ID, "to", *entrypoint.ContactEmail)
+		slog.Info("mail: EEG notification sent", "application_id", app.ID, "to_domain", emailDomain(*entrypoint.ContactEmail))
 	}
 }
 

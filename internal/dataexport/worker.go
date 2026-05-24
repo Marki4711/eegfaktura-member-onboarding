@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/your-org/eegfaktura-member-onboarding/internal/logfields"
 	"github.com/your-org/eegfaktura-member-onboarding/internal/shared"
 )
 
@@ -168,12 +169,12 @@ func (w *Worker) processJob(ctx context.Context, job *shared.DataExportJob) {
 	// row, so the slog event ties admin → sensitive-export.
 	if sens := detectSensitiveFields(configMap); len(sens) > 0 {
 		slog.Info("dataexport: sensitive-export",
-			"classification", "sensitive-export",
-			"job_id", job.ID,
-			"rc_number", job.RCNumber,
-			"admin_user_id", job.AdminUserID,
-			"plugin_type", job.PluginType,
-			"application_count", len(apps),
+			logfields.Classification, logfields.ClassSensitiveExport,
+			logfields.JobID, job.ID,
+			logfields.RCNumber, job.RCNumber,
+			logfields.AdminUserID, job.AdminUserID,
+			logfields.PluginType, job.PluginType,
+			logfields.ApplicationCount, len(apps),
 			"sensitive_fields", sens,
 		)
 	}
