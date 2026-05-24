@@ -29,6 +29,8 @@ Die Mitgliedsnummer ist nicht in der Liste, sondern erst in der Detailansicht ei
 
 ## Anträge filtern
 
+![Filter-Panel](images/admin-filter-panel.png)
+
 Über das **Filterpanel** kannst du die Anträge gezielt einschränken:
 
 | Filter | Beschreibung |
@@ -38,6 +40,22 @@ Die Mitgliedsnummer ist nicht in der Liste, sondern erst in der Detailansicht ei
 | **E-Mail** | Teilsuche in der E-Mail-Adresse |
 | **EEG** | Nur Anträge einer bestimmten EEG anzeigen (erscheint nur bei Admins mit mehreren EEGs) |
 | **Eingereicht ab / bis** | Zeitraum der Einreichung (Datumsbereich) |
+
+## Massenaktionen (PROJ-25)
+
+![Mehrere Anträge selektiert, Aktionsleiste sichtbar](images/admin-bulk-actions.png)
+
+Über die Checkbox am Zeilenanfang kannst du mehrere Anträge gleichzeitig auswählen. Sobald mindestens ein Antrag selektiert ist, erscheint eine Aktionsleiste:
+
+| Aktion | Wirkung |
+|---|---|
+| **In Bearbeitung** | Setzt alle ausgewählten Anträge auf `under_review`. Übersprungen werden Anträge, die diesen Übergang nicht erlauben. |
+| **Genehmigen** | Setzt alle erlaubten Anträge auf `approved`. |
+| **Ablehnen** | Setzt alle erlaubten Anträge auf `rejected` — eine Begründung wird abgefragt und am Antrag protokolliert. |
+| **Datenweiterleitung** | Startet einen Datenexport-Job für die ausgewählten Anträge (siehe Einstellungen → [Datenweiterleitung](06-admin-settings.md#datenweiterleitung)). |
+| **Auswahl aufheben** | Setzt die Auswahl zurück. |
+
+Ein Toast zeigt nach der Aktion, wie viele Anträge tatsächlich umgesetzt wurden und wie viele übersprungen wurden (z. B. weil sie schon im Zielstatus waren).
 
 ## Sortieren
 

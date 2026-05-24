@@ -152,6 +152,8 @@ Der Banner erscheint automatisch, sobald der Import-Versuch älter als 2 Minuten
 
 ## Import zurücksetzen (`imported / awaiting_bank_confirmation / ready_for_activation → approved`)
 
+![Import zurücksetzen](images/admin-reset-import.png)
+
 Wenn ein bereits importierter Teilnehmer im eegFaktura-Core gelöscht wurde (z. B. weil das Mitglied seine Teilnahme widerrufen hat oder der Import fehlerhaft war), kann der Antrag in den Status `approved` zurückgesetzt werden, um einen Neu-Import zu ermöglichen.
 
 1. Öffne den Antrag (Status `imported`, `awaiting_bank_confirmation` oder `ready_for_activation`)

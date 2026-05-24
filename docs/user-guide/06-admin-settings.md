@@ -198,3 +198,63 @@ Dieser Abschnitt zeigt den API-Key für die externe Registrierungs-API. Der Key 
 > **Sicherheitshinweis:** Der API-Key darf ausschließlich server-seitig verwendet werden — niemals direkt in Browser-seitigem Code. Behandle ihn wie ein Passwort.
 
 Über **Neuen Key generieren** kannst du den bestehenden Key ungültig machen und einen neuen ausstellen.
+
+---
+
+## Datenweiterleitung
+
+![Datenweiterleitung](images/admin-settings-datenweiterleitung.png)
+
+Asynchrone Weitergabe von Antragsdaten an externe Systeme (PROJ-60). Aktuell verfügbar:
+
+- **Excel/CSV-Export** — generiert eine Datei mit konfigurierbarem Feldsatz; pro-EEG anpassbar (welche Felder enthalten sind, in welcher Reihenfolge, mit welcher Spaltenüberschrift).
+- Weitere Plugins (Zoho, HubSpot, …) lassen sich später als zusätzliche Implementierungen ergänzen — der Mechanismus dahinter ist generisch.
+
+### Daten weiterleiten
+
+Aus der **Antragsliste**:
+1. Mehrere Anträge per Checkbox auswählen
+2. Bulk-Aktion **Datenweiterleitung** klicken → Plugin wählen → Job läuft im Hintergrund
+
+Aus dem **Antragsdetail**:
+- Schaltfläche **Datenweiterleitung** in der Aktionsleiste — leitet den einzelnen Antrag weiter.
+
+### Job-Übersicht
+
+Auf dieser Seite siehst du den Verlauf aller Jobs (Status, Anzahl Anträge, Zeitpunkt, Ergebnisdatei zum Download). Fehlerhafte Jobs erzeugen automatisch eine Benachrichtigungs-E-Mail an die EEG-Kontaktadresse.
+
+> **DSGVO-Hinweis:** Beim Hinzufügen sensibler Felder (IBAN, Geburtsdatum) zu einer Exportkonfiguration zeigt die UI eine Warnung. Die Verantwortung für die rechtmäßige Weiterverarbeitung liegt beim Empfänger-System.
+
+---
+
+## Konfiguration Import / Export
+
+![Konfiguration Import/Export](images/admin-settings-import-export.png)
+
+Sicherung und Übertragung der per-EEG-Konfiguration als versionierte JSON-Datei (PROJ-61). Nützlich um:
+
+- mehrere EEGs auf eine gemeinsame Grund-Konfiguration zu bringen,
+- vor einem riskanten Apply den Ist-Zustand zu sichern,
+- Konfigurations-Stände nachvollziehbar in Git zu halten.
+
+### Export
+
+Vier Sektionen sind einzeln oder als **Komplett-Bundle** exportierbar:
+
+| Sektion | Inhalt |
+|---|---|
+| EEG-Einstellungen | Stammdaten, SEPA-Mandat-Settings, Aktivierungsmodus, Mitgliedsnummern-Startwert, Einleitungstext |
+| Formular-Felder | Sichtbarkeit/Pflicht/Admin-only-Status aller konfigurierbaren Felder |
+| Rechtsdokumente | Liste aller hinterlegten Dokumente mit Titel, URL und Zustimmungsmodus |
+| Datenweiterleitungs-Konfig | Plugin-Konfigurationen für die Datenweiterleitung |
+
+Dateiname enthält RC-Nummer und Zeitstempel — manuelle Versionierung in Git oder einem Backup-System ist damit unproblematisch.
+
+### Import mit Diff-Preview
+
+1. **Datei hochladen** (Drag-and-Drop oder Auswahldialog) — max 1 MB, nur `.json`. Die Datei wird serverseitig schemavalidiert; bei Fehlern wird der Upload abgelehnt.
+2. **Diff-Preview** zeigt pro Sektion was sich ändert: hinzugefügt, modifiziert, entfernt oder unverändert.
+3. **Sektionen aus-/abwählen** — nur ausgewählte werden tatsächlich angewendet.
+4. **Apply** schreibt die Änderungen atomar (pro Sektion eine Transaktion). Apply ist **nicht** automatisch reversibel — daher der Hinweis oben, vorher die aktuelle Konfig zu exportieren.
+
+> **Tipp:** Apply läuft mit einer `pg_advisory_xact_lock` — parallele Konfig-Änderungen über mehrere Browser-Tabs werden serialisiert, niemand überschreibt sich gegenseitig.
