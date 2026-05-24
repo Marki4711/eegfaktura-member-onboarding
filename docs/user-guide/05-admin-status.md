@@ -25,20 +25,20 @@ stateDiagram-v2
     awaiting_bank_confirmation --> ready_for_activation: Admin:<br/>Bank-Bestätigung
     ready_for_activation --> activated: Admin manuell ODER<br/>„Aktivierung im Core prüfen"
 
-    approved --> activated: PROJ-53 Skip-Import<br/>(manuell aktivieren)
+    approved --> activated: Skip-Import<br/>(manuell aktivieren)
 
     awaiting_bank_confirmation --> approved: Import zurücksetzen
     ready_for_activation --> approved: Import zurücksetzen
     imported --> approved: Import zurücksetzen
 ```
 
-> **PROJ-53 Skip-Import:** Der direkte Weg `approved → activated` ist ein
+> **Skip-Import:** Der direkte Weg `approved → activated` ist ein
 > Ausnahmefall — der Admin verwendet ihn, wenn das Mitglied im
 > eegFaktura-Core bereits manuell angelegt/überschrieben wurde und der
 > reguläre Import-Pfad übersprungen werden soll.
 
 * `import_failed → approved`: nach Fehlerbehebung kann der Import erneut versucht werden.
-* `imported` ist **transient** — der Server transitioniert sofort weiter (siehe PROJ-46-Diagramm oben). Wenn ein Antrag in `imported` „hängen" bleibt, ist der Auto-Branch fehlgeschlagen → über **Import zurücksetzen** lösen.
+* `imported` ist **transient** — der Server transitioniert sofort weiter (siehe Diagramm oben). Wenn ein Antrag in `imported` „hängen" bleibt, ist der Auto-Branch fehlgeschlagen → über **Import zurücksetzen** lösen.
 * `imported / awaiting_bank_confirmation / ready_for_activation → approved`: über die Aktion **Import zurücksetzen** (siehe unten). NICHT aus `activated` — aktive Mitglieder müssen zuerst im Core deaktiviert werden.
 
 ## Status ändern
@@ -62,13 +62,13 @@ Klicke auf die gewünschte Aktion. Je nach aktuellem Status stehen unterschiedli
 | `ready_for_activation` | **Als aktiv markieren**, Zurück in Bearbeitung, Import zurücksetzen *(oder via Batch-Button „Aktivierung im Core prüfen" in der Liste)* |
 | `activated` | — (Endzustand, keine Aktionen möglich) |
 
-Bei `approved` gibt es seit PROJ-53 zwei Buttons: **„In eegFaktura importieren"** (Standard) und **„Manuell aktivieren …"** (Ausnahmefall — überspringt den Import, falls das Mitglied im Faktura bereits manuell überschrieben wurde; siehe unten).
+Bei `approved` gibt es zwei Buttons: **„In eegFaktura importieren"** (Standard) und **„Manuell aktivieren …"** (Ausnahmefall — überspringt den Import, falls das Mitglied im Faktura bereits manuell überschrieben wurde; siehe unten).
 
 Zusätzlich verfügbar in allen Review-Stati (`submitted` / `email_confirmed` / `under_review` / `needs_info`) für Admins mit Zugriff auf ≥ 2 EEGs:
 
 | Aktion | Wirkung |
 |--------|---------|
-| **EEG umzuordnen** | Verschiebt den Antrag in eine andere EEG (siehe Abschnitt unten, PROJ-40) |
+| **EEG umzuordnen** | Verschiebt den Antrag in eine andere EEG (siehe Abschnitt unten) |
 
 ## E-Mail-Bestätigung (`email_confirmed`)
 
@@ -95,7 +95,7 @@ Wenn Angaben fehlen oder unklar sind:
 1. Klicke auf **Rückfragen stellen**
 2. Gib den Grund / die Rückfrage ein — der blaue Hinweis im Dialog erinnert daran: **„Der hier eingegebene Text wird per E-Mail an den Beitrittswerber übermittelt"**
 3. Das Mitglied erhält eine E-Mail mit deiner Rückfrage 1:1 im Body und kann seinen Antrag ergänzen
-4. **Hard-Fail (PROJ-43, ab 2026-05-17):** scheitert der SMTP-Versand, wird der Statuswechsel zurückgerollt und du siehst die Fehlermeldung direkt im Dialog. Status bleibt unverändert, du kannst nach SMTP-Recovery erneut klicken
+4. **Hard-Fail (ab 2026-05-17):** scheitert der SMTP-Versand, wird der Statuswechsel zurückgerollt und du siehst die Fehlermeldung direkt im Dialog. Status bleibt unverändert, du kannst nach SMTP-Recovery erneut klicken
 
 Nach der Ergänzung durch das Mitglied wechselt der Status automatisch zurück auf `submitted`.
 
@@ -114,7 +114,7 @@ Wenn ein Antrag nicht genehmigt werden kann:
 
 1. Klicke auf **Ablehnen**
 2. Gib einen Ablehnungsgrund an — der blaue Hinweis im Dialog erinnert daran: **„Die hier eingegebene Begründung wird per E-Mail an den Beitrittswerber übermittelt"**
-3. Das Mitglied erhält eine E-Mail mit deiner Begründung 1:1 im Body (PROJ-41)
+3. Das Mitglied erhält eine E-Mail mit deiner Begründung 1:1 im Body
 4. **Hard-Fail:** gleiches Verhalten wie bei Rückfragen — Mail-Fehler rollt den Statuswechsel zurück
 
 ## Import in eegFaktura
@@ -136,7 +136,7 @@ Nach der Genehmigung kann der Antrag in eegFaktura importiert werden:
 
 > **Hinweis:** Der Import kann bei technischen Problemen mit eegFaktura fehlschlagen. In diesem Fall prüfe den Fehlerhinweis und wiederhole den Import, sobald das Problem behoben ist.
 
-## Hängengebliebener Import (PROJ-34)
+## Hängengebliebener Import
 
 Wenn ein Import-Versuch nicht sauber abschließt — z.B. weil eine Datenbank-Eindeutigkeitsverletzung den Bookkeeping-Schritt nach dem Core-Aufruf scheitern lässt, oder weil das Onboarding-Backend mitten im Import abstürzt — bleibt der Antrag im Status `approved`, kann aber nicht erneut importiert werden (das System meldet 409 „Import läuft bereits").
 
@@ -162,13 +162,13 @@ Wenn ein bereits importierter Teilnehmer im eegFaktura-Core gelöscht wurde (z. 
 >
 > **Endzustand `activated` nicht resetbar:** ein aktives Mitglied muss zuerst im eegFaktura-Core deaktiviert werden — das Onboarding entfernt es nicht still.
 
-## Post-Import-Stati (PROJ-46)
+## Post-Import-Stati
 
 Nach erfolgreichem Import läuft der Antrag automatisch in einen der beiden Wartezustände, abhängig von der gewählten Einzugsart:
 
 ### `awaiting_bank_confirmation` — nur bei B2B-SEPA-Firmenlastschrift
 
-Der Antrag landet hier, wenn `einzugsart=b2b` gesetzt ist. Das Mitglied hat per E-Mail das B2B-Firmenlastschrift-Mandat (mit eingedruckter Mandatsreferenz = Mitgliedsnummer, PROJ-47) bekommen — und wurde aufgefordert, das Mandat seiner Hausbank vorzulegen. **Seit PROJ-53** kommt mit dem Mandat eine schlanke Begleitmail („Anlage Mandat — Beitrittsbestätigung folgt") statt der vollen Beitrittsbestätigung; die volle Beitrittsbestätigungs-Mail mit PDF erhält das Mitglied erst, wenn der Antrag auf `activated` wechselt. Im Antrags-Detail erscheint eine prominente amber Hinweisbox „Warte auf Bank-Bestätigung".
+Der Antrag landet hier, wenn `einzugsart=b2b` gesetzt ist. Das Mitglied hat per E-Mail das B2B-Firmenlastschrift-Mandat (mit eingedruckter Mandatsreferenz = Mitgliedsnummer) bekommen — und wurde aufgefordert, das Mandat seiner Hausbank vorzulegen. **Neuerdings** kommt mit dem Mandat eine schlanke Begleitmail („Anlage Mandat — Beitrittsbestätigung folgt") statt der vollen Beitrittsbestätigung; die volle Beitrittsbestätigungs-Mail mit PDF erhält das Mitglied erst, wenn der Antrag auf `activated` wechselt. Im Antrags-Detail erscheint eine prominente amber Hinweisbox „Warte auf Bank-Bestätigung".
 
 > **Hinweis (seit 2026-05-18):** Beide SEPA-Mandate (Basislastschrift CORE und B2B-Firmenlastschrift) zeigen im Unterschriftsfeld jetzt das **Datum der Übermittlung** als vorbefülltes „Datum". Das Mitglied trägt nur noch Ort + Unterschrift ein. Das gleiche Datum wird im Antrags-Detail unter „Mandatsdatum" angezeigt und beim Faktura-Import als Mandate-Date mitgeführt.
 
@@ -182,19 +182,19 @@ Der Antrag wird auf diesen Status gesetzt, sobald entweder (a) die Bank-Bestäti
 1. **Per Antrag manuell** — Klick auf **„Als aktiv markieren"** im Detail. Setzt den Status auf `activated` und stempelt `activated_at = NOW()`.
 2. **Per Batch im Core prüfen** — Klick auf **„Aktivierung im Core prüfen"** in der Antragsübersicht (siehe Datei `04-admin-applications.md`). Iteriert alle eigenen `ready_for_activation`-Anträge, fragt pro Tenant einmal beim Core nach (`GET /participant`), und transitioniert diejenigen Anträge automatisch auf `activated`, deren EDA-Kriterium erfüllt ist.
 
-**Welches EDA-Kriterium der Batch anwendet, ist pro EEG konfigurierbar (PROJ-53):**
+**Welches EDA-Kriterium der Batch anwendet, ist pro EEG konfigurierbar:**
 - **Variante A** (Default, `participant_active`): der Teilnehmer im Core hat den Status `ACTIVE`.
 - **Variante B** (`any_meter_registration_started`): mindestens ein Zählpunkt im Core hat den `processState` in PENDING/APPROVED/ACTIVE — sprich der Netzbetreiber hat auf die Online-Registrierung mindestens geantwortet. Damit aktivieren EEGs schon dann, wenn die EDA-Anmeldung läuft, ohne auf den Abschluss zu warten.
 
 Umschalten in den EEG-Einstellungen unter **„Aktivierungs-Kriterium"** (siehe `06-admin-settings.md`).
 
-In beiden Fällen erhält das Mitglied beim Wechsel auf `activated` die **volle Beitrittsbestätigungs-Mail mit PDF** (seit PROJ-53 — vorher kam beim `imported` die Beitrittsbestätigung und beim `activated` nur eine kurze Welcome-Mail; jetzt wird die volle Bestätigung erst hier versandt).
+In beiden Fällen erhält das Mitglied beim Wechsel auf `activated` die **volle Beitrittsbestätigungs-Mail mit PDF**.
 
 ### `activated` — Endzustand
 
 Aktives Mitglied. Keine weiteren Aktionen verfügbar. Kein Reset, keine Rückwärts-Übergänge. Deaktivierung erfolgt direkt im eegFaktura-Core.
 
-### Ausnahmefall: `approved → activated` (manueller Skip-Import, PROJ-53)
+### Ausnahmefall: `approved → activated` (manueller Skip-Import)
 
 In seltenen Fällen existiert das Mitglied im eegFaktura-Core bereits (etwa weil ein altes Mitglied seinen Antrag erneuert hat — Faktura erlaubt kein Löschen von Mitgliedern). Wenn du das Core-Mitglied dort manuell mit den Onboarding-Daten überschrieben hast, fehlt im Onboarding noch der Statuswechsel.
 
@@ -206,7 +206,7 @@ Im Detail einer `approved`-Anwendung erscheint dafür neben „In eegFaktura imp
 
 Der Status-Log enthält den Eintrag „manuell aktiviert (Core-Member bereits vorhanden, Import übersprungen)" mit der gesetzten Mitgliedsnummer.
 
-## EEG umzuordnen (PROJ-40)
+## EEG umzuordnen
 
 Wenn ein Mitglied über den falschen RC-Link der EEG A registriert hat, aber eigentlich zur EEG B gehört (z. B. weil das Versorgungsgebiet woanders hingehört), kann der Antrag direkt umzuordnen werden — ohne dass das Mitglied neu einreichen muss.
 

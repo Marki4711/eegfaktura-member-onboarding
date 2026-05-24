@@ -10,7 +10,7 @@ Nach der Anmeldung siehst du die **Antragsübersicht** mit allen eingereichten A
 
 Rechts oben in der Übersicht stehen dir zwei Aktionen zur Verfügung:
 
-- **„Aktivierung im Core prüfen"** *(PROJ-46 Stage D, PROJ-53)* — fragt für alle Anträge im Status „Bereit zur Aktivierung" beim eegFaktura-Core nach. Das **Auslöse-Kriterium** ist seit PROJ-53 pro EEG konfigurierbar (Einstellungen → „Aktivierungs-Kriterium"):
+- **„Aktivierung im Core prüfen"** — fragt für alle Anträge im Status „Bereit zur Aktivierung" beim eegFaktura-Core nach. Das **Auslöse-Kriterium** ist pro EEG konfigurierbar (Einstellungen → „Aktivierungs-Kriterium"):
   - *Variante A* (Default): Mitglied im Core ist auf Status `ACTIVE`.
   - *Variante B*: mindestens ein Zählpunkt im Core hat `processState` in PENDING/APPROVED/ACTIVE (Netzbetreiber hat geantwortet).
 
@@ -41,7 +41,7 @@ Die Mitgliedsnummer ist nicht in der Liste, sondern erst in der Detailansicht ei
 | **EEG** | Nur Anträge einer bestimmten EEG anzeigen (erscheint nur bei Admins mit mehreren EEGs) |
 | **Eingereicht ab / bis** | Zeitraum der Einreichung (Datumsbereich) |
 
-## Massenaktionen (PROJ-25)
+## Massenaktionen
 
 ![Mehrere Anträge selektiert, Aktionsleiste sichtbar](images/admin-bulk-actions.png)
 
@@ -114,6 +114,6 @@ Wenn ein Mitglied einen Antrag begonnen, aber nie eingereicht hat (Status `draft
 
 Falls ein Mitglied die Bestätigungs-E-Mail nicht erhalten hat, kannst du diese über den Button **E-Mail erneut senden** in der Detailansicht nochmals versenden.
 
-## EEG umzuordnen (PROJ-40)
+## EEG umzuordnen
 
-Falls ein Antrag fälschlich der falschen EEG zugeordnet wurde (Mitglied hat den falschen RC-Link verwendet), kann er als Admin direkt umzuordnen werden — ohne dass das Mitglied neu einreichen muss. Verfügbar nur für Admins mit Zugriff auf mehrere EEGs und nur solange der Antrag in der Review-Phase ist (`submitted` / `email_confirmed` / `under_review` / `needs_info`). Detail-Beschreibung siehe [Statusverwaltung → EEG umzuordnen](05-admin-status.md#eeg-umzuordnen-proj-40).
+Falls ein Antrag fälschlich der falschen EEG zugeordnet wurde (Mitglied hat den falschen RC-Link verwendet), kann er als Admin direkt umzuordnen werden — ohne dass das Mitglied neu einreichen muss. Verfügbar nur für Admins mit Zugriff auf mehrere EEGs und nur solange der Antrag in der Review-Phase ist (`submitted` / `email_confirmed` / `under_review` / `needs_info`). Detail-Beschreibung siehe [Statusverwaltung → EEG umzuordnen](05-admin-status.md#eeg-umzuordnen).

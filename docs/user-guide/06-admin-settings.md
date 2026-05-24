@@ -46,11 +46,11 @@ Neun Werte werden direkt aus eegFaktura übernommen und sind in der Onboarding-O
 
 - **SEPA-Mandat von der EEG bereitstellen**: Wenn aktiv, generiert das Onboarding automatisch ein SEPA-Mandats-PDF.
 - **Firmenlastschrift (B2B) für Unternehmen und Gemeinden anbieten**: Erscheint nur wenn SEPA aktiv ist. Aktiviere diese Option, wenn Unternehmen und Gemeinden ein B2B-Mandat erhalten sollen. Welche Mandats-Variante (Basislastschrift CORE oder Firmenlastschrift B2B) ein konkreter Antrag bekommt, wird **nicht** automatisch aus dem Mitgliedstyp abgeleitet — die Wahl trifft die Admin pro Antrag über das Feld „Einzugsart" (`core` / `b2b` / `kein_sepa`, Default `core`).
-- **SEPA-Mandat erst beim Import erzeugen** *(PROJ-48)*: Wenn aktiv, wird das Mandat **nicht** dem Willkommensmail beigelegt, sondern erst beim Import mit der zugewiesenen Mitgliedsnummer als Mandatsreferenz ausgegeben. Sinnvoll, wenn du digitale Signatur (z. B. ID Austria) einsetzt — ein signiertes PDF darf nicht mehr verändert werden, daher muss die Mandatsreferenz vor der Signatur eingedruckt sein. Im Registrierungsformular erscheint dann ein erklärender Hinweis, dass das Mandat später folgt.
+- **SEPA-Mandat erst beim Import erzeugen**: Wenn aktiv, wird das Mandat **nicht** dem Willkommensmail beigelegt, sondern erst beim Import mit der zugewiesenen Mitgliedsnummer als Mandatsreferenz ausgegeben. Sinnvoll, wenn du digitale Signatur (z. B. ID Austria) einsetzt — ein signiertes PDF darf nicht mehr verändert werden, daher muss die Mandatsreferenz vor der Signatur eingedruckt sein. Im Registrierungsformular erscheint dann ein erklärender Hinweis, dass das Mandat später folgt.
 
 > **Hinweis:** Wenn das SEPA-Mandat aktiviert ist, aber Stammdaten fehlen, erscheint eine Warnung. Solange Felder fehlen, wird kein PDF generiert.
 
-### Genossenschaftsanteile (PROJ-37)
+### Genossenschaftsanteile
 
 Nur relevant für EEGs, deren Rechtsträger eine Genossenschaft ist:
 
@@ -62,7 +62,7 @@ Beide Wert-Felder sind nur sichtbar, wenn der Toggle aktiv ist. Änderungen wirk
 
 Die Anteilsinformation wird **nicht** an eegFaktura übertragen — sie ist reine Onboarding-Erfassung als Buchhaltungs-Beleg.
 
-### Zählpunkt-Prefixes (PROJ-52)
+### Zählpunkt-Prefixes
 
 Mitglieder müssen heute eine 33-stellige Zählpunktnummer eintippen. Wenn die Zählpunkte deiner EEG mehrheitlich vom selben Netzbetreiber + Postleitzahl-Bereich kommen, kannst du hier den festen Anfang vorgeben — das Mitglied tippt dann nur noch die individuellen letzten Stellen.
 
@@ -80,7 +80,7 @@ Mitglieder müssen heute eine 33-stellige Zählpunktnummer eintippen. Wenn die Z
 - Beim Verlassen des Eingabefelds werden fehlende Stellen zwischen Prefix und Mitglieds-Eingabe mit führenden Nullen aufgefüllt (z. B. tippt das Mitglied `12345` und bekommt nach dem Klick weg `[Prefix]000000000012345`).
 - Backend prüft beim Submit zusätzlich, dass jeder Zählpunkt mit dem konfigurierten Prefix der jeweiligen Richtung beginnt (defense-in-depth).
 
-### Aktivierungs-Kriterium (PROJ-53)
+### Aktivierungs-Kriterium
 
 Steuert, wann eine Anwendung von **„Bereit zur Aktivierung"** auf **„Aktiviert"** wechselt. Beim Übergang auf „Aktiviert" wird automatisch die volle Beitrittsbestätigungs-Mail mit PDF an das Mitglied versandt (und eine Kopie an den EEG-Contact).
 
@@ -133,12 +133,12 @@ Für jedes Feld stehen vier Zustände zur Verfügung:
 | **Verpflichtend** | Das Feld muss vom Mitglied ausgefüllt werden. |
 | **Admin-Vorbefüllung** | Das Feld wird nicht im Formular angezeigt. Stattdessen wird der hier eingetragene Standardwert automatisch auf neue Anträge angewendet. |
 
-### Typabhängige Sichtbarkeit (PROJ-45, Badges)
+### Typabhängige Sichtbarkeit (Badges)
 
 Neben einigen Feldern stehen farbige **Badges**, die dir sofort zeigen, **unter welcher Bedingung** das Feld im Formular wirklich greift — auch wenn du es hier auf **Verpflichtend** stellst:
 
-- **`[Verbraucher]`** *(blau)* — wird nur angezeigt, wenn der Zählpunkt CONSUMPTION ist (PROJ-49) bzw. der Antrag mindestens einen Verbraucher-Zählpunkt enthält (Application-Scope). Felder: Wärmepumpe, E-Auto, Anzahl E-Fahrzeuge, Jahres-Kilometer, Warmwasser elektrisch, Personen im Haushalt, Verbrauch Vorjahr, Verbrauch Prognose.
-- **`[Einspeisung]`** *(amber)* — wird nur bei Erzeuger-Zählpunkten angezeigt (PROJ-49). Felder: Einspeisung Prognose (alle Erzeugungsformen).
+- **`[Verbraucher]`** *(blau)* — wird nur angezeigt, wenn der Zählpunkt CONSUMPTION ist bzw. der Antrag mindestens einen Verbraucher-Zählpunkt enthält (Application-Scope). Felder: Wärmepumpe, E-Auto, Anzahl E-Fahrzeuge, Jahres-Kilometer, Warmwasser elektrisch, Personen im Haushalt, Verbrauch Vorjahr, Verbrauch Prognose.
+- **`[Einspeisung]`** *(amber)* — wird nur bei Erzeuger-Zählpunkten angezeigt. Felder: Einspeisung Prognose (alle Erzeugungsformen).
 - **`[PV]`** *(orange, zusätzlich)* — gilt zusätzlich zu `[Einspeisung]` für Felder, die nur bei Erzeugungsform „PV" sinnvoll sind. Felder: Größe Batterie (kWh), Hersteller Wechselrichter, PV-Leistung (kWp), Einspeiselimit (kW).
 - **`[+E-Auto]`** *(lila, zusätzlich)* — gilt zusätzlich zu `[Verbraucher]` für Felder, die nur greifen, wenn das Mitglied „E-Auto vorhanden" mit Ja beantwortet hat. Felder: Anzahl E-Fahrzeuge, Jahres-Kilometer.
 - **`[+Speicher]`** *(grün, zusätzlich)* — gilt zusätzlich zu `[Einspeisung] [PV]` für Felder, die im Mitgliedsformular hinter dem Master-Toggle „Batteriespeicher vorhanden" gruppiert sind. Felder: Größe Batterie (kWh), Hersteller Wechselrichter, Speichersteuerung im Sinne der EEG vorstellbar?. Hinweis: Die Pflicht-Validierung der Speichersteuerungs-Frage greift zusätzlich nur dann, wenn das Mitglied tatsächlich Batterie-Daten gesetzt hat.
@@ -147,13 +147,13 @@ Neben jedem Feld mit Badge steht ein kleines **Info-Icon** — Klick/Hover zeigt
 
 ### Spezielle konfigurierbare Felder
 
-- **Netzbetreiber-Vollmacht** *(PROJ-44, Application-Scope)* — das Mitglied erteilt der EEG die Vollmacht, in seinem Namen mit dem Netzbetreiber zu agieren (notwendig z. B. bei Netz OÖ). Der Volltext der Vollmacht ist **fest im Code** und kann hier nicht editiert werden — du steuerst lediglich, ob die Checkbox überhaupt erscheinen soll. Default: `Ausgeblendet`. Bei `Verpflichtend` muss das Mitglied das Häkchen aktiv setzen, sonst wird der Antrag nicht submitted.
-- **Größe Batterie (kWh) / Hersteller Wechselrichter** *(PROJ-45, Zählpunkt-Scope)* — sammeln Speicher- und WR-Daten für PV-Erzeuger-Zählpunkte, um die EEG-Bewirtschaftung zu optimieren. Im Mitgliedsformular gruppiert hinter dem Master-Toggle „Batteriespeicher vorhanden". Default: `Ausgeblendet`.
-- **Speichersteuerung im Sinne der EEG vorstellbar?** *(PROJ-49 follow-up, Zählpunkt-Scope, nur PV)* — Mitglied-Einverständnis, dass die EEG den Heimspeicher gemeinsam mit anderen Speichern der Mitglieder steuern darf. Sichtbar im Mitgliedsformular nur, wenn das Mitglied den Master-Toggle „Batteriespeicher vorhanden" aktiviert hat. Default: `Ausgeblendet`. Auf `Verpflichtend` setzen, wenn ohne Einverständnis kein Antrag möglich sein soll (greift jedoch nur, wenn das Mitglied tatsächlich einen Speicher angegeben hat — sonst wird die Frage gar nicht erst gestellt).
-- **Verbrauch Vorjahr / Verbrauch Prognose** *(PROJ-49, Zählpunkt-Scope)* — Energiewerte pro Verbraucher-Zählpunkt. Default: `Ausgeblendet`.
-- **Einspeisung Prognose** *(PROJ-49, Zählpunkt-Scope)* — jährliche Einspeise-Prognose pro Erzeuger-Zählpunkt (alle Erzeugungsformen). Default: `Ausgeblendet`.
-- **PV-Leistung (kWp)** *(PROJ-49, Zählpunkt-Scope, nur PV)* — installierte Spitzenleistung pro PV-Zählpunkt. Default: `Ausgeblendet`.
-- **Einspeiselimit (kW)** *(PROJ-49, Zählpunkt-Scope, nur PV)* — maximal zulässige Einspeiseleistung, wenn der Netzanschluss begrenzt ist. Mitglied wählt zuerst Ja/Nein und gibt bei Ja den Wert in kW ein. Default: `Ausgeblendet`.
+- **Netzbetreiber-Vollmacht** *(Application-Scope)* — das Mitglied erteilt der EEG die Vollmacht, in seinem Namen mit dem Netzbetreiber zu agieren (notwendig z. B. bei Netz OÖ). Der Volltext der Vollmacht ist **fest im Code** und kann hier nicht editiert werden — du steuerst lediglich, ob die Checkbox überhaupt erscheinen soll. Default: `Ausgeblendet`. Bei `Verpflichtend` muss das Mitglied das Häkchen aktiv setzen, sonst wird der Antrag nicht submitted.
+- **Größe Batterie (kWh) / Hersteller Wechselrichter** *(Zählpunkt-Scope)* — sammeln Speicher- und WR-Daten für PV-Erzeuger-Zählpunkte, um die EEG-Bewirtschaftung zu optimieren. Im Mitgliedsformular gruppiert hinter dem Master-Toggle „Batteriespeicher vorhanden". Default: `Ausgeblendet`.
+- **Speichersteuerung im Sinne der EEG vorstellbar?** *(Zählpunkt-Scope, nur PV)* — Mitglied-Einverständnis, dass die EEG den Heimspeicher gemeinsam mit anderen Speichern der Mitglieder steuern darf. Sichtbar im Mitgliedsformular nur, wenn das Mitglied den Master-Toggle „Batteriespeicher vorhanden" aktiviert hat. Default: `Ausgeblendet`. Auf `Verpflichtend` setzen, wenn ohne Einverständnis kein Antrag möglich sein soll (greift jedoch nur, wenn das Mitglied tatsächlich einen Speicher angegeben hat — sonst wird die Frage gar nicht erst gestellt).
+- **Verbrauch Vorjahr / Verbrauch Prognose** *(Zählpunkt-Scope)* — Energiewerte pro Verbraucher-Zählpunkt. Default: `Ausgeblendet`.
+- **Einspeisung Prognose** *(Zählpunkt-Scope)* — jährliche Einspeise-Prognose pro Erzeuger-Zählpunkt (alle Erzeugungsformen). Default: `Ausgeblendet`.
+- **PV-Leistung (kWp)** *(Zählpunkt-Scope, nur PV)* — installierte Spitzenleistung pro PV-Zählpunkt. Default: `Ausgeblendet`.
+- **Einspeiselimit (kW)** *(Zählpunkt-Scope, nur PV)* — maximal zulässige Einspeiseleistung, wenn der Netzanschluss begrenzt ist. Mitglied wählt zuerst Ja/Nein und gibt bei Ja den Wert in kW ein. Default: `Ausgeblendet`.
 - **Bankname** *(Application-Scope, ab 2026-05-18 konfigurierbar)* — bisher fix im Bankverbindungsblock angezeigt. Default `Optional` (bewahrt heutiges Verhalten). Auf `Ausgeblendet` setzen, wenn IBAN+Kontoinhaber genügen sollen; auf `Verpflichtend`, wenn der Bankname explizit gefordert ist (z. B. weil die EEG bei Auslandsüberweisungen die Bank kennen will).
 - **Teilnahmefaktor (%)** *(Zählpunkt-Scope, ab 2026-05-19 konfigurierbar)* — bisher fix sichtbar im Mitgliedsformular, vorbelegt mit 100 %. Default `Optional` (bewahrt heutiges Verhalten — Mitglied sieht das Feld und kann den Wert ändern). Bei `Ausgeblendet` oder `Admin-Vorbefüllung` ist das Feld im Formular weg und der Wert wird serverseitig automatisch auf **100 %** gesetzt. Bei `Verpflichtend` bleibt das Feld sichtbar und mit 100 % vorbelegt — der Default macht den Wert technisch nie leer, das Pflicht-Häkchen erinnert das Mitglied nur, hinzuschauen. **In allen Modi** zeigen Beitrittsbestätigungs-PDF, Mail und Excel-Export den Teilnahmefaktor unverändert — der Toggle steuert nur die Public-Form-Sichtbarkeit, nicht die Render-Pfade.
 
@@ -205,7 +205,7 @@ Dieser Abschnitt zeigt den API-Key für die externe Registrierungs-API. Der Key 
 
 ![Datenweiterleitung](images/admin-settings-datenweiterleitung.png)
 
-Asynchrone Weitergabe von Antragsdaten an externe Systeme (PROJ-60). Aktuell verfügbar:
+Asynchrone Weitergabe von Antragsdaten an externe Systeme. Aktuell verfügbar:
 
 - **Excel/CSV-Export** — generiert eine Datei mit konfigurierbarem Feldsatz; pro-EEG anpassbar (welche Felder enthalten sind, in welcher Reihenfolge, mit welcher Spaltenüberschrift).
 - Weitere Plugins (Zoho, HubSpot, …) lassen sich später als zusätzliche Implementierungen ergänzen — der Mechanismus dahinter ist generisch.
@@ -231,7 +231,7 @@ Auf dieser Seite siehst du den Verlauf aller Jobs (Status, Anzahl Anträge, Zeit
 
 ![Konfiguration Import/Export](images/admin-settings-import-export.png)
 
-Sicherung und Übertragung der per-EEG-Konfiguration als versionierte JSON-Datei (PROJ-61). Nützlich um:
+Sicherung und Übertragung der per-EEG-Konfiguration als versionierte JSON-Datei. Nützlich um:
 
 - mehrere EEGs auf eine gemeinsame Grund-Konfiguration zu bringen,
 - vor einem riskanten Apply den Ist-Zustand zu sichern,
