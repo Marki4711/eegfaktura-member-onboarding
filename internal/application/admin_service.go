@@ -990,7 +990,10 @@ func (s *AdminApplicationService) SendActivationNotification(appID uuid.UUID) {
 	pdfBytes, pdfErr := s.approvalPDFGenerator.GenerateApproval(pdfData)
 	pdfFailed := pdfErr != nil
 	if pdfFailed {
-		slog.Error("activation mail: failed to generate PDF", "application_id", appID, "error", pdfErr)
+		// PDF-Fehler wird per `pdfFailed`-Flag an SendActivationNotification
+		// weitergereicht (Mail geht trotzdem raus, ohne PDF-Attachment).
+		// Caller-Pfad weiß Bescheid → Warn statt Error.
+		slog.Warn("activation mail: failed to generate PDF", "application_id", appID, "error", pdfErr)
 	}
 
 	if err := s.mailService.SendActivationNotification(reloadedApp, entrypoint, pdfBytes, pdfFailed); err != nil {

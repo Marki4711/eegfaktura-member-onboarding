@@ -10,6 +10,28 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Welle 11 — Severity-Drift + Tot-Code in metrics *(2026-05-24)*
+
+Sub-Tickets **3d + 3e** aus AUDIT-TODO. Reine Cleanup-Welle.
+
+- `internal/metrics/metrics.go`: `statusClassFromString()` (toter Helper
+  mit `var _ = ...`-Suppressor) gelöscht; ungenutzten `strconv`-Import
+  mit entfernt.
+- 3 `slog.Error` → `slog.Warn` umgestellt, wo der Caller noch
+  Kontext-/Recovery-Möglichkeit hat:
+  - `internal/dataexport/worker.go:135` (Pickup-DB-Fehler, retried im
+    nächsten Tick)
+  - `internal/mail/service.go:603` (EEG-Template-Render-Fail, Member-Mail
+    läuft separat weiter)
+  - `internal/application/admin_service.go:993` (PDF-Gen-Fail wird per
+    Flag an SendActivationNotification gereicht, Mail geht ohne Attachment)
+- Konvention etabliert: `slog.Error` nur für Pfade ohne weiteren
+  Caller-Kontext.
+
+§4b (composite-Index) bewusst nicht angefasst — Audit-Eintrag sagt
+selbst „nicht ohne EXPLAIN-Daten"; verschärft §4c (Write-Amplification
+auf der 14-Index-Tabelle). Wandert in §4a-Folge (Operator-Action).
+
 ### Welle 10 — E2E-Auth-Fixture (Header-basierte Test-Claims) *(2026-05-24)*
 
 Sub-Ticket **5h** aus AUDIT-TODO. Schaltet authenticated-Pfade in

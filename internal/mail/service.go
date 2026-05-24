@@ -600,7 +600,9 @@ func (s *SMTPMailService) SendEEGNotification(app *shared.Application, meteringP
 
 	var eegBuf bytes.Buffer
 	if err := s.eegTpl.Execute(&eegBuf, tplData); err != nil {
-		slog.Error("mail: failed to render EEG template", "application_id", app.ID, "error", err)
+		// Caller-Context vorhanden (Submit-Pfad); EEG-Notification ist
+		// best-effort, member confirmation läuft separat. Warn statt Error.
+		slog.Warn("mail: failed to render EEG template", "application_id", app.ID, "error", err)
 		return
 	}
 

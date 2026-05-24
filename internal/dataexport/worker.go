@@ -132,7 +132,9 @@ func (w *Worker) loop(ctx context.Context, workerID int) {
 func (w *Worker) tryPickup(ctx context.Context, workerID int) {
 	job, err := w.jobRepo.PickupQueued()
 	if err != nil {
-		slog.Error("dataexport: pickup failed", "worker", workerID, "error", err)
+		// Transienter DB-Fehler in der Pickup-Schleife; nächster Tick versucht es
+		// erneut. Kein Alert-würdiges Event → Warn statt Error.
+		slog.Warn("dataexport: pickup failed", "worker", workerID, "error", err)
 		return
 	}
 	if job == nil {

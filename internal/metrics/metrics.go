@@ -11,8 +11,6 @@
 package metrics
 
 import (
-	"strconv"
-
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -105,14 +103,3 @@ func StatusClass(code int) string {
 	}
 }
 
-// statusClassFromString is here to keep callers concise where the status
-// is already stringified for logging.
-func statusClassFromString(s string) string {
-	n, err := strconv.Atoi(s)
-	if err != nil {
-		return "other"
-	}
-	return StatusClass(n)
-}
-
-var _ = statusClassFromString // reserved for future callers
