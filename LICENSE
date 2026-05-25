@@ -5,10 +5,8 @@ This software and all associated source code, documentation, configuration,
 build artifacts, container images, and Helm charts (collectively, the
 "Software") are the proprietary work of Matthias Martetschläger.
 
-No license, express or implied, is granted by this file. The Software is
-made available for the sole purpose of operating the eegFaktura Member
-Onboarding component in connection with the eegFaktura product and may
-not be used, copied, modified, merged, published, distributed,
+No license, express or implied, is granted by this file. The Software
+may not be used, copied, modified, merged, published, distributed,
 sublicensed, or sold without the prior written permission of the
 copyright holder.
 
@@ -16,26 +14,13 @@ Unauthorized reproduction or distribution of this Software, or any
 portion of it, may result in civil and criminal penalties, and will be
 prosecuted to the maximum extent possible under applicable law.
 
+Any prior version of this LICENSE file that purported to grant rights
+to specific third parties is withdrawn from any future acceptance.
+Existing operational use is permitted only under the terms of a
+separately concluded written agreement with the copyright holder.
+
 For third-party components included with the Software, see
 THIRD_PARTY_NOTICES.md.
-
-
-GRANT OF RIGHTS TO VfEEG
-========================
-
-Notwithstanding the "All Rights Reserved" clause above, the copyright
-holder hereby grants to the Verein für Erneuerbare Energie-Gemeinschaften
-(VfEEG) a perpetual, worldwide, royalty-free, non-exclusive, irrevocable
-license to use, reproduce, modify, distribute, sublicense, deploy, and
-commercially exploit the Software, including the right to grant further
-licenses to VfEEG's customers and partners as part of the eegFaktura
-product offering.
-
-This grant covers all past, present, and future versions of the Software
-contributed by the copyright holder, and survives any change in ownership,
-employment, or contractual relationship between the copyright holder and
-VfEEG. The grant does not transfer copyright ownership, which remains with
-the copyright holder.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
 OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
