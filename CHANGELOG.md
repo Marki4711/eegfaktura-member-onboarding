@@ -10,6 +10,53 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Bugfix — Core-Import: Tarif + Netzbetreiber pro Zählpunkt *(2026-05-25)*
+
+Zwei stillschweigende Daten-Lücken im `POST /participant`-Payload an
+den eegFaktura-Core, die dazu führten, dass importierte Mitglieder im
+Core ohne Meter-Tarif und ohne Netzbetreiber-Zuordnung landeten.
+
+**Bug 1 — Meter-Tarif wurde im Core verworfen.**
+`CoreMeteringPoint.TariffID` trug den snake_case-JSON-Tag `tariff_id`,
+der Core-Vertrag (`model.MeteringPoint`) verwendet aber camelCase
+`tariffId`. Das Feld wurde beim Insert ignoriert, Zählpunkte landeten
+ohne Tarif, der Admin musste jeden Meter im Core-UI nachträglich
+zuweisen.
+
+**Bug 2 — `gridOperatorId` / `gridOperatorName` fehlten komplett.**
+Im Onboarding-Payload war keinerlei Netzbetreiber-Information
+enthalten. Im Core-UI hatten die Zählpunkte des Mitglieds keine
+Operator-Zuordnung, und nachgelagertes EDA-Routing hatte keine
+Adressierung.
+
+Auflösung folgt dem E-Control-Standard: die Operator-ID sind die
+ersten 8 Zeichen der Zählpunktnummer (`AT` + 6-stelliger Code, z.B.
+`AT003000` = Netz Oberösterreich). Der Operator-Name wird im
+Import-Moment gegen den neuen `GET /api/eeg/gridoperators`-Lookup
+des Cores aufgelöst. **Jeder Zählpunkt wird unabhängig aufgelöst** —
+zwingend für BEGs (Bürgerenergie­gemeinschaften), deren Zählpunkte
+über mehrere Netzgebiete verteilt sein können.
+
+Weder ID noch Name werden lokal persistiert; beide werden pro Import
+neu abgeleitet. Best-effort-Lookup: wenn `/eeg/gridoperators` nicht
+erreichbar ist, läuft der Import mit Id-only weiter (Name bleibt
+leer), statt den Import abzubrechen.
+
+Touchpoints:
+- `internal/importing/payload.go` — Tag-Fix + `GridOperatorID/Name`-
+  Felder + `deriveGridOperatorID`-Helper.
+- `internal/coreclient/core_client.go` — `ListGridOperators` auf
+  `CoreClient`-Interface + `HTTPCoreClient`-Implementierung.
+- `internal/importing/import_service.go` — Operator-Map einmal pro
+  Import vor `BuildPayload` ziehen.
+- `internal/importing/payload_test.go` — drei neue Tests:
+  Regression-Guard auf camelCase, GridOperator-Ableitung über mehrere
+  Netzgebiete (inkl. malformed-Meter), nil-Map-Fallback.
+
+Feature-Idee notiert (Backlog `docs/FEATURE-IDEAS.md`): bei regionalen
+EEGs prüfen, ob die Operator-ID des Zählpunkts überhaupt im Netzgebiet
+der EEG liegt — verhindert Fehl-Anmeldungen. BEGs bleiben ausgenommen.
+
 ### PROJ-63 — Follow-up: Firmenbuchnummer-/UID-Label-Alignment *(2026-05-24)*
 
 Owner-Beobachtung im Test-Deploy: die Firmenbuchnummer-Zelle saß ein

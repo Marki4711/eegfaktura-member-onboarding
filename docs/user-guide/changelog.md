@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-05-25
+
+**Bug-Fix: Tarif und Netzbetreiber fehlen nach Import im eegFaktura-Core**
+
+Beim Import eines Mitglieds in den eegFaktura-Core wurden zwei Felder pro Zählpunkt nicht korrekt übergeben — mit dem Ergebnis, dass importierte Mitglieder im Core ohne den im Onboarding ausgewählten **Meter-Tarif** und ohne **Netzbetreiber-Zuordnung** angelegt wurden. Der Admin musste beides nachträglich im Core-UI manuell ergänzen.
+
+Behoben:
+
+- **Meter-Tarif** wird jetzt korrekt mitgesendet und pro Zählpunkt im Core gesetzt.
+- **Netzbetreiber-ID** wird aus der Zählpunktnummer abgeleitet (E-Control-Standard: `AT` + 6-stelliger Netzbetreiber-Code, z. B. `AT003000` = Netz Oberösterreich). **Netzbetreiber-Name** wird zusätzlich aus dem Core-Stamm aufgelöst.
+
+**Wichtig für BEGs (Bürgerenergiegemeinschaften):** jeder Zählpunkt wird unabhängig aufgelöst — Zählpunkte aus mehreren Netzgebieten in einer Mitgliedschaft funktionieren ohne Sonderkonfiguration.
+
+→ Bereits importierte Mitglieder sind nicht betroffen; der Fix wirkt nur auf Neu-Importe. Bestehende Einträge ohne Tarif/Netzbetreiber im Core bleiben unverändert und müssen weiterhin manuell nachgezogen werden (oder per `/reset-import` → erneuter Import).
+
+---
+
 ## 2026-05-24
 
 **Saubere Erfassung: „Umsatzsteuerpflichtig?"-Checkbox bei Unternehmen + Vereinen**
