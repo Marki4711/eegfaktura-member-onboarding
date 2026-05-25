@@ -10,28 +10,37 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
-### Bugfix — Core-Import: Tarif + Netzbetreiber pro Zählpunkt *(2026-05-25)*
+### Fix — Stammdaten-Sync: EEG-Name aus `description` statt `name` *(2026-05-25)*
 
-Zwei stillschweigende Daten-Lücken im `POST /participant`-Payload an
-den eegFaktura-Core, die dazu führten, dass importierte Mitglieder im
-Core ohne Meter-Tarif und ohne Netzbetreiber-Zuordnung landeten.
+Im Admin-Bereich „Stammdaten" zeigte das Feld **EEG-Name** den kurzen
+internen Handle aus dem Core (z.B. `EEG-TEST`) statt der
+beschreibenden Bezeichnung (`Testenergiegemeinschaft EEG 1234`).
+Ursache: der GraphQL-Sync hat `eeg.name` gelesen — dieses Feld ist
+aber im Core ein technischer Handle ≙ `rcNumber`. Die Klar-Bezeichnung
+liegt in `eeg.description`.
 
-**Bug 1 — Meter-Tarif wurde im Core verworfen.**
-`CoreMeteringPoint.TariffID` trug den snake_case-JSON-Tag `tariff_id`,
-der Core-Vertrag (`model.MeteringPoint`) verwendet aber camelCase
-`tariffId`. Das Feld wurde beim Insert ignoriert, Zählpunkte landeten
-ohne Tarif, der Admin musste jeden Meter im Core-UI nachträglich
-zuweisen.
+- `internal/coreclient/eeg_master_data.go` — `EEGMasterData.Name` →
+  `Description` (DTO-Feld umbenannt, JSON-Tag `description`).
+- `internal/http/admin.go` — beide Konsumenten umgezogen:
+  - `SyncFromCore` persistiert `core.Description` in
+    `registration_entrypoint.eeg_name`.
+  - `buildEEGSettingsComparison` (Synchron-Banner / Diff) vergleicht
+    ebenfalls gegen `Description`.
+- `docs/domain-model.md` — Quell-Feld auf `eeg.description` aktualisiert.
 
-**Bug 2 — `gridOperatorId` / `gridOperatorName` fehlten komplett.**
-Im Onboarding-Payload war keinerlei Netzbetreiber-Information
-enthalten. Im Core-UI hatten die Zählpunkte des Mitglieds keine
-Operator-Zuordnung, und nachgelagertes EDA-Routing hatte keine
-Adressierung.
+Bestandsdaten in `eeg_name` werden beim nächsten Klick auf „Aus
+eegFaktura aktualisieren" automatisch korrigiert.
 
-Auflösung folgt dem E-Control-Standard: die Operator-ID sind die
+### Fix — Core-Import: Netzbetreiber pro Zählpunkt *(2026-05-25)*
+
+Im `POST /participant`-Payload an den eegFaktura-Core fehlten die
+Netzbetreiber-Felder pro Zählpunkt komplett. Im Core-UI hatten die
+Zählpunkte des importierten Mitglieds keine Operator-Zuordnung; das
+nachgelagerte EDA-Routing hatte keine Adressierung.
+
+Auflösung folgt dem E-Control-Standard: `gridOperatorId` sind die
 ersten 8 Zeichen der Zählpunktnummer (`AT` + 6-stelliger Code, z.B.
-`AT003000` = Netz Oberösterreich). Der Operator-Name wird im
+`AT003000` = Netz Oberösterreich). `gridOperatorName` wird im
 Import-Moment gegen den neuen `GET /api/eeg/gridoperators`-Lookup
 des Cores aufgelöst. **Jeder Zählpunkt wird unabhängig aufgelöst** —
 zwingend für BEGs (Bürgerenergie­gemeinschaften), deren Zählpunkte
@@ -43,19 +52,34 @@ erreichbar ist, läuft der Import mit Id-only weiter (Name bleibt
 leer), statt den Import abzubrechen.
 
 Touchpoints:
-- `internal/importing/payload.go` — Tag-Fix + `GridOperatorID/Name`-
-  Felder + `deriveGridOperatorID`-Helper.
+- `internal/importing/payload.go` — `GridOperatorID/Name`-Felder +
+  `deriveGridOperatorID`-Helper auf `CoreMeteringPoint`.
 - `internal/coreclient/core_client.go` — `ListGridOperators` auf
-  `CoreClient`-Interface + `HTTPCoreClient`-Implementierung.
+  `CoreClient`-Interface + `HTTPCoreClient`-Implementierung gegen
+  `GET /api/eeg/gridoperators`.
 - `internal/importing/import_service.go` — Operator-Map einmal pro
   Import vor `BuildPayload` ziehen.
-- `internal/importing/payload_test.go` — drei neue Tests:
-  Regression-Guard auf camelCase, GridOperator-Ableitung über mehrere
-  Netzgebiete (inkl. malformed-Meter), nil-Map-Fallback.
+- `internal/importing/payload_test.go` — neue Tests für
+  GridOperator-Ableitung über mehrere Netzgebiete (inkl.
+  malformed-Meter) und nil-Map-Fallback.
 
 Feature-Idee notiert (Backlog `docs/FEATURE-IDEAS.md`): bei regionalen
 EEGs prüfen, ob die Operator-ID des Zählpunkts überhaupt im Netzgebiet
 der EEG liegt — verhindert Fehl-Anmeldungen. BEGs bleiben ausgenommen.
+
+#### Sackgasse: Meter-Tarif-Casing — snake_case war richtig
+
+Parallel wurde der JSON-Tag `tariff_id` (snake_case) auf
+`CoreMeteringPoint.TariffID` kurzzeitig auf camelCase `tariffId`
+umgestellt, weil der lokale Core-Mirror (`model.MeteringPoint`)
+camelCase deklariert. Der deployte Core nimmt aber tatsächlich
+snake_case auf Meter-Ebene (verifiziert via Prod-Payload des Owners
+nachträglich) — die Änderung hat den Meter-Tarif beim Import gedroppt
+und wurde noch am selben Tag revertiert.
+
+Lesson learnt: der lokale Core-Mirror weicht vom deployten Core ab
+(siehe Memory `project_myeegfaktura_source.md`). Bei Wire-Feldern
+zählt eine echte Prod-Payload mehr als die Mirror-Struct-Tags.
 
 ### PROJ-63 — Follow-up: Firmenbuchnummer-/UID-Label-Alignment *(2026-05-24)*
 

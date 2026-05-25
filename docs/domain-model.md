@@ -56,7 +56,7 @@ Fields:
 
 **Core-mastered fields (PROJ-32 — synced from eegFaktura, read-only in the admin UI):**
 - `eeg_id` — Gemeinschafts-ID; used as the Excel-Export Spalte B value and for the eegFaktura import. Source: GraphQL `eeg.communityId`.
-- `eeg_name` — official name of the energy community. Source: `eeg.name`.
+- `eeg_name` — official name of the energy community. Source: `eeg.description` (descriptive long name, e.g. "Testenergiegemeinschaft EEG 1234"). Note: the core's `eeg.name` is a short internal handle equivalent to `rcNumber` (e.g. "EEG-TEST") and is not used here.
 - `eeg_street`, `eeg_street_number`, `eeg_zip`, `eeg_city` — EEG address. Source: `eeg.address.{street, streetNumber, zip, city}`.
 - `creditor_id` — SEPA creditor ID (max 35 chars). Source: `eeg.accountInfo.creditorId`.
 - `contact_email` — EEG notification recipient (admin-Benachrichtigung bei neuem Antrag). Source: `eeg.contact.email`.

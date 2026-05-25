@@ -6,6 +6,14 @@
 
 ## 2026-05-25
 
+**Bug-Fix: EEG-Name in Stammdaten zeigt die Klar-Bezeichnung**
+
+Im Admin-Bereich **Stammdaten** stand im Feld „EEG-Name" bisher der kurze interne Handle aus eegFaktura (z. B. `EEG-TEST`) statt der beschreibenden Bezeichnung (`Testenergiegemeinschaft EEG 1234`). Ursache: der Sync hat das falsche eegFaktura-Feld gelesen — den internen Handle statt der Beschreibung.
+
+Behoben: Klick auf **„Aus eegFaktura aktualisieren"** zieht jetzt die Klar-Bezeichnung. Bestandsdaten werden beim nächsten Klick automatisch überschrieben.
+
+→ [Admin-Einstellungen — Stammdaten](06-admin-settings.md)
+
 **Bug-Fix: Tarif und Netzbetreiber fehlen nach Import im eegFaktura-Core**
 
 Beim Import eines Mitglieds in den eegFaktura-Core wurden zwei Felder pro Zählpunkt nicht korrekt übergeben — mit dem Ergebnis, dass importierte Mitglieder im Core ohne den im Onboarding ausgewählten **Meter-Tarif** und ohne **Netzbetreiber-Zuordnung** angelegt wurden. Der Admin musste beides nachträglich im Core-UI manuell ergänzen.
