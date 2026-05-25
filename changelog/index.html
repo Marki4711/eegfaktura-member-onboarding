@@ -329,6 +329,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#2026-05-25" class="md-nav__link">
+    <span class="md-ellipsis">
+      2026-05-25
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#2026-05-24" class="md-nav__link">
     <span class="md-ellipsis">
       2026-05-24
@@ -611,6 +620,17 @@
 
 <h1 id="was-ist-neu">Was ist neu?<a class="headerlink" href="#was-ist-neu" title="Permanent link">&para;</a></h1>
 <p>Übersicht der Änderungen der letzten Tage, die für <strong>EEG-Admins</strong> und <strong>Mitglieder</strong> spürbar sind. Technische Details, Bug-Fixes ohne UI-Auswirkung und Infrastruktur-Themen sind hier bewusst weggelassen — die finden sich in der Commit-Historie.</p>
+<hr />
+<h2 id="2026-05-25">2026-05-25<a class="headerlink" href="#2026-05-25" title="Permanent link">&para;</a></h2>
+<p><strong>Bug-Fix: Tarif und Netzbetreiber fehlen nach Import im eegFaktura-Core</strong></p>
+<p>Beim Import eines Mitglieds in den eegFaktura-Core wurden zwei Felder pro Zählpunkt nicht korrekt übergeben — mit dem Ergebnis, dass importierte Mitglieder im Core ohne den im Onboarding ausgewählten <strong>Meter-Tarif</strong> und ohne <strong>Netzbetreiber-Zuordnung</strong> angelegt wurden. Der Admin musste beides nachträglich im Core-UI manuell ergänzen.</p>
+<p>Behoben:</p>
+<ul>
+<li><strong>Meter-Tarif</strong> wird jetzt korrekt mitgesendet und pro Zählpunkt im Core gesetzt.</li>
+<li><strong>Netzbetreiber-ID</strong> wird aus der Zählpunktnummer abgeleitet (E-Control-Standard: <code>AT</code> + 6-stelliger Netzbetreiber-Code, z. B. <code>AT003000</code> = Netz Oberösterreich). <strong>Netzbetreiber-Name</strong> wird zusätzlich aus dem Core-Stamm aufgelöst.</li>
+</ul>
+<p><strong>Wichtig für BEGs (Bürgerenergiegemeinschaften):</strong> jeder Zählpunkt wird unabhängig aufgelöst — Zählpunkte aus mehreren Netzgebieten in einer Mitgliedschaft funktionieren ohne Sonderkonfiguration.</p>
+<p>→ Bereits importierte Mitglieder sind nicht betroffen; der Fix wirkt nur auf Neu-Importe. Bestehende Einträge ohne Tarif/Netzbetreiber im Core bleiben unverändert und müssen weiterhin manuell nachgezogen werden (oder per <code>/reset-import</code> → erneuter Import).</p>
 <hr />
 <h2 id="2026-05-24">2026-05-24<a class="headerlink" href="#2026-05-24" title="Permanent link">&para;</a></h2>
 <p><strong>Saubere Erfassung: „Umsatzsteuerpflichtig?"-Checkbox bei Unternehmen + Vereinen</strong></p>
