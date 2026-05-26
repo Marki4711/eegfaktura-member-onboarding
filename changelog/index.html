@@ -329,6 +329,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#2026-05-26" class="md-nav__link">
+    <span class="md-ellipsis">
+      2026-05-26
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#2026-05-25" class="md-nav__link">
     <span class="md-ellipsis">
       2026-05-25
@@ -620,6 +629,16 @@
 
 <h1 id="was-ist-neu">Was ist neu?<a class="headerlink" href="#was-ist-neu" title="Permanent link">&para;</a></h1>
 <p>Übersicht der Änderungen der letzten Tage, die für <strong>EEG-Admins</strong> und <strong>Mitglieder</strong> spürbar sind. Technische Details, Bug-Fixes ohne UI-Auswirkung und Infrastruktur-Themen sind hier bewusst weggelassen — die finden sich in der Commit-Historie.</p>
+<hr />
+<h2 id="2026-05-26">2026-05-26<a class="headerlink" href="#2026-05-26" title="Permanent link">&para;</a></h2>
+<p><strong>Bug-Fix: Admin-Detail zeigt jetzt auch die Zusatzangaben</strong></p>
+<p>Im Antrags-Detail im Admin-Tool gab es bisher keine Anzeige für die konfigurierbaren Zusatzangaben (Beitrittsdatum, Personen im Haushalt, Wärmepumpe, E-Auto inkl. Anzahl + Jahres-km, Warmwasser elektrisch). Das Mitglied bekam diese Werte in seiner Submit-Bestätigungs-Mail aufgelistet, der Admin sah sie aber nirgends. Neue Karte „Zusatzangaben" rendert genau die Felder, die tatsächlich Werte enthalten — bleibt also unsichtbar für EEGs, die diese Felder nicht aktiviert haben.</p>
+<p>→ <a href="../04-admin-applications/">Anträge verwalten — Antrags-Detail</a></p>
+<p><strong>Bug-Fix: Resend-Bestätigungsmail enthält wieder alle Antragsdetails</strong></p>
+<p>Der Admin-Button „Bestätigung erneut senden" verschickte eine stark reduzierte Mail: nur Name und EEG-Daten, ohne Zählpunkte, Adresse, Bankverbindung, Mitgliedstyp-Details. Behoben: die Resend-Mail ist jetzt inhaltsgleich zur initialen Submit-Mail (mit Ausnahme des SEPA-PDFs, das aus rechtlichen Gründen nicht neu erzeugt wird — die original-generierte Mandatsreferenz bleibt gültig).</p>
+<p><strong>Bug-Fix: Beitrittsbestätigung-Download blieb nach Aktivierung verfügbar</strong></p>
+<p>Sobald ein Mitglied in den Status „importiert" oder „aktiviert" wechselte, verschwand der Download-Button für die Beitrittsbestätigungs-PDF (und für den Excel-Export). Der PROJ-46-Statusausbau hat damals die Allow-List vergessen. Beide Downloads bleiben jetzt in allen Post-Approval-Status verfügbar — Admins ziehen den Excel-Export typischerweise erst nach dem Import zur Ablage.</p>
+<p>→ <a href="../04-admin-applications/">Anträge verwalten — Antrags-Detail</a></p>
 <hr />
 <h2 id="2026-05-25">2026-05-25<a class="headerlink" href="#2026-05-25" title="Permanent link">&para;</a></h2>
 <p><strong>Bug-Fix: EEG-Name in Stammdaten zeigt die Klar-Bezeichnung</strong></p>
