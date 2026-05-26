@@ -81,6 +81,9 @@ Die Detailansicht zeigt alle Angaben des Mitglieds:
 
 - **Statusaktionen** — verfügbare Aktionen je nach aktuellem Status
 - **Mitgliedsdaten** — Mitgliedstyp, Name, Geburtsdatum, Kontakt, Adresse
+- **Zusatzangaben** — Beitrittsdatum, Personen im Haushalt, Wärmepumpe, E-Auto (inkl. Anzahl + Jahres-km), Warmwasser elektrisch. Die Karte erscheint nur, wenn die EEG mindestens eines dieser Felder im Mitglieder-Formular aktiviert hat und das Mitglied einen Wert eingetragen hat.
+
+![Zusatzangaben-Karte mit Beitrittsdatum, Personen im Haushalt, Wärmepumpe etc.](images/admin-application-zusatzangaben.png)
 - **Bankverbindung** — IBAN, Kontoinhaber, SEPA-Mandat
 - **Einwilligungen** — Datenschutz und Richtigkeitsbestätigung
 - **Antragsdaten** — Referenznummer, RC-Nummer, Mitgliedsnummer (nach erfolgreichem Import), Zeitstempel

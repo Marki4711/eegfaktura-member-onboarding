@@ -10,6 +10,49 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Fix — Tester-Feedback-Bundle 2026-05-26
+
+Drei eng verwandte Befunde aus dem Test-Feedback, alle ausgelöst von
+parallelen Code-Pfaden, die dieselbe Datenstruktur bauen sollten und
+mit der Zeit auseinanderdrifteten.
+
+**1. Admin-Detail zeigte konfigurierbare Felder nicht.**
+Beitrittsdatum, Personen im Haushalt, Wärmepumpe, E-Auto (+ Anzahl /
+Jahres-km), Warmwasser elektrisch — die Mitglieds-Submit-Mail rendert
+sie, das Admin-Detail-UI nicht. Backend liefert sie auch in der
+Detail-Response (`shared.Application` mit json-Tags), aber das
+TypeScript-`AdminApplicationDetail`-Interface listete sie nicht. Neue
+„Zusatzangaben"-Karte rendert nur die Felder mit Werten (so bleibt
+sie für EEGs ohne diese Konfiguration unsichtbar).
+
+**2. Resend-Bestätigungsmail rendert „nur den Namen".**
+`SendMemberConfirmation` (Admin-Button „Bestätigung erneut senden")
+befüllte 12 von ~25 `memberTemplateData`-Feldern — die initiale
+`SendSubmissionEmails` befüllt alle 25. Der Drift war über mehrere
+PROJ-Iterationen entstanden.
+
+  Fix: `buildMemberMailData(app, mps, ep, hasAttach, consents, url)`
+  als Single-Source-of-Truth; beide Pfade routen dadurch. Neue Felder
+  am Template müssen jetzt nur an einer Stelle ergänzt werden;
+  zukünftiger Drift ist strukturell unmöglich.
+
+  Signatur-Erweiterung: `SendMemberConfirmation(app, meteringPoints,
+  entrypoint, consents)`. Das SEPA-PDF wird beim Resend bewusst NICHT
+  neu generiert (würde eine neue Mandatsreferenz vergeben, was wir
+  post-submit nie wollen). `ResendMemberConfirmation` in
+  `admin_service.go` lädt MeteringPoints + Consents zusätzlich.
+
+**3. Beitrittsbestätigung-PDF nicht mehr herunterladbar nach
+Aktivierung.** Selber Befund wie Commit `3aa3444` (gleicher Tag) —
+PROJ-46-Post-Import-States waren nicht in der Status-Allow-Map.
+Bereits gefixt, wartet auf Helm-Upgrade.
+
+**Erkenntnis (Memory `feedback_shared_helpers_for_parallel_paths.md`):**
+Wenn zwei Code-Pfade dieselbe Datenstruktur bauen sollen, IMMER über
+einen gemeinsamen Helper. Drei Bugs an drei Tagen (Generation-Label,
+Resend-Mail-Felder, PDF-Status-Map) — alle aus dem gleichen Anti-
+Pattern „zwei Struct-Literale die in Sync bleiben sollten".
+
 ### Fix — Stammdaten-Sync: EEG-Name aus `description` statt `name` *(2026-05-25)*
 
 Im Admin-Bereich „Stammdaten" zeigte das Feld **EEG-Name** den kurzen

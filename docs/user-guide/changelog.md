@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-05-26
+
+**Bug-Fix: Admin-Detail zeigt jetzt auch die Zusatzangaben**
+
+Im Antrags-Detail im Admin-Tool gab es bisher keine Anzeige für die konfigurierbaren Zusatzangaben (Beitrittsdatum, Personen im Haushalt, Wärmepumpe, E-Auto inkl. Anzahl + Jahres-km, Warmwasser elektrisch). Das Mitglied bekam diese Werte in seiner Submit-Bestätigungs-Mail aufgelistet, der Admin sah sie aber nirgends. Neue Karte „Zusatzangaben" rendert genau die Felder, die tatsächlich Werte enthalten — bleibt also unsichtbar für EEGs, die diese Felder nicht aktiviert haben.
+
+→ [Anträge verwalten — Antrags-Detail](04-admin-applications.md)
+
+**Bug-Fix: Resend-Bestätigungsmail enthält wieder alle Antragsdetails**
+
+Der Admin-Button „Bestätigung erneut senden" verschickte eine stark reduzierte Mail: nur Name und EEG-Daten, ohne Zählpunkte, Adresse, Bankverbindung, Mitgliedstyp-Details. Behoben: die Resend-Mail ist jetzt inhaltsgleich zur initialen Submit-Mail (mit Ausnahme des SEPA-PDFs, das aus rechtlichen Gründen nicht neu erzeugt wird — die original-generierte Mandatsreferenz bleibt gültig).
+
+**Bug-Fix: Beitrittsbestätigung-Download blieb nach Aktivierung verfügbar**
+
+Sobald ein Mitglied in den Status „importiert" oder „aktiviert" wechselte, verschwand der Download-Button für die Beitrittsbestätigungs-PDF (und für den Excel-Export). Der PROJ-46-Statusausbau hat damals die Allow-List vergessen. Beide Downloads bleiben jetzt in allen Post-Approval-Status verfügbar — Admins ziehen den Excel-Export typischerweise erst nach dem Import zur Ablage.
+
+→ [Anträge verwalten — Antrags-Detail](04-admin-applications.md)
+
+---
+
 ## 2026-05-25
 
 **Bug-Fix: EEG-Name in Stammdaten zeigt die Klar-Bezeichnung**
