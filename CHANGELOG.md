@@ -10,6 +10,67 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Fix — Tester-Feedback-Bundle 2026-05-27
+
+Vier Befunde aus dem nächsten Test-Lauf, alle wieder zurück auf das
+Anti-Pattern „parallele Code-Pfade die in Sync bleiben sollten"
+(Memory `feedback_shared_helpers_for_parallel_paths`).
+
+**1. „Verbrauch Prognose" verschwand nach Aktivierung im Admin-Tool.**
+Tatsächliche Ursache: jede Admin-Edit-Speicherung wischte stillschweigend
+**neun** Meter-Felder. `AdminUpdateApplication` baute ein Meter-Struct-
+Literal ohne PROJ-45-Felder (GenerationType, BatterySizeKwh,
+InverterManufacturer, InverterPowerKw) UND ohne PROJ-49-Energie-Felder
+(Verbrauch Vorjahr/Prognose, Einspeisung Prognose, PV-Leistung,
+Einspeiselimit + Wert, Speichersteuerung-akzeptabel). Da `CreateBulkTx`
+die Meter komplett ersetzt, war ein einziger Save genug. Dieselbe
+Lücke im public `UpdateApplication` (etwas kleinere Felder-Schnittmenge).
+
+**2. „Verbrauch Prognose" auch im Beitrittsbestätigungs-PDF weg.**
+Gleiche Ursache wie 1 — der Wipe war in der DB. Nach Re-Edit erscheinen
+die Werte wieder.
+
+**3. Beitrittsbestätigungs-Mail wurde nach Aktivierung nicht versendet.**
+Wenn die Aktivierung über den **Activation-Check-Batch** (PROJ-46 Stage D,
+EEG-Mode `participant_active` oder `any_meter_registration_started`)
+lief, transitionierte `ImportService.markActivated` nur den DB-Status
+plus Status-Log — **rief `SendActivationNotification` nie auf**. Nur
+der Admin-Klick-Pfad in `admin_service.go:643` machte den Send.
+
+  Fix: `CheckActivations` liefert jetzt `ActivatedIDs` (internal-only,
+  JSON-`-`). Der HTTP-Handler dispatcht `SendActivationNotification`
+  per ID nach dem Batch-Lauf. Idempotent auf
+  `activation_notification_sent_at`, also keine Doppel-Sends bei
+  wiederholten Batches.
+
+**4. PDF: „SEPA-Ermächtigung: Per E-Mail" obwohl online zugestimmt.**
+`approvalSepaMandateType` und `resolveSepaMandateType` (zwei identische
+Funktionen — das Anti-Pattern wieder) mappten `!SEPAMandateEnabled` auf
+„Per E-Mail" ohne Rücksicht auf `SepaMandateAccepted`. Aber: wenn die
+EEG kein Onboarding-PDF-Mandat anbietet UND das Mitglied die Online-
+Checkbox angekreuzt hat, sollte „Online-Zustimmung erteilt" stehen.
+
+  Fix: beide Duplikate ersetzt durch `mail.ResolveSepaMandateType` (eine
+  Funktion, exported). Logik in der korrekten Reihenfolge:
+  - `einzugsart=kein_sepa` → „Kein SEPA"
+  - `!SepaMandateAccepted` → „Per E-Mail" (ausstehend)
+  - `!SEPAMandateEnabled && Accepted` → „Online-Zustimmung erteilt" (NEU)
+  - `Enabled && Accepted && b2b` → „Firmenlastschrift"
+  - sonst → „Basislastschrift"
+
+**Nachhaltige Prävention (zentraler Helper):** neuer
+`BuildMeteringPointFromRequest(req, normalized, now)` in
+`internal/application/application_service.go` ist jetzt die einzige
+Stelle, an der ein `shared.MeteringPoint` aus dem Request gebaut wird.
+Alle drei Pfade (CreateApplication, UpdateApplication,
+AdminUpdateApplication) routen dadurch. Neue persistierte Meter-Felder
+müssen genau einmal ergänzt werden; Drift ist strukturell unmöglich.
+Analog `mail.ResolveSepaMandateType` für die SEPA-Variante.
+
+Tests: 5 × `TestResolveSepaMandateType_*` decken jede Wire-Variante;
+2 × `TestBuildMeteringPointFromRequest_*` sweepen alle persistierten
+Felder (Regression-Guard) und prüfen den Participation-Factor-Default.
+
 ### Fix — Tester-Feedback-Bundle 2026-05-26
 
 Drei eng verwandte Befunde aus dem Test-Feedback, alle ausgelöst von

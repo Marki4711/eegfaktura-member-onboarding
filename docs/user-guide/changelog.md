@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-05-27
+
+**Bug-Fix: Antragsdetails verschwanden nach Admin-Bearbeitung**
+
+Wenn ein Admin einen bestehenden Antrag im Edit-Form geöffnet und gespeichert hat, gingen die Zählpunkt-spezifischen Detailfelder (Verbrauch Vorjahr/Prognose, Einspeisung Prognose, PV-Leistung, Einspeisebegrenzung, Speichersteuerung-Frage, Wechselrichter-Hersteller + Leistung, Speichergröße) stillschweigend verloren — auch wenn der Admin diese Felder gar nicht angefasst hat. Behoben: die Felder bleiben jetzt bei jedem Save erhalten. Bestandsanträge, bei denen das Feld nach einer früheren Speicherung leer ist, müssen einmal manuell erneut eingegeben werden.
+
+**Bug-Fix: Beitrittsbestätigungs-Mail fehlte bei automatischer Aktivierung**
+
+Wenn ein Antrag über den **Aktivierungs-Check-Batch** (automatisch durch das Netzbetreiber-Routing) auf den Status „Aktiviert" wechselte, blieb die Beitrittsbestätigungs-Mail mit PDF aus. Nur der manuelle Admin-Klick auf „Aktivieren" hat sie verschickt. Behoben: beide Pfade verschicken jetzt die Mail. Wiederholungs-Check für die EEG zur Sicherheit: bereits aktivierte Mitglieder ohne empfangene Mail können über erneuten „Aktivieren"-Trigger einmalig nachgezogen werden — der Resend wird durch das Flag `activation_notification_sent_at` blockiert, sodass kein doppelter Versand passiert (das Flag muss in Ausnahmefällen manuell zurückgesetzt werden, sprich uns an).
+
+**Bug-Fix: PDF zeigte „SEPA-Ermächtigung: Per E-Mail" trotz Online-Zustimmung**
+
+Wenn die EEG kein zusätzliches SEPA-Mandat-PDF im Onboarding einbindet, der Antragsteller aber im Formular die SEPA-Lastschrift online angehakt hat, zeigte die Beitrittsbestätigung im Feld „SEPA-Ermächtigung" fälschlich „Per E-Mail". Steht jetzt korrekt **„Online-Zustimmung erteilt"**. Die Werte für die anderen SEPA-Varianten (Basislastschrift, Firmenlastschrift, Kein SEPA) sind unverändert.
+
+→ [Anträge verwalten](04-admin-applications.md)
+
+---
+
 ## 2026-05-26
 
 **Bug-Fix: Admin-Detail zeigt jetzt auch die Zusatzangaben**
