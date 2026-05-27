@@ -6,6 +6,12 @@
 
 ## 2026-05-27
 
+**Bug-Fix: Konfigurations-Import zeigt jetzt sofort die übernommenen Werte**
+
+Beim Import einer Konfigurations-Datei (Stammdaten + Formular-Felder + Rechtsdokumente + Datenweiterleitung) zeigten die Tabs der Settings-Seite gelegentlich noch den Stand **vor** dem Import — vor allem im Tab „Formular-Felder", wenn dieser schon vorher geöffnet war. Tatsächlich war der Import erfolgreich in der Datenbank, nur das UI hatte den alten Stand zwischengespeichert. Behoben: nach einem erfolgreichen Apply werden alle Tabs der Settings-Seite automatisch neu geladen, ohne Browser-Refresh.
+
+→ [Admin-Einstellungen — Konfiguration Import / Export](06-admin-settings.md#konfiguration-import-export)
+
 **Bug-Fix: Antragsdetails verschwanden nach Admin-Bearbeitung**
 
 Wenn ein Admin einen bestehenden Antrag im Edit-Form geöffnet und gespeichert hat, gingen die Zählpunkt-spezifischen Detailfelder (Verbrauch Vorjahr/Prognose, Einspeisung Prognose, PV-Leistung, Einspeisebegrenzung, Speichersteuerung-Frage, Wechselrichter-Hersteller + Leistung, Speichergröße) stillschweigend verloren — auch wenn der Admin diese Felder gar nicht angefasst hat. Behoben: die Felder bleiben jetzt bei jedem Save erhalten. Bestandsanträge, bei denen das Feld nach einer früheren Speicherung leer ist, müssen einmal manuell erneut eingegeben werden.

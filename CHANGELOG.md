@@ -10,6 +10,37 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Fix — PROJ-61 Bundle-Import: UI-Refresh nach Apply *(2026-05-27)*
+
+Tester-Befund: ein Bundle-Import schrieb 30 fieldConfig-Einträge
+sauber in die DB (Backend-Log bestätigt: `input=30 inserted=30`),
+aber die Settings-Page zeigte weiter die alten Werte —
+„jungfräuliche Formularfelder", obwohl die DB den neuen Stand hatte.
+
+Root cause war rein UI-seitig: `settings/page.tsx` lud die FieldConfig
+nur einmal beim EEG-Select (`useEffect [selectedRc, accessToken]`).
+Nach einem Apply gab es keinen Refresh-Trigger; offene Tabs hielten
+ihren bereits geladenen Pre-Apply-Snapshot fest. Dass der Tester
+Einleitungstext + Rechtsdokumente als „übernommen" sah, lag
+vermutlich daran, dass er diese Tabs zum ersten Mal nach dem Apply
+öffnete — die Fetches passierten beim Tab-Mount mit den neuen Daten.
+
+Fix in `src/app/admin/settings/page.tsx`:
+- Neuer `applyEpoch`-Counter (init 0), nach Apply um 1 erhöht.
+- `useEffect`-Dependency für fieldConfig erweitert um `applyEpoch`
+  → Re-Fetch ohne Tab-Wechsel.
+- Jede Tab-Inhalt-Komponente (`AdminEEGSettingsEditor`,
+  `AdminIntroTextEditor`, `AdminFieldConfigEditor`,
+  `AdminLegalDocumentsEditor`, `DataExportSection`) bekommt
+  `key={'<tag>-${applyEpoch}'}` → React remounted nach Apply, jeder
+  Sub-Editor lädt seine Daten frisch.
+- `ConfigImportExportSection` erweitert um optionalen `onApplied`-
+  Callback, von `handleApplied` nach Toast aufgerufen.
+
+Backend-Diagnose-Logging aus `6c9fea2` bleibt drin — hat hier den
+entscheidenden Hinweis gegeben („persisted: 30") und ist auch für
+zukünftige Drift-Befunde gegen `knownConfigurableFields` nützlich.
+
 ### Fix — Tester-Feedback-Bundle 2026-05-27
 
 Vier Befunde aus dem nächsten Test-Lauf, alle wieder zurück auf das
