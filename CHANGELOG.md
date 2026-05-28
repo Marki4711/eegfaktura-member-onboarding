@@ -10,6 +10,43 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Fix — Admin-Edit: „Zusatzangaben"-Karte fehlte komplett *(2026-05-28)*
+
+Tester-Befund: „beim editieren in Admin kann man Zusatzdaten — Beitritts-
+Datum als Admin nicht bearbeiten?" Korrekt — und nicht nur das
+Beitrittsdatum: die gesamte Zusatzangaben-Karte (membership_start_date,
+persons_in_household, heat_pump, electric_vehicle inkl. Count/Km,
+electric_hot_water, cooperative_shares_count, network_operator_authorization)
+war in der Admin-Detail-Ansicht sichtbar, aber im Edit-Formular gar nicht
+vorhanden. Backend-DTO (`AdminUpdateApplicationRequest`) hatte die Felder
+ebenfalls nicht; `UpdateAdminTx` schrieb sie nicht in die DB. Drei Schichten
+hatten denselben blinden Fleck.
+
+Fix:
+
+- **Backend** (`internal/shared/requests.go`,
+  `internal/application/admin_service.go`,
+  `internal/application/application_repo.go`): Felder zum DTO ergänzt;
+  Pointer-Sentinel-Semantik (omittet = unverändert, explizit = setzen).
+  `AdminUpdateApplication` ruft jetzt `clearEVDetailsIfDisabled(app)` wie
+  der Public-Update-Pfad, sodass E-Auto-Count/Km serverseitig genullt
+  werden, wenn der Toggle aus ist. `network_operator_authorization_at`
+  wird wie im Public-Pfad nur beim First-Grant-Übergang gesetzt
+  (false→true), nicht beim Wieder-Entfernen — Audit-Spur bleibt.
+  `UpdateAdminTx` schreibt jetzt 11 zusätzliche Spalten.
+
+- **Frontend** (`src/lib/api.ts`, `src/components/admin-edit-form.tsx`):
+  TS-Typen ergänzt; neue „Zusatzangaben"-Section zwischen Adresse und
+  Zählpunkte mit Date-Input, Number-Inputs und Checkboxes. E-Auto-Sub-
+  Felder werden nur gerendert, wenn der Toggle aktiv ist. Popover-Hinweis
+  zur Audit-Semantik der Netzbetreiber-Vollmacht.
+
+Bekannter pre-existing Gap (nicht in diesem Fix gelöst):
+`cooperative_shares_count` wird auch vom Public-Update-Pfad
+(`UpdateApplication`/`UpdateTx`) nicht geschrieben — nur Create + (jetzt)
+Admin-Update setzen ihn. Wenn ein Member im `needs_info`-Status seine
+Anteilszahl ändern soll, müsste das auch dort nachgezogen werden.
+
 ### Fix — Aktivierungs-Mail: Mandatsreferenz-Hinweis fälschlich bei Online-Zustimmung *(2026-05-28)*
 
 Tester-Befund: Nach Status „aktiv" bekam ein Mitglied die Beitritts-
