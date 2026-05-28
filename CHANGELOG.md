@@ -10,6 +10,50 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Fix — Import-Pfad: Mandatsreferenz + Mandatsdatum fehlten im Core *(2026-05-28)*
+
+Tester-Befund: „Sepa Daten muss man aber in EEGFaktura Händisch nachtragen. Is
+aber so gedacht oder?" Antwort: nein, war ein Bug. Bei den at-import-Mandat-
+Pfaden (`einzugsart=b2b` und `einzugsart=core` mit `sepa_mandate_at_import=true`)
+hat das Onboarding die Mandatsreferenz aus der Mitgliedsnummer und das Datum
+aus dem Importzeitpunkt zwar korrekt für das lokale SEPA-Mandat-PDF abgeleitet,
+aber **erst nach** dem `POST /participant`-Call. Im Core landeten leere Werte;
+der Admin musste sie händisch in eegFaktura nachtragen.
+
+Reihenfolge vorher:
+
+1. `Import()` baut Payload aus DB-Stand → mandate_reference + mandate_date sind NULL.
+2. Core erhält das Payload mit leerem `accountInfo.mandateReference` / `mandateDate`.
+3. Async-Goroutine `SendPostImportNotification` setzt **danach** die Werte lokal,
+   baut das PDF, schickt die Mail. Keine Re-Sync in den Core.
+
+Fix:
+
+- Neuer Helper `shouldDeriveMandateAtImport(app, ep)` in
+  `internal/importing/import_service.go` zentralisiert das Gate. Trigger ist
+  `(einzugsart=b2b OR core+SEPAMandateAtImport)` und `SepaMandateAccepted=true`.
+- `Import()` ruft das Gate jetzt VOR `BuildPayload`. Bei Treffer werden
+  mandate_reference (= MemberNumber) und mandate_date (= `importStartedAt`)
+  via `SetMandateReferenceIfEmpty` und neuem `SetMandateDateIfEmpty`
+  persistiert und in den in-memory `app` gespiegelt — `BuildPayload` reicht sie
+  durch in `accountInfo`.
+- `SetMandateDateIfEmpty` ist neu; bisheriges `SetMandateDate` setzte unbedingt
+  `NOW()` und hätte den Import-Wert sofort wieder überschrieben.
+  `SendPostImportNotification` nutzt jetzt die IfEmpty-Variante → idempotent.
+- Submit-Pfad (`core + sepa_mandate_at_import=false`, PROJ-12) bleibt unverändert:
+  Der Member bekommt die Referenz erst beim activated-Übergang via
+  Hinweis-Block in der Beitrittsbestätigungs-Mail kommuniziert; persistiert
+  wird sie erst, wenn der signierte Papier-Mandat zurückkommt und der Admin
+  sie selbst einträgt. Das ist by-design.
+
+Bestandsanträge, die VOR diesem Fix importiert wurden: die Werte sind in der
+Onboarding-DB, fehlen aber im Core. Korrektur entweder via `reset-import +
+re-import` (überschreibt den Core-Datensatz vollständig), oder durch
+manuelles Eintragen im eegFaktura-Frontend.
+
+Fünf Regression-Guards in `payload_test.go::TestShouldDeriveMandateAtImport_*`
+decken alle Trigger-Kombinationen ab.
+
 ### Fix — Admin-Edit: „Zusatzangaben"-Karte fehlte komplett *(2026-05-28)*
 
 Tester-Befund: „beim editieren in Admin kann man Zusatzdaten — Beitritts-

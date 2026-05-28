@@ -6,6 +6,10 @@
 
 ## 2026-05-28
 
+**Bug-Fix: SEPA-Mandatsreferenz + Mandatsdatum landen jetzt im Core**
+
+Bei Anträgen, deren EEG das SEPA-Mandat **erst beim Import** versendet (Firmenlastschrift oder Privat-Mandat mit Option „Mandat bei Import"), hat das Onboarding bisher die Mandatsreferenz (= Mitgliedsnummer) und das Mandatsdatum (= Import-Tag) nur für das lokale PDF abgeleitet — im eegFaktura-Core blieben beide Felder leer und mussten von der Admin händisch nachgetragen werden. Behoben: die Werte werden jetzt VOR dem Core-POST persistiert und in das Payload-Feld `accountInfo` mitgesendet. Bestandsanträge VOR diesem Fix tragen die Werte zwar onboarding-seitig korrekt, im Core fehlen sie aber weiterhin — entweder via „Import zurücksetzen + neu importieren" überschreiben oder einmalig manuell im Core eintragen.
+
 **Bug-Fix: „Zusatzangaben" lassen sich jetzt als Admin bearbeiten**
 
 Im Admin-Edit-Form fehlten bisher die Eingabefelder für Beitrittsdatum, Personen im Haushalt, Wärmepumpe, Warmwasser elektrisch, E-Auto (inkl. Anzahl + Jahres-Kilometer), Genossenschaftsanteile und die Netzbetreiber-Vollmacht — sie waren nur in der Detail-Ansicht sichtbar. Jetzt gibt es eine eigene „Zusatzangaben"-Section zwischen Adresse und Zählpunkten. Welche Felder erscheinen, hängt von der EEG-Field-Config in den Einstellungen ab: Felder auf „Optional", „Pflicht" oder „Nur Admin" werden gerendert, Felder auf „Ausgeblendet" nicht. So bleibt das Verhalten konsistent mit dem Mitglieder-Formular. Wenn der E-Auto-Toggle deaktiviert wird, werden Anzahl und Jahres-Kilometer beim Speichern automatisch geleert. Der Zeitstempel der Netzbetreiber-Vollmacht wird beim ersten Setzen serverseitig vergeben und aus Audit-Gründen nicht entfernt.
