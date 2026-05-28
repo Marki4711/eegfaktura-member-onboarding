@@ -103,6 +103,8 @@ Als Admin kannst du folgende Felder direkt korrigieren:
 
 Klicke auf **Bearbeiten**, nimm die Änderungen vor und speichere.
 
+![Admin-Edit-Dialog mit der Zusatzangaben-Section zwischen Adresse und Zählpunkten](images/admin-edit-zusatzangaben.png)
+
 > **Hinweis:** Änderungen an Antragsdaten werden im Statusverlauf nicht automatisch protokolliert. Nutze die Admin-Notiz für wichtige Vermerke.
 
 > **Hinweis:** Das Speichern der Admin-Notiz aktualisiert ausschließlich das Notizfeld — andere Antragsdaten (Mitgliedstyp, Zählpunkte, Teilnahmefaktor, …) werden dabei nicht überschrieben.
