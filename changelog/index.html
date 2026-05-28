@@ -329,6 +329,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#2026-05-28" class="md-nav__link">
+    <span class="md-ellipsis">
+      2026-05-28
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#2026-05-27" class="md-nav__link">
     <span class="md-ellipsis">
       2026-05-27
@@ -638,6 +647,14 @@
 
 <h1 id="was-ist-neu">Was ist neu?<a class="headerlink" href="#was-ist-neu" title="Permanent link">&para;</a></h1>
 <p>Übersicht der Änderungen der letzten Tage, die für <strong>EEG-Admins</strong> und <strong>Mitglieder</strong> spürbar sind. Technische Details, Bug-Fixes ohne UI-Auswirkung und Infrastruktur-Themen sind hier bewusst weggelassen — die finden sich in der Commit-Historie.</p>
+<hr />
+<h2 id="2026-05-28">2026-05-28<a class="headerlink" href="#2026-05-28" title="Permanent link">&para;</a></h2>
+<p><strong>Bug-Fix: „Zusatzangaben" lassen sich jetzt als Admin bearbeiten</strong></p>
+<p>Im Admin-Edit-Form fehlten bisher die Eingabefelder für Beitrittsdatum, Personen im Haushalt, Wärmepumpe, Warmwasser elektrisch, E-Auto (inkl. Anzahl + Jahres-Kilometer), Genossenschaftsanteile und die Netzbetreiber-Vollmacht — sie waren nur in der Detail-Ansicht sichtbar. Jetzt gibt es eine eigene „Zusatzangaben"-Section zwischen Adresse und Zählpunkten. Welche Felder erscheinen, hängt von der EEG-Field-Config in den Einstellungen ab: Felder auf „Optional", „Pflicht" oder „Nur Admin" werden gerendert, Felder auf „Ausgeblendet" nicht. So bleibt das Verhalten konsistent mit dem Mitglieder-Formular. Wenn der E-Auto-Toggle deaktiviert wird, werden Anzahl und Jahres-Kilometer beim Speichern automatisch geleert. Der Zeitstempel der Netzbetreiber-Vollmacht wird beim ersten Setzen serverseitig vergeben und aus Audit-Gründen nicht entfernt.</p>
+<p>→ <a href="../04-admin-applications/#antrag-bearbeiten">Antrag bearbeiten</a></p>
+<p><strong>Bug-Fix: Aktivierungs-Mail erwähnte das Mandatsformular auch bei reiner Online-Zustimmung</strong></p>
+<p>Mitglieder, die online der SEPA-Lastschrift zugestimmt hatten (ohne dass die EEG ein Papier-Mandat anbietet), bekamen mit der Beitrittsbestätigungs-Mail einen Hinweis-Block „SEPA-Lastschriftmandat — Mandatsreferenz: … bitte ergänze diese auf dem Mandatsformular". Es gibt aber gar kein Formular zum Ergänzen. Der Hinweis erscheint jetzt nur noch dann, wenn die EEG tatsächlich ein Mandat-PDF beim Submit verschickt (also bei <code>sepa_mandate_enabled = true</code> und vor dem Import).</p>
+<p>→ <a href="../07-emails-and-pdfs/">Beitrittsbestätigung</a></p>
 <hr />
 <h2 id="2026-05-27">2026-05-27<a class="headerlink" href="#2026-05-27" title="Permanent link">&para;</a></h2>
 <p><strong>Bug-Fix: Konfigurations-Import zeigt jetzt sofort die übernommenen Werte</strong></p>
