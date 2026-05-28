@@ -10,6 +10,27 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Fix — Aktivierungs-Mail: Mandatsreferenz-Hinweis fälschlich bei Online-Zustimmung *(2026-05-28)*
+
+Tester-Befund: Nach Status „aktiv" bekam ein Mitglied die Beitritts-
+bestätigungs-Mail mit dem Hinweis-Block „SEPA-Lastschriftmandat —
+Mandatsreferenz: 395. Bitte ergänze diese auf dem Mandatsformular, das
+wir dir bei der Eingangsbestätigung zugeschickt haben." — obwohl die
+EEG keinerlei Papier-Mandat ausstellt (`sepa_mandate_enabled = false`)
+und das Mitglied online zugestimmt hatte. Es gibt also gar kein
+Mandatsformular, auf dem etwas zu ergänzen wäre.
+
+Root cause in `internal/mail/service.go::buildActivationData`: die
+Hint-Gate vergaß den `SEPAMandateEnabled`-Check und triggerte für
+jede Submit-Pfad-Mandatsannahme im `einzugsart=core`-Fall.
+
+Fix: zusätzliches Gate `ep.SEPAMandateEnabled` ergänzt. Der Hinweis
+erscheint nun nur noch, wenn (a) Mandat erteilt, (b) die EEG ein
+Papier-Mandat-PDF ausstellt, (c) es per Submit-Pfad ohne Referenz
+versendet wurde, (d) jetzt eine Mitgliedsnummer als Referenz vergeben
+ist. Drei neue Regression-Guards in `service_test.go` decken die
+Online-Consent-, Papier-Mandat- und AtImport-Variante ab.
+
 ### Fix — PROJ-61 Bundle-Import: UI-Refresh nach Apply *(2026-05-27)*
 
 Tester-Befund: ein Bundle-Import schrieb 30 fieldConfig-Einträge
