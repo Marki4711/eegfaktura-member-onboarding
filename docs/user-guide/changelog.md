@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-05-28
+
+**Bug-Fix: „Zusatzangaben" lassen sich jetzt als Admin bearbeiten**
+
+Im Admin-Edit-Form fehlten bisher die Eingabefelder für Beitrittsdatum, Personen im Haushalt, Wärmepumpe, Warmwasser elektrisch, E-Auto (inkl. Anzahl + Jahres-Kilometer), Genossenschaftsanteile und die Netzbetreiber-Vollmacht — sie waren nur in der Detail-Ansicht sichtbar. Jetzt gibt es eine eigene „Zusatzangaben"-Section zwischen Adresse und Zählpunkten. Welche Felder erscheinen, hängt von der EEG-Field-Config in den Einstellungen ab: Felder auf „Optional", „Pflicht" oder „Nur Admin" werden gerendert, Felder auf „Ausgeblendet" nicht. So bleibt das Verhalten konsistent mit dem Mitglieder-Formular. Wenn der E-Auto-Toggle deaktiviert wird, werden Anzahl und Jahres-Kilometer beim Speichern automatisch geleert. Der Zeitstempel der Netzbetreiber-Vollmacht wird beim ersten Setzen serverseitig vergeben und aus Audit-Gründen nicht entfernt.
+
+→ [Antrag bearbeiten](04-admin-applications.md#antrag-bearbeiten)
+
+**Bug-Fix: Aktivierungs-Mail erwähnte das Mandatsformular auch bei reiner Online-Zustimmung**
+
+Mitglieder, die online der SEPA-Lastschrift zugestimmt hatten (ohne dass die EEG ein Papier-Mandat anbietet), bekamen mit der Beitrittsbestätigungs-Mail einen Hinweis-Block „SEPA-Lastschriftmandat — Mandatsreferenz: … bitte ergänze diese auf dem Mandatsformular". Es gibt aber gar kein Formular zum Ergänzen. Der Hinweis erscheint jetzt nur noch dann, wenn die EEG tatsächlich ein Mandat-PDF beim Submit verschickt (also bei `sepa_mandate_enabled = true` und vor dem Import).
+
+→ [Beitrittsbestätigung](07-emails-and-pdfs.md)
+
+---
+
 ## 2026-05-27
 
 **Bug-Fix: Konfigurations-Import zeigt jetzt sofort die übernommenen Werte**

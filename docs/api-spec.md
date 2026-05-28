@@ -603,6 +603,15 @@ Returns the admin list.
   "mandateReference": "RC123456-2026-0001",
   "mandateDate": "2026-05-17",
   "adminNote": "Telefonnummer verifiziert",
+  "membershipStartDate": "2026-06-01",
+  "personsInHousehold": 3,
+  "heatPump": true,
+  "electricVehicle": true,
+  "electricVehicleCount": 1,
+  "electricVehicleAnnualKm": 12000,
+  "electricHotWater": false,
+  "cooperativeSharesCount": 2,
+  "networkOperatorAuthorization": true,
   "meteringPoints": [
     {
       "meteringPoint": "AT0031000000000000000000990022105",
@@ -616,7 +625,10 @@ Returns the admin list.
 - editable in `submitted`, `under_review`, `needs_info`, `approved`, `import_failed`
 - metering points are fully replaced
 - `einzugsart` accepts `core` | `b2b` | `kein_sepa` (PROJ-48 — admin-controlled per application, no longer auto-derived from `memberType`)
-- additional editable fields mirror the public submit body: `memberType`, `titel`, `titelNach`, `companyName`, `uidNumber`, `registerNumber`, plus the configurable energy/household fields and PROJ-37 `cooperativeSharesCount`
+- additional editable fields mirror the public submit body: `memberType`, `titel`, `titelNach`, `companyName`, `uidNumber`, `registerNumber`
+- **Zusatzangaben (admin-editable since 2026-05-28):** `membershipStartDate`, `personsInHousehold`, `heatPump`, `electricVehicle`, `electricVehicleCount`, `electricVehicleAnnualKm`, `electricHotWater`, `cooperativeSharesCount`, `networkOperatorAuthorization`. Pointer-Sentinel-Semantik: omitted ⇒ keine Änderung, explizit gesetzt ⇒ Wert übernommen. Das Admin-UI rendert ein Feld nur, wenn die EEG-Field-Config für diesen RC den State auf `optional`, `required` oder `admin_only` setzt; bei `hidden` wird das Feld weder angezeigt noch im Payload mitgesendet. Server-side rules:
+  - `electricVehicleCount` and `electricVehicleAnnualKm` are nulled when `electricVehicle` is not `true` (`clearEVDetailsIfDisabled`)
+  - `networkOperatorAuthorizationAt` is set only on the first `false`→`true` transition; a later `false` value does not clear the timestamp (audit-preserving)
 - PROJ-56 / PROJ-57 / PROJ-58 fields are editable as in the public body: `networkOperatorCustomerNumber`, `meterInventoryNumber`, `hasContactPerson` + the three `contactPerson*` fields, `hasBillingEmail` + `billingEmail`. The same server-side cleanup rules apply (`clearContactPersonIfDisabled`, `clearBillingEmailIfDisabled`), so an admin edit that toggles a flag to `false` will null the dependent fields on save.
 
 ### Response 200

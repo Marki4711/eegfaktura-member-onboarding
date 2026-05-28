@@ -22,6 +22,15 @@ vorhanden. Backend-DTO (`AdminUpdateApplicationRequest`) hatte die Felder
 ebenfalls nicht; `UpdateAdminTx` schrieb sie nicht in die DB. Drei Schichten
 hatten denselben blinden Fleck.
 
+Follow-up am gleichen Tag: Erstversion zeigte ALLE Felder unabhängig von
+der EEG-Field-Config. Tester hat zurecht reklamiert, dass eine EEG mit
+`membership_start_date = hidden` das Feld im Edit-Dialog trotzdem sah —
+inkonsistent zum Public-Form. Folgekorrektur: AdminEditForm zieht jetzt
+`getRegistrationConfig(rcNumber)` und rendert ein Feld nur, wenn dessen
+state ≠ `hidden` ist. `admin_only` zählt als sichtbar (das ist genau der
+Sinn dieses States: nur im Admin editierbar). Hidden-Felder werden im
+Payload nicht mitgesendet — Bestandswerte bleiben erhalten.
+
 Fix:
 
 - **Backend** (`internal/shared/requests.go`,
