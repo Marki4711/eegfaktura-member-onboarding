@@ -77,5 +77,6 @@ Central tracking for all features.
 | PROJ-61 | Konfigurations-Export & -Import pro EEG (4 Sub-Typen: EEG-Settings, Field-Config, Legal-Documents, Data-Export-Configs; JSON-Datei + Diff-Preview; Tenant-Admin) | Deployed | `features/PROJ-61-config-export-import.md` | 2026-05-24 |
 | PROJ-62 | Mitgliedstypen Kleinunternehmer + Unternehmen zusammenführen (sole_proprietor entfällt, company-Typ mit optionaler UID = Kleinunternehmerregelung) | Approved | `features/PROJ-62-merge-sole-proprietor-into-company.md` | 2026-05-24 |
 | PROJ-63 | USt-Pflicht-Checkbox bei Unternehmen + Verein (UI-Gate für UID-Eingabe, kein DB-Feld) | In Progress | `features/PROJ-63-vat-liability-checkbox.md` | 2026-05-24 |
+| PROJ-64 | Faktura-Handover-Billing-Trigger (Excel-Bypass-Schließung — `application.faktura_handover_at` deckt /import UND /export/excel) | Deployed | `features/PROJ-64-faktura-handover-billing-trigger.md` | 2026-05-29 |
 
-## Next Available ID: PROJ-64
+## Next Available ID: PROJ-65

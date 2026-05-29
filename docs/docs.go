@@ -2890,6 +2890,10 @@ const docTemplate = `{
                     "description": "E-Mail-Bestätigung (PROJ-31). Token-Hash + Expiry sind interne Felder\nund werden nicht in API-Responses serialisiert (JSON-Tag \"-\").",
                     "type": "string"
                 },
+                "fakturaHandoverAt": {
+                    "description": "PROJ-64: Billing-Trigger-Timestamp. Wird vom ersten der beiden Wege\ngesetzt, mit denen Antragsdaten ins eegFaktura-Format gehen — dem\nerfolgreichen POST /import oder dem Download des Faktura-Format-\nExcel. Idempotent: weitere Downloads / Re-Imports ändern den Wert\nnicht. Geplante Quartals-Billing-Cron zählt\n` + "`" + `faktura_handover_at IS NOT NULL` + "`" + `, nicht mehr ` + "`" + `imported_at` + "`" + `.",
+                    "type": "string"
+                },
                 "firstname": {
                     "type": "string"
                 },

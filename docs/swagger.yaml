@@ -203,6 +203,15 @@ definitions:
           E-Mail-Bestätigung (PROJ-31). Token-Hash + Expiry sind interne Felder
           und werden nicht in API-Responses serialisiert (JSON-Tag "-").
         type: string
+      fakturaHandoverAt:
+        description: |-
+          PROJ-64: Billing-Trigger-Timestamp. Wird vom ersten der beiden Wege
+          gesetzt, mit denen Antragsdaten ins eegFaktura-Format gehen — dem
+          erfolgreichen POST /import oder dem Download des Faktura-Format-
+          Excel. Idempotent: weitere Downloads / Re-Imports ändern den Wert
+          nicht. Geplante Quartals-Billing-Cron zählt
+          `faktura_handover_at IS NOT NULL`, nicht mehr `imported_at`.
+        type: string
       firstname:
         type: string
       hasBillingEmail:

@@ -10,6 +10,55 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Feature — PROJ-64: Faktura-Handover-Billing-Trigger *(2026-05-29)*
+
+Schließt die Lücke zwischen dem geplanten Quartals-Verrechnungs-Modell
+(zählt neu an eegFaktura übergebene Anträge) und dem Excel-Export, der
+1:1 das eegFaktura-Import-Template liefert. Ein Admin, der das xlsx
+nutzt statt unseren `POST /import`-Endpoint, wäre bisher nicht
+verrechnet worden.
+
+Neue Spalte `application.faktura_handover_at TIMESTAMPTZ` (Migration
+`000057_add_faktura_handover_at`). Wird vom ersten der beiden Wege
+gesetzt — erfolgreicher Core-Import ODER Download des Faktura-Format-
+Excel — und ist idempotent (`SetFakturaHandoverAtIfEmpty`). Spätere
+Downloads oder Re-Imports lassen den Wert unverändert; jeder Antrag
+zählt im Billing maximal einmal. Backfill in der Migration: bestehende
+`imported_at IS NOT NULL`-Anträge bekommen denselben Timestamp, damit
+Pre-PROJ-64-Imports nicht versehentlich als neu billbar gewertet
+werden. Partial-Index `idx_application_faktura_handover_at` optimiert
+die geplante Quartals-Billing-Query.
+
+Code-Pfade:
+
+- `internal/importing/import_service.go::Import()` setzt
+  `faktura_handover_at = importFinishedAt` nach erfolgreichem Core-POST.
+  Best-effort: ein Persist-Fehler bricht den Import nicht ab — ein
+  späterer Trigger holt den Wert nach.
+- `internal/application/admin_service.go::ExportApplicationExcel()` setzt
+  `faktura_handover_at = NOW()` nach erfolgreicher xlsx-Generierung,
+  bevor die Datei an den Caller geht.
+
+`imported_at` bleibt für die Status-Logik (Reset-Erkennung, Audit,
+Mail-Templating) unverändert; es spiegelt nur noch den Onboarding-
+Workflow, nicht mehr den Billing-Trigger. Die geplante Quartals-Cron
+schwenkt von `imported_at IS NOT NULL` auf
+`faktura_handover_at IS NOT NULL`.
+
+Frontend (`admin-application-detail.tsx`):
+
+- Marker-Zeile im Detail-Header („An eegFaktura übergeben am …, für
+  die Verrechnung berücksichtigt"), sichtbar wenn `fakturaHandoverAt`
+  gesetzt ist.
+- Confirmation-AlertDialog vor dem ERSTEN Excel-Download. Klärt den
+  Admin auf, dass der Download als Übergabe vermerkt wird und
+  verweist auf die Datenweiterleitung (PROJ-60) als nicht-billbare
+  Alternative für reine Backup-/Audit-Use-Cases. Bei wiederholten
+  Downloads (`fakturaHandoverAt != null`) wird der Dialog
+  übersprungen.
+
+Specs: `features/PROJ-64-faktura-handover-billing-trigger.md`.
+
 ### Feature — `approved → rejected` Transition *(2026-05-29)*
 
 Tester-Wunsch: „Ein Mitglied das genehmigt wurde kann ich ja nicht löschen!

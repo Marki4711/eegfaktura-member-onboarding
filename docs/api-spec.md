@@ -1475,7 +1475,9 @@ Revokes the API key. External integrations using this key will receive `401` imm
 
 ### GET `/api/admin/applications/{id}/export/excel`
 
-Generates and downloads an xlsx file for the given application in eegFaktura import format. Only available for applications in status `approved`, `imported`, or `import_failed`.
+Generates and downloads an xlsx file for the given application in eegFaktura import format. Only available for applications in status `approved`, `imported`, `import_failed`, `awaiting_bank_confirmation`, `ready_for_activation`, or `activated`.
+
+**Side effect (PROJ-64, 2026-05-29):** sets `application.faktura_handover_at = NOW()` if currently NULL. The xlsx matches the eegFaktura import template (36 columns A-AJ) and is therefore considered an off-platform handover for billing purposes. Subsequent downloads do not update the timestamp. Persist failure is logged but does not abort the download — a later `/import` or re-download would catch up.
 
 ### Auth
 Keycloak JWT. Tenant-admin access is checked against the application's RC number.
