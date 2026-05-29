@@ -223,6 +223,7 @@ Allowed transitions:
 - `needs_info -> submitted`
 - `approved -> imported`
 - `approved -> import_failed`
+- `approved -> rejected` *(2026-05-29, Tester-Wunsch: nach `POST /reset-import` landet der Antrag wieder in `approved`; der Admin braucht dort die Ablehn-Option (Mitglied zurückgezogen, Daten-Qualität, …). Pflicht-Grund wie bei jedem Reject. `member_number` wurde durch `ResetImportTx` bereits genullt — keine Extra-Clearing-Logik.)*
 - `approved -> activated` *(PROJ-53, admin manuell als Ausnahmefall — Mitglied existiert im Core bereits und wurde dort manuell mit den Onboarding-Daten überschrieben; überspringt den Import-Pfad. Mitgliedsnummer-Eingabe im Admin-UI erforderlich.)*
 - `import_failed -> approved`
 - `imported -> awaiting_bank_confirmation` *(PROJ-46, auto-transition by import service when `einzugsart=b2b`. Not exposed on `/status`.)*

@@ -10,6 +10,30 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Feature — `approved → rejected` Transition *(2026-05-29)*
+
+Tester-Wunsch: „Ein Mitglied das genehmigt wurde kann ich ja nicht löschen!
+Kann man es einbauen das wenn ein Import zurückgesetzt wurde die Option
+Ablehnen angeboten wird?" — Genau. Vorher hatte `adminTransitions` gar keinen
+`approved`-Key auf der Ausgangsseite; nach einem `POST /reset-import` saß der
+Antrag in `approved` ohne Möglichkeit, ihn final abzulehnen.
+
+Neu in `internal/application/admin_service.go::adminTransitions`:
+`approved → rejected` mit Pflicht-Grund (greift den vorhandenen
+`requiresReason`-Hook ab). `member_number` muss nicht gesondert geleert
+werden — `ResetImportTx` nullt sie schon beim Reset, und vor dem ersten
+Import ist sie ohnehin NULL.
+
+Frontend: `admin-status-actions.tsx` zeigt im `approved`-Block jetzt einen
+destructive „Ablehnen"-Button neben „In eegFaktura importieren" und
+„Manuell aktivieren …". Klick öffnet den bestehenden Rejection-Dialog mit
+Pflicht-Grund.
+
+Vier Regression-Guards in `application_service_test.go::TestAdminTransition_*`
+decken `approved → rejected` (erlaubt), `approved → approved` (verboten,
+keine versehentliche Self-Transition), `approved → imported` (bleibt dem
+dedizierten Import-Endpoint vorbehalten) und `rejected → *` (terminal) ab.
+
 ### Fix — Import-Pfad: Mandatsreferenz + Mandatsdatum fehlten im Core *(2026-05-28)*
 
 Tester-Befund: „Sepa Daten muss man aber in EEGFaktura Händisch nachtragen. Is

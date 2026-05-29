@@ -666,6 +666,7 @@ Returns the admin list.
 - `needs_info -> submitted`
 - `approved -> imported`
 - `approved -> import_failed`
+- `approved -> rejected` *(2026-05-29: nach Reset-Import landet der Antrag wieder in `approved`; der Admin kann ihn von dort ablehnen, falls das Mitglied gar nicht (mehr) importiert werden soll. Pflicht-Grund. `member_number` ist nach Reset-Import bereits NULL bzw. vor Import gar nicht gesetzt — keine Extra-Clearing-Logik.)*
 - `import_failed -> approved`
 - `awaiting_bank_confirmation -> ready_for_activation` *(PROJ-46, admin manuell nach Bank-Bestätigung)*
 - `awaiting_bank_confirmation -> under_review` *(PROJ-46, admin rückwärts)*
@@ -768,6 +769,13 @@ tariff assignment, the admin pflegt es manuell im Core nach).
 - set `imported_at`
 - set `target_participant_id`
 - set `member_number`
+- **Bugfix 2026-05-28**: for the at-import mandate flows (`einzugsart=b2b` OR
+  `einzugsart=core` AND `entrypoint.sepa_mandate_at_import=true`), the import
+  now sets `mandate_reference = member_number` and `mandate_date = import_started_at`
+  **before** the `POST /participant` call, so both values land in the Core's
+  `accountInfo.mandateReference` / `accountInfo.mandateDate`. Idempotent: an
+  admin-overridden `mandate_reference` (e.g. external customer number) is
+  preserved.
 - `status = imported` (transient), then **auto-transition** to either
   `awaiting_bank_confirmation` (b2b) or `ready_for_activation` (non-b2b)
   in a separate transaction (PROJ-46)

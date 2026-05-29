@@ -4,6 +4,16 @@
 
 ---
 
+## 2026-05-29
+
+**Feature: Genehmigte Anträge können jetzt abgelehnt werden**
+
+Nach einem „Import zurücksetzen" landet ein Antrag wieder auf „Genehmigt". Bisher gab es in diesem Status keine Möglichkeit mehr, den Antrag final abzulehnen — der „Ablehnen"-Button fehlte. Jetzt erscheint er neben „In eegFaktura importieren" und „Manuell aktivieren …". Beim Klick muss eine Begründung eingegeben werden (wie bei jeder Ablehnung), und der Antrag landet auf „Abgelehnt". Die Mitgliedsnummer wurde bereits beim Reset-Import entfernt — keine separate Aktion nötig.
+
+→ [Antrag ablehnen](05-admin-status.md)
+
+---
+
 ## 2026-05-28
 
 **Bug-Fix: SEPA-Mandatsreferenz + Mandatsdatum landen jetzt im Core**

@@ -164,3 +164,32 @@ gefallen und das passende Mandat liegt bei.
   Mandatsreferenz = Mitgliedsnummer in Import-Mail
 - Smoke-Test 5: Admin setzt `einzugsart=b2b`, Import → Firmenlastschrift
   mit Mandatsreferenz (unabhängig vom Setting, PROJ-47-Pfad)
+
+## Follow-up Bugfix 2026-05-28: Mandate-Werte erreichen den Core
+
+Tester-Befund: bei `einzugsart=b2b` und bei `einzugsart=core` +
+`sepa_mandate_at_import=true` landeten `accountInfo.mandateReference` und
+`accountInfo.mandateDate` leer im eegFaktura-Core. Lokal waren die Werte
+korrekt (PDF + DB), aber das Onboarding leitete sie erst NACH dem
+`POST /participant` ab und schickte sie nie nach.
+
+Fix in `internal/importing/import_service.go`:
+
+- Neuer Gate-Helper `shouldDeriveMandateAtImport(app, ep)` zentralisiert die
+  Bedingung (`einzugsart=b2b` ODER `core+SEPAMandateAtImport`, jeweils nur
+  bei `SepaMandateAccepted=true`).
+- `Import()` ruft die Ableitung jetzt vor `BuildPayload`. Werte werden via
+  `SetMandateReferenceIfEmpty` + neuer `SetMandateDateIfEmpty` persistiert
+  (idempotent, Admin-Override bleibt) und in das in-memory `app`-Objekt
+  gespiegelt, sodass `BuildPayload` sie ins Payload aufnimmt.
+- `SendPostImportNotification` nutzt jetzt durchgängig die IfEmpty-Variante
+  — der Import-Pfad und der Post-Import-Mail-Pfad konkurrieren nicht mehr
+  um denselben Spaltenwert.
+
+Regression-Guards: fünf `TestShouldDeriveMandateAtImport_*` in
+`internal/importing/payload_test.go`.
+
+Submit-Pfad (`core + sepa_mandate_at_import=false`, PROJ-12) bleibt
+bewusst unverändert: dort kommuniziert die Aktivierungs-Mail die Referenz
+als Hinweis und das Mitglied trägt sie auf dem Papier-Mandat ein; der
+Admin überträgt sie später manuell, wenn das signierte Mandat zurückkommt.
