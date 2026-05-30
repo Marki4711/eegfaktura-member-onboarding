@@ -6,6 +6,19 @@ Die Einstellungsseite ist über **Einstellungen** im Admin-Bereich erreichbar. S
 
 Wenn dein Account für mehrere EEGs zuständig ist, erscheint oben rechts ein Auswahlfeld. Alle Einstellungen beziehen sich auf die gewählte EEG.
 
+## Speichern, Auto-Speichern, Tab-Wechsel-Schutz
+
+Die Einstellungsseite besteht aus mehreren Tabs. Welcher Tab wie speichert, ist bewusst pro Tab passend zur Bedienlogik gewählt:
+
+| Tab | Speichern-Verhalten |
+|---|---|
+| **Stammdaten & SEPA** | Expliziter **„Konfiguration speichern"**-Button am Ende. Die Felder hängen voneinander ab (SEPA-Toggle + Mandat-Timing + Default-Einzugsart), daher willst du sie als bewussten Sammel-Klick absetzen. |
+| **Einleitungstext** | Expliziter **„Speichern"**-Button. Im Hintergrund läuft zusätzlich alle 30 Sekunden ein **Auto-Speichern als Sicherheitsnetz**, damit ein Browser-Crash dich nicht den ganzen Text kostet. |
+| **Formular-Felder** | **Auto-Speichern.** Jede Toggle-Änderung wird automatisch persistiert; oben in der Karte zeigt ein Status-Indikator „Speichert…" / „Gespeichert". Es gibt keinen Speichern-Button mehr. |
+| **Rechtsdokumente, Externe API, Datenweiterleitung, Import/Export** | Jede Aktion (Hinzufügen, Bearbeiten, Löschen, Schlüssel-Generieren …) wird **sofort** persistiert. Kein Sammel-Save nötig. |
+
+**Schutz vor Datenverlust:** Wenn du den Tab oder die EEG wechselst, während es in **Stammdaten**, **Einleitungstext** oder **Formular-Felder** ungespeicherte Änderungen gibt, erscheint ein Confirm-Dialog („Hier bleiben" / „Verwerfen und wechseln"). Tabs mit ungespeicherten Änderungen tragen außerdem ein orangenes Punkt-Symbol im Tab-Header. Beim Schließen des Browser-Tabs oder beim Refresh warnt zusätzlich der Browser selbst.
+
 ## EEG-Stammdaten & SEPA-Mandat
 
 In diesem Abschnitt steuerst du die öffentliche Registrierung und hinterlegst die Stammdaten für das SEPA-Lastschriftmandat.
@@ -172,6 +185,9 @@ Felder, die pro Zählpunkt im Mitgliedsformular erscheinen — bei mehreren Zäh
 ### Spezielle konfigurierbare Felder
 
 - **Netzbetreiber-Vollmacht** *(Application-Scope)* — das Mitglied erteilt der EEG die Vollmacht, in seinem Namen mit dem Netzbetreiber zu agieren (notwendig z. B. bei Netz OÖ). Der Volltext der Vollmacht ist **fest im Code** und kann hier nicht editiert werden — du steuerst lediglich, ob die Checkbox überhaupt erscheinen soll. Default: `Ausgeblendet`. Bei `Verpflichtend` muss das Mitglied das Häkchen aktiv setzen, sonst wird der Antrag nicht submitted.
+  - **Praxis-Hinweis Netz OÖ** — wenn beim Online-Portal der Netz OÖ ein Onboarding-Schritt klemmt, geht ein Kontakt der EEG mit dem Netzbetreiber meist schneller als der des Mitglieds. Die Netz OÖ verlangt für ein solches Handeln im Mitglieds-Auftrag die unterschriebene Vollmacht — Toggle daher auf `Verpflichtend` oder zumindest `Optional`.
+  - **Praxis-Hinweis Salzburg Netz** — kein Vollmachts-Workflow; Salzburg Netz arbeitet stattdessen mit **Kundennummer + Vertragskontonummer**, die das Mitglied selbst aus seinem Portal-/Rechnungs-Dokument heraussucht. In diesen Fällen bringt die Vollmacht keinen Mehrwert — Toggle kann auf `Ausgeblendet` bleiben. Die beiden Nummern sind heute nicht eigenständig im Formular abgefragt; sie kommen üblicherweise über die normale Netzbetreiber-Kommunikation des Mitglieds.
+  - **Faustregel** — vor dem Aktivieren beim jeweiligen Netzbetreiber kurz nachfragen, ob er die Vollmacht akzeptiert bzw. überhaupt benötigt. Manche Netzbetreiber fordern statt der Vollmacht spezifische Mitglieds-Daten (Kunden-/Vertragsnummer, Zähler-Inventarnummer); diese können als konfigurierbare Felder hinterlegt werden (siehe [Netzbetreiber-Info-PDF](07-emails-and-pdfs.md)).
 - **Größe Batterie (kWh) / Hersteller Wechselrichter** *(Zählpunkt-Scope)* — sammeln Speicher- und WR-Daten für PV-Erzeuger-Zählpunkte, um die EEG-Bewirtschaftung zu optimieren. Im Mitgliedsformular gruppiert hinter dem Master-Toggle „Batteriespeicher vorhanden". Default: `Ausgeblendet`.
 - **Speichersteuerung im Sinne der EEG vorstellbar?** *(Zählpunkt-Scope, nur PV)* — Mitglied-Einverständnis, dass die EEG den Heimspeicher gemeinsam mit anderen Speichern der Mitglieder steuern darf. Sichtbar im Mitgliedsformular nur, wenn das Mitglied den Master-Toggle „Batteriespeicher vorhanden" aktiviert hat. Default: `Ausgeblendet`. Auf `Verpflichtend` setzen, wenn ohne Einverständnis kein Antrag möglich sein soll (greift jedoch nur, wenn das Mitglied tatsächlich einen Speicher angegeben hat — sonst wird die Frage gar nicht erst gestellt).
 - **Verbrauch Vorjahr / Verbrauch Prognose** *(Zählpunkt-Scope)* — Energiewerte pro Verbraucher-Zählpunkt. Default: `Ausgeblendet`.

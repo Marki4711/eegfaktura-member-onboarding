@@ -4,7 +4,38 @@
 
 ---
 
+## 2026-05-30
+
+**Feature: Automatisches Speichern in den Formular-Felder + Tab-Wechsel-Schutz**
+
+In den Einstellungen waren bisher manche Editoren mit einem „Speichern"-Button versehen, andere nicht — wer den Button vergaß, riskierte Datenverlust beim Tab-Wechsel. Das ist jetzt aufgeräumt:
+
+- **Formular-Felder** (Tab „Formular-Felder"): Speichern-Button entfernt. Jede Toggle-Änderung wird nach kurzer Verzögerung automatisch gespeichert. Ein Status-Indikator oben in der Karte zeigt „Speichert…" / „Gespeichert".
+- **Einleitungstext** (Tiptap): Speichern-Button bleibt — der Admin entscheidet bewusst, wann der Text „fertig" ist. Zusätzlich läuft ein 30-Sekunden-Auto-Speichern im Hintergrund als Sicherheitsnetz gegen Browser-Crash oder versehentliches Schließen.
+- **Stammdaten & SEPA**: Speichern-Button bleibt unverändert — die ~30 zusammenhängenden Felder sollen weiterhin als ein bewusster „Konfiguration speichern"-Klick abgesetzt werden (z. B. wegen gegenseitiger Validierung von SEPA-Toggle + Mandat-Timing).
+- **Allgemein:** Wenn du einen Tab oder die EEG wechselst, **während es ungespeicherte Änderungen gibt**, erscheint jetzt ein Confirm-Dialog („Hier bleiben" / „Verwerfen und wechseln"). Tabs mit ungespeicherten Änderungen tragen ein orangenes Punkt-Symbol. Zusätzlich warnt der Browser beim Schließen des Tabs/Refreshs.
+
+→ [Admin-Einstellungen](06-admin-settings.md)
+
+**Doku-Schärfung: Was das Onboarding ist — und was nicht**
+
+Auf Tester-Nachfrage „Wofür ist Member-Onboarding eigentlich gedacht?" steht jetzt in der Doku-Übersicht eine klare Abgrenzung: Das Tool ist für **Datenerfassung, Antragsprüfung und Übergabe** an ein Zielsystem (typischerweise eegFaktura) gedacht. Es ist explizit **keine** Mitgliederverwaltung, **kein** dauerhafter Datenspeicher und **kein** Reporting-Tool. Auswertungen und das laufende Mitglieder-Geschäft gehören ins Zielsystem; das Onboarding liefert dorthin via direktem Import oder Plugin-Datenweiterleitung (heute: Excel/CSV; künftig: CRM-Anbindungen).
+
+→ [Überblick](index.md)
+
+**Doku-Ergänzung: Praxis-Hinweise zur „Netzbetreiber-Vollmacht"**
+
+Aus einer Tester-Runde kamen konkrete Erfahrungswerte, wann das Vollmachts-Feld sinnvoll ist und wann nicht: Bei **Netz OÖ** beschleunigt sie die Kommunikation, wenn das Mitglied beim Online-Portal-Onboarding klemmt — die Netz OÖ verlangt für ein Handeln im Mitglieds-Auftrag genau diese Vollmacht. Bei **Salzburg Netz** läuft es anders herum: dort braucht es **Kundennummer + Vertragskontonummer**, die das Mitglied selbst aus seinem Portal heraussucht — ein Vollmachts-Workflow ist nicht vorgesehen, der Toggle kann ausgeblendet bleiben. Faustregel ergänzt: vor dem Aktivieren beim Netzbetreiber kurz nachfragen.
+
+→ [Admin-Einstellungen — Spezielle konfigurierbare Felder](06-admin-settings.md#spezielle-konfigurierbare-felder)
+
+---
+
 ## 2026-05-29
+
+**Feature: Excel-Download zählt jetzt auch als Übergabe an eegFaktura**
+
+Das xlsx aus „Excel herunterladen" entspricht 1:1 dem eegFaktura-Import-Template und kann von Admins direkt im Core hochgeladen werden — bisher wurde dieser Weg in der geplanten Quartals-Verrechnung nicht erfasst (nur der „In eegFaktura importieren"-Button im Onboarding). Damit beide Wege fair behandelt werden, gilt jetzt: der **erste** Klick auf „Excel herunterladen" markiert den Antrag als an eegFaktura übergeben. Vor dem ersten Download erscheint ein Bestätigungs-Dialog mit dem Hinweis darauf. Weitere Downloads ändern den Vermerk nicht und lösen auch keinen Dialog mehr aus. Wer das xlsx nur als Backup oder für die Buchhaltungs-Ablage braucht, nutzt stattdessen den Button **„Datenweiterleitung"** — der ist nicht verrechnungsrelevant und liefert frei konfigurierbare Excel-Formate. Im Detail-Header eines bereits übergebenen Antrags steht ab sofort eine Zeile „An eegFaktura übergeben am …".
 
 **Feature: Genehmigte Anträge können jetzt abgelehnt werden**
 

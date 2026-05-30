@@ -2,7 +2,26 @@
 
 ## Was ist das Tool?
 
-Das eegFaktura Mitglieder-Onboarding ermöglicht die **selbstständige Online-Registrierung neuer EEG-Mitglieder**. Neue Mitglieder füllen ein öffentlich zugängliches Webformular aus, das über einen individuellen Link der jeweiligen EEG erreichbar ist. Die Daten werden zunächst in einem Prüfbereich gesammelt und erst nach Freigabe durch den EEG-Betreiber in eegFaktura übernommen.
+Das eegFaktura Mitglieder-Onboarding ist ein **Datenerfassungs-, Prüfungs- und Kommunikationstool für Beitrittskandidaten einer Energiegemeinschaft**. Neue Interessenten füllen ein öffentlich zugängliches Webformular aus, das über einen individuellen Link der jeweiligen EEG erreichbar ist. Der EEG-Betreiber prüft den Antrag, klärt offene Punkte direkt im Tool und gibt die Daten anschließend an ein externes Zielsystem weiter — typischerweise an eegFaktura, optional an weitere Systeme über das Plugin-System (siehe „Datenweiterleitung" weiter unten).
+
+## Was das Tool NICHT ist
+
+Damit das Zusammenspiel mit anderen Systemen sauber funktioniert, hier die bewusste Abgrenzung:
+
+- **Keine Mitgliederverwaltung.** Sobald ein Antrag an das Zielsystem übergeben wurde, lebt die dauerhafte Mitgliedschaft dort, nicht hier. Änderungen am bestehenden Mitglied (Adresse, Bankverbindung, Tarif, Vertrag, …) werden im Zielsystem gepflegt.
+- **Kein dauerhafter Datenspeicher.** Die Antrags-Datensätze im Onboarding sind nach der Übergabe an das Zielsystem **Übergangs-Daten**. Sie bleiben aus Audit- und Reset-Gründen zwar verfügbar, sind aber nicht als langfristige Quelle der Wahrheit gedacht. Für historische Auswertungen, Reports und das tägliche Mitglieder-Geschäft ist das Zielsystem zuständig.
+- **Keine Auswertungs- oder Analyse-Tools.** Es gibt keine Statistik-Dashboards, kein BI-Modul, keine Mitglieder-Abfrage über Filter-Sets, kein Mitglieder-Cockpit. Wer Reporting braucht, holt es sich in dem System, in das die Daten weitergeleitet wurden.
+
+Diese Trennung ist Absicht: Das Onboarding will den Aufnahmeprozess **bis zur sauberen Übergabe** kanalisieren — alles andere gehört woanders hin und wird absichtlich nicht doppelt gebaut.
+
+## Datenweiterleitung
+
+Die erfassten Antragsdaten lassen sich auf zwei Wegen an Folgesysteme übergeben:
+
+1. **Direkter Import in eegFaktura** — der Standard-Pfad. Ein Klick auf „In eegFaktura importieren" im Antrag erzeugt den Teilnehmer im Core inklusive Zählpunkten, Bankverbindung und SEPA-Mandat.
+2. **Plugin-basierte Datenweiterleitung** an beliebige andere Systeme. Heute ist als erstes Plugin der **Excel-/CSV-Export** verfügbar — mit frei konfigurierbarem Spalten-Mapping pro Zielsystem. Künftige Plugins (z. B. CRM-Anbindungen wie HubSpot oder Zoho) folgen demselben Muster: konfigurieren → Antrag auswählen → Plugin-Aktion auslösen.
+
+Details: [Admin-Einstellungen — Datenweiterleitung](06-admin-settings.md).
 
 ## Wie funktioniert der Prozess?
 
