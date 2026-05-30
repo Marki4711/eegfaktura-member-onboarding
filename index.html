@@ -325,6 +325,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#konkreter-nutzen-fur-die-eeg" class="md-nav__link">
+    <span class="md-ellipsis">
+      Konkreter Nutzen für die EEG
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#datenweiterleitung" class="md-nav__link">
     <span class="md-ellipsis">
       Datenweiterleitung
@@ -624,6 +633,14 @@
 <li><strong>Keine Auswertungs- oder Analyse-Tools.</strong> Es gibt keine Statistik-Dashboards, kein BI-Modul, keine Mitglieder-Abfrage über Filter-Sets, kein Mitglieder-Cockpit. Wer Reporting braucht, holt es sich in dem System, in das die Daten weitergeleitet wurden.</li>
 </ul>
 <p>Diese Trennung ist Absicht: Das Onboarding will den Aufnahmeprozess <strong>bis zur sauberen Übergabe</strong> kanalisieren — alles andere gehört woanders hin und wird absichtlich nicht doppelt gebaut.</p>
+<h2 id="konkreter-nutzen-fur-die-eeg">Konkreter Nutzen für die EEG<a class="headerlink" href="#konkreter-nutzen-fur-die-eeg" title="Permanent link">&para;</a></h2>
+<p>Aus Pilot-Rückmeldungen ist das der gefühlte Kern-Mehrwert: <strong>„neue Mitglieder über eine einfache Formularmaske sauber in eegFaktura bekommen — ohne die typischen Fehlerquellen der manuellen Aufnahme."</strong> Konkret:</p>
+<ul>
+<li><strong>Strukturierte Erfassung statt E-Mail-Anhänge.</strong> Pflichtfelder, Format-Validierung (IBAN, UID, Zählpunkt) und konsistente Adress-/Bank-Datensätze werden im Formular abgefangen — nicht erst beim Import bemerkt.</li>
+<li><strong>Ein Klick statt manueller Tipparbeit.</strong> Der Import in eegFaktura läuft über einen Button im Antrag; Mitglieds-Stammdaten, Zählpunkte, SEPA-Mandat landen ohne Re-Tipparbeit im Core. Daher keine Tippfehler beim Übertragen.</li>
+<li><strong>Mitglieds-Kommunikation ist Teil des Workflows.</strong> Rückfragen, Bestätigungen, Beitritts-PDFs gehen aus dem Tool — ohne Medienbruch zum E-Mail-Programm.</li>
+<li><strong>Audit-Trail bis zur Übergabe.</strong> Jeder Status-Schritt vom Einreichen bis zum Aktivieren wird mit Zeitstempel + Aktor protokolliert (für FA-Prüfung, interne Rückverfolgung).</li>
+</ul>
 <h2 id="datenweiterleitung">Datenweiterleitung<a class="headerlink" href="#datenweiterleitung" title="Permanent link">&para;</a></h2>
 <p>Die erfassten Antragsdaten lassen sich auf zwei Wegen an Folgesysteme übergeben:</p>
 <ol>
