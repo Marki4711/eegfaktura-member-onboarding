@@ -536,6 +536,21 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="SEPA-Lastschriftmandat">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#welche-toggle-kombination-ergibt-was" class="md-nav__link">
+    <span class="md-ellipsis">
+      Welche Toggle-Kombination ergibt was?
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -898,6 +913,44 @@
 <blockquote>
 <p><strong>Hinweis:</strong> Wenn das SEPA-Mandat aktiviert ist, aber Stammdaten fehlen, erscheint eine Warnung. Solange Felder fehlen, wird kein PDF generiert.</p>
 </blockquote>
+<h4 id="welche-toggle-kombination-ergibt-was">Welche Toggle-Kombination ergibt was?<a class="headerlink" href="#welche-toggle-kombination-ergibt-was" title="Permanent link">&para;</a></h4>
+<p>Die beiden Toggles <strong>SEPA-Mandat von der EEG bereitstellen</strong> + <strong>SEPA-Mandat erst beim Import erzeugen</strong> ergeben in Kombination vier Verhaltensvarianten. Hier eine Übersicht, damit du beim Bedienen weißt, was das Mitglied im Formular sieht und wann das PDF rausgeht:</p>
+<table>
+<thead>
+<tr>
+<th>SEPA-Mandat aktiv</th>
+<th>Mandat erst bei Import</th>
+<th>Im Mitglieder-Formular</th>
+<th>Wann kommt das Mandats-PDF</th>
+<th>Mandatsreferenz</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>aus</strong></td>
+<td>(irrelevant)</td>
+<td>Pflicht-Checkbox „Ich erteile … SEPA-Lastschriftmandat" als Online-Zustimmung. Kein Hinweis-Text.</td>
+<td>Nie — Onboarding generiert kein PDF. Mitglied stimmt online zu, EEG nutzt eigenes Mandat-Verfahren.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>an</strong></td>
+<td><strong>aus</strong> <em>(Default)</em></td>
+<td>Keine zusätzliche Checkbox, kein Hinweis-Text — Mitglied trägt nur IBAN ein.</td>
+<td>Sofort bei Einreichen, als Anhang der Bestätigungs-Mail.</td>
+<td>Antrags-Referenznummer (<code>&lt;RC&gt;-&lt;Jahr&gt;-&lt;NNNN&gt;</code>)</td>
+</tr>
+<tr>
+<td><strong>an</strong></td>
+<td><strong>an</strong></td>
+<td>Hinweis-Absatz im Bankverbindungs-Block: „Das SEPA-Lastschriftmandat erhältst du nach der Freigabe deines Antrags per E-Mail — mit eingetragener Mandatsreferenz (deiner Mitgliedsnummer) zur Unterschrift."</td>
+<td>Erst beim Import in eegFaktura, als Anhang der Beitrittsbestätigungs-Mail.</td>
+<td>Mitgliedsnummer (in eegFaktura vergeben)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Wenn du den Hinweis-Absatz im Formular loswerden willst:</strong> den Toggle „SEPA-Mandat erst beim Import erzeugen" auf <strong>aus</strong> stellen. Dann läuft alles wie im Default — das Mandat geht beim Einreichen mit der Bestätigungs-Mail raus, die Referenz ist die Antragsnummer.</p>
+<p><strong>Mandatsreferenz manuell überschreiben:</strong> Sowohl die Antragsnummer- als auch die Mitgliedsnummer-basierte Auto-Ableitung ist nicht zwingend. Im Admin-Edit-Form jedes Antrags gibt es ein Eingabefeld <strong>Mandatsreferenz</strong> (z. B. für externe Kundennummern aus eurem Buchhaltungssystem). Ein dort eingetragener Wert hat <strong>Vorrang</strong> und wird beim Import in eegFaktura mit übernommen (analog zum Mandatsdatum). Beide Felder werden, falls leer gelassen, automatisch beim Import abgeleitet — siehe Tabelle oben.</p>
 <h3 id="genossenschaftsanteile">Genossenschaftsanteile<a class="headerlink" href="#genossenschaftsanteile" title="Permanent link">&para;</a></h3>
 <p><img alt="Genossenschaftsanteile" src="../images/admin-settings-eeg-cooperative.png" /></p>
 <p>Nur relevant für EEGs, deren Rechtsträger eine Genossenschaft ist:</p>
