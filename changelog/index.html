@@ -329,6 +329,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#2026-05-30" class="md-nav__link">
+    <span class="md-ellipsis">
+      2026-05-30
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#2026-05-29" class="md-nav__link">
     <span class="md-ellipsis">
       2026-05-29
@@ -656,6 +665,23 @@
 
 <h1 id="was-ist-neu">Was ist neu?<a class="headerlink" href="#was-ist-neu" title="Permanent link">&para;</a></h1>
 <p>Übersicht der Änderungen der letzten Tage, die für <strong>EEG-Admins</strong> und <strong>Mitglieder</strong> spürbar sind. Technische Details, Bug-Fixes ohne UI-Auswirkung und Infrastruktur-Themen sind hier bewusst weggelassen — die finden sich in der Commit-Historie.</p>
+<hr />
+<h2 id="2026-05-30">2026-05-30<a class="headerlink" href="#2026-05-30" title="Permanent link">&para;</a></h2>
+<p><strong>Feature: Automatisches Speichern in den Formular-Felder + Tab-Wechsel-Schutz</strong></p>
+<p>In den Einstellungen waren bisher manche Editoren mit einem „Speichern"-Button versehen, andere nicht — wer den Button vergaß, riskierte Datenverlust beim Tab-Wechsel. Das ist jetzt aufgeräumt:</p>
+<ul>
+<li><strong>Formular-Felder</strong> (Tab „Formular-Felder"): Speichern-Button entfernt. Jede Toggle-Änderung wird nach kurzer Verzögerung automatisch gespeichert. Ein Status-Indikator oben in der Karte zeigt „Speichert…" / „Gespeichert".</li>
+<li><strong>Einleitungstext</strong> (Tiptap): Speichern-Button bleibt — der Admin entscheidet bewusst, wann der Text „fertig" ist. Zusätzlich läuft ein 30-Sekunden-Auto-Speichern im Hintergrund als Sicherheitsnetz gegen Browser-Crash oder versehentliches Schließen.</li>
+<li><strong>Stammdaten &amp; SEPA</strong>: Speichern-Button bleibt unverändert — die ~30 zusammenhängenden Felder sollen weiterhin als ein bewusster „Konfiguration speichern"-Klick abgesetzt werden (z. B. wegen gegenseitiger Validierung von SEPA-Toggle + Mandat-Timing).</li>
+<li><strong>Allgemein:</strong> Wenn du einen Tab oder die EEG wechselst, <strong>während es ungespeicherte Änderungen gibt</strong>, erscheint jetzt ein Confirm-Dialog („Hier bleiben" / „Verwerfen und wechseln"). Tabs mit ungespeicherten Änderungen tragen ein orangenes Punkt-Symbol. Zusätzlich warnt der Browser beim Schließen des Tabs/Refreshs.</li>
+</ul>
+<p>→ <a href="../06-admin-settings/">Admin-Einstellungen</a></p>
+<p><strong>Doku-Schärfung: Was das Onboarding ist — und was nicht</strong></p>
+<p>Auf Tester-Nachfrage „Wofür ist Member-Onboarding eigentlich gedacht?" steht jetzt in der Doku-Übersicht eine klare Abgrenzung: Das Tool ist für <strong>Datenerfassung, Antragsprüfung und Übergabe</strong> an ein Zielsystem (typischerweise eegFaktura) gedacht. Es ist explizit <strong>keine</strong> Mitgliederverwaltung, <strong>kein</strong> dauerhafter Datenspeicher und <strong>kein</strong> Reporting-Tool. Auswertungen und das laufende Mitglieder-Geschäft gehören ins Zielsystem; das Onboarding liefert dorthin via direktem Import oder Plugin-Datenweiterleitung (heute: Excel/CSV; künftig: CRM-Anbindungen).</p>
+<p>→ <a href="../">Überblick</a></p>
+<p><strong>Doku-Ergänzung: Praxis-Hinweise zur „Netzbetreiber-Vollmacht"</strong></p>
+<p>Aus einer Tester-Runde kamen konkrete Erfahrungswerte, wann das Vollmachts-Feld sinnvoll ist und wann nicht: Bei <strong>Netz OÖ</strong> beschleunigt sie die Kommunikation, wenn das Mitglied beim Online-Portal-Onboarding klemmt — die Netz OÖ verlangt für ein Handeln im Mitglieds-Auftrag genau diese Vollmacht. Bei <strong>Salzburg Netz</strong> läuft es anders herum: dort braucht es <strong>Kundennummer + Vertragskontonummer</strong>, die das Mitglied selbst aus seinem Portal heraussucht — ein Vollmachts-Workflow ist nicht vorgesehen, der Toggle kann ausgeblendet bleiben. Faustregel ergänzt: vor dem Aktivieren beim Netzbetreiber kurz nachfragen.</p>
+<p>→ <a href="../06-admin-settings/#spezielle-konfigurierbare-felder">Admin-Einstellungen — Spezielle konfigurierbare Felder</a></p>
 <hr />
 <h2 id="2026-05-29">2026-05-29<a class="headerlink" href="#2026-05-29" title="Permanent link">&para;</a></h2>
 <p><strong>Feature: Excel-Download zählt jetzt auch als Übergabe an eegFaktura</strong></p>

@@ -493,6 +493,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#speichern-auto-speichern-tab-wechsel-schutz" class="md-nav__link">
+    <span class="md-ellipsis">
+      Speichern, Auto-Speichern, Tab-Wechsel-Schutz
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#eeg-stammdaten-sepa-mandat" class="md-nav__link">
     <span class="md-ellipsis">
       EEG-Stammdaten &amp; SEPA-Mandat
@@ -796,6 +805,35 @@
 <p>Die Einstellungsseite ist über <strong>Einstellungen</strong> im Admin-Bereich erreichbar. Sie enthält alle EEG-spezifischen Konfigurationen.</p>
 <h2 id="eeg-auswahlen">EEG auswählen<a class="headerlink" href="#eeg-auswahlen" title="Permanent link">&para;</a></h2>
 <p>Wenn dein Account für mehrere EEGs zuständig ist, erscheint oben rechts ein Auswahlfeld. Alle Einstellungen beziehen sich auf die gewählte EEG.</p>
+<h2 id="speichern-auto-speichern-tab-wechsel-schutz">Speichern, Auto-Speichern, Tab-Wechsel-Schutz<a class="headerlink" href="#speichern-auto-speichern-tab-wechsel-schutz" title="Permanent link">&para;</a></h2>
+<p>Die Einstellungsseite besteht aus mehreren Tabs. Welcher Tab wie speichert, ist bewusst pro Tab passend zur Bedienlogik gewählt:</p>
+<table>
+<thead>
+<tr>
+<th>Tab</th>
+<th>Speichern-Verhalten</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Stammdaten &amp; SEPA</strong></td>
+<td>Expliziter <strong>„Konfiguration speichern"</strong>-Button am Ende. Die Felder hängen voneinander ab (SEPA-Toggle + Mandat-Timing + Default-Einzugsart), daher willst du sie als bewussten Sammel-Klick absetzen.</td>
+</tr>
+<tr>
+<td><strong>Einleitungstext</strong></td>
+<td>Expliziter <strong>„Speichern"</strong>-Button. Im Hintergrund läuft zusätzlich alle 30 Sekunden ein <strong>Auto-Speichern als Sicherheitsnetz</strong>, damit ein Browser-Crash dich nicht den ganzen Text kostet.</td>
+</tr>
+<tr>
+<td><strong>Formular-Felder</strong></td>
+<td><strong>Auto-Speichern.</strong> Jede Toggle-Änderung wird automatisch persistiert; oben in der Karte zeigt ein Status-Indikator „Speichert…" / „Gespeichert". Es gibt keinen Speichern-Button mehr.</td>
+</tr>
+<tr>
+<td><strong>Rechtsdokumente, Externe API, Datenweiterleitung, Import/Export</strong></td>
+<td>Jede Aktion (Hinzufügen, Bearbeiten, Löschen, Schlüssel-Generieren …) wird <strong>sofort</strong> persistiert. Kein Sammel-Save nötig.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Schutz vor Datenverlust:</strong> Wenn du den Tab oder die EEG wechselst, während es in <strong>Stammdaten</strong>, <strong>Einleitungstext</strong> oder <strong>Formular-Felder</strong> ungespeicherte Änderungen gibt, erscheint ein Confirm-Dialog („Hier bleiben" / „Verwerfen und wechseln"). Tabs mit ungespeicherten Änderungen tragen außerdem ein orangenes Punkt-Symbol im Tab-Header. Beim Schließen des Browser-Tabs oder beim Refresh warnt zusätzlich der Browser selbst.</p>
 <h2 id="eeg-stammdaten-sepa-mandat">EEG-Stammdaten &amp; SEPA-Mandat<a class="headerlink" href="#eeg-stammdaten-sepa-mandat" title="Permanent link">&para;</a></h2>
 <p>In diesem Abschnitt steuerst du die öffentliche Registrierung und hinterlegst die Stammdaten für das SEPA-Lastschriftmandat.</p>
 <p><img alt="EEG-Einstellungen" src="../images/admin-settings-eeg.png" /></p>
@@ -964,6 +1002,9 @@
 <h3 id="spezielle-konfigurierbare-felder">Spezielle konfigurierbare Felder<a class="headerlink" href="#spezielle-konfigurierbare-felder" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Netzbetreiber-Vollmacht</strong> <em>(Application-Scope)</em> — das Mitglied erteilt der EEG die Vollmacht, in seinem Namen mit dem Netzbetreiber zu agieren (notwendig z. B. bei Netz OÖ). Der Volltext der Vollmacht ist <strong>fest im Code</strong> und kann hier nicht editiert werden — du steuerst lediglich, ob die Checkbox überhaupt erscheinen soll. Default: <code>Ausgeblendet</code>. Bei <code>Verpflichtend</code> muss das Mitglied das Häkchen aktiv setzen, sonst wird der Antrag nicht submitted.</li>
+<li><strong>Praxis-Hinweis Netz OÖ</strong> — wenn beim Online-Portal der Netz OÖ ein Onboarding-Schritt klemmt, geht ein Kontakt der EEG mit dem Netzbetreiber meist schneller als der des Mitglieds. Die Netz OÖ verlangt für ein solches Handeln im Mitglieds-Auftrag die unterschriebene Vollmacht — Toggle daher auf <code>Verpflichtend</code> oder zumindest <code>Optional</code>.</li>
+<li><strong>Praxis-Hinweis Salzburg Netz</strong> — kein Vollmachts-Workflow; Salzburg Netz arbeitet stattdessen mit <strong>Kundennummer + Vertragskontonummer</strong>, die das Mitglied selbst aus seinem Portal-/Rechnungs-Dokument heraussucht. In diesen Fällen bringt die Vollmacht keinen Mehrwert — Toggle kann auf <code>Ausgeblendet</code> bleiben. Die beiden Nummern sind heute nicht eigenständig im Formular abgefragt; sie kommen üblicherweise über die normale Netzbetreiber-Kommunikation des Mitglieds.</li>
+<li><strong>Faustregel</strong> — vor dem Aktivieren beim jeweiligen Netzbetreiber kurz nachfragen, ob er die Vollmacht akzeptiert bzw. überhaupt benötigt. Manche Netzbetreiber fordern statt der Vollmacht spezifische Mitglieds-Daten (Kunden-/Vertragsnummer, Zähler-Inventarnummer); diese können als konfigurierbare Felder hinterlegt werden (siehe <a href="../07-emails-and-pdfs/">Netzbetreiber-Info-PDF</a>).</li>
 <li><strong>Größe Batterie (kWh) / Hersteller Wechselrichter</strong> <em>(Zählpunkt-Scope)</em> — sammeln Speicher- und WR-Daten für PV-Erzeuger-Zählpunkte, um die EEG-Bewirtschaftung zu optimieren. Im Mitgliedsformular gruppiert hinter dem Master-Toggle „Batteriespeicher vorhanden". Default: <code>Ausgeblendet</code>.</li>
 <li><strong>Speichersteuerung im Sinne der EEG vorstellbar?</strong> <em>(Zählpunkt-Scope, nur PV)</em> — Mitglied-Einverständnis, dass die EEG den Heimspeicher gemeinsam mit anderen Speichern der Mitglieder steuern darf. Sichtbar im Mitgliedsformular nur, wenn das Mitglied den Master-Toggle „Batteriespeicher vorhanden" aktiviert hat. Default: <code>Ausgeblendet</code>. Auf <code>Verpflichtend</code> setzen, wenn ohne Einverständnis kein Antrag möglich sein soll (greift jedoch nur, wenn das Mitglied tatsächlich einen Speicher angegeben hat — sonst wird die Frage gar nicht erst gestellt).</li>
 <li><strong>Verbrauch Vorjahr / Verbrauch Prognose</strong> <em>(Zählpunkt-Scope)</em> — Energiewerte pro Verbraucher-Zählpunkt. Default: <code>Ausgeblendet</code>.</li>
