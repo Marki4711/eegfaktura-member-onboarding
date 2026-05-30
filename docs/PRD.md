@@ -90,6 +90,11 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 | PROJ-57 | Ansprechperson für Org-Mitgliedstypen | v3-Design: drei Subfelder einzeln per field_config, Checkbox erscheint automatisch — kein Master-Switch |
 | PROJ-58 | Abweichende Rechnungs-E-Mail | Toggle + E-Mail in der Bankverbindungs-Section, nur bei Org-Mitgliedstypen |
 | PROJ-59 | BgA / Hoheitsbereich-Vermerk im Anlagennamen | Reiner Hilfetext-Vermerk bei Gemeinden — kein Schema, keine Validierung; Admin liest beim Tarif-Setzen |
+| PROJ-60 | Datenweiterleitung an externe Systeme | Async-Plugin-Framework mit Job-Queue + In-App-Worker; Excel/CSV-Plugin als erste Implementierung. Phase 2 = weitere Plugins (CRM, Zoho/HubSpot, …) |
+| PROJ-61 | Konfigurations-Export & -Import pro EEG | Vier Sub-Typen (EEG-Settings, Field-Config, Legal-Documents, Data-Export-Configs) als versionierte JSON-Datei + Diff-Preview |
+| PROJ-62 | Mitgliedstypen Kleinunternehmer + Unternehmen zusammenführen | `sole_proprietor` entfällt; `company` mit optionaler UID = Kleinunternehmerregelung |
+| PROJ-63 | USt-Pflicht-Checkbox bei Unternehmen + Verein | UI-Gate für UID-Eingabe, kein DB-Feld |
+| PROJ-64 | Faktura-Handover-Billing-Trigger | `application.faktura_handover_at` deckt /import UND /export/excel — Excel-Bypass für Verrechnung geschlossen |
 
 ### Approved (wartet auf Deployment-Bündelung)
 
@@ -99,6 +104,19 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 | PROJ-28 | Trennung Privat / Kleinunternehmer |
 | PROJ-29 | IBAN-Eingabe mit visueller Gruppierung |
 | PROJ-30 | Reset eines importierten Antrags auf approved |
+
+### In Progress
+
+| ID | Feature | Stand |
+|----|---------|-------|
+| PROJ-66 | Settings-Auto-Save + Tab-Switch-Schutz | Implementiert auf main 2026-05-30; wartet auf Deployment-Bündelung |
+
+### Planned
+
+| ID | Feature |
+|----|---------|
+| PROJ-65 | Vorstands-Signaturblock im Beitrittsbestätigungs-PDF (per-EEG-Toggle, Default aus) |
+| PROJ-67 | Basic-/Advanced-Modus für Einstellungen — reduzierte Sicht für kleine EEGs |
 
 ### On Hold
 
@@ -110,8 +128,9 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 | PROJ-26 | Eigener Mailserver pro EEG | Geparkt 2026-05-18 |
 | PROJ-50 | Zugang Online-Portal Netzbetreiber + bedingte Anleitungs-Mail | Geparkt 2026-05-18 — mehrere offene Fragen |
 | PROJ-51 | Anzeige offener Nutzungsgebühren im Admin-UI | Wartet auf Klärung des Abrechnungs- und Status-Pflege-Konzepts |
+| PROJ-55 | Nachmelden von Zählpunkten anhand der Mitgliedsnummer | Wartet auf Self-Service-Portal-Direction (Owner-Entscheidung 2026-05-23) |
 
-> **Next available feature ID:** PROJ-59 (siehe `features/INDEX.md`).
+> **Next available feature ID:** PROJ-68 (siehe `features/INDEX.md`).
 
 ## 5. Success Metrics
 
@@ -147,6 +166,18 @@ Version 1 explicitly does NOT include:
 - bidirectional sync between onboarding and core for member data (one-way for EEG master data only — PROJ-32)
 - automatic activation polling — admin triggers the activation-check batch button (PROJ-46 Stage D, user decision)
 - self-service B2B-bank-confirmation by member — admin sets the status after the member contacts them (PROJ-46 Entscheidung A)
+
+### Scope boundary (2026-05-30 owner direction, repeated tester question)
+
+Member-Onboarding is a **data-capture, review, and handover pipeline for membership applicants** — explicitly not:
+
+- **Not a member management system.** Once an application is handed off (typically via Core import or plugin-based data forwarding), the persistent member record lives in the target system. Address, bank, tariff, and contract changes for existing members happen there, not here.
+- **Not a long-term data store.** Application records remain available for audit and reset, but are intentionally not the source of truth. Long-term storage belongs in the target system.
+- **Not a reporting or analytics tool.** No dashboards, no BI module, no member queries by filter sets. Reporting belongs in the system that received the data.
+
+This bounded scope is deliberate. Feature requests pointing toward member management, reporting, or persistent member-side data live outside this product and should be redirected — the target system covers them already.
+
+Pilot framing of the concrete value: **„a simple form mask that gets new members cleanly into eegFaktura while avoiding the typical error sources of manual entry."** Structured intake + one-click import + integrated communication + audit trail to handover.
 
 ### Topics that have moved INTO scope since the MVP
 

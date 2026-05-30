@@ -1134,14 +1134,14 @@ Returns the stored field configuration for an EEG. Only explicitly saved overrid
 {
   "rcNumber": "RC123456",
   "fieldConfig": {
-    "heat_pump": { "state": "required", "adminValue": null },
-    "transformer": { "state": "optional", "adminValue": null },
-    "persons_in_household": { "state": "admin_only", "adminValue": "3" }
+    "heat_pump": { "state": "required" },
+    "transformer": { "state": "optional" },
+    "persons_in_household": { "state": "admin_only" }
   }
 }
 ```
 
-Each field entry contains `state` and optionally `adminValue`. `adminValue` is only relevant when `state = "admin_only"` and is automatically applied to new applications.
+Each field entry contains only `state`. PROJ-68 removed the EEG-wide default-value (`adminValue`) that used to live here — fields with `state = "admin_only"` are simply hidden from the public form and remain editable in the admin per-application edit dialog.
 
 ### Errors
 - `400` missing `rc_number`
@@ -1165,7 +1165,7 @@ Replaces the field configuration for an EEG atomically. Unknown field names and 
   "birth_date": { "state": "optional" },
   "heat_pump": { "state": "required" },
   "transformer": { "state": "hidden" },
-  "persons_in_household": { "state": "admin_only", "adminValue": "3" }
+  "persons_in_household": { "state": "admin_only" }
 }
 ```
 
@@ -1175,7 +1175,7 @@ Allowed field names: `phone`, `birth_date`, `uid_number`, `bank_name`, `membersh
 
 Allowed states: `hidden`, `optional`, `required`, `admin_only`
 
-When `state = "admin_only"`: the field is hidden from the public registration form; `adminValue` is automatically written to new applications (server-side type conversion: int via `Sscanf %d`, float via `%f`, bool via `"true"/"false"`, date via `YYYY-MM-DD`). Invalid values result in NULL (no error).
+When `state = "admin_only"`: the field is hidden from the public registration form, but remains visible and editable in the admin per-application edit dialog. PROJ-68 removed the previous EEG-wide default-value (`adminValue`); legacy bodies that still carry the field are silently accepted and the value is dropped.
 
 ### Response
 - `204 No Content` on success

@@ -1,8 +1,10 @@
 # PROJ-15: Konfigurierbare Felder — Erweiterungen
 
-## Status: Deployed
+## Status: Deployed (Erweiterung B teilweise zurückgebaut durch PROJ-68)
 **Created:** 2026-04-24
-**Last Updated:** 2026-04-24
+**Last Updated:** 2026-05-30
+
+> **PROJ-68 Nachtrag 2026-05-30:** Der EEG-weite Default-Wert-Mechanismus (`admin_value` + `applyAdminValues()`) wurde entfernt. Der vierte Feldzustand `admin_only` bleibt als reine Public-Form-Hide-Markierung erhalten (versteckt für Mitglieder, im Admin-Edit-Dialog pro Antrag editierbar). Acceptance-Criteria B2/B4/B5/B7 und die zugehörigen Tests sind damit obsolet — siehe `features/PROJ-68-remove-admin-value-default-mechanism.md`.
 
 ## Dependencies
 - Requires: PROJ-8 (Konfigurierbare Felder) — diese Erweiterungen bauen direkt darauf auf

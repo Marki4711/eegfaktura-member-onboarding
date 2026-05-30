@@ -67,6 +67,20 @@ Neun Werte werden direkt aus eegFaktura übernommen und sind in der Onboarding-O
 
 > **Hinweis:** Wenn das SEPA-Mandat aktiviert ist, aber Stammdaten fehlen, erscheint eine Warnung. Solange Felder fehlen, wird kein PDF generiert.
 
+#### Welche Toggle-Kombination ergibt was?
+
+Die beiden Toggles **SEPA-Mandat von der EEG bereitstellen** + **SEPA-Mandat erst beim Import erzeugen** ergeben in Kombination vier Verhaltensvarianten. Hier eine Übersicht, damit du beim Bedienen weißt, was das Mitglied im Formular sieht und wann das PDF rausgeht:
+
+| SEPA-Mandat aktiv | Mandat erst bei Import | Im Mitglieder-Formular | Wann kommt das Mandats-PDF | Mandatsreferenz |
+|---|---|---|---|---|
+| **aus** | (irrelevant) | Pflicht-Checkbox „Ich erteile … SEPA-Lastschriftmandat" als Online-Zustimmung. Kein Hinweis-Text. | Nie — Onboarding generiert kein PDF. Mitglied stimmt online zu, EEG nutzt eigenes Mandat-Verfahren. | — |
+| **an** | **aus** *(Default)* | Keine zusätzliche Checkbox, kein Hinweis-Text — Mitglied trägt nur IBAN ein. | Sofort bei Einreichen, als Anhang der Bestätigungs-Mail. | Antrags-Referenznummer (`<RC>-<Jahr>-<NNNN>`) |
+| **an** | **an** | Hinweis-Absatz im Bankverbindungs-Block: „Das SEPA-Lastschriftmandat erhältst du nach der Freigabe deines Antrags per E-Mail — mit eingetragener Mandatsreferenz (deiner Mitgliedsnummer) zur Unterschrift." | Erst beim Import in eegFaktura, als Anhang der Beitrittsbestätigungs-Mail. | Mitgliedsnummer (in eegFaktura vergeben) |
+
+**Wenn du den Hinweis-Absatz im Formular loswerden willst:** den Toggle „SEPA-Mandat erst beim Import erzeugen" auf **aus** stellen. Dann läuft alles wie im Default — das Mandat geht beim Einreichen mit der Bestätigungs-Mail raus, die Referenz ist die Antragsnummer.
+
+**Mandatsreferenz manuell überschreiben:** Sowohl die Antragsnummer- als auch die Mitgliedsnummer-basierte Auto-Ableitung ist nicht zwingend. Im Admin-Edit-Form jedes Antrags gibt es ein Eingabefeld **Mandatsreferenz** (z. B. für externe Kundennummern aus eurem Buchhaltungssystem). Ein dort eingetragener Wert hat **Vorrang** und wird beim Import in eegFaktura mit übernommen (analog zum Mandatsdatum). Beide Felder werden, falls leer gelassen, automatisch beim Import abgeleitet — siehe Tabelle oben.
+
 ### Genossenschaftsanteile
 
 ![Genossenschaftsanteile](images/admin-settings-eeg-cooperative.png)
@@ -156,7 +170,7 @@ Für jedes Feld stehen vier Zustände zur Verfügung:
 | **Ausgeblendet** | Das Feld ist im Registrierungsformular nicht sichtbar. |
 | **Optional** | Das Feld wird angezeigt, muss aber nicht ausgefüllt werden. |
 | **Verpflichtend** | Das Feld muss vom Mitglied ausgefüllt werden. |
-| **Admin-Vorbefüllung** | Das Feld wird nicht im Formular angezeigt. Stattdessen wird der hier eingetragene Standardwert automatisch auf neue Anträge angewendet. |
+| **Admin-Vorgabe** | Das Feld wird **nicht** im Mitglieder-Formular angezeigt. Im Admin-Bereich kannst du es pro Antrag im **Bearbeiten**-Dialog eintragen — z. B. wenn du als EEG-Admin ein Feld führst, das das Mitglied nicht selbst pflegen soll, aber pro Antrag unterschiedlich sein kann. |
 
 ### Typabhängige Sichtbarkeit (Badges)
 

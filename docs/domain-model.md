@@ -93,7 +93,7 @@ Fields:
 - `rc_number` — references `registration_entrypoint(rc_number)`, ON DELETE CASCADE
 - `field_name` — name of the configurable field (e.g. `heat_pump`, `transformer`)
 - `state` — `hidden` | `optional` | `required` | `admin_only`
-- `admin_value` — nullable TEXT; only relevant when `state = 'admin_only'`; automatically applied to new applications (server-side type conversion)
+  - `admin_only` means: hidden from public registration form, but visible and editable in the admin per-application edit dialog. PROJ-68 (migration 000058) dropped the `admin_value` default-value column that used to live here.
 - `updated_at`
 
 Rules:

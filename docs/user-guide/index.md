@@ -14,6 +14,15 @@ Damit das Zusammenspiel mit anderen Systemen sauber funktioniert, hier die bewus
 
 Diese Trennung ist Absicht: Das Onboarding will den Aufnahmeprozess **bis zur sauberen Übergabe** kanalisieren — alles andere gehört woanders hin und wird absichtlich nicht doppelt gebaut.
 
+## Konkreter Nutzen für die EEG
+
+Aus Pilot-Rückmeldungen ist das der gefühlte Kern-Mehrwert: **„neue Mitglieder über eine einfache Formularmaske sauber in eegFaktura bekommen — ohne die typischen Fehlerquellen der manuellen Aufnahme."** Konkret:
+
+- **Strukturierte Erfassung statt E-Mail-Anhänge.** Pflichtfelder, Format-Validierung (IBAN, UID, Zählpunkt) und konsistente Adress-/Bank-Datensätze werden im Formular abgefangen — nicht erst beim Import bemerkt.
+- **Ein Klick statt manueller Tipparbeit.** Der Import in eegFaktura läuft über einen Button im Antrag; Mitglieds-Stammdaten, Zählpunkte, SEPA-Mandat landen ohne Re-Tipparbeit im Core. Daher keine Tippfehler beim Übertragen.
+- **Mitglieds-Kommunikation ist Teil des Workflows.** Rückfragen, Bestätigungen, Beitritts-PDFs gehen aus dem Tool — ohne Medienbruch zum E-Mail-Programm.
+- **Audit-Trail bis zur Übergabe.** Jeder Status-Schritt vom Einreichen bis zum Aktivieren wird mit Zeitstempel + Aktor protokolliert (für FA-Prüfung, interne Rückverfolgung).
+
 ## Datenweiterleitung
 
 Die erfassten Antragsdaten lassen sich auf zwei Wegen an Folgesysteme übergeben:

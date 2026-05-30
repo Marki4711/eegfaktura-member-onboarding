@@ -6,6 +6,17 @@
 
 ## 2026-05-30
 
+**Vereinfachung: „Admin-Vorgabe"-Feldstatus bekommt kein Wert-Eingabefeld mehr**
+
+Bisher zeigte der Feld-Konfigurations-Editor bei Auswahl von **„Admin-Vorgabe"** eine zusätzliche Eingabezeile, in die der Admin einen EEG-weiten Standardwert eintragen konnte; der Wert wurde dann beim Submit automatisch auf jeden neuen Antrag gesetzt. Das Feature wurde in der Praxis nicht genutzt und verwirrte mehr, als es half. Ab sofort ist der Status klar und reduziert:
+
+- **Admin-Vorgabe** = Feld wird **nicht** im Mitglieder-Formular angezeigt, ist aber im **Admin-Edit-Dialog jedes Antrags** sichtbar und editierbar.
+- Kein EEG-weiter Standardwert mehr — wenn ihr ein Feld systematisch befüllen wollt, müsst ihr es pro Antrag im Admin-Bereich eintragen.
+
+Technisch entfernt: DB-Spalte `field_config.admin_value` (Migration 000058), Go-Funktion `applyAdminValues()`, das Eingabefeld in der Einstellungs-UI sowie das `adminValue`-JSON-Feld in `/api/admin/settings/fields`. Alte Konfigurations-Bundles (PROJ-61 Export/Import), die das Feld noch enthalten, werden weiterhin akzeptiert — der Wert wird beim Import still verworfen.
+
+→ [Admin-Einstellungen — Formular-Felder](06-admin-settings.md#formular-felder-zahlpunktfelder)
+
 **Feature: Automatisches Speichern in den Formular-Felder + Tab-Wechsel-Schutz**
 
 In den Einstellungen waren bisher manche Editoren mit einem „Speichern"-Button versehen, andere nicht — wer den Button vergaß, riskierte Datenverlust beim Tab-Wechsel. Das ist jetzt aufgeräumt:
@@ -19,9 +30,19 @@ In den Einstellungen waren bisher manche Editoren mit einem „Speichern"-Button
 
 **Doku-Schärfung: Was das Onboarding ist — und was nicht**
 
-Auf Tester-Nachfrage „Wofür ist Member-Onboarding eigentlich gedacht?" steht jetzt in der Doku-Übersicht eine klare Abgrenzung: Das Tool ist für **Datenerfassung, Antragsprüfung und Übergabe** an ein Zielsystem (typischerweise eegFaktura) gedacht. Es ist explizit **keine** Mitgliederverwaltung, **kein** dauerhafter Datenspeicher und **kein** Reporting-Tool. Auswertungen und das laufende Mitglieder-Geschäft gehören ins Zielsystem; das Onboarding liefert dorthin via direktem Import oder Plugin-Datenweiterleitung (heute: Excel/CSV; künftig: CRM-Anbindungen).
+Auf Tester-Nachfrage „Wofür ist Member-Onboarding eigentlich gedacht?" steht jetzt in der Doku-Übersicht eine klare Abgrenzung: Das Tool ist für **Datenerfassung, Antragsprüfung und Übergabe** an ein Zielsystem (typischerweise eegFaktura) gedacht. Es ist explizit **keine** Mitgliederverwaltung, **kein** dauerhafter Datenspeicher und **kein** Reporting-Tool. Auswertungen und das laufende Mitglieder-Geschäft gehören ins Zielsystem; das Onboarding liefert dorthin via direktem Import oder Plugin-Datenweiterleitung (heute: Excel/CSV; künftig: CRM-Anbindungen). Zusätzlich aufgenommen: konkreter Praxis-Nutzen aus Pilot-Rückmeldungen — „neue Mitglieder über eine einfache Formularmaske sauber in eegFaktura bekommen, ohne die typischen Fehlerquellen der manuellen Aufnahme".
 
 → [Überblick](index.md)
+
+**Geplant: Basic-/Advanced-Modus für Einstellungen**
+
+Pilot-Rückmeldung: Die Menge an Konfigurations-Optionen überfordert kleine EEGs, die im Wesentlichen „Antragsdaten erfassen + an eegFaktura übergeben" wollen. Geplant ist daher ein **Toggle „Basic / Erweitert"** am Seitenkopf der Einstellungen: Basic zeigt nur die für den 80%-Use-Case relevanten Optionen (Registrierung aktiv, Stammdaten, einfaches SEPA, Einleitungstext, häufigste Formular-Felder, Rechtsdokumente, Datenweiterleitung), Erweitert blendet alles ein (heutiges Verhalten). Default für neue EEGs: Basic; bestehende EEGs behalten Advanced. Spec mit Optionen + offenen Punkten: PROJ-67. Sobald implementiert, spiegelt sich die Klassifizierung auch in dieser Doku wider (z. B. Sektionen mit „(Erweitert)"-Marker, neuer Abschnitt „Welcher Modus passt zu mir?").
+
+**Doku-Schärfung: SEPA-Toggle-Kombinationen klarer erklärt**
+
+Im Stammdaten-&-SEPA-Tab gibt es zwei zusammenhängende Toggles („SEPA-Mandat von der EEG bereitstellen" + „SEPA-Mandat erst beim Import erzeugen"), die in Kombination vier verschiedene Verhaltensvarianten ergeben. Bisher musste man die Kombinationen herausfinden — jetzt steht in der Doku eine Übersichts-Tabelle: welche Toggle-Kombi → was sieht das Mitglied im Formular, wann kommt das Mandats-PDF, welche Mandatsreferenz wird verwendet. Außerdem explizit aufgenommen: Admin-eingetragene Mandatsreferenzen im Antrags-Edit haben Vorrang vor der Auto-Ableitung und werden beim Import an eegFaktura mit übergeben.
+
+→ [Admin-Einstellungen — SEPA-Lastschriftmandat](06-admin-settings.md#welche-toggle-kombination-ergibt-was)
 
 **Doku-Ergänzung: Praxis-Hinweise zur „Netzbetreiber-Vollmacht"**
 
