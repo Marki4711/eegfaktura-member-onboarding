@@ -667,6 +667,14 @@
 <p>Übersicht der Änderungen der letzten Tage, die für <strong>EEG-Admins</strong> und <strong>Mitglieder</strong> spürbar sind. Technische Details, Bug-Fixes ohne UI-Auswirkung und Infrastruktur-Themen sind hier bewusst weggelassen — die finden sich in der Commit-Historie.</p>
 <hr />
 <h2 id="2026-05-30">2026-05-30<a class="headerlink" href="#2026-05-30" title="Permanent link">&para;</a></h2>
+<p><strong>Vereinfachung: „Admin-Vorgabe"-Feldstatus bekommt kein Wert-Eingabefeld mehr</strong></p>
+<p>Bisher zeigte der Feld-Konfigurations-Editor bei Auswahl von <strong>„Admin-Vorgabe"</strong> eine zusätzliche Eingabezeile, in die der Admin einen EEG-weiten Standardwert eintragen konnte; der Wert wurde dann beim Submit automatisch auf jeden neuen Antrag gesetzt. Das Feature wurde in der Praxis nicht genutzt und verwirrte mehr, als es half. Ab sofort ist der Status klar und reduziert:</p>
+<ul>
+<li><strong>Admin-Vorgabe</strong> = Feld wird <strong>nicht</strong> im Mitglieder-Formular angezeigt, ist aber im <strong>Admin-Edit-Dialog jedes Antrags</strong> sichtbar und editierbar.</li>
+<li>Kein EEG-weiter Standardwert mehr — wenn ihr ein Feld systematisch befüllen wollt, müsst ihr es pro Antrag im Admin-Bereich eintragen.</li>
+</ul>
+<p>Technisch entfernt: DB-Spalte <code>field_config.admin_value</code> (Migration 000058), Go-Funktion <code>applyAdminValues()</code>, das Eingabefeld in der Einstellungs-UI sowie das <code>adminValue</code>-JSON-Feld in <code>/api/admin/settings/fields</code>. Alte Konfigurations-Bundles (PROJ-61 Export/Import), die das Feld noch enthalten, werden weiterhin akzeptiert — der Wert wird beim Import still verworfen.</p>
+<p>→ <a href="../06-admin-settings/#formular-felder-zahlpunktfelder">Admin-Einstellungen — Formular-Felder</a></p>
 <p><strong>Feature: Automatisches Speichern in den Formular-Felder + Tab-Wechsel-Schutz</strong></p>
 <p>In den Einstellungen waren bisher manche Editoren mit einem „Speichern"-Button versehen, andere nicht — wer den Button vergaß, riskierte Datenverlust beim Tab-Wechsel. Das ist jetzt aufgeräumt:</p>
 <ul>
