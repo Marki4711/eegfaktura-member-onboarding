@@ -1,6 +1,6 @@
 # PROJ-67 — Standard-/Advanced-Modus für Einstellungen
 
-**Status:** Approved (QA + Security-Review bestanden 2026-05-31, 2 LOW-Bugs gefixt — wartet auf Operator-Deploy)
+**Status:** Deployed 2026-05-31 — `v1.13.0-PROJ-67`, image-tag `sha-9cd0412`
 **Created:** 2026-05-30
 **Owner:** TBD
 **Source:** Owner-Direktive 2026-05-30 — Pilot-Rückmeldung „die Menge an Einstellmöglichkeiten überfordert kleine EEGs"
@@ -147,6 +147,7 @@ Konkret:
 - **Kein dritter Modus (z. B. „Custom").** Zwei reichen.
 - **Keine Pro-Tab-Modi.** Der Modus gilt für die ganze Einstellungsseite.
 - **Keine Berechnung der „best fit"-Mode-Empfehlung** anhand der bestehenden Konfiguration. Admin entscheidet bewusst.
+- **Admin-Edit-Dialog wird NICHT gefiltert.** Owner-Klarstellung 2026-05-31 nach Deploy: der Edit-Dialog (Antrag bearbeiten) richtet sich weiterhin nur nach `field_config`-State + Mitgliedstyp, nicht nach viewMode. Begründung: der Edit-Dialog muss alle für einen Antrag relevanten Felder zeigen, auch wenn die Admin sie im Standard-Modus nicht im Settings-Editor sieht. Der Awareness-Banner deckt die Drift-Warnung ab.
 
 ## Offene Punkte (vor `/architecture`)
 
@@ -615,6 +616,21 @@ Aufwand-Schätzung Lizenz-PROJ: ~2x PROJ-67 (Backend + Permission + Sync + UI-Re
 - Bewusste Nicht-Implementierung: kein Backend-Enforcement (per Owner-Entscheidung — siehe J.2). Wenn die Lizenz-PROJ später kommt, ist ein neuer Security-Review nötig.
 
 **Deploy freigegeben** sobald Operator den Helm-Tag-Bump macht.
+
+---
+
+### J.7) Deployment 2026-05-31
+
+- **Git-Tag:** `v1.13.0-PROJ-67` auf Commit `9cd0412`
+- **Image-Tag:** `sha-9cd0412` (Backend + Frontend)
+- **Helm-Tag-Bump:** [helm/member-onboarding/values.yaml](helm/member-onboarding/values.yaml) Lines 30+34
+- **Migration:** `000059_registration_entrypoint_settings_view_mode` — additiv, läuft via Helm migrate-Job vor Backend-Pod-Update
+- **Operator-Action erforderlich:** `helm upgrade eegfaktura-member-onboarding ./helm/member-onboarding -f helm/member-onboarding/values-env.yaml -f helm/member-onboarding/values-secret.yaml` auf test, dann prod
+- **Post-Deploy-TODOs (Operator):**
+  - `kubectl rollout status deployment/...-backend -n eegfaktura-member-onboarding-test`
+  - Health-Check: `GET https://member-onboarding-test.eegfaktura.at/health` → 200
+  - Smoke-Test im Browser: Settings-Page öffnen, ToggleGroup sichtbar, Mode-Wechsel testet (Bestandszeile → `'advanced'`)
+  - Optional: Pilot-EEG-Cross-Check der Standard-Sektionen-Liste
 
 ---
 

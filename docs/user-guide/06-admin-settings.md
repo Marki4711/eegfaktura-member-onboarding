@@ -6,21 +6,21 @@ Die Einstellungsseite ist über **Einstellungen** im Admin-Bereich erreichbar. S
 
 Wenn dein Account für mehrere EEGs zuständig ist, erscheint oben rechts ein Auswahlfeld. Alle Einstellungen beziehen sich auf die gewählte EEG.
 
-## Standard- oder Erweitert-Modus (PROJ-67)
+## Einfache Ansicht oder Alle Optionen (PROJ-67)
 
-Direkt neben der EEG-Auswahl gibt es einen Umschalter **Standard / Erweitert**. Die Wahl wird pro EEG gespeichert.
+Direkt neben der EEG-Auswahl gibt es einen Umschalter **Einfache Ansicht / Alle Optionen**. Die Wahl wird pro EEG gespeichert.
 
-- **Standard-Modus** blendet erweiterte Optionen aus, die nur ein Bruchteil der EEGs braucht (SEPA-B2B, Mandat-Timing, Genossenschaftsanteile, Zählpunkt-Prefixes, E-Mail-Bestätigung, Aktivierungs-Kriterium und alle nicht-standardmäßig sichtbaren Formular-Felder). Die hinterlegten Werte bleiben in der Datenbank — sie sind nur nicht editierbar, solange du im Standard-Modus bist.
-- **Erweitert-Modus** zeigt alles wie heute. Bestehende EEGs starten im Erweitert-Modus (rückwärts-kompatibel), neu angelegte EEGs starten im Standard-Modus.
+- **Einfache Ansicht** blendet erweiterte Optionen aus, die nur ein Bruchteil der EEGs braucht (SEPA-B2B, Mandat-Timing, Genossenschaftsanteile, Zählpunkt-Prefixes, E-Mail-Bestätigung, Aktivierungs-Kriterium und alle nicht-standardmäßig sichtbaren Formular-Felder). Die hinterlegten Werte bleiben in der Datenbank — sie sind nur nicht editierbar, solange du in der Einfachen Ansicht bist.
+- **Alle Optionen** zeigt die komplette Konfiguration wie bisher. Bestehende EEGs starten mit Alle Optionen (rückwärts-kompatibel), neu angelegte EEGs starten mit der Einfachen Ansicht.
 
-In dieser Doku sind erweiterte Abschnitte mit **„(Erweitert)"** im Header markiert.
+In dieser Doku sind erweiterte Abschnitte mit **„(Alle Optionen)"** im Header markiert.
 
-### Welcher Modus passt zu mir?
+### Welche Ansicht passt zu uns?
 
-- **Standard wählen, wenn:** ihr eine kleine EEG seid, hauptsächlich Privatpersonen registriert, SEPA-Basislastschrift nutzt und keine speziellen Zählpunkt-Konventionen habt. Die ausgeblendeten Optionen brauchst du in 95 % der Fälle ohnehin nicht.
-- **Erweitert wählen, wenn:** ihr Genossenschaftsanteile verlangt, B2B-Mandate für Unternehmen braucht, mit einem einheitlichen Netzbetreiber-Prefix arbeitet, E-Mail-Bestätigung als Spam-Schutz aktivieren wollt oder das Aktivierungs-Kriterium feiner steuern müsst.
+- **Einfache Ansicht wählen, wenn:** ihr eine kleine EEG seid, hauptsächlich Privatpersonen registriert, SEPA-Basislastschrift nutzt und keine speziellen Zählpunkt-Konventionen habt. Die ausgeblendeten Optionen brauchst du in 95 % der Fälle ohnehin nicht.
+- **Alle Optionen wählen, wenn:** ihr Genossenschaftsanteile verlangt, B2B-Mandate für Unternehmen braucht, mit einem einheitlichen Netzbetreiber-Prefix arbeitet, E-Mail-Bestätigung als Spam-Schutz aktivieren wollt oder das Aktivierungs-Kriterium feiner steuern müsst.
 
-Wenn im Standard-Modus eine erweiterte Option **aktiv** ist (z. B. SEPA-B2B wurde früher mal eingeschaltet), erscheint ein **gelber Hinweis-Banner** über den Tabs mit Button „Auf Erweitert umstellen". Damit ist sichergestellt, dass keine versteckte Einstellung unbemerkt wirkt.
+Wenn in der Einfachen Ansicht eine erweiterte Option **aktiv** ist (z. B. SEPA-B2B wurde früher mal eingeschaltet), erscheint ein **gelber Hinweis-Banner** über den Tabs mit Button „Alle Optionen anzeigen". Damit ist sichergestellt, dass keine versteckte Einstellung unbemerkt wirkt.
 
 ## Speichern, Auto-Speichern, Tab-Wechsel-Schutz
 
@@ -77,9 +77,9 @@ Neun Werte werden direkt aus eegFaktura übernommen und sind in der Onboarding-O
 
 ![SEPA-Lastschriftmandat](images/admin-settings-eeg-sepa.png)
 
-- **SEPA-Mandat von der EEG bereitstellen** *(Standard)*: Wenn aktiv, generiert das Onboarding automatisch ein SEPA-Mandats-PDF.
-- **Firmenlastschrift (B2B) für Unternehmen und Gemeinden anbieten** *(Erweitert)*: Erscheint nur wenn SEPA aktiv ist UND der Modus auf Erweitert steht. Aktiviere diese Option, wenn Unternehmen und Gemeinden ein B2B-Mandat erhalten sollen. Welche Mandats-Variante (Basislastschrift CORE oder Firmenlastschrift B2B) ein konkreter Antrag bekommt, wird **nicht** automatisch aus dem Mitgliedstyp abgeleitet — die Wahl trifft die Admin pro Antrag über das Feld „Einzugsart" (`core` / `b2b` / `kein_sepa`, Default `core`).
-- **SEPA-Mandat erst beim Import erzeugen** *(Erweitert)*: Wenn aktiv, wird das Mandat **nicht** dem Willkommensmail beigelegt, sondern erst beim Import mit der zugewiesenen Mitgliedsnummer als Mandatsreferenz ausgegeben. Sinnvoll, wenn du digitale Signatur (z. B. ID Austria) einsetzt — ein signiertes PDF darf nicht mehr verändert werden, daher muss die Mandatsreferenz vor der Signatur eingedruckt sein. Im Registrierungsformular erscheint dann ein erklärender Hinweis, dass das Mandat später folgt.
+- **SEPA-Mandat von der EEG bereitstellen**: Wenn aktiv, generiert das Onboarding automatisch ein SEPA-Mandats-PDF. (In jeder Ansicht sichtbar.)
+- **Firmenlastschrift (B2B) für Unternehmen und Gemeinden anbieten** *(Alle Optionen)*: Erscheint nur wenn SEPA aktiv ist UND die Ansicht auf "Alle Optionen" steht. Aktiviere diese Option, wenn Unternehmen und Gemeinden ein B2B-Mandat erhalten sollen. Welche Mandats-Variante (Basislastschrift CORE oder Firmenlastschrift B2B) ein konkreter Antrag bekommt, wird **nicht** automatisch aus dem Mitgliedstyp abgeleitet — die Wahl trifft die Admin pro Antrag über das Feld „Einzugsart" (`core` / `b2b` / `kein_sepa`, Default `core`).
+- **SEPA-Mandat erst beim Import erzeugen** *(Alle Optionen)*: Wenn aktiv, wird das Mandat **nicht** dem Willkommensmail beigelegt, sondern erst beim Import mit der zugewiesenen Mitgliedsnummer als Mandatsreferenz ausgegeben. Sinnvoll, wenn du digitale Signatur (z. B. ID Austria) einsetzt — ein signiertes PDF darf nicht mehr verändert werden, daher muss die Mandatsreferenz vor der Signatur eingedruckt sein. Im Registrierungsformular erscheint dann ein erklärender Hinweis, dass das Mandat später folgt.
 
 > **Hinweis:** Wenn das SEPA-Mandat aktiviert ist, aber Stammdaten fehlen, erscheint eine Warnung. Solange Felder fehlen, wird kein PDF generiert.
 
@@ -89,17 +89,17 @@ Die beiden Toggles **SEPA-Mandat von der EEG bereitstellen** + **SEPA-Mandat ers
 
 | SEPA-Mandat aktiv | Mandat erst bei Import | Modus | Im Mitglieder-Formular | Wann kommt das Mandats-PDF | Mandatsreferenz |
 |---|---|---|---|---|---|
-| **aus** | (irrelevant) | Standard / Erweitert | Pflicht-Checkbox „Ich erteile … SEPA-Lastschriftmandat" als Online-Zustimmung. Kein Hinweis-Text. | Nie — Onboarding generiert kein PDF. Mitglied stimmt online zu, EEG nutzt eigenes Mandat-Verfahren. | — |
-| **an** | **aus** *(Default)* | Standard / Erweitert | Keine zusätzliche Checkbox, kein Hinweis-Text — Mitglied trägt nur IBAN ein. | Sofort bei Einreichen, als Anhang der Bestätigungs-Mail. | Antrags-Referenznummer (`<RC>-<Jahr>-<NNNN>`) |
-| **an** | **an** | Erweitert | Hinweis-Absatz im Bankverbindungs-Block: „Das SEPA-Lastschriftmandat erhältst du nach der Freigabe deines Antrags per E-Mail — mit eingetragener Mandatsreferenz (deiner Mitgliedsnummer) zur Unterschrift." | Erst beim Import in eegFaktura, als Anhang der Beitrittsbestätigungs-Mail. | Mitgliedsnummer (in eegFaktura vergeben) |
+| **aus** | (irrelevant) | beide Ansichten | Pflicht-Checkbox „Ich erteile … SEPA-Lastschriftmandat" als Online-Zustimmung. Kein Hinweis-Text. | Nie — Onboarding generiert kein PDF. Mitglied stimmt online zu, EEG nutzt eigenes Mandat-Verfahren. | — |
+| **an** | **aus** *(Default)* | beide Ansichten | Keine zusätzliche Checkbox, kein Hinweis-Text — Mitglied trägt nur IBAN ein. | Sofort bei Einreichen, als Anhang der Bestätigungs-Mail. | Antrags-Referenznummer (`<RC>-<Jahr>-<NNNN>`) |
+| **an** | **an** | nur Alle Optionen | Hinweis-Absatz im Bankverbindungs-Block: „Das SEPA-Lastschriftmandat erhältst du nach der Freigabe deines Antrags per E-Mail — mit eingetragener Mandatsreferenz (deiner Mitgliedsnummer) zur Unterschrift." | Erst beim Import in eegFaktura, als Anhang der Beitrittsbestätigungs-Mail. | Mitgliedsnummer (in eegFaktura vergeben) |
 
 **Wenn du den Hinweis-Absatz im Formular loswerden willst:** den Toggle „SEPA-Mandat erst beim Import erzeugen" auf **aus** stellen. Dann läuft alles wie im Default — das Mandat geht beim Einreichen mit der Bestätigungs-Mail raus, die Referenz ist die Antragsnummer.
 
 **Mandatsreferenz manuell überschreiben:** Sowohl die Antragsnummer- als auch die Mitgliedsnummer-basierte Auto-Ableitung ist nicht zwingend. Im Admin-Edit-Form jedes Antrags gibt es ein Eingabefeld **Mandatsreferenz** (z. B. für externe Kundennummern aus eurem Buchhaltungssystem). Ein dort eingetragener Wert hat **Vorrang** und wird beim Import in eegFaktura mit übernommen (analog zum Mandatsdatum). Beide Felder werden, falls leer gelassen, automatisch beim Import abgeleitet — siehe Tabelle oben.
 
-### Genossenschaftsanteile *(Erweitert)*
+### Genossenschaftsanteile *(Alle Optionen)*
 
-> Diese Sektion ist nur im **Erweitert-Modus** sichtbar.
+> Diese Sektion ist nur in **Alle Optionen** sichtbar.
 
 ![Genossenschaftsanteile](images/admin-settings-eeg-cooperative.png)
 
@@ -113,9 +113,9 @@ Beide Wert-Felder sind nur sichtbar, wenn der Toggle aktiv ist. Änderungen wirk
 
 Die Anteilsinformation wird **nicht** an eegFaktura übertragen — sie ist reine Onboarding-Erfassung als Buchhaltungs-Beleg.
 
-### Zählpunkt-Prefixes *(Erweitert)*
+### Zählpunkt-Prefixes *(Alle Optionen)*
 
-> Diese Sektion ist nur im **Erweitert-Modus** sichtbar.
+> Diese Sektion ist nur in **Alle Optionen** sichtbar.
 
 ![Zählpunkt-Prefixes](images/admin-settings-eeg-mp-prefix.png)
 
@@ -135,9 +135,9 @@ Mitglieder müssen heute eine 33-stellige Zählpunktnummer eintippen. Wenn die Z
 - Beim Verlassen des Eingabefelds werden fehlende Stellen zwischen Prefix und Mitglieds-Eingabe mit führenden Nullen aufgefüllt (z. B. tippt das Mitglied `12345` und bekommt nach dem Klick weg `[Prefix]000000000012345`).
 - Backend prüft beim Submit zusätzlich, dass jeder Zählpunkt mit dem konfigurierten Prefix der jeweiligen Richtung beginnt (defense-in-depth).
 
-### Aktivierungs-Kriterium *(Erweitert)*
+### Aktivierungs-Kriterium *(Alle Optionen)*
 
-> Diese Sektion ist nur im **Erweitert-Modus** sichtbar.
+> Diese Sektion ist nur in **Alle Optionen** sichtbar.
 
 ![Aktivierungs-Kriterium](images/admin-settings-eeg-activation.png)
 
@@ -153,9 +153,9 @@ Zwei Optionen:
 
 Der Wechsel selbst wird in beiden Fällen entweder **per Antrag manuell** ausgelöst (Button „Als aktiv markieren") oder über den Batch-Button **„Aktivierung im Core prüfen"** in der Antragsübersicht — der nimmt das hier gewählte Kriterium dann automatisch für deine ganze EEG.
 
-### E-Mail-Adresse bestätigen *(Erweitert)*
+### E-Mail-Adresse bestätigen *(Alle Optionen)*
 
-> Diese Sektion ist nur im **Erweitert-Modus** sichtbar.
+> Diese Sektion ist nur in **Alle Optionen** sichtbar.
 
 ![E-Mail-Adresse bestätigen](images/admin-settings-eeg-email-confirm.png)
 
@@ -187,7 +187,7 @@ Klicke auf **Speichern**, um den Text zu übernehmen.
 
 Hier legst du fest, welche optionalen Felder im Registrierungsformular angezeigt werden.
 
-> **Sichtbarkeit nach Modus (PROJ-67):** Im **Standard-Modus** siehst du nur die vier Felder, die historisch als „Optional" voreingestellt waren — *Telefon*, *Geburtsdatum*, *Bankname* (Application-Scope) und *Teilnahmefaktor* (Zählpunkt-Scope). Alle übrigen Felder bleiben verborgen, ihre hinterlegten Werte (falls schon konfiguriert) bleiben aktiv. Wechsle auf **Erweitert**, um die volle Liste (~27 Felder) zu sehen und zu pflegen.
+> **Sichtbarkeit nach Ansicht (PROJ-67):** In der **Einfachen Ansicht** siehst du nur die vier Felder, die historisch als „Optional" voreingestellt waren — *Telefon*, *Geburtsdatum*, *Bankname* (Application-Scope) und *Teilnahmefaktor* (Zählpunkt-Scope). Alle übrigen Felder bleiben verborgen, ihre hinterlegten Werte (falls schon konfiguriert) bleiben aktiv. Wechsle auf **Alle Optionen**, um die volle Liste (~27 Felder) zu sehen und zu pflegen.
 
 Für jedes Feld stehen vier Zustände zur Verfügung:
 
