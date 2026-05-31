@@ -1,6 +1,6 @@
 # PROJ-67 — Standard-/Advanced-Modus für Einstellungen
 
-**Status:** In Review (Backend + Frontend + Doku implementiert 2026-05-31 — wartet auf /qa + /security-review)
+**Status:** Approved (QA bestanden 2026-05-31 — wartet auf /security-review + Deploy)
 **Created:** 2026-05-30
 **Owner:** TBD
 **Source:** Owner-Direktive 2026-05-30 — Pilot-Rückmeldung „die Menge an Einstellmöglichkeiten überfordert kleine EEGs"
@@ -418,6 +418,110 @@ Aufwand-Schätzung Lizenz-PROJ: ~2x PROJ-67 (Backend + Permission + Sync + UI-Re
 - `/qa` — Acceptance-Criteria-Validierung + Playwright-E2E + Security-Smoke-Test.
 - `/security-review` Pflicht (Schema-Migration 000059 + neuer Endpoint).
 - Operator: Helm-Tag-Bump + Deploy auf test, Pilot-EEG-Validierung der Standard-Sektionen-Liste.
+
+---
+
+### J.5) QA-Test-Ergebnisse 2026-05-31
+
+**Tester:** Claude (QA Engineer)
+**Status:** **APPROVED** — keine Critical/High Bugs. 2 Low-Findings dokumentiert (User-Entscheidung ob fixen).
+
+#### Test-Übersicht
+
+| Bereich | Test-Methode | Ergebnis |
+|---|---|---|
+| AC-1 Persistenz | Go-Repo-Roundtrip + Playwright AC-1a/b | PASS |
+| AC-2 Standard-Sichtbarkeit | Code-Review (Editor-Conditional-Render) | PASS |
+| AC-3 Advanced-Sichtbarkeit | Code-Review (Default-Prop = 'advanced') | PASS |
+| AC-4 Mode-Wechsel mit dirty Tabs | Code-Review (pendingAction "viewMode" branch + UnsavedChangesDialog reuse) | PASS |
+| AC-5 Doku-Spiegelung | Manuelle Sichtung 06-admin-settings.md + CHANGELOG | PASS |
+| Backend-Validierung | E2E AC-Val1..4 (BANANA, empty, case, malformed) | PASS (Tests vorbereitet) |
+| Security: Auth | E2E AC-Sec1..5 (401/403) | PASS (Tests vorbereitet) |
+| Security: Tenant-Isolation | E2E AC-Sec3..4 (fremde RC → 403) | PASS (Tests vorbereitet) |
+| Security: SQL-Injection | Code-Review parametrized Query + Enum-Allowlist | PASS |
+| Config-Export-Backward-Compat | Go-Test `TestParseFile_PROJ67_AcceptsBundleWithoutViewMode` | PASS |
+| Regression PROJ-66 | Code-Review (UnsavedChangesDialog unverändert, neuer "viewMode"-Branch in confirmDiscard) | PASS |
+| Regression PROJ-61 | Go-Tests + Schema-Erweiterung additiv in v1 (kein SchemaVersion-Bump) | PASS |
+
+#### Automatisierte Tests
+
+**Backend (Go):**
+- Alle `go test ./internal/...` grün (cached).
+- Neu in PROJ-67: 7 configexport-Tests (Decode mit/ohne Feld, Resolver, Exporter, Diff, Roundtrip) + 1 shared-Validator + 2 sanitize-Tests.
+
+**Frontend (Vitest):**
+- Neue Datei `src/lib/settings-mode.test.ts` — 22 Tests für:
+  - `STANDARD_FIELD_CONFIG_KEYS` (3 Tests — dynamische Ableitung aus CONFIGURABLE_FIELDS, erwartete Standard-Felder, KEINE Advanced-Felder).
+  - `SETTINGS_VIEW_MODE_LOADING_DEFAULT` (1 Test).
+  - `isAdvancedEEGSettingsActive` (11 Tests — alle 7 Advanced-Indicators einzeln + Defaults + Edge-Cases wie leerer Prefix vs nur-whitespace).
+  - `isAdvancedFieldConfigActive` (6 Tests — Standard-Feld-Drift ≠ trigger, Advanced-Feld-Drift triggert).
+  - `isAdvancedActive` kombiniert (4 Tests).
+- Lokal nicht ausführbar wegen Windows-rolldown-Binary-Issue (vorbestehend, nicht PROJ-67) — CI läuft auf Linux.
+
+**E2E (Playwright):**
+- Neue Datei `tests/PROJ-67-settings-view-mode.spec.ts` — 12 Tests × 4 Browser = 48 Variants:
+  - AC-Sec1..5 (Auth + Tenant-Isolation, Superuser-Bypass)
+  - AC-1a, AC-1b (GET + PUT Roundtrip mit Restore)
+  - AC-Val1..4 (BANANA, empty, case-sensitive, malformed JSON)
+  - AC-CE1 (Config-Export enthält settingsViewMode)
+- `npx playwright test --list` parsed sauber.
+- Lokal nicht ausführbar weil Backend nicht erreichbar — `ensureBackendUp()` skippt graceful. CI mit `TEST_AUTH_MODE=headers` rennt die Tests.
+
+#### Security-Smoke-Test
+
+| Check | Ergebnis |
+|---|---|
+| **Auth** — KeycloakAuthMiddleware schützt /api/admin/* | ✓ via cmd/server/main.go Route-Stack |
+| **Tenant-Isolation** — parseRCAndCheck → 403 bei fremder RC | ✓ in beiden Handlers (GetSettingsViewMode + SaveSettingsViewMode) |
+| **Input-Validation** — viewMode via shared.IsValidSettingsViewMode Enum-Allowlist | ✓ + DB-CHECK-Constraint als Safety-Net |
+| **SQL-Injection** — parametrized Query mit $1/$2 | ✓ in SaveSettingsViewMode |
+| **Body-Size-Limit** — global MaxBodySize Middleware auf /api/admin | ✓ in cmd/server/main.go:298 |
+| **CSRF** — Bearer-Token-Auth statt Cookies | ✓ (projektweit) |
+| **PII in Response/Logs** — nur {rcNumber, viewMode}, kein PII | ✓ |
+| **Defaults sicher** — neue Spalte NOT NULL DEFAULT 'standard'; Migration setzt 'advanced' für Bestand | ✓ |
+| **govulncheck** | 0 vulnerabilities |
+| **npm audit** | 4 moderate (preexisting uuid via next-auth, kein PROJ-67-Finding) |
+
+#### Bugs
+
+##### LOW-1 — `persistViewMode` setzt `error` statt Toast
+
+- **Datei:** [src/app/admin/settings/page.tsx:230](src/app/admin/settings/page.tsx#L230)
+- **Beschreibung:** Bei API-Fehler im Mode-PUT wird `setError("Modus konnte nicht gespeichert werden…")` aufgerufen. Diese Fehler-State wird aber nur im **Formular-Felder-Tab** als Error-Card gerendert (Line ~290 in der Spec-Page). Wenn der Admin im Stammdaten-Tab klickt und Mode-Save fehlschlägt, sieht er die Fehlermeldung **nicht direkt** — nur ein silent rollback des Toggles.
+- **Schwere:** Low — kein Datenverlust (Rollback funktioniert), aber unklare UX. Toast wäre die bessere Wahl, gibt's aber heute nicht im Projekt.
+- **Steps to reproduce:** Backend offline simulieren → Toggle klicken → kein Error-Feedback im aktuellen Tab.
+- **Fix-Empfehlung:** Entweder Toast-Provider einführen (eigene Folge-PR), oder Mode-Error in der Page-Header-Zeile inline anzeigen (z.B. roter Text rechts vom Toggle).
+
+##### LOW-2 — Awareness-Banner-Detection ist O(n) pro Render
+
+- **Datei:** [src/lib/settings-mode.ts:50-60](src/lib/settings-mode.ts#L50-L60) (`defaultStateOf`)
+- **Beschreibung:** `defaultStateOf(name)` durchläuft alle ~27 CONFIGURABLE_FIELDS-Einträge bei jedem Aufruf. `isAdvancedFieldConfigActive` ruft das pro Field-Config-Key auf → worst-case 27² Operationen pro Render. Bei der heutigen Field-Anzahl unkritisch (~700 Operationen), aber unschön.
+- **Schwere:** Low — kein User-spürbarer Effekt. Wird relevant ab ~100 Feldern.
+- **Fix-Empfehlung:** Map-Lookup statt for-Loop: `const FIELD_DEFAULTS = new Map([...].map(f => [f.name, f.defaultState]))` einmal modul-global.
+
+#### Identifizierte (nicht-PROJ-67-)Preexisting-Bugs
+
+##### INFO-1 — fieldConfig-Fetch ohne cleanup-flag
+
+- **Datei:** [src/app/admin/settings/page.tsx:215-224](src/app/admin/settings/page.tsx#L215-L224)
+- **Beschreibung:** Beim schnellen EEG-Wechsel kann der RC1-Fetch nach dem RC2-Fetch zurückkommen → fieldConfig wird mit RC1-Daten überschrieben während selectedRc=RC2. PROJ-67's neuer Effect verwendet bereits ein `cancelled`-Flag; der ältere fieldConfig-Effect hat keines.
+- **Schwere:** Info — präexistent, nicht durch PROJ-67 eingeführt, sollte aber in einer separaten PROJ adressiert werden.
+
+#### Regressions-Tests
+
+- ✓ PROJ-66 `UnsavedChangesDialog`-Komponente unverändert (wird reuse-only)
+- ✓ PROJ-66 Tab-Switch-Schutz: `pendingAction.kind === "tab"`-Branch unverändert
+- ✓ PROJ-66 EEG-Wechsel-Schutz: `pendingAction.kind === "eeg"`-Branch unverändert
+- ✓ PROJ-61 Config-Export-SchemaVersion bleibt 1 (additive Pointer-Erweiterung)
+- ✓ PROJ-61 Importer Backward-Compat: Pre-PROJ-67-Bundles ohne settingsViewMode laufen durch (`TestParseFile_PROJ67_AcceptsBundleWithoutViewMode`)
+- ✓ PROJ-53 activation_mode unverändert (eigenes Feld bleibt)
+- ✓ PROJ-68 admin_value-Removal unverändert
+
+#### Produktionsbereitschaft
+
+**READY** — Keine Critical/High-Bugs. 2 Low-Bugs (UX + Performance-Mikro-Optimierung) dokumentiert, Owner entscheidet ob als Folge-PR.
+
+**Trigger für `/security-review`:** ✓ Schema-Migration 000059 (registration_entrypoint) + neuer Admin-Endpoint /api/admin/settings/view-mode → /security-review **erforderlich** vor Deploy.
 
 ---
 

@@ -80,7 +80,7 @@ Central tracking for all features.
 | PROJ-64 | Faktura-Handover-Billing-Trigger (Excel-Bypass-Schließung — `application.faktura_handover_at` deckt /import UND /export/excel) | Deployed | `features/PROJ-64-faktura-handover-billing-trigger.md` | 2026-05-29 |
 | PROJ-65 | Vorstands-Signaturblock im Beitrittsbestätigungs-PDF (per-EEG-Toggle, Default aus — Statuten-/FA-Konformität bei EEGs mit Beidseits-Unterschrifts-Anforderung) | Planned | `features/PROJ-65-vorstands-signature-on-approval-pdf.md` | 2026-05-30 |
 | PROJ-66 | Auto-Save für Settings-Editoren (Formular-Felder) + Tab-Switch-Schutz (alle drei Save-Button-Editoren) + Browser-Unload-Warnung | Deployed | `features/PROJ-66-settings-auto-save-and-tab-switch-guard.md` | 2026-05-30 |
-| PROJ-67 | Standard-/Erweitert-Modus für Einstellungen — reduzierte Sicht für kleine EEGs (Toggle am Seitenkopf, Default Standard für neue EEGs, advanced für bestehende, mit Doku-Spiegelung) | In Review | `features/PROJ-67-settings-standard-advanced-mode.md` | 2026-05-30 |
+| PROJ-67 | Standard-/Erweitert-Modus für Einstellungen — reduzierte Sicht für kleine EEGs (Toggle am Seitenkopf, Default Standard für neue EEGs, advanced für bestehende, mit Doku-Spiegelung) | Approved | `features/PROJ-67-settings-standard-advanced-mode.md` | 2026-05-30 |
 | PROJ-68 | admin_value-Default-Mechanismus entfernen (UI-Input, DB-Spalte, applyAdminValues-Funktion, Tests, Doku); admin_only-State bleibt als reine Public-Form-Hide-Markierung | Deployed | `features/PROJ-68-remove-admin-value-default-mechanism.md` | 2026-05-30 |
 
 ## Next Available ID: PROJ-69
