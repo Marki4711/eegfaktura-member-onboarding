@@ -517,6 +517,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#automatischer-abgleich-mit-eegfaktura" class="md-nav__link">
+    <span class="md-ellipsis">
+      Automatischer Abgleich mit eegFaktura
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#speichern-auto-speichern-tab-wechsel-schutz" class="md-nav__link">
     <span class="md-ellipsis">
       Speichern, Auto-Speichern, Tab-Wechsel-Schutz
@@ -857,6 +866,20 @@
 <li><strong>Alle Optionen wählen, wenn:</strong> ihr Genossenschaftsanteile verlangt, B2B-Mandate für Unternehmen braucht, mit einem einheitlichen Netzbetreiber-Prefix arbeitet, E-Mail-Bestätigung als Spam-Schutz aktivieren wollt oder das Aktivierungs-Kriterium feiner steuern müsst.</li>
 </ul>
 <p>Wenn in der Einfachen Ansicht eine erweiterte Option <strong>aktiv</strong> ist (z. B. SEPA-B2B wurde früher mal eingeschaltet), erscheint ein <strong>gelber Hinweis-Banner</strong> über den Tabs mit Button „Alle Optionen anzeigen". Damit ist sichergestellt, dass keine versteckte Einstellung unbemerkt wirkt.</p>
+<h2 id="automatischer-abgleich-mit-eegfaktura">Automatischer Abgleich mit eegFaktura<a class="headerlink" href="#automatischer-abgleich-mit-eegfaktura" title="Permanent link">&para;</a></h2>
+<p>Sobald du dich als Admin anmeldest, prüft das Tool <strong>einmal pro Tag und EEG</strong> im Hintergrund, ob deine offenen Onboarding-Anträge bereits als Mitglieder im eegFaktura-Kernsystem existieren. Wird ein eindeutiger Treffer gefunden (gleiche <strong>IBAN UND E-Mail-Adresse</strong>), passiert Folgendes:</p>
+<ul>
+<li>Der Antrag wird im Onboarding mit der Mitgliedsnummer aus eegFaktura verknüpft (sofern diese im Onboarding noch leer ist).</li>
+<li>Im Antrags-Verlauf erscheint ein Eintrag: <strong>„In eegFaktura erfasst (automatischer Abgleich)"</strong>.</li>
+<li>Der Antrag wird auf der nächsten Quartals­abrechnung als Tool-Nutzung gezählt — unabhängig davon, ob du den Import-Button geklickt oder einen Excel-Export gemacht hast.</li>
+</ul>
+<p><strong>Warum gibt es das?</strong>
+Das Tool ist Dienstleistung. Wenn du die im Onboarding erfassten Daten ohne Import-Button manuell in eegFaktura überträgst (z. B. per copy-and-paste), bleibt das Tool ohne diesen Abgleich „unbemerkt" und wäre nicht abrechnungspflichtig — das ist nicht im Sinn der Plattform-Wirtschaftlichkeit. Der Abgleich sorgt für einen fairen Pfad: jedes Mitglied, das du im Tool erfasst hast und das in eegFaktura landet, zählt einmal.</p>
+<p><strong>Was wird abgefragt?</strong>
+Bei jedem Abgleich wird die Liste der aktiven Teilnehmer deiner EEG aus eegFaktura abgerufen. Verglichen werden nur <strong>IBAN</strong> und <strong>E-Mail-Adresse</strong>. Vor- und Nachname, Adresse oder weitere Daten werden nicht aus eegFaktura übernommen — nur die Mitgliedsnummer wird zur Verknüpfung gespeichert. Details zur Verarbeitung stehen in der Datenverarbeitungsvereinbarung (AVV) zwischen EEG und Plattform-Betreiber.</p>
+<p><strong>Was wird nicht überschrieben?</strong>
+Wenn du einen Antrag bereits per Import-Button verarbeitet hast und die Mitgliedsnummer schon gesetzt ist, ändert der Abgleich daran nichts. Findet der Abgleich eine Übereinstimmung mit einem Mitglied, dessen Mitgliedsnummer im Onboarding aber bereits einem anderen Antrag gehört (z. B. weil Mitglieder in eurer Familie dieselbe IBAN und E-Mail teilen und einer davon schon per Import bearbeitet wurde), wird der zweite Antrag zwar abrechnungspflichtig markiert, behält aber <strong>keine fremde</strong> Mitgliedsnummer — keine Datenkollision möglich.</p>
+<p><strong>Wenn dein Antrag im Verlauf den Hinweis „In eegFaktura erfasst" zeigt:</strong> alles in Ordnung. Der Antrag wurde automatisch verknüpft, eure manuelle Bearbeitung in eegFaktura wird sichtbar, und alles ist bereit für die Abrechnung.</p>
 <h2 id="speichern-auto-speichern-tab-wechsel-schutz">Speichern, Auto-Speichern, Tab-Wechsel-Schutz<a class="headerlink" href="#speichern-auto-speichern-tab-wechsel-schutz" title="Permanent link">&para;</a></h2>
 <p>Die Einstellungsseite besteht aus mehreren Tabs. Welcher Tab wie speichert, ist bewusst pro Tab passend zur Bedienlogik gewählt:</p>
 <table>

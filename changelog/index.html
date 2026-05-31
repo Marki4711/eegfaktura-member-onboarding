@@ -676,6 +676,11 @@
 <p>Übersicht der Änderungen der letzten Tage, die für <strong>EEG-Admins</strong> und <strong>Mitglieder</strong> spürbar sind. Technische Details, Bug-Fixes ohne UI-Auswirkung und Infrastruktur-Themen sind hier bewusst weggelassen — die finden sich in der Commit-Historie.</p>
 <hr />
 <h2 id="2026-05-31">2026-05-31<a class="headerlink" href="#2026-05-31" title="Permanent link">&para;</a></h2>
+<p><strong>Automatischer Abgleich mit eegFaktura (Free-Rider-Detection)</strong></p>
+<p>Sobald du dich als Admin anmeldest, prüft das Tool im Hintergrund einmal pro Tag und EEG, ob deine offenen Onboarding-Anträge bereits als Mitglieder im eegFaktura-Kernsystem existieren (verglichen werden nur IBAN UND E-Mail-Adresse — beide müssen übereinstimmen). Bei einem eindeutigen Treffer wird die Mitgliedsnummer aus eegFaktura mit dem Antrag verknüpft und der Antrag landet auf der nächsten Quartalsabrechnung — unabhängig davon, ob du den Import-Button geklickt oder einen Excel-Export gemacht hast. Im Antrags-Verlauf erscheint ein Hinweis „In eegFaktura erfasst (automatischer Abgleich)".</p>
+<p>Hintergrund: das Tool ist Dienstleistung. Manuell per copy-and-paste in eegFaktura übertragene Daten würden ohne diesen Abgleich „unbemerkt" bleiben und wären nicht abrechnungspflichtig — der Abgleich sorgt für einen fairen Pfad: jedes Mitglied, das im Tool erfasst wurde und in eegFaktura landet, zählt einmal. Verarbeitungsdetails stehen in der AVV.</p>
+<p>→ <a href="../06-admin-settings/#automatischer-abgleich-mit-eegfaktura">Admin-Einstellungen — Automatischer Abgleich mit eegFaktura</a></p>
+<hr />
 <p><strong>Neuer Umschalter „Einfache Ansicht" / „Alle Optionen" für die Einstellungsseite</strong></p>
 <p>Pilot-Rückmeldung: für kleine Vereine ist die Vielzahl der Konfigurationsmöglichkeiten in den EEG-Einstellungen überwältigend. Daher gibt es jetzt einen <strong>Ansichts-Umschalter</strong> rechts oben in der Einstellungsseite:</p>
 <ul>
