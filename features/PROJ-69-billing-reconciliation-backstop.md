@@ -1,6 +1,6 @@
 # PROJ-69 — Reconciliation-basierter Billing-Backstop
 
-**Status:** Approved (QA bestanden 2026-05-31 nach BUG-1/LOW-2-Fix — wartet auf /security-review + Operator-Deploy; AVV + User-Guide extern)
+**Status:** Approved (QA + /security-review bestanden 2026-05-31 nach BUG-1/LOW-2-Fix — wartet auf Operator-Deploy; AVV + User-Guide extern vor RECONCILIATION_ENABLED=true)
 **Created:** 2026-05-31
 **Owner:** TBD
 **Source:** Owner-Feedback 2026-05-31 — Lücke im Abrechnungskonzept (PROJ-64)
@@ -585,6 +585,147 @@ für jeden Onboarding-Antrag (sortiert nach created_at ASC):
 - DSGVO-Implikation (AVV-Update)
 
 Sollte vor Aktivierung des Feature-Flags laufen. (BUG-1-Fix ist erfolgt 2026-05-31, siehe oben.)
+
+---
+
+## L) Security Review 2026-05-31
+
+**Reviewer:** Security Engineer (AI)
+**Verdict:** **APPROVED** — keine Critical/High/Medium-Findings. 4 Low/Info-Findings dokumentiert (alle Defensive-Verbesserungen, kein Blocker für `RECONCILIATION_ENABLED=true`).
+
+### Threat-Model-Übersicht
+
+| Aspekt | Bewertung |
+|---|---|
+| Wer kann triggern? | Authentifizierter Tenant-Admin (Keycloak JWT) — kein Public-Endpoint, kein API-Key-Pfad. |
+| Worst-Case bei buggy Code | (a) Cross-EEG-PII-Leak via Match-Logik → **gemitigt** durch parseRCAndCheck + rc_number-Scope in allen DB-Queries; (b) Falsche Abrechnung via mnr_conflict-Duplikat → **gefixt** in BUG-1; (c) Stale-Run blockiert Reconciliation für 24h → **gefixt** durch Stale-Recovery in AcquireRunLock. |
+| Schutzwürdige Daten | Match-Index hält IBAN + E-Mail temporär im Backend-Memory (pro Run). Persistiert wird: `application.member_number` (Core-MNr) + `reconciliation_match_detail.core_member_number` + `error_detail` (truncated 500 Chars). Run-Header speichert nur Counter + Subject (User-ID). |
+| Künftige Verschärfung | Wenn Lizenz-PROJ kommt: bestehende parseRCAndCheck reicht; nur Feature-Flag-Quelle ändert sich. |
+
+### Findings — kein Critical / High / Medium
+
+| Severity | Datei | Funktion | Risiko | Exploit-Szenario | Fix-Empfehlung | Confidence |
+|---|---|---|---|---|---|---|
+| Low | [internal/http/admin.go:2081](internal/http/admin.go#L2081) | `RunReconciliation` | PII-Leak via `slog.Error(... "error", err)` — coreclient.ListParticipants kann bei JSON-Parse-Fail einen body-prefix (200 Chars) in die Error-Message packen, der Core-PII enthalten könnte | Faktura-Core liefert HTML-Error mit Mitgliederliste-Snippet → Server-Log enthält PII | err vor slog auf `truncateForLog(err.Error(), 200)` reduzieren, oder nur error-Klasse loggen | Medium |
+| Low | [internal/application/reconciliation_service.go](internal/application/reconciliation_service.go) | `attachMatch` / `attachMatchWithoutMNr` | Hardcoded `"service"` als subject statt dem echten User-Subject | Status-Log zeigt `reconciliation:service` statt `reconciliation:<keycloak-sub>` — niedrigere Audit-Qualität, kein Auth-Risk | Subject aus `RunReconciliation`-Parameter durchreichen zu `attachMatch`/`attachMatchWithoutMNr` | High |
+| Low | [internal/application/reconciliation_repo.go:241](internal/application/reconciliation_repo.go#L241) | `UpdateHandoverIfNull` | Defense-in-Depth: SQL hat nur `WHERE id = $1 AND faktura_handover_at IS NULL`, kein rcNumber-Scope. Service-Flow garantiert tenant-konformes app.ID, aber zukünftige Wiring-Fehler nicht abgesichert | Future-Bug: Service-Caller übergibt versehentlich eine cross-tenant app.ID → handover wird auf fremder EEG gesetzt | rcNumber-Param ergänzen + `WHERE id = $1 AND rc_number = $2 AND faktura_handover_at IS NULL` (analog LOW-2-Fix für UpdateMemberNumberIfNull) | High |
+| Info | [internal/application/reconciliation_repo.go:282](internal/application/reconciliation_repo.go#L282) | `InsertStatusLogEntry` | Auch hier kein rcNumber-Scope auf dem INSERT (nur appID). Selbe Defense-in-Depth-Logik | Future-Bug: cross-tenant status_log-Eintrag möglich | rcNumber-Param mit-führen + EXISTS-Check auf application | Medium |
+
+### Auth & Authorization
+
+| Check | Resultat | Beleg |
+|---|---|---|
+| Unauthenticated → 401 | ✓ | Globale `KeycloakAuthMiddleware` |
+| Tenant A → Tenant B blockiert | ✓ | `parseRCAndCheck` ZUERST in `RunReconciliation` ([admin.go:2049](internal/http/admin.go#L2049)) |
+| Feature-Flag-Check NACH Tenant-Check | ✓ | Defense-in-Depth gegen Info-Leak über Feature-Status |
+| Core-Token wird gebraucht | ✓ | Handler validiert `coreBearerToken(r) != ""` und gibt 400 bei Fehlen |
+| Body-Size-Limit | ✓ | Globaler `MaxBodySize`-Middleware auf `/api/admin` |
+
+### Input Validation & Injection
+
+| Check | Resultat | Beleg |
+|---|---|---|
+| Alle SQL-Queries parametrisiert | ✓ | 9 Repo-Methoden, alle nutzen `$1..$N` placeholder |
+| Tenant-Scope in DB-Queries (kritisch) | ✓ | `GetEligibleApplications`, `IsMemberNumberInUse`, `UpdateMemberNumberIfNull` haben `WHERE rc_number = $1` |
+| DB-CHECK-Constraint auf result-Enum | ✓ | Migration 000061 |
+| UNIQUE-Throttle atomar | ✓ | Migration 000060 `(rc_number, DATE(started_at))` |
+| Core-Token nie persistiert | ✓ | Nur pro Request weitergereicht |
+
+### Schema & Database Boundary
+
+- Migrations 000060 + 000061 sind **additiv** (neue Tabellen, keine ALTER auf Bestand). Keine Datenmigration nötig.
+- FK CASCADE auf `registration_entrypoint.rc_number` und `application.id` — konsistent mit bestehendem Pattern (`status_log`).
+- Schema `member_onboarding` durchgängig.
+- Keine direkten Writes zu eegFaktura-Core-Tables ✓.
+
+### Frontend Security
+
+- localStorage-Token-Forwarding über `X-Core-Authorization` — Pattern existierte bereits vor PROJ-69 (Memory `project_core_auth_exchange`). Risk-Profile unverändert.
+- `reconciliation:last-session-id` localStorage-Key — kein PII, nur Session-Hash.
+- `ReconciliationTrigger` ist null-UI — kein XSS-Vektor.
+- Fire-and-forget POST — schluckt alle Server-Antworten silent.
+
+### DSGVO & PII
+
+- **Im Backend-Memory:** Match-Index hält IBAN + E-Mail pro Run. Wird nach Service-Return freigegeben (Go GC). Kein langfristiger Memory-Cache.
+- **Persistiert:**
+  - `application.member_number` (Core-MNr aus dem Match)
+  - `application.faktura_handover_at` (Timestamp)
+  - `reconciliation_match_detail.core_member_number` (Audit-Trail)
+  - `reconciliation_run.triggered_by_user` (Subject-Claim des Login-Users — kein PII)
+  - `status_log.reason` = neutraler Standard-Text (kein PII)
+- **NICHT persistiert:** rohe IBAN+E-Mail aus dem Core-Response.
+- **AVV-Update vor `RECONCILIATION_ENABLED=true`** — Owner-Verantwortung, durch Spec-Hinweis verankert.
+
+### Secrets & Konfiguration
+
+| Check | Resultat |
+|---|---|
+| `RECONCILIATION_ENABLED` env-only, kein Hardcoded-Default | ✓ Default `false` |
+| Kein neuer Secret-Pfad | ✓ |
+| Keine `NEXT_PUBLIC_*`-Variable hinzugefügt | ✓ |
+| `.env.local.example` dokumentiert die Var | ✓ |
+
+### Logging & Privacy
+
+- Server-Logging nur 1 Stelle: `slog.Error("reconciliation: run failed", "rcNumber", rcNumber, "error", err)` — siehe LOW-Finding (PII via Inner-Error möglich).
+- `reconciliation_run.triggered_by_user` = Keycloak Subject (technische ID, kein PII).
+- `reconciliation_match_detail.error_detail` = `truncateForLog(err.Error(), 500)` — DB-only, Owner-Zugriff.
+- `status_log.reason` = hardcoded neutraler String, kein PII.
+- Response zum Frontend = nur Integer-Counter + UUIDs.
+
+### Deployment & Infrastructure
+
+- Keine Helm-Änderungen.
+- Keine Dockerfile-Änderungen.
+- Keine GitHub-Actions-Änderungen.
+
+### Scan Results
+
+| Tool | Resultat |
+|---|---|
+| **Snyk Code SAST** | 0 PROJ-69-Findings (2 preexisting Medium-XSS in PROJ-36-Code unverändert) |
+| **govulncheck** | 0 vulnerabilities in own code |
+| **npm audit** | 4 moderate preexisting (`uuid` transitiv via `next-auth`) |
+| **helm lint / kubeconform** | n/a — keine Helm-Änderungen |
+
+### Verdict
+
+**APPROVED** ✓
+
+- Keine Critical/High/Medium-Findings.
+- Tenant-Isolation lückenlos auf der DB-Layer, wo es zählt (Match-Logik + MNr-Backfill).
+- SQL parametrisiert + Enum-Allowlist + DB-CHECK doppelt abgesichert.
+- BUG-1 + LOW-2 sind gefixt — keine echten Data-Integrity-Risiken mehr.
+- Feature-Flag Default `false` — Feature ist nach Deploy inert.
+
+**Owner-TODO vor `RECONCILIATION_ENABLED=true`:**
+1. AVV-Text erweitern (Owner-Verantwortung)
+2. User-Guide-Hinweis-Abschnitt
+3. (Optional) Die 4 Low/Info-Findings als Folge-Cleanup angehen — keine sind Blocker
+4. In `values-env.yaml`: `backend.reconciliationEnabled: true` setzen + `helm upgrade`
+
+**Deploy-Freigabe:** Code ist deploy-bereit mit Helm-Default `backend.reconciliationEnabled: false`. Aktivierung via Override in `values-env.yaml` nach AVV-Update.
+
+---
+
+## M) Helm-Integration 2026-05-31 (Owner-Followup)
+
+**Owner-Befund nach /security-review:** `RECONCILIATION_ENABLED` war nur in `.env.local.example` dokumentiert, aber **nicht im Helm-Backend-Template verdrahtet** — Operator hätte ohne Helm-Patch keinen sauberen Aktivierungs-Pfad gehabt (jeder `helm upgrade` hätte ein manuelles `kubectl set env` überschrieben).
+
+**Geliefert:**
+- `helm/member-onboarding/templates/backend.yaml`: neue Env-Variable `RECONCILIATION_ENABLED` aus `.Values.backend.reconciliationEnabled` (default `false`).
+- `helm/member-onboarding/values.yaml`: neuer Default `backend.reconciliationEnabled: false` mit Hinweis-Kommentar.
+- `helm/member-onboarding/values-env.yaml.example`: Override-Beispiel mit Aktivierungs-Vorbedingungen (AVV, User-Guide).
+- `helm lint` + `helm template` verifiziert — Env-Var rendert korrekt im Deployment (`value: "false"`).
+
+**Aktivierungs-Workflow für Operator:**
+```yaml
+# values-env.yaml
+backend:
+  reconciliationEnabled: true   # erst nach AVV + User-Guide
+```
+Danach `helm upgrade` — Backend-Pods rollen mit aktiviertem Feature aus.
 
 ---
 
