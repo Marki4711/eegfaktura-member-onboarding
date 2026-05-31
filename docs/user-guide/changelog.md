@@ -6,6 +6,20 @@
 
 ## 2026-05-31
 
+**Automatischer Abgleich mit eegFaktura**
+
+Sobald du dich als Admin anmeldest, prüft das Tool im Hintergrund einmal pro Tag und EEG, ob deine offenen Onboarding-Anträge bereits als Mitglieder im eegFaktura-Kernsystem existieren (verglichen werden nur IBAN UND E-Mail-Adresse — beide müssen übereinstimmen). Bei einem eindeutigen Treffer wird die Mitgliedsnummer aus eegFaktura mit dem Antrag verknüpft und im Antrags-Verlauf erscheint ein Hinweis „In eegFaktura erfasst (automatischer Abgleich)".
+
+Damit schließt sich die Lücke, wenn du Onboarding-Daten nicht über den Import-Button überträgst, sondern manuell in eegFaktura eintippst — der Antrag im Onboarding zeigt trotzdem klar an, dass das Mitglied im Bestand existiert. Verarbeitungsdetails (welche Felder werden verglichen, was wird übernommen) stehen in der AVV.
+
+**Excel-Download im Antragsdetail wieder ohne Bestätigungs-Dialog**
+
+Der bisherige Bestätigungs-Dialog vor dem ersten „Excel herunterladen" und der automatische Vermerk „An eegFaktura übergeben am …" beim Excel-Download sind entfernt. Hintergrund: der automatische Abgleich (siehe oben) deckt zuverlässig auf, wenn Onboarding-Daten tatsächlich im Kernsystem landen. Der Vermerk beim Excel-Download produzierte zu oft False-Positives (Backup-Download, „mal sehen wie das aussieht"). Der Excel-Download ist jetzt wieder ein gewöhnlicher Download ohne Bestätigung; der „An eegFaktura übergeben am …"-Vermerk im Detail-Header wird nur noch beim echten Import oder beim automatischen Abgleich gesetzt.
+
+→ [Admin-Einstellungen — Automatischer Abgleich mit eegFaktura](06-admin-settings.md#automatischer-abgleich-mit-eegfaktura)
+
+---
+
 **Neuer Umschalter „Einfache Ansicht" / „Alle Optionen" für die Einstellungsseite**
 
 Pilot-Rückmeldung: für kleine Vereine ist die Vielzahl der Konfigurationsmöglichkeiten in den EEG-Einstellungen überwältigend. Daher gibt es jetzt einen **Ansichts-Umschalter** rechts oben in der Einstellungsseite:

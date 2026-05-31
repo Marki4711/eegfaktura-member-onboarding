@@ -22,6 +22,24 @@ In dieser Doku sind erweiterte Abschnitte mit **„(Alle Optionen)"** im Header 
 
 Wenn in der Einfachen Ansicht eine erweiterte Option **aktiv** ist (z. B. SEPA-B2B wurde früher mal eingeschaltet), erscheint ein **gelber Hinweis-Banner** über den Tabs mit Button „Alle Optionen anzeigen". Damit ist sichergestellt, dass keine versteckte Einstellung unbemerkt wirkt.
 
+## Automatischer Abgleich mit eegFaktura
+
+Sobald du dich als Admin anmeldest, prüft das Tool **einmal pro Tag und EEG** im Hintergrund, ob deine offenen Onboarding-Anträge bereits als Mitglieder im eegFaktura-Kernsystem existieren. Wird ein eindeutiger Treffer gefunden (gleiche **IBAN UND E-Mail-Adresse**), passiert Folgendes:
+
+- Der Antrag wird im Onboarding mit der Mitgliedsnummer aus eegFaktura verknüpft (sofern diese im Onboarding noch leer ist).
+- Im Antrags-Verlauf erscheint ein Eintrag: **„In eegFaktura erfasst (automatischer Abgleich)"**.
+
+**Warum gibt es das?**
+Auch wenn du Onboarding-Daten nicht über den Import-Button überträgst, sondern manuell in eegFaktura eintippst, soll der Status im Onboarding-Tool nicht „stehen bleiben". Der Abgleich schließt diese Lücke: jedes Mitglied, das du im Onboarding erfasst hast und das später (auf welchem Weg auch immer) in eegFaktura landet, wird automatisch als verknüpft markiert.
+
+**Was wird abgefragt?**
+Bei jedem Abgleich wird die Liste der aktiven Teilnehmer deiner EEG aus eegFaktura abgerufen. Verglichen werden nur **IBAN** und **E-Mail-Adresse**. Vor- und Nachname, Adresse oder weitere Daten werden nicht aus eegFaktura übernommen — nur die Mitgliedsnummer wird zur Verknüpfung gespeichert. Details zur Verarbeitung stehen in der Datenverarbeitungsvereinbarung (AVV) zwischen EEG und Plattform-Betreiber.
+
+**Was wird nicht überschrieben?**
+Wenn du einen Antrag bereits per Import-Button verarbeitet hast und die Mitgliedsnummer schon gesetzt ist, ändert der Abgleich daran nichts. Findet der Abgleich eine Übereinstimmung mit einem Mitglied, dessen Mitgliedsnummer im Onboarding aber bereits einem anderen Antrag gehört (z. B. weil Mitglieder in eurer Familie dieselbe IBAN und E-Mail teilen und einer davon schon per Import bearbeitet wurde), wird der zweite Antrag zwar als verknüpft markiert, behält aber **keine fremde** Mitgliedsnummer — keine Datenkollision möglich.
+
+**Wenn dein Antrag im Verlauf den Hinweis „In eegFaktura erfasst" zeigt:** alles in Ordnung. Der Antrag wurde automatisch mit dem Bestand verknüpft, eure manuelle Bearbeitung in eegFaktura wird sichtbar.
+
 ## Speichern, Auto-Speichern, Tab-Wechsel-Schutz
 
 Die Einstellungsseite besteht aus mehreren Tabs. Welcher Tab wie speichert, ist bewusst pro Tab passend zur Bedienlogik gewählt:
