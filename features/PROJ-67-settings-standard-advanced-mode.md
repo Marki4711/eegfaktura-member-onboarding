@@ -1,6 +1,6 @@
 # PROJ-67 — Standard-/Advanced-Modus für Einstellungen
 
-**Status:** Approved (QA bestanden 2026-05-31 — wartet auf /security-review + Deploy)
+**Status:** Approved (QA + Security-Review bestanden 2026-05-31, 2 LOW-Bugs gefixt — wartet auf Operator-Deploy)
 **Created:** 2026-05-30
 **Owner:** TBD
 **Source:** Owner-Direktive 2026-05-30 — Pilot-Rückmeldung „die Menge an Einstellmöglichkeiten überfordert kleine EEGs"
@@ -484,20 +484,17 @@ Aufwand-Schätzung Lizenz-PROJ: ~2x PROJ-67 (Backend + Permission + Sync + UI-Re
 
 #### Bugs
 
-##### LOW-1 — `persistViewMode` setzt `error` statt Toast
+##### LOW-1 — `persistViewMode` setzt `error` statt Toast ✓ FIXED 2026-05-31
 
-- **Datei:** [src/app/admin/settings/page.tsx:230](src/app/admin/settings/page.tsx#L230)
-- **Beschreibung:** Bei API-Fehler im Mode-PUT wird `setError("Modus konnte nicht gespeichert werden…")` aufgerufen. Diese Fehler-State wird aber nur im **Formular-Felder-Tab** als Error-Card gerendert (Line ~290 in der Spec-Page). Wenn der Admin im Stammdaten-Tab klickt und Mode-Save fehlschlägt, sieht er die Fehlermeldung **nicht direkt** — nur ein silent rollback des Toggles.
-- **Schwere:** Low — kein Datenverlust (Rollback funktioniert), aber unklare UX. Toast wäre die bessere Wahl, gibt's aber heute nicht im Projekt.
-- **Steps to reproduce:** Backend offline simulieren → Toggle klicken → kein Error-Feedback im aktuellen Tab.
-- **Fix-Empfehlung:** Entweder Toast-Provider einführen (eigene Folge-PR), oder Mode-Error in der Page-Header-Zeile inline anzeigen (z.B. roter Text rechts vom Toggle).
+- **Datei:** [src/app/admin/settings/page.tsx](src/app/admin/settings/page.tsx)
+- **Beschreibung (ursprünglich):** Bei API-Fehler im Mode-PUT wurde der page-globale `error`-State gesetzt — dieser wird aber nur im Formular-Felder-Tab gerendert. Admin im Stammdaten-Tab sah einen silent rollback ohne Erklärung.
+- **Fix:** Eigener `viewModeError`-State (lokal für den Toggle), inline-Anzeige als `role="alert"`-Paragraph direkt unter der Header-Zeile mit dem Toggle. Tab-unabhängig sichtbar.
 
-##### LOW-2 — Awareness-Banner-Detection ist O(n) pro Render
+##### LOW-2 — Awareness-Banner-Detection ist O(n) pro Render ✓ FIXED 2026-05-31
 
-- **Datei:** [src/lib/settings-mode.ts:50-60](src/lib/settings-mode.ts#L50-L60) (`defaultStateOf`)
-- **Beschreibung:** `defaultStateOf(name)` durchläuft alle ~27 CONFIGURABLE_FIELDS-Einträge bei jedem Aufruf. `isAdvancedFieldConfigActive` ruft das pro Field-Config-Key auf → worst-case 27² Operationen pro Render. Bei der heutigen Field-Anzahl unkritisch (~700 Operationen), aber unschön.
-- **Schwere:** Low — kein User-spürbarer Effekt. Wird relevant ab ~100 Feldern.
-- **Fix-Empfehlung:** Map-Lookup statt for-Loop: `const FIELD_DEFAULTS = new Map([...].map(f => [f.name, f.defaultState]))` einmal modul-global.
+- **Datei:** [src/lib/settings-mode.ts](src/lib/settings-mode.ts) (`defaultStateOf`)
+- **Beschreibung (ursprünglich):** `defaultStateOf(name)` durchlief alle ~27 CONFIGURABLE_FIELDS-Einträge bei jedem Aufruf. Worst-case 27² Operationen pro Banner-Render.
+- **Fix:** Modul-globale `FIELD_DEFAULTS: ReadonlyMap<string, string>` einmal vorberechnet, `defaultStateOf` ist jetzt O(1) Map-Lookup.
 
 #### Identifizierte (nicht-PROJ-67-)Preexisting-Bugs
 
@@ -522,6 +519,102 @@ Aufwand-Schätzung Lizenz-PROJ: ~2x PROJ-67 (Backend + Permission + Sync + UI-Re
 **READY** — Keine Critical/High-Bugs. 2 Low-Bugs (UX + Performance-Mikro-Optimierung) dokumentiert, Owner entscheidet ob als Folge-PR.
 
 **Trigger für `/security-review`:** ✓ Schema-Migration 000059 (registration_entrypoint) + neuer Admin-Endpoint /api/admin/settings/view-mode → /security-review **erforderlich** vor Deploy.
+
+---
+
+### J.6) Security Review 2026-05-31
+
+**Reviewer:** Security Engineer (AI)
+**Verdict:** **APPROVED** — keine Critical/High/Medium-Findings. Schema-Migration + neuer Admin-Endpoint geprüft, Snyk-Code-Scan clean, govulncheck clean, Tenant-Isolation lückenlos.
+
+#### Threat-Model-Übersicht
+
+| Aspekt | Bewertung |
+|---|---|
+| Wer kann triggern? | Authentifizierter Tenant-Admin (per Keycloak JWT) — kein Public-Endpoint, kein API-Key-Pfad. |
+| Worst-Case bei buggy Code | Tenant-Escape (Mode-Wert eines fremden EEGs lesen/schreiben). **Impact: Low** — Mode ist heute reine UI-Pref ohne Backend-Enforcement; ein böswillig gesetzter Mode kann weder Daten korrumpieren noch Mitglieder gefährden. |
+| Schutzwürdige Daten | Keine — Response enthält nur `rcNumber` (EEG-ID, kein PII) + Mode-Enum. Keine Mitglieder-Daten, kein Geldfluss, kein Audit-Trail nötig. |
+| Künftige Verschärfung | Wenn die Lizenzierungs-PROJ später den Mode als Entitlement nutzt, muss der Endpoint Permission-Layer bekommen. Heute noch nicht relevant. |
+
+#### Findings — kein Critical / High / Medium
+
+| Severity | Datei | Funktion | Risiko | Exploit-Szenario | Fix-Empfehlung | Confidence |
+|---|---|---|---|---|---|---|
+| Info | db/migrations/000059_*.down.sql | DROP COLUMN | Down-Migration löscht alle Mode-Werte → Re-Apply der Up startet alle Bestandszeilen auf `'advanced'` zurück | Operator führt `migrate down`/`up` aus; Modus-Präferenzen aller EEGs gehen verloren | Akzeptabel: Mode ist UI-Pref, kein PII, kein finanzieller Schaden. Optional Down-Migration mit Hinweis-Kommentar nachschärfen | High |
+
+#### Auth & Authorization Review
+
+| Check | Resultat | Beleg |
+|---|---|---|
+| Unauthenticated → 401 | ✓ | Globale `KeycloakAuthMiddleware` auf `/api/admin/*` ([cmd/server/main.go:296-303](cmd/server/main.go#L296-L303)) |
+| Tenant A → Tenant B blockiert (GET) | ✓ | `parseRCAndCheck` → `containsRC(claims.Tenant, rcNumber)` ([internal/http/admin.go:152-166](internal/http/admin.go#L152-L166)) |
+| Tenant A → Tenant B blockiert (PUT) | ✓ | Gleicher Path-Guard für `SaveSettingsViewMode` ([internal/http/admin.go:1988](internal/http/admin.go#L1988)) |
+| Superuser-Bypass | ✓ designed | `IsSuperuser()` skipt Tenant-Check — Operator-Pfad |
+| JWT-Claims-Validierung | ✓ | Reuse von `KeycloakAuthMiddleware` (issuer/audience/expiry geprüft, unverändert) |
+| Body-Size-Limit | ✓ | Globaler `MaxBodySize`-Middleware ([cmd/server/main.go:298](cmd/server/main.go#L298)) |
+
+#### Input Validation & Injection
+
+| Check | Resultat | Beleg |
+|---|---|---|
+| SQL parametrisiert | ✓ | `UPDATE … SET settings_view_mode = $1 WHERE rc_number = $2` ([registration_entrypoint_repo.go:365-368](internal/application/registration_entrypoint_repo.go#L365-L368)) |
+| viewMode-Enum-Allowlist | ✓ | `shared.IsValidSettingsViewMode` ([models.go:96-105](internal/shared/models.go#L96-L105)) — case-sensitive, nur `standard`/`advanced` |
+| DB-CHECK-Constraint | ✓ Safety-Net | `CHECK (settings_view_mode IN ('standard', 'advanced'))` (Migration 000059) |
+| Malformed JSON | ✓ | `json.NewDecoder.Decode` → 400 ValidationError, kein 500-Crash |
+| rcNumber URL-Encoded | ✓ | `encodeURIComponent` im Frontend ([api.ts:1253,1264](src/lib/api.ts#L1253)) |
+
+#### Tenant / EEG Isolation
+
+- `containsRC(claims.Tenant, rcNumber)` — string-equality, case-sensitive. Kein known-bypass.
+- Beide neue Handler nutzen `parseRCAndCheck` als ersten Schritt vor jeglicher Service-Logik. Kein Pfad, der die Prüfung umgeht.
+- Die Tx-Variante (`SaveAllEEGSettingsTx`) wird **nur** aus dem PROJ-61 Importer aufgerufen, der ebenfalls Keycloak-protected ist und tenant-scoped.
+
+#### Database Boundary
+
+- Schema-Migration 000059 ist **additiv**: ADD COLUMN mit NOT NULL DEFAULT `'advanced'` (Bestandszeilen erhalten Wert), CHECK-Constraint, danach DEFAULT-Switch auf `'standard'`.
+- Drei sequentielle `ALTER`s — golang-migrate wrappt in Transaction, somit atomic. Bei Failure mid-flight → schema_migrations.dirty=true, manuelles Recovery (vorhandenes Pattern, siehe `reference_migrate_dirty_flag_recovery`-Memory).
+- Tabellengröße `registration_entrypoint` ist klein (eine Zeile pro EEG, ~100 max) → kein langer Lock.
+- Keine FK-Beziehungen tangiert.
+- Keine direkten Writes zu eegFaktura-Core-Tables.
+
+#### Config-Export (PROJ-61) Schema-Erweiterung
+
+- **Additive Pointer-Erweiterung** in v1 (kein SchemaVersion-Bump) — Owner-Entscheidung, dokumentiert in J.2.
+- **Sanitize-Phase** vor Apply: `sanitize.SettingsViewMode(*s.SettingsViewMode)` ([importer.go:365-370](internal/configexport/importer.go#L365-L370)) → ungültiger Wert → ValidationError vor Persistenz.
+- **Apply-Phase** mit Defense-in-Depth: doppelte Validierung via `IsValidSettingsViewMode` ([importer.go:217](internal/configexport/importer.go#L217)) + nil-Pointer → Default `'advanced'` (Backward-Compat).
+- **Backward-Compat-Beweis**: Test `TestParseFile_PROJ67_AcceptsBundleWithoutViewMode` zeigt, dass Pre-PROJ-67-Bundles ohne das Feld dekodieren und beim Apply auf `'advanced'` defaulten.
+
+#### Secrets & Configuration
+
+- Kein neuer Secret-Pfad. Keine `NEXT_PUBLIC_*`-Erweiterung. Keine `.env`-Variable hinzugekommen.
+- Keine Helm-Änderungen. Keine GitHub-Actions-Modifikation.
+
+#### Logging & Privacy
+
+- Neue Handler loggen **nichts** explizit (keine `slog.Info/Warn/Error`-Statements).
+- `fmt.Errorf("failed to save settings_view_mode for %s: %w", rcNumber, err)` — RC-Number ist EEG-Identifier, **kein PII**. Wird bei 500-Fehlern via `handleServiceError` → `slog.Error` ge-loggt — entspricht projektweitem Pattern.
+- Response-Body: `{rcNumber, viewMode}` — keine PII.
+
+#### Scan Results
+
+| Tool | Resultat |
+|---|---|
+| **Snyk Code SAST** | 0 Findings (medium+) über `internal/http`, `internal/application`, `internal/configexport`, `src/app/admin/settings` |
+| **govulncheck** | 0 vulnerabilities (Go-Dependencies clean) |
+| **npm audit** | 4 moderate — alle **preexisting** (`uuid` transitiv via `next-auth`), kein PROJ-67-Finding |
+| **helm lint / kubeconform** | nicht relevant — keine Helm-Änderungen |
+
+#### Verdict
+
+**APPROVED** ✓
+
+- Keine Critical-, High- oder Medium-Findings.
+- Tenant-Isolation lückenlos, SQL parametrisiert, Enum-Allowlist + DB-CHECK doppelt abgesichert.
+- Schema-Migration additiv, sauber rückwärts-kompatibel.
+- Config-Export-Erweiterung defensiv (Sanitize → Apply → Defense-in-Depth-Default).
+- Bewusste Nicht-Implementierung: kein Backend-Enforcement (per Owner-Entscheidung — siehe J.2). Wenn die Lizenz-PROJ später kommt, ist ein neuer Security-Review nötig.
+
+**Deploy freigegeben** sobald Operator den Helm-Tag-Bump macht.
 
 ---
 
