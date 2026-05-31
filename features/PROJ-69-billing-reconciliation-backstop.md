@@ -1,6 +1,6 @@
 # PROJ-69 — Reconciliation-basierter Billing-Backstop
 
-**Status:** In Progress (Backend implementiert 2026-05-31 — Frontend + AVV + User-Guide ausstehend)
+**Status:** In Review (Backend + Frontend implementiert 2026-05-31 — wartet auf /qa + /security-review, AVV + User-Guide extern)
 **Created:** 2026-05-31
 **Owner:** TBD
 **Source:** Owner-Feedback 2026-05-31 — Lücke im Abrechnungskonzept (PROJ-64)
@@ -420,6 +420,35 @@ für jeden Onboarding-Antrag (sortiert nach created_at ASC):
 - `/qa` mit E2E + Match-Logik-Regression
 - `/security-review` Pflicht (Schema-Migration + neuer Endpoint + Core-PII-Pull)
 - AVV-Update + User-Guide vor Aktivierung von `RECONCILIATION_ENABLED=true`
+
+---
+
+## J) Frontend-Implementation 2026-05-31
+
+**Geliefert:**
+- API-Client `runReconciliation(rcNumber, accessToken, coreToken)` in [src/lib/api.ts](src/lib/api.ts) + `ReconciliationRunResponse`-Interface.
+- Neue Komponente [src/components/reconciliation-trigger.tsx](src/components/reconciliation-trigger.tsx):
+  - Client-Komponente, no-UI (returnt null), reines side-effect.
+  - **Polling-Pattern:** `loadCoreToken()` alle 500 ms, Timeout 30 s. Gibt still auf wenn Token nicht innerhalb Timeout verfügbar.
+  - **Session-ID-Guard:** kombiniert `session.user.email` + `session.expires` zu einer Quasi-Session-ID. Erste Schicht via `useRef` (gegen React-Strict-Mode-Double-Mount), zweite Schicht via `localStorage["reconciliation:last-session-id"]` (gegen parallele Tabs).
+  - Im `direct`-Auth-Modus no-op (kein Browser-Token verfügbar). Nur im `exchange`-Modus aktiv.
+  - Fire-and-forget POST pro tenant-Claim-RC. Failures werden silent geschluckt (Backend-Logs sind die Quelle der Wahrheit, Browser muss nicht reagieren).
+- Einbindung in [src/app/admin/layout.tsx](src/app/admin/layout.tsx) — direkt nach `CoreAuthBootstrap`, damit der Token-Bootstrap zuerst läuft.
+
+**Build-Status:**
+- `next build` TypeScript clean.
+- Lokales `next build` bricht beim Page-Collect ab wegen `NEXT_PUBLIC_TEST_AUTH_MODE=fake` (Security-Guard in .env.local) — kein PROJ-69-Issue. CI baut sauber.
+
+**Bewusst NICHT geliefert:**
+- AVV-Text-Update (extern, Owner-Verantwortung vor `RECONCILIATION_ENABLED=true`).
+- User-Guide-Hinweis-Abschnitt — kommt nach `/qa`, weil Wortlaut idealerweise vom QA-Tester gegen-validiert wird.
+- Keine UI für das Reconciliation-Log (per Spec-Owner-Entscheidung: psql-only).
+- Keine Frontend-Unit-Tests für die ReconciliationTrigger-Komponente — die Logik ist im Wesentlichen das Polling/Guard-Pattern, lässt sich nur mühsam testen (Mock von next-auth + localStorage + setTimeout). E2E-Test wird im `/qa`-Skill nachgereicht.
+
+**Nächste Schritte:**
+- `/qa` für Acceptance-Criteria + Playwright-E2E (Mock-Core, Login → Match → status_log sichtbar).
+- `/security-review` Pflicht (Schema-Migrations, neuer Admin-Endpoint, Core-PII-Pull).
+- Operator: AVV-Update + User-Guide-Hinweis vor `RECONCILIATION_ENABLED=true`.
 
 ---
 
