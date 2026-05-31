@@ -87,9 +87,9 @@ Aus einer Tester-Runde kamen konkrete Erfahrungswerte, wann das Vollmachts-Feld 
 
 ## 2026-05-29
 
-**Feature: Excel-Download zählt jetzt auch als Übergabe an eegFaktura**
+**Feature: Excel-Download zählt jetzt auch als Übergabe an eegFaktura** *(am 2026-05-31 wieder zurückgenommen, siehe oben)*
 
-Das xlsx aus „Excel herunterladen" entspricht 1:1 dem eegFaktura-Import-Template und kann von Admins direkt im Core hochgeladen werden — bisher wurde dieser Weg in der geplanten Quartals-Verrechnung nicht erfasst (nur der „In eegFaktura importieren"-Button im Onboarding). Damit beide Wege fair behandelt werden, gilt jetzt: der **erste** Klick auf „Excel herunterladen" markiert den Antrag als an eegFaktura übergeben. Vor dem ersten Download erscheint ein Bestätigungs-Dialog mit dem Hinweis darauf. Weitere Downloads ändern den Vermerk nicht und lösen auch keinen Dialog mehr aus. Wer das xlsx nur als Backup oder für die Buchhaltungs-Ablage braucht, nutzt stattdessen den Button **„Datenweiterleitung"** — der ist nicht verrechnungsrelevant und liefert frei konfigurierbare Excel-Formate. Im Detail-Header eines bereits übergebenen Antrags steht ab sofort eine Zeile „An eegFaktura übergeben am …".
+Das xlsx aus „Excel herunterladen" entspricht 1:1 dem eegFaktura-Import-Template und kann von Admins direkt im Core hochgeladen werden. Der **erste** Klick auf „Excel herunterladen" markiert den Antrag jetzt als an eegFaktura übergeben; vor dem ersten Download erscheint ein Bestätigungs-Dialog. Weitere Downloads ändern den Vermerk nicht und lösen auch keinen Dialog mehr aus. Wer das xlsx nur als Backup oder für die Buchhaltungs-Ablage braucht, nutzt stattdessen den Button **„Datenweiterleitung"** mit frei konfigurierbaren Excel-Formaten. Im Detail-Header eines bereits übergebenen Antrags steht ab sofort eine Zeile „An eegFaktura übergeben am …".
 
 **Feature: Genehmigte Anträge können jetzt abgelehnt werden**
 
@@ -204,7 +204,7 @@ Der Mitgliedstyp **Kleinunternehmer** existiert nicht mehr als eigene Auswahl. S
 
 **USt.-Hinweise aus dem Dropdown entfernt**
 
-Die USt.-Sätze stehen nicht mehr in den Optionen des Mitgliedstyp-Dropdowns — sie waren bei Misch-Typen (Gemeinde, Verein, Unternehmen mit/ohne Kleinunternehmerregelung) ohnehin nur ein grober Hinweis. Die tatsächliche umsatzsteuerliche Einordnung ergibt sich aus den Folgefeldern (z. B. UID-Nummer bei Unternehmen) und wird in der Abrechnung mit der EEG geklärt.
+Die USt.-Sätze stehen nicht mehr in den Optionen des Mitgliedstyp-Dropdowns — sie waren bei Misch-Typen (Gemeinde, Verein, Unternehmen mit/ohne Kleinunternehmerregelung) ohnehin nur ein grober Hinweis. Die tatsächliche umsatzsteuerliche Einordnung ergibt sich aus den Folgefeldern (z. B. UID-Nummer bei Unternehmen) und wird zwischen Mitglied und EEG geklärt.
 
 **Neue Funktion: Konfiguration sichern und übertragen**
 

@@ -1,6 +1,6 @@
 # PROJ-69 — Reconciliation-basierter Billing-Backstop
 
-**Status:** Approved (QA + /security-review bestanden 2026-05-31 nach BUG-1/LOW-2-Fix — wartet auf Operator-Deploy; AVV + User-Guide extern vor RECONCILIATION_ENABLED=true)
+**Status:** Deployed auf test 2026-05-31, Image `sha-ca2a95d` (Migration-Fix gegen Postgres-IMMUTABLE-Constraint auf `DATE(timestamptz)`-Index-Expression). Feature-Flag `RECONCILIATION_ENABLED=false` — Code läuft inert; Scharfschaltung folgt separat nach Tester-Freigabe.
 **Created:** 2026-05-31
 **Owner:** TBD
 **Source:** Owner-Feedback 2026-05-31 — Lücke im Abrechnungskonzept (PROJ-64)

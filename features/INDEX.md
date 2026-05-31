@@ -82,6 +82,6 @@ Central tracking for all features.
 | PROJ-66 | Auto-Save für Settings-Editoren (Formular-Felder) + Tab-Switch-Schutz (alle drei Save-Button-Editoren) + Browser-Unload-Warnung | Deployed | `features/PROJ-66-settings-auto-save-and-tab-switch-guard.md` | 2026-05-30 |
 | PROJ-67 | Standard-/Erweitert-Modus für Einstellungen — reduzierte Sicht für kleine EEGs (Toggle am Seitenkopf, Default Standard für neue EEGs, advanced für bestehende, mit Doku-Spiegelung) | Deployed | `features/PROJ-67-settings-standard-advanced-mode.md` | 2026-05-30 |
 | PROJ-68 | admin_value-Default-Mechanismus entfernen (UI-Input, DB-Spalte, applyAdminValues-Funktion, Tests, Doku); admin_only-State bleibt als reine Public-Form-Hide-Markierung | Deployed | `features/PROJ-68-remove-admin-value-default-mechanism.md` | 2026-05-30 |
-| PROJ-69 | Reconciliation-basierter Billing-Backstop — Login-Trigger gegen eegFaktura-Core, Strict-2-Keys-Match (IBAN+E-Mail), setzt faktura_handover_at + MNr-Backfill, global per Config-Flag, Cutoff ab Deploy | Approved | `features/PROJ-69-billing-reconciliation-backstop.md` | 2026-05-31 |
+| PROJ-69 | Reconciliation-basierter Billing-Backstop — Login-Trigger gegen eegFaktura-Core, Strict-2-Keys-Match (IBAN+E-Mail), setzt faktura_handover_at + MNr-Backfill, global per Config-Flag, Cutoff ab Deploy | Deployed | `features/PROJ-69-billing-reconciliation-backstop.md` | 2026-05-31 |
 
 ## Next Available ID: PROJ-70
