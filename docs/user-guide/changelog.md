@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-05-31
+
+**Neuer Standard-/Erweitert-Modus für die Einstellungsseite (PROJ-67)**
+
+Pilot-Rückmeldung: für kleine Vereine ist die Vielzahl der Konfigurationsmöglichkeiten in den EEG-Einstellungen überwältigend. Daher gibt es jetzt einen **Modus-Umschalter** rechts oben in der Einstellungsseite:
+
+- **Standard-Modus**: zeigt nur die ~5 wichtigsten Optionen, die alle EEGs brauchen (Registrierungs-Toggle, EEG-Stammdaten-Sync, SEPA-Master-Toggle, Einleitungstext, die vier wichtigsten Formular-Felder). Default für neu angelegte EEGs.
+- **Erweitert-Modus**: zeigt alles wie bisher. Default für bestehende EEGs (niemand wird überrascht). Hier liegen SEPA-B2B, Mandat-Timing, E-Mail-Bestätigung, Genossenschaftsanteile, Zählpunkt-Prefixes, Aktivierungs-Kriterium und alle Formular-Felder.
+
+Der Umschalter speichert pro EEG. Hinterlegte Werte versteckter Sektionen bleiben in der Datenbank — sie wirken weiter im Mitgliederformular, sind nur nicht editierbar. Wenn im Standard-Modus eine erweiterte Option aktiv ist (z. B. SEPA-B2B), erscheint oberhalb der Tabs ein **gelber Hinweis-Banner** mit Button „Auf Erweitert umstellen" — damit keine versteckte Einstellung unbemerkt wirkt.
+
+Im Standard-Modus zeigt der Formular-Felder-Editor nur die vier Felder, die historisch optional voreingestellt waren (Telefon, Geburtsdatum, Bankname, Teilnahmefaktor). Im Erweitert-Modus die volle Liste (~27 Felder).
+
+→ [Admin-Einstellungen — Standard oder Erweitert](06-admin-settings.md#standard--oder-erweitert-modus-proj-67)
+
+---
+
 ## 2026-05-30
 
 **Vereinfachung: „Admin-Vorgabe"-Feldstatus bekommt kein Wert-Eingabefeld mehr**
