@@ -493,13 +493,13 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#einfache-ansicht-oder-alle-optionen-proj-67" class="md-nav__link">
+  <a href="#einfache-ansicht-oder-alle-optionen" class="md-nav__link">
     <span class="md-ellipsis">
-      Einfache Ansicht oder Alle Optionen (PROJ-67)
+      Einfache Ansicht oder Alle Optionen
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Einfache Ansicht oder Alle Optionen (PROJ-67)">
+    <nav class="md-nav" aria-label="Einfache Ansicht oder Alle Optionen">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -844,7 +844,7 @@
 <p>Die Einstellungsseite ist über <strong>Einstellungen</strong> im Admin-Bereich erreichbar. Sie enthält alle EEG-spezifischen Konfigurationen.</p>
 <h2 id="eeg-auswahlen">EEG auswählen<a class="headerlink" href="#eeg-auswahlen" title="Permanent link">&para;</a></h2>
 <p>Wenn dein Account für mehrere EEGs zuständig ist, erscheint oben rechts ein Auswahlfeld. Alle Einstellungen beziehen sich auf die gewählte EEG.</p>
-<h2 id="einfache-ansicht-oder-alle-optionen-proj-67">Einfache Ansicht oder Alle Optionen (PROJ-67)<a class="headerlink" href="#einfache-ansicht-oder-alle-optionen-proj-67" title="Permanent link">&para;</a></h2>
+<h2 id="einfache-ansicht-oder-alle-optionen">Einfache Ansicht oder Alle Optionen<a class="headerlink" href="#einfache-ansicht-oder-alle-optionen" title="Permanent link">&para;</a></h2>
 <p>Direkt neben der EEG-Auswahl gibt es einen Umschalter <strong>Einfache Ansicht / Alle Optionen</strong>. Die Wahl wird pro EEG gespeichert.</p>
 <ul>
 <li><strong>Einfache Ansicht</strong> blendet erweiterte Optionen aus, die nur ein Bruchteil der EEGs braucht (SEPA-B2B, Mandat-Timing, Genossenschaftsanteile, Zählpunkt-Prefixes, E-Mail-Bestätigung, Aktivierungs-Kriterium und alle nicht-standardmäßig sichtbaren Formular-Felder). Die hinterlegten Werte bleiben in der Datenbank — sie sind nur nicht editierbar, solange du in der Einfachen Ansicht bist.</li>
@@ -1063,7 +1063,7 @@
 <p><img alt="Formular-Felder" src="../images/admin-settings-fields.png" /></p>
 <p>Hier legst du fest, welche optionalen Felder im Registrierungsformular angezeigt werden.</p>
 <blockquote>
-<p><strong>Sichtbarkeit nach Ansicht (PROJ-67):</strong> In der <strong>Einfachen Ansicht</strong> siehst du nur die vier Felder, die historisch als „Optional" voreingestellt waren — <em>Telefon</em>, <em>Geburtsdatum</em>, <em>Bankname</em> (Application-Scope) und <em>Teilnahmefaktor</em> (Zählpunkt-Scope). Alle übrigen Felder bleiben verborgen, ihre hinterlegten Werte (falls schon konfiguriert) bleiben aktiv. Wechsle auf <strong>Alle Optionen</strong>, um die volle Liste (~27 Felder) zu sehen und zu pflegen.</p>
+<p><strong>Sichtbarkeit nach Ansicht:</strong> In der <strong>Einfachen Ansicht</strong> siehst du nur die drei Felder, die im Catalog als „Optional" voreingestellt sind — <em>Telefon</em>, <em>Geburtsdatum</em> (Application-Scope) und <em>Teilnahmefaktor</em> (Zählpunkt-Scope). Alle übrigen Felder bleiben verborgen, ihre hinterlegten Werte (falls schon konfiguriert) bleiben aktiv. Wechsle auf <strong>Alle Optionen</strong>, um die volle Liste (~27 Felder) zu sehen und zu pflegen.</p>
 </blockquote>
 <p>Für jedes Feld stehen vier Zustände zur Verfügung:</p>
 <table>
@@ -1120,7 +1120,7 @@
 <li><strong>Einspeisung Prognose</strong> <em>(Zählpunkt-Scope)</em> — jährliche Einspeise-Prognose pro Erzeuger-Zählpunkt (alle Erzeugungsformen). Default: <code>Ausgeblendet</code>.</li>
 <li><strong>PV-Leistung (kWp)</strong> <em>(Zählpunkt-Scope, nur PV)</em> — installierte Spitzenleistung pro PV-Zählpunkt. Default: <code>Ausgeblendet</code>.</li>
 <li><strong>Einspeiselimit (kW)</strong> <em>(Zählpunkt-Scope, nur PV)</em> — maximal zulässige Einspeiseleistung, wenn der Netzanschluss begrenzt ist. Mitglied wählt zuerst Ja/Nein und gibt bei Ja den Wert in kW ein. Default: <code>Ausgeblendet</code>.</li>
-<li><strong>Bankname</strong> <em>(Application-Scope, ab 2026-05-18 konfigurierbar)</em> — bisher fix im Bankverbindungsblock angezeigt. Default <code>Optional</code> (bewahrt heutiges Verhalten). Auf <code>Ausgeblendet</code> setzen, wenn IBAN+Kontoinhaber genügen sollen; auf <code>Verpflichtend</code>, wenn der Bankname explizit gefordert ist (z. B. weil die EEG bei Auslandsüberweisungen die Bank kennen will).</li>
+<li><strong>Bankname</strong> <em>(Application-Scope, ab 2026-05-18 konfigurierbar)</em> — bisher fix im Bankverbindungsblock angezeigt. Seit 2026-05-31 Default <code>Ausgeblendet</code> (zuvor <code>Optional</code>) — Bankname ist für die meisten EEGs nicht zentral, IBAN reicht. Auf <code>Optional</code> setzen wenn du das Feld im Mitgliederformular anzeigen willst; auf <code>Verpflichtend</code>, wenn der Bankname explizit gefordert ist (z. B. weil die EEG bei Auslandsüberweisungen die Bank kennen will). Bestehende EEGs mit explizitem Eintrag bleiben unverändert.</li>
 <li><strong>Teilnahmefaktor (%)</strong> <em>(Zählpunkt-Scope, ab 2026-05-19 konfigurierbar)</em> — bisher fix sichtbar im Mitgliedsformular, vorbelegt mit 100 %. Default <code>Optional</code> (bewahrt heutiges Verhalten — Mitglied sieht das Feld und kann den Wert ändern). Bei <code>Ausgeblendet</code> oder <code>Admin-Vorbefüllung</code> ist das Feld im Formular weg und der Wert wird serverseitig automatisch auf <strong>100 %</strong> gesetzt. Bei <code>Verpflichtend</code> bleibt das Feld sichtbar und mit 100 % vorbelegt — der Default macht den Wert technisch nie leer, das Pflicht-Häkchen erinnert das Mitglied nur, hinzuschauen. <strong>In allen Modi</strong> zeigen Beitrittsbestätigungs-PDF, Mail und Excel-Export den Teilnahmefaktor unverändert — der Toggle steuert nur die Public-Form-Sichtbarkeit, nicht die Render-Pfade.</li>
 </ul>
 <p>Klicke auf <strong>Konfiguration speichern</strong>, um die Änderungen zu übernehmen.</p>
