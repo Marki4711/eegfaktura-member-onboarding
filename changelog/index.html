@@ -329,6 +329,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#2026-05-31" class="md-nav__link">
+    <span class="md-ellipsis">
+      2026-05-31
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#2026-05-30" class="md-nav__link">
     <span class="md-ellipsis">
       2026-05-30
@@ -665,6 +674,17 @@
 
 <h1 id="was-ist-neu">Was ist neu?<a class="headerlink" href="#was-ist-neu" title="Permanent link">&para;</a></h1>
 <p>Übersicht der Änderungen der letzten Tage, die für <strong>EEG-Admins</strong> und <strong>Mitglieder</strong> spürbar sind. Technische Details, Bug-Fixes ohne UI-Auswirkung und Infrastruktur-Themen sind hier bewusst weggelassen — die finden sich in der Commit-Historie.</p>
+<hr />
+<h2 id="2026-05-31">2026-05-31<a class="headerlink" href="#2026-05-31" title="Permanent link">&para;</a></h2>
+<p><strong>Neuer Standard-/Erweitert-Modus für die Einstellungsseite (PROJ-67)</strong></p>
+<p>Pilot-Rückmeldung: für kleine Vereine ist die Vielzahl der Konfigurationsmöglichkeiten in den EEG-Einstellungen überwältigend. Daher gibt es jetzt einen <strong>Modus-Umschalter</strong> rechts oben in der Einstellungsseite:</p>
+<ul>
+<li><strong>Standard-Modus</strong>: zeigt nur die ~5 wichtigsten Optionen, die alle EEGs brauchen (Registrierungs-Toggle, EEG-Stammdaten-Sync, SEPA-Master-Toggle, Einleitungstext, die vier wichtigsten Formular-Felder). Default für neu angelegte EEGs.</li>
+<li><strong>Erweitert-Modus</strong>: zeigt alles wie bisher. Default für bestehende EEGs (niemand wird überrascht). Hier liegen SEPA-B2B, Mandat-Timing, E-Mail-Bestätigung, Genossenschaftsanteile, Zählpunkt-Prefixes, Aktivierungs-Kriterium und alle Formular-Felder.</li>
+</ul>
+<p>Der Umschalter speichert pro EEG. Hinterlegte Werte versteckter Sektionen bleiben in der Datenbank — sie wirken weiter im Mitgliederformular, sind nur nicht editierbar. Wenn im Standard-Modus eine erweiterte Option aktiv ist (z. B. SEPA-B2B), erscheint oberhalb der Tabs ein <strong>gelber Hinweis-Banner</strong> mit Button „Auf Erweitert umstellen" — damit keine versteckte Einstellung unbemerkt wirkt.</p>
+<p>Im Standard-Modus zeigt der Formular-Felder-Editor nur die vier Felder, die historisch optional voreingestellt waren (Telefon, Geburtsdatum, Bankname, Teilnahmefaktor). Im Erweitert-Modus die volle Liste (~27 Felder).</p>
+<p>→ <a href="../06-admin-settings/#standard--oder-erweitert-modus-proj-67">Admin-Einstellungen — Standard oder Erweitert</a></p>
 <hr />
 <h2 id="2026-05-30">2026-05-30<a class="headerlink" href="#2026-05-30" title="Permanent link">&para;</a></h2>
 <p><strong>Vereinfachung: „Admin-Vorgabe"-Feldstatus bekommt kein Wert-Eingabefeld mehr</strong></p>
