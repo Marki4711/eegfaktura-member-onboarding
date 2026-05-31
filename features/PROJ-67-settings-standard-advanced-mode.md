@@ -293,7 +293,7 @@ Größerer Aufwand, daher als separate Phase im PR:
 
 | Frage | Entscheidung |
 |---|---|
-| Standard-Field-Allowlist | **Selbstdokumentierend: alle Felder mit `defaultState = 'optional'`.** Konkret: `phone`, `birth_date`, `bank_name` (Application) + `participation_factor` (Metering-Point). Keine zweite Hardcoded-Liste; künftige Field-Migrationen müssen nur `defaultState` setzen. |
+| Standard-Field-Allowlist | **Selbstdokumentierend: alle Felder mit `defaultState = 'optional'`.** Konkret: `phone`, `birth_date` (Application) + `participation_factor` (Metering-Point). Keine zweite Hardcoded-Liste; künftige Field-Migrationen müssen nur `defaultState` setzen. (Update 2026-05-31 nach Deploy: `bank_name` von `optional` → `hidden` verschoben — siehe J.8.) |
 | Awareness-Banner-Verhalten | **Immer** anzeigen, wenn im Standard-Modus mindestens ein Advanced-Wert vom Default abweicht (B2B aktiv, Mandat-Timing geändert, Aktivierungs-Mode ≠ Default, Genossenschaftsanteile aktiv, Zählpunkt-Prefixes nicht-leer, E-Mail-Bestätigung aktiv, oder Field-Config-Feld mit `defaultState != 'optional'` ≠ `hidden`). Banner enthält „Auf Erweitert umstellen"-Button. Nicht dismissed-bar — die Warnung bleibt, solange die Konfig abweicht. |
 | Mode-Toggle-UI | **shadcn `<ToggleGroup>`** — zwei Buttons nebeneinander am Page-Header. Vermeidet „Tab-im-Tab"-Optik. |
 | Grill-Check | **`/grill-me` direkt nach diesem Tech-Design** — Stresstest gegen Schema-Annahmen, Endpoint-Race-Conditions, Banner-Heuristik-Edge-Cases, bevor `/backend` startet. |
@@ -384,7 +384,7 @@ Aufwand-Schätzung Lizenz-PROJ: ~2x PROJ-67 (Backend + Permission + Sync + UI-Re
 - shadcn `<ToggleGroup>` installiert (`npx shadcn add toggle-group`) — neue Dateien `src/components/ui/{toggle.tsx, toggle-group.tsx}`.
 - **Zentrale Konstante** `src/lib/settings-mode.ts`:
   - `SettingsViewMode` Type + Konstanten + Loading-Default.
-  - `STANDARD_FIELD_CONFIG_KEYS` dynamisch aus `CONFIGURABLE_FIELDS` abgeleitet (alle mit `defaultState='optional'` → phone, birth_date, bank_name, participation_factor).
+  - `STANDARD_FIELD_CONFIG_KEYS` dynamisch aus `CONFIGURABLE_FIELDS` abgeleitet (alle mit `defaultState='optional'` → phone, birth_date, participation_factor — `bank_name` per Owner-Entscheidung 2026-05-31 ausgenommen, siehe J.8).
   - `isAdvancedEEGSettingsActive(settings)` — checkt 7 Indicators (B2B, Mandat-Timing, E-Mail-Bestätigung, activation_mode ≠ default, cooperative_shares, beide Prefixes).
   - `isAdvancedFieldConfigActive(fieldConfig)` — checkt jeden Field-Eintrag gegen `defaultStateOf()` für nicht-Standard-Felder.
   - `isAdvancedActive()` kombiniert beide.
@@ -631,6 +631,23 @@ Aufwand-Schätzung Lizenz-PROJ: ~2x PROJ-67 (Backend + Permission + Sync + UI-Re
   - Health-Check: `GET https://member-onboarding-test.eegfaktura.at/health` → 200
   - Smoke-Test im Browser: Settings-Page öffnen, ToggleGroup sichtbar, Mode-Wechsel testet (Bestandszeile → `'advanced'`)
   - Optional: Pilot-EEG-Cross-Check der Standard-Sektionen-Liste
+
+---
+
+### J.8) Bank-Name-Default auf 'hidden' 2026-05-31 (Post-Deploy-Feedback)
+
+Owner-Beobachtung nach Deploy: Bankname tauchte in der Einfachen Ansicht als Standard-Feld auf — semantisch unpassend, weil IBAN für die meisten EEGs reicht.
+
+**Patch:** `bank_name.defaultState` im CONFIGURABLE_FIELDS-Catalog von `'optional'` → `'hidden'` ([src/lib/api.ts](src/lib/api.ts)). Damit:
+- Bankname fällt automatisch aus `STANDARD_FIELD_CONFIG_KEYS` raus (dynamische Ableitung greift)
+- Public-Form zeigt Bankname nicht mehr default sichtbar (für neue EEGs)
+- Bestehende EEGs mit explizitem `field_config`-Eintrag für `bank_name` bleiben unverändert (DB-State greift)
+
+Test angepasst: `STANDARD_FIELD_CONFIG_KEYS.has("bank_name") === false`.
+
+Doku-Reflektion in [06-admin-settings.md](docs/user-guide/06-admin-settings.md) und CHANGELOG-Eintrag.
+
+Damit ist die Standard-Field-Liste auf **3 Felder** geschrumpft: `phone`, `birth_date`, `participation_factor`.
 
 ---
 

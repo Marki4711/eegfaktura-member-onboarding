@@ -1425,6 +1425,56 @@ Returns the bytes of the EEG logo cached during the last successful sync, with t
 
 ---
 
+## 6.11d Get/Save settings view mode (PROJ-67)
+
+Per-EEG persistierter Sichtbarkeits-Modus der Admin-Settings-Page. UI-Pref-only, kein Backend-Enforcement (heute). Eigenes Endpoint-Paar getrennt von `/api/admin/settings/eeg`, damit der Page-Header-Toggle unabhängig vom dirty-State des Stammdaten-Editors arbeitet.
+
+UI-Labels: `standard` → „Einfache Ansicht", `advanced` → „Alle Optionen". DB-Werte bleiben technisch `standard`/`advanced`.
+
+### GET `/api/admin/settings/view-mode?rc_number={rc_number}`
+
+### Response 200
+```json
+{
+  "rcNumber": "RC123456",
+  "viewMode": "advanced"
+}
+```
+
+### PUT `/api/admin/settings/view-mode?rc_number={rc_number}`
+
+### Request body
+```json
+{
+  "viewMode": "standard"
+}
+```
+
+`viewMode` ist Pflicht. Erlaubt: `"standard"` oder `"advanced"`. Case-sensitive — ungültige Werte → 400 mit `{ "viewMode": "ungültiger Wert (erlaubt: standard, advanced)" }`. DB-CHECK-Constraint als Safety-Net.
+
+### Response 200
+```json
+{
+  "rcNumber": "RC123456",
+  "viewMode": "standard"
+}
+```
+
+### Errors
+- `400` missing `rc_number`, ungültige `viewMode`, oder malformed JSON
+- `401` ohne Auth
+- `403` nicht autorisiert für diese EEG
+- `404` `rc_number` nicht in `registration_entrypoint`
+
+### Migration-Defaults
+- Bestehende EEGs (vor PROJ-67): `'advanced'` (rückwärts-kompatibel)
+- Neu angelegte EEGs: `'standard'`
+
+### Config-Export (PROJ-61) Integration
+`settingsViewMode` ist in `EEGSettingsSection.settingsViewMode` (Pointer, additiv in v1 — kein SchemaVersion-Bump). Pre-PROJ-67-Bundles ohne das Feld werden beim Import als `'advanced'` interpretiert.
+
+---
+
 ## 6.12 Get API key status
 
 ### GET `/api/admin/settings/api-key?rc_number={rc_number}`

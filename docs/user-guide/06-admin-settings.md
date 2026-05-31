@@ -6,7 +6,7 @@ Die Einstellungsseite ist über **Einstellungen** im Admin-Bereich erreichbar. S
 
 Wenn dein Account für mehrere EEGs zuständig ist, erscheint oben rechts ein Auswahlfeld. Alle Einstellungen beziehen sich auf die gewählte EEG.
 
-## Einfache Ansicht oder Alle Optionen (PROJ-67)
+## Einfache Ansicht oder Alle Optionen
 
 Direkt neben der EEG-Auswahl gibt es einen Umschalter **Einfache Ansicht / Alle Optionen**. Die Wahl wird pro EEG gespeichert.
 
@@ -187,7 +187,7 @@ Klicke auf **Speichern**, um den Text zu übernehmen.
 
 Hier legst du fest, welche optionalen Felder im Registrierungsformular angezeigt werden.
 
-> **Sichtbarkeit nach Ansicht (PROJ-67):** In der **Einfachen Ansicht** siehst du nur die vier Felder, die historisch als „Optional" voreingestellt waren — *Telefon*, *Geburtsdatum*, *Bankname* (Application-Scope) und *Teilnahmefaktor* (Zählpunkt-Scope). Alle übrigen Felder bleiben verborgen, ihre hinterlegten Werte (falls schon konfiguriert) bleiben aktiv. Wechsle auf **Alle Optionen**, um die volle Liste (~27 Felder) zu sehen und zu pflegen.
+> **Sichtbarkeit nach Ansicht:** In der **Einfachen Ansicht** siehst du nur die drei Felder, die im Catalog als „Optional" voreingestellt sind — *Telefon*, *Geburtsdatum* (Application-Scope) und *Teilnahmefaktor* (Zählpunkt-Scope). Alle übrigen Felder bleiben verborgen, ihre hinterlegten Werte (falls schon konfiguriert) bleiben aktiv. Wechsle auf **Alle Optionen**, um die volle Liste (~27 Felder) zu sehen und zu pflegen.
 
 Für jedes Feld stehen vier Zustände zur Verfügung:
 
@@ -234,7 +234,7 @@ Felder, die pro Zählpunkt im Mitgliedsformular erscheinen — bei mehreren Zäh
 - **Einspeisung Prognose** *(Zählpunkt-Scope)* — jährliche Einspeise-Prognose pro Erzeuger-Zählpunkt (alle Erzeugungsformen). Default: `Ausgeblendet`.
 - **PV-Leistung (kWp)** *(Zählpunkt-Scope, nur PV)* — installierte Spitzenleistung pro PV-Zählpunkt. Default: `Ausgeblendet`.
 - **Einspeiselimit (kW)** *(Zählpunkt-Scope, nur PV)* — maximal zulässige Einspeiseleistung, wenn der Netzanschluss begrenzt ist. Mitglied wählt zuerst Ja/Nein und gibt bei Ja den Wert in kW ein. Default: `Ausgeblendet`.
-- **Bankname** *(Application-Scope, ab 2026-05-18 konfigurierbar)* — bisher fix im Bankverbindungsblock angezeigt. Default `Optional` (bewahrt heutiges Verhalten). Auf `Ausgeblendet` setzen, wenn IBAN+Kontoinhaber genügen sollen; auf `Verpflichtend`, wenn der Bankname explizit gefordert ist (z. B. weil die EEG bei Auslandsüberweisungen die Bank kennen will).
+- **Bankname** *(Application-Scope, ab 2026-05-18 konfigurierbar)* — bisher fix im Bankverbindungsblock angezeigt. Seit 2026-05-31 Default `Ausgeblendet` (zuvor `Optional`) — Bankname ist für die meisten EEGs nicht zentral, IBAN reicht. Auf `Optional` setzen wenn du das Feld im Mitgliederformular anzeigen willst; auf `Verpflichtend`, wenn der Bankname explizit gefordert ist (z. B. weil die EEG bei Auslandsüberweisungen die Bank kennen will). Bestehende EEGs mit explizitem Eintrag bleiben unverändert.
 - **Teilnahmefaktor (%)** *(Zählpunkt-Scope, ab 2026-05-19 konfigurierbar)* — bisher fix sichtbar im Mitgliedsformular, vorbelegt mit 100 %. Default `Optional` (bewahrt heutiges Verhalten — Mitglied sieht das Feld und kann den Wert ändern). Bei `Ausgeblendet` oder `Admin-Vorbefüllung` ist das Feld im Formular weg und der Wert wird serverseitig automatisch auf **100 %** gesetzt. Bei `Verpflichtend` bleibt das Feld sichtbar und mit 100 % vorbelegt — der Default macht den Wert technisch nie leer, das Pflicht-Häkchen erinnert das Mitglied nur, hinzuschauen. **In allen Modi** zeigen Beitrittsbestätigungs-PDF, Mail und Excel-Export den Teilnahmefaktor unverändert — der Toggle steuert nur die Public-Form-Sichtbarkeit, nicht die Render-Pfade.
 
 Klicke auf **Konfiguration speichern**, um die Änderungen zu übernehmen.

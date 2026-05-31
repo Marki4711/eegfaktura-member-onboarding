@@ -6,7 +6,7 @@
 
 ## 2026-05-31
 
-**Neuer Umschalter „Einfache Ansicht" / „Alle Optionen" für die Einstellungsseite (PROJ-67)**
+**Neuer Umschalter „Einfache Ansicht" / „Alle Optionen" für die Einstellungsseite**
 
 Pilot-Rückmeldung: für kleine Vereine ist die Vielzahl der Konfigurationsmöglichkeiten in den EEG-Einstellungen überwältigend. Daher gibt es jetzt einen **Ansichts-Umschalter** rechts oben in der Einstellungsseite:
 
@@ -15,7 +15,9 @@ Pilot-Rückmeldung: für kleine Vereine ist die Vielzahl der Konfigurationsmögl
 
 Der Umschalter speichert pro EEG. Hinterlegte Werte versteckter Sektionen bleiben in der Datenbank — sie wirken weiter im Mitgliederformular, sind nur nicht editierbar. Wenn in der Einfachen Ansicht eine erweiterte Option aktiv ist (z. B. SEPA-B2B), erscheint oberhalb der Tabs ein **gelber Hinweis-Banner** mit Button „Alle Optionen anzeigen" — damit keine versteckte Einstellung unbemerkt wirkt.
 
-In der Einfachen Ansicht zeigt der Formular-Felder-Editor nur die vier Felder, die historisch optional voreingestellt waren (Telefon, Geburtsdatum, Bankname, Teilnahmefaktor). Mit Alle Optionen die volle Liste (~27 Felder).
+In der Einfachen Ansicht zeigt der Formular-Felder-Editor nur die drei im Catalog optional voreingestellten Felder (Telefon, Geburtsdatum, Teilnahmefaktor). Mit Alle Optionen die volle Liste (~27 Felder).
+
+**Default-Änderung:** Bankname-Feld ist seit dieser Version `Ausgeblendet` per Default (statt `Optional`) — IBAN reicht für die meisten EEGs. Bestehende EEGs mit eigenem Eintrag bleiben unverändert. Wer den Bankname zeigen will, stellt das Feld auf `Optional` oder `Verpflichtend` (in **Alle Optionen** zu finden).
 
 → [Admin-Einstellungen — Einfache Ansicht oder Alle Optionen](06-admin-settings.md#einfache-ansicht-oder-alle-optionen-proj-67)
 
@@ -30,7 +32,7 @@ Bisher zeigte der Feld-Konfigurations-Editor bei Auswahl von **„Admin-Vorgabe"
 - **Admin-Vorgabe** = Feld wird **nicht** im Mitglieder-Formular angezeigt, ist aber im **Admin-Edit-Dialog jedes Antrags** sichtbar und editierbar.
 - Kein EEG-weiter Standardwert mehr — wenn ihr ein Feld systematisch befüllen wollt, müsst ihr es pro Antrag im Admin-Bereich eintragen.
 
-Technisch entfernt: DB-Spalte `field_config.admin_value` (Migration 000058), Go-Funktion `applyAdminValues()`, das Eingabefeld in der Einstellungs-UI sowie das `adminValue`-JSON-Feld in `/api/admin/settings/fields`. Alte Konfigurations-Bundles (PROJ-61 Export/Import), die das Feld noch enthalten, werden weiterhin akzeptiert — der Wert wird beim Import still verworfen.
+Technisch entfernt: DB-Spalte `field_config.admin_value` (Migration 000058), Go-Funktion `applyAdminValues()`, das Eingabefeld in der Einstellungs-UI sowie das `adminValue`-JSON-Feld in `/api/admin/settings/fields`. Alte Konfigurations-Bundles aus der Konfig-Import/-Export-Funktion, die das Feld noch enthalten, werden weiterhin akzeptiert — der Wert wird beim Import still verworfen.
 
 → [Admin-Einstellungen — Formular-Felder](06-admin-settings.md#formular-felder-zahlpunktfelder)
 
@@ -53,7 +55,7 @@ Auf Tester-Nachfrage „Wofür ist Member-Onboarding eigentlich gedacht?" steht 
 
 **Geplant: Basic-/Advanced-Modus für Einstellungen**
 
-Pilot-Rückmeldung: Die Menge an Konfigurations-Optionen überfordert kleine EEGs, die im Wesentlichen „Antragsdaten erfassen + an eegFaktura übergeben" wollen. Geplant ist daher ein **Toggle „Basic / Erweitert"** am Seitenkopf der Einstellungen: Basic zeigt nur die für den 80%-Use-Case relevanten Optionen (Registrierung aktiv, Stammdaten, einfaches SEPA, Einleitungstext, häufigste Formular-Felder, Rechtsdokumente, Datenweiterleitung), Erweitert blendet alles ein (heutiges Verhalten). Default für neue EEGs: Basic; bestehende EEGs behalten Advanced. Spec mit Optionen + offenen Punkten: PROJ-67. Sobald implementiert, spiegelt sich die Klassifizierung auch in dieser Doku wider (z. B. Sektionen mit „(Erweitert)"-Marker, neuer Abschnitt „Welcher Modus passt zu mir?").
+Pilot-Rückmeldung: Die Menge an Konfigurations-Optionen überfordert kleine EEGs, die im Wesentlichen „Antragsdaten erfassen + an eegFaktura übergeben" wollen. Geplant ist daher ein **Toggle „Basic / Erweitert"** am Seitenkopf der Einstellungen: Basic zeigt nur die für den 80%-Use-Case relevanten Optionen (Registrierung aktiv, Stammdaten, einfaches SEPA, Einleitungstext, häufigste Formular-Felder, Rechtsdokumente, Datenweiterleitung), Erweitert blendet alles ein (heutiges Verhalten). Default für neue EEGs: Basic; bestehende EEGs behalten Advanced. Sobald implementiert, spiegelt sich die Klassifizierung auch in dieser Doku wider (z. B. Sektionen mit „(Erweitert)"-Marker, neuer Abschnitt „Welcher Modus passt zu mir?").
 
 **Doku-Schärfung: SEPA-Toggle-Kombinationen klarer erklärt**
 
@@ -141,7 +143,7 @@ Der Admin-Button „Bestätigung erneut senden" verschickte eine stark reduziert
 
 **Bug-Fix: Beitrittsbestätigung-Download blieb nach Aktivierung verfügbar**
 
-Sobald ein Mitglied in den Status „importiert" oder „aktiviert" wechselte, verschwand der Download-Button für die Beitrittsbestätigungs-PDF (und für den Excel-Export). Der PROJ-46-Statusausbau hat damals die Allow-List vergessen. Beide Downloads bleiben jetzt in allen Post-Approval-Status verfügbar — Admins ziehen den Excel-Export typischerweise erst nach dem Import zur Ablage.
+Sobald ein Mitglied in den Status „importiert" oder „aktiviert" wechselte, verschwand der Download-Button für die Beitrittsbestätigungs-PDF (und für den Excel-Export). Der Statusausbau für die Post-Import-Stati hat damals die Allow-List vergessen. Beide Downloads bleiben jetzt in allen Post-Approval-Status verfügbar — Admins ziehen den Excel-Export typischerweise erst nach dem Import zur Ablage.
 
 → [Anträge verwalten — Antrags-Detail](04-admin-applications.md)
 
