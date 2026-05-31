@@ -1,6 +1,6 @@
 # PROJ-69 — Reconciliation-basierter Billing-Backstop
 
-**Status:** In Review (Backend + Frontend implementiert 2026-05-31 — wartet auf /qa + /security-review, AVV + User-Guide extern)
+**Status:** Approved (QA bestanden 2026-05-31 nach BUG-1/LOW-2-Fix — wartet auf /security-review + Operator-Deploy; AVV + User-Guide extern)
 **Created:** 2026-05-31
 **Owner:** TBD
 **Source:** Owner-Feedback 2026-05-31 — Lücke im Abrechnungskonzept (PROJ-64)
@@ -455,14 +455,14 @@ für jeden Onboarding-Antrag (sortiert nach created_at ASC):
 ## K) QA-Test-Ergebnisse 2026-05-31
 
 **Tester:** Claude (QA Engineer)
-**Status:** **NOT READY** — 1 Medium-Bug (Data-Integrity) muss vor `RECONCILIATION_ENABLED=true` gefixt werden. Code-Pfad ist heute via Feature-Flag deaktiviert, daher kein Produktionsrisiko, aber Aktivierung blockiert.
+**Status:** **APPROVED** (Update 2026-05-31 nach BUG-1 + LOW-2 Fix). 3 neue Regressionstests grün, volle Go-Suite + vet sauber. Sicherheits-Review als nächster Schritt vor Aktivierung erforderlich (Schema + Endpoint + Core-PII-Pull bleiben unverändert Trigger).
 
 ### Test-Übersicht
 
 | AC | Bereich | Methode | Ergebnis |
 |---|---|---|---|
 | AC-1 Match-Logik | Strict-2-Keys, Normalisierung | Go-Unit-Tests | PASS (13 Tests grün) |
-| AC-2 Match-Auswirkungen | handover + MNr-Backfill + status_log | Go-Unit + Code-Review | **PARTIAL** — mnr_conflict-Branch nicht aktiviert (BUG-1) |
+| AC-2 Match-Auswirkungen | handover + MNr-Backfill + status_log + mnr_conflict | Go-Unit + Code-Review | PASS (nach BUG-1-Fix 2026-05-31, 3 neue Regression-Tests) |
 | AC-3 Throttle | Login-Trigger + Stale-Recovery | Code-Review | PASS (atomare DB-UNIQUE) |
 | AC-4 Feature-Flag | RECONCILIATION_ENABLED Off-Path | Playwright AC-Flag1 | PASS (Test-Spec bereit) |
 | AC-5 Cutoff | nur Anträge mit handover_at IS NULL | Code-Review GetEligibleApplications | PASS |
@@ -513,28 +513,19 @@ für jeden Onboarding-Antrag (sortiert nach created_at ASC):
 
 ### Bugs
 
-#### BUG-1 (Medium) — mnr_conflict-Branch ist deaktiviert: Data-Integrity-Risiko bei Aktivierung
+#### BUG-1 (Medium) — mnr_conflict-Branch deaktiviert ✓ FIXED 2026-05-31
 
-- **Datei:** [internal/application/reconciliation_service.go:198-206](internal/application/reconciliation_service.go#L198-L206)
-- **Beschreibung:** In `matchOne` wird `IsMemberNumberInUse(ctx, "", coreMNr, app.ID)` mit leerem `rcNumber`-Parameter aufgerufen. Das Ergebnis wird via `_ = conflict` weggeworfen. Anschließend ruft `attachMatch` ohne Conflict-Flag auf — dort wird `UpdateMemberNumberIfNull` immer ausgeführt, sofern `app.MemberNumber` aktuell NULL ist.
-- **Folge:** Wenn ein anderer Antrag in derselben EEG bereits durch `/import` die MNr „M-001" zugewiesen bekommen hat UND ein neuer Antrag mit gleicher IBAN+E-Mail eingeht, würde Reconciliation den Zweit-Antrag ebenfalls auf MNr „M-001" setzen — **doppelte member_number in derselben EEG**. Beide Anträge zeigen dann dieselbe Mitgliedsnummer, was als DB-Anomalie zu sehen ist und beim Tenant-Admin Verwirrung erzeugt.
-- **Schwere:** **Medium** — Data-Integrity-Bug, aber:
-  - aktuell **nicht produktiv aktiviert** (`RECONCILIATION_ENABLED=false` Default)
-  - Triggert nur bei Edge-Case: Antrag A wurde via /import bearbeitet UND später taucht Antrag B mit identischer IBAN+E-Mail auf (Familien-Konstellation, Tippfehler etc.)
-- **Steps to reproduce:**
-  1. EEG hat Antrag A mit member_number = „M-001" (z.B. via /import)
-  2. Neuer Antrag B wird eingereicht mit gleicher IBAN+E-Mail wie A
-  3. Core hat Mitglied mit MNr „M-001" und passender IBAN+E-Mail
-  4. Reconciliation triggert für die EEG
-  5. Erwartung: B bekommt `mnr_conflict`-Eintrag + handover, aber **keine** MNr-Backfill
-  6. Tatsächlich: B bekommt MNr „M-001" → Duplikat
-- **Fix-Empfehlung:**
-  - `EligibleApplication`-Struct um `RCNumber` ergänzen
-  - `GetEligibleApplications` muss `rc_number` mit selektieren
-  - `matchOne` ruft `IsMemberNumberInUse(ctx, app.RCNumber, coreMNr, app.ID)` mit echtem rcNumber + nutzt das Ergebnis
-  - Bei conflict=true: `attachMatch` mit Flag aufrufen, der MNr-Update überspringt + `mnr_conflict`-Detail loggt + ConflictCount++
-  - Unit-Test für genau diesen Branch nachreichen
-- **Blocker für:** `RECONCILIATION_ENABLED=true` in Produktion. Vorher fixen.
+- **Datei:** [internal/application/reconciliation_service.go](internal/application/reconciliation_service.go) + [internal/application/reconciliation_repo.go](internal/application/reconciliation_repo.go)
+- **Beschreibung (ursprünglich):** `IsMemberNumberInUse` wurde mit leerem `rcNumber` aufgerufen + Ergebnis weggeworfen → Cross-App-MNr-Kollision hätte zu doppelten `member_number`-Werten in einer EEG geführt.
+- **Fix:**
+  - `EligibleApplication.RCNumber` ergänzt; `GetEligibleApplications` selektiert jetzt `rc_number`.
+  - `matchOne` ruft `IsMemberNumberInUse(ctx, app.RCNumber, coreMNr, app.ID)` mit echtem rcNumber UND nutzt das Ergebnis.
+  - `attachMatch` bekommt neuen `mnrConflict bool` Parameter. Bei `true`: handover wird gesetzt (Free-Rider-Detection greift), `member_number` wird NICHT überschrieben, `mnr_conflict`-Detail wird geloggt, `MnrConflicts++`, `status_log`-Eintrag wird trotzdem geschrieben.
+  - Transienter Conflict-Check-DB-Error markiert nur diesen Antrag als `error`, der Run läuft mit den verbleibenden Anträgen weiter (kein Whole-Run-Poison).
+- **Neue Tests:**
+  - `TestRunReconciliation_MnrConflict_NoMNrOverwrite_HandoverSet` — Regression: handover ja, MNr-Update nein, mnr_conflict-Detail, status_log geschrieben
+  - `TestRunReconciliation_NoMnrConflict_HappyPath_UpdatesMNr` — Companion: neue Branch-Logik bricht Happy Path nicht
+  - `TestRunReconciliation_ConflictCheckError_LogsErrorPerApp` — Conflict-Check-Failure isoliert auf einen Antrag
 
 #### LOW-1 — Session-ID feuert pro Token-Refresh erneut
 
@@ -543,7 +534,11 @@ für jeden Onboarding-Antrag (sortiert nach created_at ASC):
 - **Schwere:** Low — kein Datenproblem, nur etwas mehr Traffic. Mitigated durch Backend-Throttle.
 - **Fix-Empfehlung (optional):** Session-ID konstanter machen, z.B. via NextAuth-Callback eine echte sessionID generieren. Oder ignorieren — die zusätzliche Last ist minimal.
 
-#### LOW-2 — UpdateMemberNumberIfNull ohne rcNumber-Scope
+#### LOW-2 — UpdateMemberNumberIfNull ohne rcNumber-Scope ✓ FIXED 2026-05-31
+
+- **Fix:** Mit BUG-1 zusammen: `UpdateMemberNumberIfNull(ctx, rcNumber, appID, coreMNr)` mit `WHERE id=$1 AND rc_number=$2 AND member_number IS NULL`. Defense-in-Depth: kein Cross-Tenant-Update möglich, auch wenn ein zukünftiger Caller die IDs falsch verdrahtet.
+
+#### LOW-2 — ORIGINAL — UpdateMemberNumberIfNull ohne rcNumber-Scope
 
 - **Datei:** [internal/application/reconciliation_repo.go](internal/application/reconciliation_repo.go) (`UpdateMemberNumberIfNull`)
 - **Beschreibung:** SQL ist `WHERE id = $1 AND member_number IS NULL`. Defensiv wäre `AND rc_number = $2`. Ist heute via Service-Layer-Logik geschützt (Tenant-Check + Eligibility-Lookup), aber Defense-in-Depth fehlt.
@@ -566,19 +561,19 @@ für jeden Onboarding-Antrag (sortiert nach created_at ASC):
 
 ### Produktionsbereitschaft
 
-**NOT READY** — BUG-1 muss vor `RECONCILIATION_ENABLED=true` gefixt werden.
+**APPROVED** (Update 2026-05-31) — BUG-1 + LOW-2 sind gefixt, alle Tests grün. Code kann deployed werden, das Feature-Flag bleibt Owner-kontrolliert.
 
-**ABER:** Code kann auf Produktion deployed werden mit `RECONCILIATION_ENABLED=false` (= Default). In diesem Zustand:
-- Migrations 000060 + 000061 laufen → Tabellen werden angelegt
-- Backend-Endpoint existiert, returnt aber 200 mit `skipped:disabled`
-- Frontend-Trigger feuert POSTs, die alle skipped sind
-- Keine Match-Logik wird ausgeführt → BUG-1 ist inert
-
-**Vor Aktivierung von RECONCILIATION_ENABLED=true:**
-1. BUG-1 fixen + Tests nachreichen
+**Vor Aktivierung von `RECONCILIATION_ENABLED=true`:**
+1. ~~BUG-1 fixen + Tests nachreichen~~ — ✓ erledigt
 2. AVV-Update durch Owner
 3. User-Guide-Hinweis-Abschnitt
 4. `/security-review` Pflicht (Schema + Endpoint + Core-PII-Pull)
+
+**Bei `RECONCILIATION_ENABLED=false` (= Default):**
+- Migrations 000060 + 000061 laufen → Tabellen sind angelegt
+- Backend-Endpoint existiert, antwortet 200 mit `skipped:disabled`
+- Frontend-Trigger feuert POSTs, die alle skipped sind
+- Keine Match-Logik wird ausgeführt — vollständig inert
 
 ### `/security-review`-Empfehlung
 
@@ -589,7 +584,7 @@ für jeden Onboarding-Antrag (sortiert nach created_at ASC):
 - Erweiterung von `CoreParticipantSummary` um PII-tragende Felder
 - DSGVO-Implikation (AVV-Update)
 
-Sollte vor Aktivierung des Feature-Flags + nach BUG-1-Fix laufen.
+Sollte vor Aktivierung des Feature-Flags laufen. (BUG-1-Fix ist erfolgt 2026-05-31, siehe oben.)
 
 ---
 
