@@ -7,10 +7,10 @@ Diese Anleitung richtet sich an **neue EEG-Mitglieder**, die sich über das Onli
 Jede EEG hat einen eigenen Registrierungslink in der Form:
 
 ```
-https://<deine-eeg-domain>/register/RC123456
+https://member-onboarding.eegfaktura.at/register/RC123456
 ```
 
-Diesen Link erhältst du von deinem EEG-Betreiber (z.B. per E-Mail oder auf der Website der EEG).
+Der Hostname `member-onboarding.eegfaktura.at` ist für alle EEGs gleich — die EEG wird über den **RC-Code** am Ende der URL (hier `RC123456`) identifiziert. Diesen Link erhältst du von deinem EEG-Betreiber (z. B. per E-Mail oder auf der Website der EEG).
 
 ![Startseite Registrierungsformular](images/register-form-start.png)
 
