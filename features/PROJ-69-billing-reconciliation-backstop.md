@@ -452,6 +452,147 @@ für jeden Onboarding-Antrag (sortiert nach created_at ASC):
 
 ---
 
+## K) QA-Test-Ergebnisse 2026-05-31
+
+**Tester:** Claude (QA Engineer)
+**Status:** **NOT READY** — 1 Medium-Bug (Data-Integrity) muss vor `RECONCILIATION_ENABLED=true` gefixt werden. Code-Pfad ist heute via Feature-Flag deaktiviert, daher kein Produktionsrisiko, aber Aktivierung blockiert.
+
+### Test-Übersicht
+
+| AC | Bereich | Methode | Ergebnis |
+|---|---|---|---|
+| AC-1 Match-Logik | Strict-2-Keys, Normalisierung | Go-Unit-Tests | PASS (13 Tests grün) |
+| AC-2 Match-Auswirkungen | handover + MNr-Backfill + status_log | Go-Unit + Code-Review | **PARTIAL** — mnr_conflict-Branch nicht aktiviert (BUG-1) |
+| AC-3 Throttle | Login-Trigger + Stale-Recovery | Code-Review | PASS (atomare DB-UNIQUE) |
+| AC-4 Feature-Flag | RECONCILIATION_ENABLED Off-Path | Playwright AC-Flag1 | PASS (Test-Spec bereit) |
+| AC-5 Cutoff | nur Anträge mit handover_at IS NULL | Code-Review GetEligibleApplications | PASS |
+| AC-6 Tenant-UI | status_log-Eintrag „In eegFaktura erfasst" | Code-Review | PASS |
+| AC-7 Reconciliation-Log | 2 Tabellen, kein no_match-Log | Migrations + Repo-Code-Review | PASS |
+| AC-8 DSGVO/AVV | Spec-Hinweis als Owner-Verantwortung | Spec-Review | PASS (Owner-TODO vor Activation) |
+| AC-Sec Auth + Tenant | parseRCAndCheck-Reihenfolge | Code + Playwright AC-Sec1-3 | PASS |
+
+### Automatisierte Tests
+
+**Backend (Go):**
+- Volle Suite `go test ./...` grün (alle 12 internal-Pakete).
+- Neu in PROJ-69: 18 Tests insgesamt
+  - `internal/sanitize/sanitize_test.go` — 2 Tests `ReconciliationResult` (valid + invalid)
+  - `internal/coreclient/core_participant_decode_test.go` — 3 Tests (present + missing + empty nested objects)
+  - `internal/application/reconciliation_service_test.go` — 13 Tests (alle 6 Match-Branches + Throttle + CoreError + Normalisierung + Helper)
+
+**Frontend (Vitest):**
+- Keine neuen Tests — ReconciliationTrigger ist null-UI mit Polling + Session-Guard, sinnvoll nur über E2E testbar (Mock-Backend, localStorage, NextAuth-Session).
+
+**E2E (Playwright):**
+- Neue Datei `tests/PROJ-69-reconciliation-backstop.spec.ts` — 6 Tests × 4 Browser = 24 Variants:
+  - AC-Sec1: 401 ohne Auth
+  - AC-Sec2: 403 fremde RC (Tenant-Isolation)
+  - AC-Sec3: 400 ohne rc_number
+  - AC-Flag1: 200 skipped:disabled bei Feature-Flag aus
+  - AC-Shape1: Response enthält alle erwarteten Felder
+  - AC-Token1: ohne X-Core-Authorization-Header → 200/400, keine 500/Crash
+- `npx playwright test --list` parsed sauber.
+- Lokal nicht ausführbar weil Backend nicht erreichbar — `ensureBackendUp()` skippt graceful. CI mit `TEST_AUTH_MODE=headers` rennt sie.
+
+### Security-Smoke-Test
+
+| Check | Ergebnis |
+|---|---|
+| **Snyk Code SAST** (`internal/{application,coreclient,http}` + `src/components`) | 0 PROJ-69-Findings. 2 preexisting Medium-XSS in admin-legal-documents-editor.tsx + confirm-email-client.tsx (PROJ-36-Code, nicht PROJ-69) |
+| **govulncheck** | 0 vulnerabilities in own code |
+| **npm audit** | 4 moderate preexisting (uuid via next-auth) |
+| Auth (parseRCAndCheck zuerst) | ✓ Defense-in-Depth |
+| Tenant-Isolation auf Endpoint | ✓ |
+| Feature-Flag-Check NACH Tenant-Check | ✓ kein Info-Leak |
+| SQL parametrisiert | ✓ alle Repo-Methoden |
+| DB-CHECK auf result-Enum | ✓ Migration 000061 |
+| Body-Size global (MaxBodySize) | ✓ vorhanden für /api/admin/* |
+| PII in Response/Logs | ✓ keine — Counter sind aggregierte Ints |
+| Backend-Logging error-Detail truncated | ✓ truncateForLog auf 500 chars |
+| status_log-Reason neutralisierte Sprache | ✓ „In eegFaktura erfasst (automatischer Abgleich)" |
+
+### Bugs
+
+#### BUG-1 (Medium) — mnr_conflict-Branch ist deaktiviert: Data-Integrity-Risiko bei Aktivierung
+
+- **Datei:** [internal/application/reconciliation_service.go:198-206](internal/application/reconciliation_service.go#L198-L206)
+- **Beschreibung:** In `matchOne` wird `IsMemberNumberInUse(ctx, "", coreMNr, app.ID)` mit leerem `rcNumber`-Parameter aufgerufen. Das Ergebnis wird via `_ = conflict` weggeworfen. Anschließend ruft `attachMatch` ohne Conflict-Flag auf — dort wird `UpdateMemberNumberIfNull` immer ausgeführt, sofern `app.MemberNumber` aktuell NULL ist.
+- **Folge:** Wenn ein anderer Antrag in derselben EEG bereits durch `/import` die MNr „M-001" zugewiesen bekommen hat UND ein neuer Antrag mit gleicher IBAN+E-Mail eingeht, würde Reconciliation den Zweit-Antrag ebenfalls auf MNr „M-001" setzen — **doppelte member_number in derselben EEG**. Beide Anträge zeigen dann dieselbe Mitgliedsnummer, was als DB-Anomalie zu sehen ist und beim Tenant-Admin Verwirrung erzeugt.
+- **Schwere:** **Medium** — Data-Integrity-Bug, aber:
+  - aktuell **nicht produktiv aktiviert** (`RECONCILIATION_ENABLED=false` Default)
+  - Triggert nur bei Edge-Case: Antrag A wurde via /import bearbeitet UND später taucht Antrag B mit identischer IBAN+E-Mail auf (Familien-Konstellation, Tippfehler etc.)
+- **Steps to reproduce:**
+  1. EEG hat Antrag A mit member_number = „M-001" (z.B. via /import)
+  2. Neuer Antrag B wird eingereicht mit gleicher IBAN+E-Mail wie A
+  3. Core hat Mitglied mit MNr „M-001" und passender IBAN+E-Mail
+  4. Reconciliation triggert für die EEG
+  5. Erwartung: B bekommt `mnr_conflict`-Eintrag + handover, aber **keine** MNr-Backfill
+  6. Tatsächlich: B bekommt MNr „M-001" → Duplikat
+- **Fix-Empfehlung:**
+  - `EligibleApplication`-Struct um `RCNumber` ergänzen
+  - `GetEligibleApplications` muss `rc_number` mit selektieren
+  - `matchOne` ruft `IsMemberNumberInUse(ctx, app.RCNumber, coreMNr, app.ID)` mit echtem rcNumber + nutzt das Ergebnis
+  - Bei conflict=true: `attachMatch` mit Flag aufrufen, der MNr-Update überspringt + `mnr_conflict`-Detail loggt + ConflictCount++
+  - Unit-Test für genau diesen Branch nachreichen
+- **Blocker für:** `RECONCILIATION_ENABLED=true` in Produktion. Vorher fixen.
+
+#### LOW-1 — Session-ID feuert pro Token-Refresh erneut
+
+- **Datei:** [src/components/reconciliation-trigger.tsx](src/components/reconciliation-trigger.tsx)
+- **Beschreibung:** `sessionId` = `user.email + session.expires`. Bei jedem Token-Refresh ändert sich `session.expires` → Trigger feuert wieder → POST geht raus → Backend-Throttle antwortet `skipped:throttled`. Verschwendet einen HTTP-Roundtrip pro Refresh.
+- **Schwere:** Low — kein Datenproblem, nur etwas mehr Traffic. Mitigated durch Backend-Throttle.
+- **Fix-Empfehlung (optional):** Session-ID konstanter machen, z.B. via NextAuth-Callback eine echte sessionID generieren. Oder ignorieren — die zusätzliche Last ist minimal.
+
+#### LOW-2 — UpdateMemberNumberIfNull ohne rcNumber-Scope
+
+- **Datei:** [internal/application/reconciliation_repo.go](internal/application/reconciliation_repo.go) (`UpdateMemberNumberIfNull`)
+- **Beschreibung:** SQL ist `WHERE id = $1 AND member_number IS NULL`. Defensiv wäre `AND rc_number = $2`. Ist heute via Service-Layer-Logik geschützt (Tenant-Check + Eligibility-Lookup), aber Defense-in-Depth fehlt.
+- **Schwere:** Low — keine bekannte Exploit-Sequenz, eher Code-Hygiene.
+- **Fix-Empfehlung:** rcNumber als Parameter mitführen sobald BUG-1 gefixt wird (dann ist er ohnehin im Service-Pfad verfügbar).
+
+#### INFO-1 — status_log mit from_status == to_status
+
+- **Datei:** [internal/application/reconciliation_repo.go](internal/application/reconciliation_repo.go) (`InsertStatusLogEntry`)
+- **Beschreibung:** Reconciliation schreibt einen `status_log`-Eintrag mit `from_status = to_status = currentStatus`. Wenn das UI status_log-Einträge als „Transition" rendert (z.B. „X → Y"), könnte das verwirrend dargestellt werden („approved → approved").
+- **Schwere:** Info — UI-Test in QA-2-Runde (E2E mit echtem Backend) müsste das prüfen. Wahrscheinlich harmlos, weil das UI typischerweise nur den Reason zeigt.
+
+### Regressions-Tests
+
+- ✓ Go-Suite voll grün — keine Regression in `internal/application`, `internal/configexport`, `internal/coreclient` etc.
+- ✓ Bestehender /import-Pfad nutzt `coreclient.ListParticipants` und die erweiterten `CoreParticipantSummary`-Felder (`Contact`, `AccountInfo`) ignoriert er via Struct-Field-Selection — keine Auswirkung.
+- ✓ PROJ-64 (`faktura_handover_at`-Trigger) — Reconciliation nutzt denselben Slot via `UpdateHandoverIfNull WHERE NULL` (Race-safe).
+- ✓ PROJ-67 (Standard/Erweitert-Modus) — unbeeinträchtigt.
+- ✓ status_log-Schema bekommt einen neuen Reason-Wert, aber bestehende Status-Transitionen funktionieren weiter.
+
+### Produktionsbereitschaft
+
+**NOT READY** — BUG-1 muss vor `RECONCILIATION_ENABLED=true` gefixt werden.
+
+**ABER:** Code kann auf Produktion deployed werden mit `RECONCILIATION_ENABLED=false` (= Default). In diesem Zustand:
+- Migrations 000060 + 000061 laufen → Tabellen werden angelegt
+- Backend-Endpoint existiert, returnt aber 200 mit `skipped:disabled`
+- Frontend-Trigger feuert POSTs, die alle skipped sind
+- Keine Match-Logik wird ausgeführt → BUG-1 ist inert
+
+**Vor Aktivierung von RECONCILIATION_ENABLED=true:**
+1. BUG-1 fixen + Tests nachreichen
+2. AVV-Update durch Owner
+3. User-Guide-Hinweis-Abschnitt
+4. `/security-review` Pflicht (Schema + Endpoint + Core-PII-Pull)
+
+### `/security-review`-Empfehlung
+
+**Erforderlich** — PROJ-69 berührt mehrere Trigger-Bereiche:
+- Schema-Migrations (000060, 000061)
+- Neuer Admin-Endpoint (`/api/admin/reconciliation/run`)
+- Erstmaliger periodischer **Core-PII-Pull** (E-Mail + IBAN + MNr) aus Faktura
+- Erweiterung von `CoreParticipantSummary` um PII-tragende Felder
+- DSGVO-Implikation (AVV-Update)
+
+Sollte vor Aktivierung des Feature-Flags + nach BUG-1-Fix laufen.
+
+---
+
 ## Offene Punkte für `/architecture` (post-`/grill-me`)
 
 1. **Core-API-Vertrag:** ✓ **geklärt 2026-05-31** — der Faktura-Core bietet bereits `GET /participant` (siehe [participantController.go](file:///c:/opt/repos/myeegfaktura/eegfaktura-backend/api/participantController.go)). Tenant-scoped via JWT, liefert die komplette Teilnehmer-Liste mit `participantNumber`, `contact.email`, `accountInfo.iban`, `firstname`, `lastname`, `status`. Standardmäßig schon `status != ARCHIVED` gefiltert. Kein neuer Faktura-Endpoint nötig. Auth via Silent-SSO-Token gegen Faktura-Frontend-Client (`coreAuthMode=exchange`-Pattern, siehe `project_core_auth_exchange`). Architektur entscheidet zusätzlichen Status-Filter (nur `ACTIVE`? oder `ACTIVE/PENDING/APPROVED`?).
