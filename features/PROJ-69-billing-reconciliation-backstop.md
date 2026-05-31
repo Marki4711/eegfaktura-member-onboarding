@@ -1,6 +1,6 @@
 # PROJ-69 — Reconciliation-basierter Billing-Backstop
 
-**Status:** Deployed auf test 2026-05-31, Image `sha-ca2a95d` (Migration-Fix gegen Postgres-IMMUTABLE-Constraint auf `DATE(timestamptz)`-Index-Expression). Feature-Flag `RECONCILIATION_ENABLED=false` — Code läuft inert; Scharfschaltung folgt separat nach Tester-Freigabe.
+**Status:** Deployed auf test 2026-05-31. Initial-Deploy Image `sha-ca2a95d` (Migration-Fix gegen Postgres-IMMUTABLE-Constraint auf `DATE(timestamptz)`-Index-Expression, v1.14.0-PROJ-69). Folge-Deploy Image `sha-028bda6` (Low/Info-Security-Cleanup: PII-Log-Truncate, User-Subject im Audit-Trail, rcNumber-Scope auf `UpdateHandoverIfNull` + `InsertStatusLogEntry`, v1.14.1-PROJ-69). Feature-Flag `RECONCILIATION_ENABLED=false` — Code läuft inert; Scharfschaltung folgt separat nach Tester-Freigabe.
 **Created:** 2026-05-31
 **Owner:** TBD
 **Source:** Owner-Feedback 2026-05-31 — Lücke im Abrechnungskonzept (PROJ-64)

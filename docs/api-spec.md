@@ -1475,6 +1475,69 @@ UI-Labels: `standard` → „Einfache Ansicht", `advanced` → „Alle Optionen"
 
 ---
 
+## 6.11e Run reconciliation (PROJ-69)
+
+Login-getriggerter Abgleich der Onboarding-Anträge dieser EEG gegen die Faktura-Teilnehmerliste. Strict 2-Keys-Match (IBAN + E-Mail-Adresse exakt). Bei Treffer wird `application.faktura_handover_at` rückwirkend gesetzt und `member_number` befüllt, sofern noch NULL. Ein Status-Log-Eintrag „In eegFaktura erfasst (automatischer Abgleich)" wird ergänzt. Throttle: max. 1 Run pro EEG pro UTC-Tag (atomar über DB-UNIQUE).
+
+### POST `/api/admin/reconciliation/run?rc_number={rc_number}`
+
+### Headers
+- `Authorization: Bearer <keycloak-token>` — Admin-Auth, Tenant-Check über RC-Number-Claim
+- `X-Core-Authorization: Bearer <silent-sso-token>` — Token für den Faktura-Core-Call (bei `CORE_AUTH_MODE=exchange`)
+
+### Response 200 — Normal-Run
+```json
+{
+  "rcNumber": "RC123456",
+  "runId": "8b3e…",
+  "skipped": false,
+  "matched": 3,
+  "ambiguous": 0,
+  "mnrConflicts": 0,
+  "duplicates": 0,
+  "alreadyHandedOver": 1,
+  "errors": 0
+}
+```
+
+### Response 200 — Throttled (heute schon gelaufen)
+```json
+{
+  "rcNumber": "RC123456",
+  "skipped": true,
+  "skipReason": "throttled",
+  "matched": 0, "ambiguous": 0, "mnrConflicts": 0,
+  "duplicates": 0, "alreadyHandedOver": 0, "errors": 0
+}
+```
+
+### Response 200 — Feature-Flag aus
+```json
+{ "rcNumber": "RC123456", "skipped": true, "skipReason": "disabled" }
+```
+
+### Counter-Semantik
+- `matched` — Antrag bekam neuen `faktura_handover_at` + ggf. `member_number`
+- `ambiguous` — ≥2 Core-Teilnehmer mit identer IBAN+E-Mail (skip + Detail-Log)
+- `mnrConflicts` — Core-MNr ist in dieser EEG schon einem anderen Antrag zugewiesen → handover gesetzt, MNr nicht überschrieben
+- `duplicates` — gleicher Core-Treffer matched mehrere Anträge → ältester gewinnt, jüngere bekommen Duplicate-Detail
+- `alreadyHandedOver` — `faktura_handover_at` war bereits gesetzt (z. B. /import lief parallel) → kein Detail-Log
+- `errors` — pro-Antrag Fehler (DB oder Conflict-Check), Run läuft weiter
+
+### Errors
+- `400` ohne `rc_number` — oder fehlender `X-Core-Authorization`-Header (Silent-SSO nicht bootstrapped)
+- `401` ohne Auth
+- `403` nicht autorisiert für diese EEG
+- `502` Core-Call fehlgeschlagen — Run-Header wird mit `errors=1` finalisiert; Caller kann beim nächsten Login retry'n
+
+### Feature-Flag
+Backend-seitig durch `RECONCILIATION_ENABLED=true` aktiviert (Helm-Wert `backend.reconciliationEnabled`). Bei `false` antwortet der Endpoint mit `{skipped:true, skipReason:"disabled"}` — der Tenant-Check läuft TROTZDEM zuerst, damit der Feature-Status nicht über die Fehlerantwort an fremde Tenants leakt.
+
+### Persistenz
+Jeder Lauf erzeugt eine Zeile in `member_onboarding.reconciliation_run` (Header mit Countern) plus N Zeilen in `member_onboarding.reconciliation_match_detail` (positive Treffer + Konflikte; KEIN Detail-Eintrag für no-match oder already-handed-over). Siehe `docs/domain-model.md`.
+
+---
+
 ## 6.12 Get API key status
 
 ### GET `/api/admin/settings/api-key?rc_number={rc_number}`

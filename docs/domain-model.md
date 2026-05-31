@@ -443,6 +443,58 @@ Rules:
 - BLOB-Auth: download endpoint re-validates tenant via the job's `rc_number`.
 - Spreadsheet-injection defense: cell values starting with `=`, `+`, `-`, `@`, TAB, or CR (after stripping leading SPACE/NBSP/BOM) are prefixed with `'` by `excel/renderer.sanitiseSpreadsheetValue`.
 
+### 3.12 `member_onboarding.reconciliation_run` *(PROJ-69)*
+
+Header row per reconciliation run (one EEG, one trigger). The throttle
+guarantee — at most one run per EEG per UTC day — is enforced via a UNIQUE
+index, not by application code, so multiple browser tabs or pods can race
+the INSERT and the database picks exactly one winner.
+
+- `id` — UUID PRIMARY KEY DEFAULT `gen_random_uuid()`
+- `rc_number` — VARCHAR NOT NULL, FK → `registration_entrypoint(rc_number)` ON DELETE CASCADE
+- `started_at` — TIMESTAMPTZ NOT NULL DEFAULT NOW()
+- `finished_at` — TIMESTAMPTZ NULL (NULL while running; stale-recovery >1h marks via `error_detail='stale-run-recovered'`)
+- `triggered_by` — VARCHAR NOT NULL — trigger kind (today only `'login'`; reserved: `'on_demand'`)
+- `triggered_by_user` — VARCHAR NOT NULL — Keycloak subject of the admin whose login triggered the run
+- `total_apps_checked` — INT NOT NULL DEFAULT 0
+- `matched_count` — INT NOT NULL DEFAULT 0
+- `ambiguous_count` — INT NOT NULL DEFAULT 0
+- `conflict_count` — INT NOT NULL DEFAULT 0 (sum of `mnr_conflict` + `duplicate_application`)
+- `already_handed_over_count` — INT NOT NULL DEFAULT 0 (PROJ-64 race: `faktura_handover_at` was non-NULL already)
+- `error_count` — INT NOT NULL DEFAULT 0
+- `error_detail` — TEXT NULL (only `'stale-run-recovered'` in normal operation)
+
+Indexes:
+- UNIQUE `(rc_number, ((started_at AT TIME ZONE 'UTC')::date))` — throttle source-of-truth
+- `(rc_number)`
+- `(started_at)`
+
+Rules:
+- Lifecycle managed by `internal/application/reconciliation_repo.go`: `AcquireRunLock` → service iterates apps → `FinalizeRun`.
+- Stale-Recovery: at `AcquireRunLock` time, any run for this EEG that's still `finished_at IS NULL` and started >1h ago is force-closed with `error_detail='stale-run-recovered'`. Lets the next run claim the day's slot after a pod crash.
+
+### 3.13 `member_onboarding.reconciliation_match_detail` *(PROJ-69)*
+
+Per-application result row. Only **positive** outcomes are stored (matched,
+ambiguous, mnr_conflict, duplicate_application, error) — no row for no-match
+or already-handed-over to avoid log-bloat.
+
+- `id` — UUID PRIMARY KEY DEFAULT `gen_random_uuid()`
+- `run_id` — UUID NOT NULL, FK → `reconciliation_run(id)` ON DELETE CASCADE
+- `application_id` — UUID NOT NULL, FK → `application(id)` ON DELETE CASCADE
+- `core_member_number` — TEXT NULL (Faktura participantNumber; NULL when match was made but core had no MNr)
+- `result` — VARCHAR NOT NULL CHECK IN (`'matched'`, `'ambiguous'`, `'mnr_conflict'`, `'duplicate_application'`, `'error'`)
+- `error_detail` — TEXT NULL (only when `result='error'`; truncated to ≤500 chars by the service)
+- `created_at` — TIMESTAMPTZ NOT NULL DEFAULT NOW()
+
+Indexes:
+- `(run_id)`
+- `(application_id)`
+
+Rules:
+- Audit-trail only — no admin-UI surface in V1 (psql-inspection only). EEG-decommissioning cascades the run + details away with the parent `registration_entrypoint` row; intentional accept (no separate retention table).
+- Service writes via the repo's `InsertMatchDetail`; mock-friendly via the `ReconciliationServiceRepo` interface.
+
 ---
 
 ## 4. Status Model
