@@ -586,7 +586,82 @@ Beim Implementieren wurde klar: die Auto-Magie „IBAN-Wechsel triggert Mandat-I
 - **Multi-Admin-Race auf Mandat-Resend:** zwei Mails gehen raus. Selten, akzeptiert.
 
 ## QA Test Results
-_To be added by /qa_
+
+**Datum:** 2026-06-01
+**Reviewer:** QA Engineer (AI)
+**Scope:** Backend Commits b2562b4 (resync-service + handlers) und Frontend dbeba49 (zwei Buttons + Toast + Refetch).
+
+### Acceptance-Criteria-Validierung
+
+| AC | Status | Anmerkung |
+|---|---|---|
+| AC-1 Sichtbarkeit (zwei Knöpfe nur in `activated`, Resync disabled wenn `targetParticipantId` NULL, Info-Popover) | ✅ Pass | Code-Review: Bedingung `application.status === "activated"` korrekt, `disabled` auf `!application.targetParticipantId` korrekt, `title`-Attribut liefert Hover-Tooltip. Info-Popover via shadcn Popover. **Live-Test in /qa-Manual erforderlich.** |
+| AC-2 Resync-Inhalt (14 Felder, Core-NULL→Keep, IBAN/Email normalisiert, Out-of-Scope-Felder unverändert) | ✅ Pass | Code-Review: 14 Felder im Diff (5 Pflicht-Strings + 9 Pointer), Keep-bei-NULL durch `resyncStringTrim`/`resyncPtrStringTrim`, IBAN-Normalisierung durch `normalizeIBANForResync`, Email durch `lowerTrimCorePtr`. `UpdateAdminTx` ist Whitelist-basiert (siehe BUG-3 unten). |
+| AC-3 kein Status-/Mandat-Wechsel im Resync | ✅ Pass | Code-Review: `toStatus: curStatus` (kein Wechsel), keine Manipulation von Mandat-Feldern oder `einzugsart` im Resync-Pfad. |
+| AC-4 Status-Log (nur bei Real-Change, Feldnamen-Liste, Actor mit Subject) | ✅ Pass | Code-Review: `if len(changed) == 0 { return ... }` skippt Insert. Actor-Format `resync:<subject>` bzw. `mandate-renewal:<subject>` korrekt. Keine alten Werte im Reason-Text (PII-safe). |
+| AC-5 UI-Feedback (Loading-Label, Bereits-synchron-Toast, Diff-Toast, Refetch-zuerst) | ✅ Pass | Code-Review: Button-Label `"Wird abgeglichen…"` bei `resyncing`, `toast.info("Stammdaten sind bereits synchron.")` bei leerer Diff-Liste, Sticky-Toast mit `duration: 8000` ms, `await fetchApplication()` **vor** Toast (Owner-Direktive Grill #8). |
+| AC-6 Core-Fehler (400 ohne Token, 502 bei Core-404/5xx, keine PII in Logs) | ✅ Pass | Code-Review: 400 mit klarer Meldung bei leerem Core-Token, 502 mit `code=core_member_not_found` und 502 mit generischer Meldung bei sonstigen Errors, `truncateForLog` (300 chars + Newline-Strip) auf err.Error(). Onboarding-DB bleibt bei Error unverändert (Transaction nicht committed). |
+| AC-8 Auth + Tenant-Isolation | ✅ Pass | Code-Review: Beide Handler nutzen `h.parseID(w, r)` + `h.checkTenantAccess(w, r, id)` vor dem Service-Call. Keycloak-Middleware ist über die `/api/admin`-Subroute aktiv. |
+| AC-10 Adress-Mapping (ResidentAddress wird gelesen, BillingAddress ignoriert) | ✅ Pass | Code-Review: `addrPtr(core, addrStreet)` etc. lesen ausschließlich `core.ResidentAddress.*`, kein Zugriff auf BillingAddress. |
+
+**8 von 8 ACs bestehen Code-Review.**
+
+### Funktionale Findings
+
+| ID | Severity | Datei | Beschreibung | Status |
+|---|---|---|---|---|
+| BUG-1 | **Medium** | `internal/mail/templates/application_imported_member.html` | Mail-Template-Content ist für den Resend-Mandat-Kontext irreführend: Text sagt „dein Antrag ist in die Bearbeitung übernommen worden" und „Die formale Beitrittsbestätigung folgt" — der Empfänger ist aber bereits aktiviertes Mitglied. Mitglied könnte verwirrt sein. | Open — Owner-Entscheidung: eigenes Template, Conditional im bestehenden Template, oder akzeptieren. |
+| BUG-2 | **Low** | `internal/application/resync_service.go:319-329` `resyncPtrIBAN` | Bei IBAN-Diff wird die **normalisierte** Form (ohne Whitespace, uppercase) in die Onboarding-DB geschrieben, nicht der Original-Core-Wert. Format-Inkonsistenz: Eine vorher als „AT12 1904…" gespeicherte IBAN wird nach Resync zu „AT121904…". | Open — Auswirkung in der Praxis minimal (alle nachgelagerten Konsumenten — PDF-Generator, Excel-Export — normalisieren selbst). |
+| BUG-3 | **Low** | `internal/application/resync_service.go:176` `UpdateAdminTx` | UpdateAdminTx schreibt ALLE Application-Spalten zurück, nicht nur die geänderten. Theoretisches Race-Risiko bei nebenläufigen Mutationen. **In der Praxis akzeptabel:** Bearbeiten-Button ist in `activated` ausgeblendet (Commit debc761), keine parallelen Edit-Pfade. | Akzeptiert — kein Fix nötig solange `activated` der einzige editierbare Status ohne Edit-Form bleibt. |
+| BUG-4 | **Info** | `internal/application/resync_service.go:338-347` `lowerTrimCorePtr` | Email wird in lowercase + trimmed Form gespeichert, falls Core's Email-Casing abweicht. Akzeptable Normalisierung. | Akzeptiert. |
+
+### Security-Smoke-Test
+
+| Kategorie | Bewertung | Anmerkung |
+|---|---|---|
+| 3.1 Auth/Authz | ✅ Pass | Beide Endpoints hinter KeycloakAuthMiddleware. `checkTenantAccess` vor Service-Call. Keine Superuser-Logik. |
+| 3.2 Injection | ✅ Pass | Repo-Methoden (UpdateAdminTx, status_log CreateTx) sind parameterisiert. Field-Namen im Reason-Text aus internen Konstanten, nicht User-Input. |
+| 3.3 XSS/CSRF/SSRF | ✅ Pass | `coreclient.ListParticipants` ruft `cfg.Core.BaseURL` (Operator-kontrolliert). Frontend rendert nur camelCase-Feldnamen aus fester Liste. CSRF nicht relevant (Bearer-Auth, keine Cookies). |
+| 3.4 Secrets/PII | ✅ Pass | Status-Log-Reason-Text enthält **Feldnamen**, keine alten Werte (security.md eingehalten). slog.Error nutzt `truncateForLog` (PROJ-69-Pattern). X-Core-Authorization-Token nicht in Response-Body. |
+| 3.5 Dependencies | ✅ Pass | Keine neuen Packages. |
+| 3.6 Business Logic | ⚠️ Info | Resync ändert Status nicht. Mandate-Resend hat **kein Rate-Limit** — Owner-Entscheidung in Simplification-Pass (Trust-the-Admin). Frontend-Doppel-Klick-Schutz via `disabled` während Request. |
+| 3.7 Unsichere Defaults | ✅ Pass | coreClient ist nil-safe, klarer Fehler bei fehlender Config. Keine neuen Env-Vars/Secrets. |
+| 3.8 Sensible Logs | ✅ Pass | `truncateForLog` auf Error-Pfade. Application-ID (UUID) im slog, keine PII. |
+| 3.9 File-Uploads | n/a | Mandat-PDF wird server-seitig generiert und an Mail attached — kein User-Upload. |
+| 3.10 Längen-Limits | ✅ Pass | Endpoints nehmen nur Path-Parameter `{id}` (UUID) und Header. Kein Request-Body. |
+
+**Verdikt Security-Smoke-Test: APPROVED — keine kritischen oder High-Findings.**
+
+### Tests-Status
+
+- **Go-Unit-Tests:** 15 von 15 Paketen grün (`go test ./...`). Diff-Helper-Tests (resyncStringTrim, resyncPtrStringTrim, resyncPtrIBAN, normalizeIBANForResync, addrPtr, coreContact*-Helpers) + 2 PROJ-70-Decode-Tests im Coreclient.
+- **TypeScript-Build:** clean (Frontend kompiliert ohne Fehler).
+- **Playwright-Spec:** `tests/PROJ-70-activated-stammdaten-resync.spec.ts` neu — deckt Auth + Tenant-Isolation auf beide Endpoints + 400-bei-fehlendem-Token ab. UI-Tests warten auf einen aktivierten Test-Antrag im Seed (Manual-QA-Phase).
+- **Service-Orchestration-Tests:** nicht als Unit-Test machbar ohne DB-Mock-Refactor (siehe Anmerkung in resync_service_test.go). E2E im Manual-QA-Pfad.
+
+### Manuelle Smoke-Tests (Pflicht vor Deploy)
+
+- [ ] Aktivierter Antrag im Admin-Detail anzeigen → beide Knöpfe sichtbar
+- [ ] Antrag in einem anderen Status (z. B. submitted) → beide Knöpfe **nicht** sichtbar
+- [ ] Info-Popover-Inhalt prüfen (was wird abgeglichen, was nicht, Mandat-Hinweis)
+- [ ] Resync-Klick ohne Änderungen im Core → „Stammdaten sind bereits synchron"-Toast
+- [ ] Resync-Klick mit echter Änderung → Diff-Toast (DE-Labels), Detail wird neu geladen
+- [ ] Mandat-Resend-Klick → Success-Toast, status_log zeigt neuen Eintrag
+- [ ] Mandat-Resend bei einzugsart=kein_sepa → 409 Conflict-Toast
+
+### Empfehlung
+
+**Production-Ready: JA, mit Vorbehalt.**
+
+Code- + Security-Review sauber. BUG-1 (Mail-Template-Wording) ist **Medium** und sollte vor produktiver Aktivierung adressiert werden — Mitglieder bekommen sonst eine missverständliche Mail. BUG-2/3/4 sind Low/Info-Quality-Items, kein Deploy-Blocker.
+
+**Vor Production-Deploy:**
+1. BUG-1 entscheiden (eigenes Template, Conditional, oder akzeptieren mit User-Guide-Hinweis)
+2. Manuelle Smoke-Tests durchführen
+3. AVV-Update Pflicht (siehe Spec-Abschnitt „DSGVO / AVV")
+4. User-Guide-Update Pflicht
+
+**Empfehlung: `/security-review`** — neue Admin-Endpoints + Core-Token-Forwarding + PII-Pfade berühren Security-sensitive Bereiche per Skill-Definition. Status-Smoke war clean, aber Deep-Review ist Pflicht-Gate vor Deploy.
 
 ## Deployment
 _To be added by /deploy_
