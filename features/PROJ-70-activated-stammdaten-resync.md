@@ -610,10 +610,10 @@ Beim Implementieren wurde klar: die Auto-Magie „IBAN-Wechsel triggert Mandat-I
 
 | ID | Severity | Datei | Beschreibung | Status |
 |---|---|---|---|---|
-| BUG-1 | **Medium** | `internal/mail/templates/application_imported_member.html` | Mail-Template-Content ist für den Resend-Mandat-Kontext irreführend: Text sagt „dein Antrag ist in die Bearbeitung übernommen worden" und „Die formale Beitrittsbestätigung folgt" — der Empfänger ist aber bereits aktiviertes Mitglied. Mitglied könnte verwirrt sein. | Open — Owner-Entscheidung: eigenes Template, Conditional im bestehenden Template, oder akzeptieren. |
-| BUG-2 | **Low** | `internal/application/resync_service.go:319-329` `resyncPtrIBAN` | Bei IBAN-Diff wird die **normalisierte** Form (ohne Whitespace, uppercase) in die Onboarding-DB geschrieben, nicht der Original-Core-Wert. Format-Inkonsistenz: Eine vorher als „AT12 1904…" gespeicherte IBAN wird nach Resync zu „AT121904…". | Open — Auswirkung in der Praxis minimal (alle nachgelagerten Konsumenten — PDF-Generator, Excel-Export — normalisieren selbst). |
-| BUG-3 | **Low** | `internal/application/resync_service.go:176` `UpdateAdminTx` | UpdateAdminTx schreibt ALLE Application-Spalten zurück, nicht nur die geänderten. Theoretisches Race-Risiko bei nebenläufigen Mutationen. **In der Praxis akzeptabel:** Bearbeiten-Button ist in `activated` ausgeblendet (Commit debc761), keine parallelen Edit-Pfade. | Akzeptiert — kein Fix nötig solange `activated` der einzige editierbare Status ohne Edit-Form bleibt. |
-| BUG-4 | **Info** | `internal/application/resync_service.go:338-347` `lowerTrimCorePtr` | Email wird in lowercase + trimmed Form gespeichert, falls Core's Email-Casing abweicht. Akzeptable Normalisierung. | Akzeptiert. |
+| BUG-1 | **Medium** | `internal/mail/templates/application_imported_*.html` + `service.go` | Mail-Template-Content sagte „dein Antrag ist in die Bearbeitung übernommen" — irreführend bei Renewal an einen bereits aktivierten Member. | **Fixed 2026-06-01.** `mandateAtImportData.IsRenewal` (gesetzt wenn `app.Status == activated`) verzweigt in beiden Templates: Renewal-Pfad sagt „deine Bankverbindung wurde aktualisiert, hiermit erhältst du ein neues SEPA-Mandat". Subject wechselt auf „Aktualisiertes SEPA-Mandat". |
+| BUG-2 | **Low** | `internal/application/resync_service.go` `resyncPtrIBAN` | IBAN-Diff speicherte die normalisierte Form (ohne Spaces, Upper) statt der Original-Core-Form. | **Fixed 2026-06-01.** Vergleich läuft weiter auf normalisierter Form, gespeichert wird jetzt die getrimmte Original-Core-IBAN. Neuer Test `TestResyncPtrIBAN_StoresOriginalNotNormalized`. |
+| BUG-3 | **Low** | `internal/application/resync_service.go` `UpdateAdminTx` | UpdateAdminTx schreibt ALLE Application-Spalten zurück. **Akzeptiert** — keine parallelen Edit-Pfade in `activated`. | Akzeptiert (kein Fix). |
+| BUG-4 | **Info** | `internal/application/resync_service.go` `lowerTrimCorePtr` | Email wurde in lowercase gespeichert. | **Fixed 2026-06-01.** Neuer Helper `resyncEmailDiff` mit case-insensitive `strings.EqualFold`-Vergleich, gespeichert wird die getrimmte Original-Core-Email mit Original-Casing. `lowerTrimCorePtr` als Dead-Code entfernt. Neuer Test `TestResyncEmailDiff_CaseInsensitiveCompareOriginalStorage`. |
 
 ### Security-Smoke-Test
 
@@ -651,17 +651,15 @@ Beim Implementieren wurde klar: die Auto-Magie „IBAN-Wechsel triggert Mandat-I
 
 ### Empfehlung
 
-**Production-Ready: JA, mit Vorbehalt.**
+**Production-Ready: JA** nach Bug-Fix-Welle 2026-06-01.
 
-Code- + Security-Review sauber. BUG-1 (Mail-Template-Wording) ist **Medium** und sollte vor produktiver Aktivierung adressiert werden — Mitglieder bekommen sonst eine missverständliche Mail. BUG-2/3/4 sind Low/Info-Quality-Items, kein Deploy-Blocker.
+Alle ACs Pass, BUG-1/2/4 gefixt + getestet, BUG-3 dokumentiert akzeptiert. Security-Smoke clean.
 
-**Vor Production-Deploy:**
-1. BUG-1 entscheiden (eigenes Template, Conditional, oder akzeptieren mit User-Guide-Hinweis)
-2. Manuelle Smoke-Tests durchführen
-3. AVV-Update Pflicht (siehe Spec-Abschnitt „DSGVO / AVV")
-4. User-Guide-Update Pflicht
-
-**Empfehlung: `/security-review`** — neue Admin-Endpoints + Core-Token-Forwarding + PII-Pfade berühren Security-sensitive Bereiche per Skill-Definition. Status-Smoke war clean, aber Deep-Review ist Pflicht-Gate vor Deploy.
+**Vor Production-Deploy noch zu erledigen:**
+1. Manuelle Smoke-Tests durch Owner (siehe Checkliste oben)
+2. AVV-Update Pflicht (siehe Spec-Abschnitt „DSGVO / AVV")
+3. User-Guide-Update Pflicht
+4. **`/security-review`** als Pflicht-Gate — neue Admin-Endpoints + Core-Token-Forwarding + PII-Pfade berühren Security-sensitive Bereiche per Skill-Definition.
 
 ## Deployment
 _To be added by /deploy_
