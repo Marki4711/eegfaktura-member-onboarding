@@ -587,6 +587,30 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="activated — Endzustand">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#stammdaten-aus-eegfaktura-abgleichen" class="md-nav__link">
+    <span class="md-ellipsis">
+      Stammdaten aus eegFaktura abgleichen
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sepa-mandat-erneut-senden" class="md-nav__link">
+    <span class="md-ellipsis">
+      SEPA-Mandat erneut senden
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -901,7 +925,46 @@ reguläre Import-Pfad übersprungen werden soll.</p>
 <p>Umschalten in den EEG-Einstellungen unter <strong>„Aktivierungs-Kriterium"</strong> (siehe <code>06-admin-settings.md</code>).</p>
 <p>In beiden Fällen erhält das Mitglied beim Wechsel auf <code>activated</code> die <strong>volle Beitrittsbestätigungs-Mail mit PDF</strong>.</p>
 <h3 id="activated-endzustand"><code>activated</code> — Endzustand<a class="headerlink" href="#activated-endzustand" title="Permanent link">&para;</a></h3>
-<p>Aktives Mitglied. Keine weiteren Aktionen verfügbar. Kein Reset, keine Rückwärts-Übergänge. Deaktivierung erfolgt direkt im eegFaktura-Core.</p>
+<p>Aktives Mitglied. Kein Reset, keine Rückwärts-Übergänge — die Daten-Pflege findet jetzt im eegFaktura-Kernsystem statt. Im Antrags-Detail stehen zwei Aktionen zur Verfügung, um die Onboarding-Kopie konsistent zu halten:</p>
+<h4 id="stammdaten-aus-eegfaktura-abgleichen">Stammdaten aus eegFaktura abgleichen<a class="headerlink" href="#stammdaten-aus-eegfaktura-abgleichen" title="Permanent link">&para;</a></h4>
+<p>Der Knopf „Stammdaten aus eegFaktura abgleichen" pullt den aktuellen Mitglieder-Datensatz aus dem Kernsystem und überschreibt in der Onboarding-Datenbank die Felder, in denen das Kernsystem inzwischen einen anderen Wert hält.</p>
+<p><strong>Abgeglichen werden:</strong></p>
+<ul>
+<li>Vorname, Nachname, Titel (vor und nach), UID-Nummer</li>
+<li>Wohnort-Adresse (Straße, Hausnummer, PLZ, Ort)</li>
+<li>E-Mail-Adresse, Telefon</li>
+<li>IBAN, Kontoinhaber, Bankname</li>
+</ul>
+<p><strong>Nicht abgeglichen werden:</strong></p>
+<ul>
+<li>Mitgliedstyp, Geburtsdatum, Beitrittsdatum</li>
+<li>Zählpunkte (die werden im Kernsystem eigenständig gepflegt)</li>
+<li>Anteile-Anzahl</li>
+<li>Status, Mandat-Felder, Einzugsart</li>
+</ul>
+<p><strong>Klick-Flow:</strong></p>
+<ol>
+<li>Klick auf „Stammdaten aus eegFaktura abgleichen". Der Knopf zeigt während des Abgleichs „Wird abgeglichen…".</li>
+<li>Wenn nichts unterschiedlich ist: Toast „Stammdaten sind bereits synchron".</li>
+<li>Wenn Felder unterschiedlich sind: Antrags-Detail wird sofort neu geladen mit den neuen Werten. Ein Toast bleibt 8 Sekunden sichtbar und nennt die geänderten Felder (z. B. „geänderte Felder: Telefon, PLZ (Wohnort), IBAN").</li>
+<li>Im Status-Verlauf erscheint ein neuer Eintrag „Stammdaten aus eegFaktura abgeglichen (geänderte Felder: …)".</li>
+</ol>
+<p><strong>Wenn ein Antrag manuell aktiviert wurde (ohne Import):</strong> der Knopf ist ausgegraut mit Hinweis „Antrag wurde manuell aktiviert ohne Import — kein Faktura-Mitgliederlink, Abgleich nicht möglich".</p>
+<h4 id="sepa-mandat-erneut-senden">SEPA-Mandat erneut senden<a class="headerlink" href="#sepa-mandat-erneut-senden" title="Permanent link">&para;</a></h4>
+<p>Wenn der Abgleich eine geänderte IBAN oder einen geänderten Kontoinhaber-Namen erkannt hat, ist das bestehende SEPA-Mandat <strong>rechtlich nicht mehr gültig für die neue Bankverbindung</strong> — ein neues Mandat muss vom Mitglied unterschrieben werden, bevor Lastschriften auf das neue Konto eingezogen werden dürfen.</p>
+<p>Der Knopf „SEPA-Mandat erneut senden" generiert ein frisches Mandat-PDF mit der aktuell hinterlegten IBAN und versendet es an die Mitgliedsadresse. Subject und Wortlaut der Mail sind auf den Renewal-Kontext zugeschnitten („deine Bankverbindung wurde aktualisiert, hiermit erhältst du ein neues SEPA-Mandat-Formular").</p>
+<p><strong>Klick-Flow:</strong></p>
+<ol>
+<li>Klick auf „SEPA-Mandat erneut senden". Der Knopf zeigt „Mandat wird versandt…".</li>
+<li>Bei Erfolg: Toast „SEPA-Mandat-Mail an Mitglied versandt". Im Status-Verlauf erscheint „SEPA-Mandat-Mail erneut versandt".</li>
+<li>Bei Mail-Fehler: roter Toast „Mandat-Mail-Versand fehlgeschlagen — bitte später erneut versuchen". Der Status-Verlauf bleibt leer (kein Eintrag bei Fehler).</li>
+</ol>
+<p><strong>Wann benutzen?</strong></p>
+<ul>
+<li>Nach einem Abgleich, der eine geänderte IBAN oder einen geänderten Kontoinhaber gemeldet hat.</li>
+<li>Wenn das Mitglied das Original-Mandat verloren hat und eine neue Kopie braucht.</li>
+</ul>
+<p>Der Knopf ist nur sichtbar, wenn das Mitglied SEPA-Einzug nutzt (<code>Basislastschrift</code> oder <code>B2B-Firmenlastschrift</code>). Bei <code>Kein SEPA-Verfahren</code> erscheint der Knopf nicht.</p>
 <h3 id="ausnahmefall-approved-activated-manueller-skip-import">Ausnahmefall: <code>approved → activated</code> (manueller Skip-Import)<a class="headerlink" href="#ausnahmefall-approved-activated-manueller-skip-import" title="Permanent link">&para;</a></h3>
 <p>In seltenen Fällen existiert das Mitglied im eegFaktura-Core bereits (etwa weil ein altes Mitglied seinen Antrag erneuert hat — Faktura erlaubt kein Löschen von Mitgliedern). Wenn du das Core-Mitglied dort manuell mit den Onboarding-Daten überschrieben hast, fehlt im Onboarding noch der Statuswechsel.</p>
 <p>Im Detail einer <code>approved</code>-Anwendung erscheint dafür neben „In eegFaktura importieren" ein zweiter Button <strong>„Manuell aktivieren …"</strong>:</p>
