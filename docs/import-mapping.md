@@ -52,6 +52,8 @@ The existing participant structure contains, among others:
 | – | `billingAddress.type` | yes | `BILLING` | set technically |
 | `metering_point.metering_point` | `meters[].meteringPoint` | yes | – | per record |
 | `metering_point.direction` | `meters[].direction` | yes | – | per record |
+| `metering_point.installation_name` | `meters[].equipmentName` | no | omitempty when null/empty | Bezeichnung des Zählpunkts (siehe Public-Form-Popover „Hauptanlage, Nebengebäude, …"). Wird auf der Faktura-Rechnung ausgewiesen. Regression-Test: `TestBuildPayload_InstallationNameMapsToEquipmentName` |
+| `metering_point.installation_number` | `meters[].equipmentNumber` | no | omitempty when null/empty | Anlagen-Nr. |
 | `application.resident_street` | `meters[].street` | yes | member address | V1 rule |
 | `application.resident_street_number` | `meters[].streetNumber` | yes | member address | V1 rule |
 | `application.resident_zip` | `meters[].zip` | yes | member address | V1 rule |
