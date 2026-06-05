@@ -659,7 +659,82 @@ Alle ACs Pass, BUG-1/2/4 gefixt + getestet, BUG-3 dokumentiert akzeptiert. Secur
 1. Manuelle Smoke-Tests durch Owner (siehe Checkliste oben)
 2. AVV-Update Pflicht (siehe Spec-Abschnitt „DSGVO / AVV")
 3. User-Guide-Update Pflicht
-4. **`/security-review`** als Pflicht-Gate — neue Admin-Endpoints + Core-Token-Forwarding + PII-Pfade berühren Security-sensitive Bereiche per Skill-Definition.
+
+## Security Review
+
+**Reviewer:** Security Engineer (AI)
+**Datum:** 2026-06-01
+**Scope:** Commits `b2562b4`, `dbeba49`, `db3cdd3`, `cdb2a66`. Pflicht-Trigger: neue Admin-Endpoints, Core-Token-Forwarding, PII-Pfade (Stammdaten + Bank), Status-Log-Audit-Spuren.
+
+### Threat-Model-Summary
+
+Zwei neue Admin-Endpoints bewegen PII (Name, Adresse, IBAN, E-Mail) zwischen Faktura-Core und Onboarding-DB bzw. an das Mitglied per Mail. Worst-Case-Bedrohungen: Cross-Tenant-Datenleak (Admin A erhält Stammdaten eines Mitglieds aus EEG B) oder Mail-Spam ans Mitglied. Beide Risiken sind durch das vorhandene Auth-Chain-Pattern (Keycloak + checkTenantAccess + Tenant-spezifisches Core-Listing) und Frontend-Disabled-During-Request strukturell mitigiert.
+
+### Findings
+
+| Severity | File | Function/Area | Risk | Exploit Scenario | Recommended Fix | Confidence |
+|---|---|---|---|---|---|---|
+| Low | `internal/application/resync_service.go:86` | `ResyncFromCore` | Wrapped `core list participants` Error könnte im Log einen Auszug der Core-Response (potentiell PII) enthalten | Core liefert 4xx/5xx mit Response-Body, Body wird in `CoreHTTPError.Error()` eingebettet, wandert durch `fmt.Errorf` an den Handler, dort gekappt auf 300 chars + Newline-Strip. Truncation reduziert Risk auf „höchstens 300 chars Body-Excerpt im strukturierten Log" | Identisch zu PROJ-69 (siehe Memory `feedback_security_scan`). Akzeptiert, kein Fix. | High |
+| Low | `internal/http/admin.go:2186` | `SendMandateRenewal` | Kein Rate-Limit — Admin kann versehentlich/böswillig Mandat-Mail-Bursts an Mitglied auslösen | Admin klickt 50× / öffnet 50 Tabs, Mitglied erhält 50 SEPA-Mandat-Mails | Owner-Entscheidung in Simplification-Pass (Admin trusted, Frontend disabled-during-request mitigiert Doppel-Klick). Falls Spam-Beschwerden auftauchen: COUNT-basierter Soft-Throttle aus dem ursprünglichen Tech-Design reaktivieren | High |
+| Info | `package.json` | Preexisting npm audit | next-auth + uuid haben Moderate-Findings | Nicht durch PROJ-70 eingeführt — bekannter Dependabot-Backlog | Bestehender Backlog | High |
+| Info | `private/contracts/avv-draft-*.md` | DSGVO-Pflicht | AVV-Update vor Aktivierung der Endpoints | Mitglieder könnten sich auf nicht-dokumentierte Datenverarbeitung berufen | Spec-dokumentiert als Pflicht-Gate vor Production-Deploy | High |
+
+**Keine Critical-, High- oder Medium-Findings.** Alle Low/Info-Findings sind entweder Owner-akzeptiert oder Pre-existing-Backlog.
+
+### Verifizierte Security-Properties
+
+| Bereich | Befund |
+|---|---|
+| Auth-Chain | `/api/admin/applications/{id}/*` ist hinter `KeycloakAuthMiddleware` (oder `TestHeaderAuthMiddleware` in Dev, `cmd/server/main.go:309-316`). Beide PROJ-70-Handler rufen `parseID` (UUID-Parse) + `checkTenantAccess` vor dem Service-Call. Superuser-Bypass über `claims.IsSuperuser()` ist konsistent. |
+| Tenant-Isolation | `checkTenantAccess` (`internal/http/admin.go:190`) lädt `rc_number` der Application via `GetRCNumberByID` und vergleicht gegen die `claims.Tenant`-Liste. Bei Mismatch → 403 mit generischer Meldung „Kein Zugriff auf diesen Antrag". |
+| SQL-Injection | Service nutzt nur existierende Repo-Methoden (`UpdateAdminTx`, `StatusLogRepo.CreateTx`), die parameterisiert sind. status_log-Reason-Text besteht aus internen Konstanten + camelCase-Feldnamen, kein User-Input. |
+| XSS in Mail | Templates nutzen `html/template` (auto-escape) — `template.New(...).ParseFS(...)` in `internal/mail/service.go:133`. User-controllierte Felder (Firstname, EEGName, etc.) werden HTML-escaped. |
+| Cross-Tenant Core-Token-Substitution | Möglich (Admin forwarded fremden `X-Core-Authorization`-Token), aber kein Daten-Leak: Backend sucht `target_participant_id` (UUID4) in der fremden Liste → findet nichts → 502 `core_member_not_found`. UUID-Kollisions-Risk bei UUID4 statistisch null. |
+| PII in Logs | `slog.Error` nutzt `truncateForLog` (300 chars + Newline-Strip, PROJ-69-Pattern). Application-ID (UUID) wird geloggt, sonst keine PII-Felder. |
+| PII in Response | Error-Responses: `{ code, message }` mit konstanten DE-Meldungen, kein `err.Error()`-Leak. Success-Response: nur `{ changed: [...] }` mit camelCase-Feldnamen, keine Werte. |
+| PII in status_log | Reason-Text bei Resync: Feldnamen-Liste, keine alten Werte. Reason-Text bei Mandat-Resend: feste Konstante „SEPA-Mandat-Mail erneut versandt". changed_by_user_id mit Keycloak-Subject-Prefix. |
+| Schema-Constraints | Keine neue Migration. Bestehende Application-Spalten + bestehende status_log-Tabelle. |
+| Core-Boundary | Onboarding schreibt nie direkt in Core-Tabellen. `coreclient.ListParticipants` ist Read-Only-Pull über REST. Mandat-Mail-Versand geht über SMTP, nicht Core. |
+| Race-Conditions | `activated` ist (nach Trivial-Fix `debc761`) der einzige Status ohne Edit-Form. UpdateAdminTx-Last-Write-Wins-Risk hat keinen relevanten Konflikt-Pfad in der Praxis. |
+| Secrets | Keine neuen Env-Vars, keine neuen Secrets. coreClient nutzt existing `CORE_BASE_URL` aus Helm. |
+| Deployment | Keine Helm/Container/CI-Änderungen in PROJ-70. |
+
+### Scan-Ergebnisse
+
+| Scan | Ergebnis |
+|---|---|
+| `govulncheck ./...` | **0 vulnerabilities in unserem Code.** 6 + 14 in transitive deps, die wir nicht aufrufen. |
+| `npm audit --audit-level=high` | **0 high.** 4 moderate preexisting (next-auth + uuid Transitive). Nicht durch PROJ-70 eingeführt. |
+| Snyk MCP | nicht ausgeführt — Free-Tier-Quota bereits in vorigen Reviews aufgebraucht (Memory `reference_snyk_quota_401`). |
+
+### Verdict: APPROVED
+
+Keine Critical-, High- oder Medium-Findings. Alle Low/Info-Findings sind entweder Owner-akzeptiert (Rate-Limit) oder Pre-existing/Cross-Cutting (npm audit, AVV-Update).
+
+**Deploy-Voraussetzungen:**
+1. ✓ Code-Review + QA bestanden (alle ACs Pass, BUG-1/2/4 gefixt)
+2. ✓ Security-Review APPROVED
+3. ☐ Owner manuelle Smoke-Tests (Checkliste in QA-Section oben)
+4. ☐ AVV-Update signiert vor Aktivierung
+5. ☐ User-Guide-Update vor Aktivierung
 
 ## Deployment
-_To be added by /deploy_
+
+**Deploy auf test:** 2026-06-01, Image `sha-cdb2a66` (Bug-Fix-Welle nach QA), Git-Tag `v1.15.0-PROJ-70`.
+
+**Was ist live:**
+- POST `/api/admin/applications/{id}/resync-from-core` — Stammdaten-Pull aus Faktura-Core
+- POST `/api/admin/applications/{id}/resend-mandate` — SEPA-Mandat-Mail erneut versenden
+- Frontend: zwei Knöpfe im Antrags-Detail (nur in Status `activated`)
+
+**Kein Feature-Flag** — Endpoints sind sofort live nach `helm upgrade`. Sicherheits-Surface bleibt klein, weil:
+- Admin-only (Keycloak + Tenant-Check)
+- Nur für Anträge in `activated`-Status sichtbar
+- target_participant_id-Bedingung blockt manuell-aktivierte Anträge
+
+**Owner-Entscheidung 2026-06-01:** Test-Betrieb — DSGVO-Gates (AVV + User-Guide) werden vor Prod-Deploy nachgezogen, nicht vor Test-Deploy.
+
+**Verbleibend für Production-Deploy (separater Cut):**
+- AVV-Update signiert (siehe Spec-Abschnitt „DSGVO / AVV")
+- User-Guide-Eintrag „Stammdaten-Abgleich" + „Mandat erneut senden"
+- Manuelle Smoke-Tests durch Owner auf test (siehe Checkliste in QA-Section)

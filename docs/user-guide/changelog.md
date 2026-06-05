@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-06-01
+
+**Stammdaten aktivierter Mitglieder mit eegFaktura abgleichen**
+
+Im Antrags-Detail eines aktivierten Mitglieds stehen jetzt zwei neue Aktions-Knöpfe zur Verfügung:
+
+- **„Stammdaten aus eegFaktura abgleichen"** pullt die aktuellen Mitglieder-Daten aus dem Kernsystem und überschreibt in der Onboarding-Kopie die Felder, in denen das Kernsystem inzwischen einen anderen Wert hält. Abgeglichen werden Name, Titel, UID-Nummer, Wohnort-Adresse, E-Mail, Telefon und Bankverbindung (IBAN, Kontoinhaber, Bankname). **Nicht** angefasst werden Mitgliedstyp, Geburtsdatum, Beitrittsdatum, Zählpunkte und Anteile-Anzahl. Ein Toast meldet die geänderten Felder, das Detail wird sofort neu geladen.
+- **„SEPA-Mandat erneut senden"** erzeugt aus den aktuellen Onboarding-Werten ein frisches Mandat-PDF und schickt es an das Mitglied. Sinnvoll nach einem Abgleich, der eine geänderte IBAN oder einen geänderten Kontoinhaber gemeldet hat — das bestehende Mandat ist dann rechtlich nicht mehr gültig für die neue Bankverbindung. Mail-Subject und Wortlaut sind auf den Renewal-Kontext zugeschnitten („deine Bankverbindung wurde aktualisiert").
+
+Beide Knöpfe sind unabhängig voneinander. Der Admin entscheidet selbst, ob nach einem Abgleich eine neue Mandat-Mail nötig ist.
+
+**Bearbeiten-Knopf in nicht-editierbaren Status ausgeblendet**
+
+Der „Bearbeiten"-Knopf erschien bislang in jedem Status — Klicks in z. B. `Aktiviert` führten dann beim Speichern zu einem 409-Fehler. Jetzt wird der Knopf nur noch in den Status angezeigt, in denen Bearbeiten technisch erlaubt ist (`Eingereicht`, `In Bearbeitung`, `Rückfrage`, `Genehmigt`, `Import fehlgeschlagen`). In `Aktiviert` übernehmen die beiden neuen Stammdaten-Abgleich-Knöpfe (siehe oben) die Datenaktualisierung.
+
+→ [Statusverwaltung — Aktiviert: Stammdaten abgleichen + Mandat erneut senden](05-admin-status.md#activated--endzustand)
+
+---
+
 ## 2026-05-31
 
 **Automatischer Abgleich mit eegFaktura**

@@ -1120,6 +1120,93 @@ No body.
 
 ---
 
+## 6.5.7 Resync application data from eegFaktura core (PROJ-70)
+
+### POST `/api/admin/applications/{id}/resync-from-core`
+
+Pullt den aktuellen Faktura-Teilnehmer-Datensatz für einen aktivierten Antrag und überschreibt in der Onboarding-DB Stammdaten, Adresse, Kontakt- und Bankverbindungsfelder, wo der Core einen normalisierten anderen Wert hält. Kein Status-Wechsel, kein Mandat-Reset — wenn IBAN oder Kontoinhaber sich ändern, muss der Admin separat `POST /resend-mandate` klicken.
+
+### Headers
+- `Authorization: Bearer <keycloak-token>` — Admin-Auth, Tenant-Check via `target_participant_id` der Application
+- `X-Core-Authorization: Bearer <silent-sso-token>` — Token für den Faktura-Core-Call (bei `CORE_AUTH_MODE=exchange`)
+
+### Request
+No body.
+
+### Response 200 — Diff erkannt
+```json
+{ "changed": ["firstname", "iban", "residentZip"] }
+```
+
+### Response 200 — Bereits synchron
+```json
+{ "changed": [] }
+```
+
+### Verglichene Felder (14)
+- Stammdaten: `firstname`, `lastname`, `titel`, `titelNach`, `uidNumber`
+- Adresse: `residentStreet`, `residentStreetNumber`, `residentZip`, `residentCity` (gelesen aus Faktura `residentAddress`, **nicht** `billingAddress`)
+- Kontakt: `email` (case-insensitive Vergleich), `phone`
+- Bank: `iban` (whitespace-strip + uppercase Vergleich), `bankName`, `accountHolder`
+
+### NICHT abgeglichen (out-of-scope)
+- `memberType`, `birthDate`, `membershipStartDate`, `registerNumber`, `companyName`
+- Zählpunkte (`metering_point`)
+- `cooperative_shares_count`
+- Mandat-Felder (`mandate_reference`, `mandate_date`, `sepa_mandate_accepted`, `sepa_mandate_accepted_at`, `einzugsart`)
+- `faktura_handover_at`, `activation_notification_sent_at`, `admin_note`
+
+### Keep-bei-NULL
+Wenn der Core für ein Feld NULL oder einen leeren String liefert, bleibt der Onboarding-Wert unverändert (kein Diff).
+
+### Side-Effects bei Real-Change
+- `application.updated_at = NOW()`
+- Geänderte Spalten überschrieben mit getrimmter Core-Original-Form (IBAN/Email behalten ihre Faktura-Schreibweise, nicht die normalisierte Form)
+- `status_log`-Eintrag mit `from_status = to_status = activated`, Reason-Text „Stammdaten aus eegFaktura abgeglichen (geänderte Felder: …)", changed_by_user_id = `resync:<keycloak-subject>`
+
+### Errors
+- `400` UUID malformed, oder `X-Core-Authorization`-Header fehlt im exchange-Mode
+- `401` ohne Auth
+- `403` Tenant-Mismatch (Antrag gehört einer fremden EEG)
+- `404` Antrag nicht gefunden
+- `409` Antrag nicht in Status `activated`, oder `target_participant_id` ist NULL (manuell aktiviert ohne Import)
+- `502` Core-Call fehlgeschlagen, Mitglied nicht in Faktura gefunden (`code=core_member_not_found`), oder generischer Core-Fehler
+
+---
+
+## 6.5.8 Resend SEPA mandate mail (PROJ-70)
+
+### POST `/api/admin/applications/{id}/resend-mandate`
+
+Generiert ein neues SEPA-Mandat-PDF aus den aktuellen Onboarding-Werten (typischerweise nach einem Resync mit IBAN-/Kontoinhaber-Wechsel) und versendet es an das Mitglied. Hard-Fail bei SMTP-Error — der Admin sieht den Fehler im UI-Toast. Kein Status-Wechsel.
+
+### Request
+No body.
+
+### Response 200
+```json
+{ "mailSent": true }
+```
+
+### Side-Effects
+- Mail an `application.email` mit aktualisierter `IsRenewal=true`-Verzweigung in den Templates (Subject: „Aktualisiertes SEPA-Mandat – Mitgliedsnummer X")
+- EEG-Kopie an `registration_entrypoint.contact_email`, sofern gesetzt
+- `status_log`-Eintrag „SEPA-Mandat-Mail erneut versandt", changed_by_user_id = `mandate-renewal:<keycloak-subject>`
+
+### Errors
+- `400` UUID malformed
+- `401` ohne Auth
+- `403` Tenant-Mismatch
+- `404` Antrag nicht gefunden
+- `409` Antrag nicht in `activated`, oder `einzugsart = kein_sepa` (kein Mandat zu versenden)
+- `500` Mail-Versand fehlgeschlagen (SMTP unreachable, Template-Render-Fehler, PDF-Generierung gescheitert)
+
+### Hinweise
+- **Kein Rate-Limit** (Owner-Entscheidung Simplification-Pass). Frontend-Doppel-Klick-Schutz greift via `disabled`-during-Request.
+- Mandat-Mail-Template (`application_imported_member.html` + `application_imported_eeg.html`) verzweigt auf `IsRenewal` und zeigt „deine Bankverbindung wurde aktualisiert" statt der Import-Wording.
+
+---
+
 ## 6.6 Get field config
 
 ### GET `/api/admin/settings/fields?rc_number={rc_number}`

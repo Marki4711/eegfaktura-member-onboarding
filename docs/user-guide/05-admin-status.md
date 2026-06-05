@@ -194,7 +194,53 @@ In beiden Fällen erhält das Mitglied beim Wechsel auf `activated` die **volle 
 
 ### `activated` — Endzustand
 
-Aktives Mitglied. Keine weiteren Aktionen verfügbar. Kein Reset, keine Rückwärts-Übergänge. Deaktivierung erfolgt direkt im eegFaktura-Core.
+Aktives Mitglied. Kein Reset, keine Rückwärts-Übergänge — die Daten-Pflege findet jetzt im eegFaktura-Kernsystem statt. Im Antrags-Detail stehen zwei Aktionen zur Verfügung, um die Onboarding-Kopie konsistent zu halten:
+
+#### Stammdaten aus eegFaktura abgleichen
+
+Der Knopf „Stammdaten aus eegFaktura abgleichen" pullt den aktuellen Mitglieder-Datensatz aus dem Kernsystem und überschreibt in der Onboarding-Datenbank die Felder, in denen das Kernsystem inzwischen einen anderen Wert hält.
+
+**Abgeglichen werden:**
+
+- Vorname, Nachname, Titel (vor und nach), UID-Nummer
+- Wohnort-Adresse (Straße, Hausnummer, PLZ, Ort)
+- E-Mail-Adresse, Telefon
+- IBAN, Kontoinhaber, Bankname
+
+**Nicht abgeglichen werden:**
+
+- Mitgliedstyp, Geburtsdatum, Beitrittsdatum
+- Zählpunkte (die werden im Kernsystem eigenständig gepflegt)
+- Anteile-Anzahl
+- Status, Mandat-Felder, Einzugsart
+
+**Klick-Flow:**
+
+1. Klick auf „Stammdaten aus eegFaktura abgleichen". Der Knopf zeigt während des Abgleichs „Wird abgeglichen…".
+2. Wenn nichts unterschiedlich ist: Toast „Stammdaten sind bereits synchron".
+3. Wenn Felder unterschiedlich sind: Antrags-Detail wird sofort neu geladen mit den neuen Werten. Ein Toast bleibt 8 Sekunden sichtbar und nennt die geänderten Felder (z. B. „geänderte Felder: Telefon, PLZ (Wohnort), IBAN").
+4. Im Status-Verlauf erscheint ein neuer Eintrag „Stammdaten aus eegFaktura abgeglichen (geänderte Felder: …)".
+
+**Wenn ein Antrag manuell aktiviert wurde (ohne Import):** der Knopf ist ausgegraut mit Hinweis „Antrag wurde manuell aktiviert ohne Import — kein Faktura-Mitgliederlink, Abgleich nicht möglich".
+
+#### SEPA-Mandat erneut senden
+
+Wenn der Abgleich eine geänderte IBAN oder einen geänderten Kontoinhaber-Namen erkannt hat, ist das bestehende SEPA-Mandat **rechtlich nicht mehr gültig für die neue Bankverbindung** — ein neues Mandat muss vom Mitglied unterschrieben werden, bevor Lastschriften auf das neue Konto eingezogen werden dürfen.
+
+Der Knopf „SEPA-Mandat erneut senden" generiert ein frisches Mandat-PDF mit der aktuell hinterlegten IBAN und versendet es an die Mitgliedsadresse. Subject und Wortlaut der Mail sind auf den Renewal-Kontext zugeschnitten („deine Bankverbindung wurde aktualisiert, hiermit erhältst du ein neues SEPA-Mandat-Formular").
+
+**Klick-Flow:**
+
+1. Klick auf „SEPA-Mandat erneut senden". Der Knopf zeigt „Mandat wird versandt…".
+2. Bei Erfolg: Toast „SEPA-Mandat-Mail an Mitglied versandt". Im Status-Verlauf erscheint „SEPA-Mandat-Mail erneut versandt".
+3. Bei Mail-Fehler: roter Toast „Mandat-Mail-Versand fehlgeschlagen — bitte später erneut versuchen". Der Status-Verlauf bleibt leer (kein Eintrag bei Fehler).
+
+**Wann benutzen?**
+
+- Nach einem Abgleich, der eine geänderte IBAN oder einen geänderten Kontoinhaber gemeldet hat.
+- Wenn das Mitglied das Original-Mandat verloren hat und eine neue Kopie braucht.
+
+Der Knopf ist nur sichtbar, wenn das Mitglied SEPA-Einzug nutzt (`Basislastschrift` oder `B2B-Firmenlastschrift`). Bei `Kein SEPA-Verfahren` erscheint der Knopf nicht.
 
 ### Ausnahmefall: `approved → activated` (manueller Skip-Import)
 
