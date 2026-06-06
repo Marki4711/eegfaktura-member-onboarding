@@ -2279,20 +2279,28 @@ No body.
 
 ## 9. Customer Onboarding API *(PROJ-71)*
 
-EEG-Customer-Onboarding: ein EEG-Vorstand bucht die SaaS-Plattform. Die
-Public-Endpunkte sind unauthentifiziert (mit Turnstile + Rate-Limit), die
-Admin-Endpunkte sind Keycloak-geschützt und Owner-only (Superuser-Flag im JWT).
+EEG-Customer-Onboarding: ein bereits per Keycloak authentifizierter EEG-Admin
+bucht die SaaS-Plattform aus den Einstellungen heraus. Alle Endpoints liegen
+unter `/api/admin/customer-onboarding/*` und sind JWT-protected. Submit ist
+Tenant-scoped (RC aus Claims), Approve/Reject/List/Detail sind Superuser-only.
+
+Status-Lifecycle (linear):
+- `submitted` — EEG-Admin hat das Formular abgeschickt, wartet auf Owner-Freischaltung
+- `approved` — Owner hat freigeschaltet, Vertrag aktiv
+- `owner_rejected` — Owner hat vor Approve abgelehnt
+
+Soft-Suspend eines aktiven Vertrags (Owner-Reject nach Approve) ist KEIN
+Submission-Status-Wechsel — die Submission bleibt `approved`, der
+Vertragsstatus lebt im `customer_onboarding_event_log`.
 
 ## 9.1 Submit customer onboarding
 
-### POST `/api/customer/onboarding`
+### POST `/api/admin/customer-onboarding/submit`
 
-Public endpoint. Rate-limited (10 req/10 min per IP), Turnstile-protected when
-`TURNSTILE_SECRET_KEY` is set. Validates the RC number against
-`member_onboarding.registration_entrypoint`, creates a
-`customer_onboarding_submission` row with status `awaiting_email_confirmation`,
-and triggers a background goroutine that generates the AVV-PDF and sends the
-confirmation email to the board member.
+Keycloak-JWT-protected. Der `rcNumber` im Body muss in der `RCNumbers`-Claim
+des Aufrufers enthalten sein (oder Superuser). Erzeugt eine
+`customer_onboarding_submission`-Zeile im Status `submitted` und feuert
+asynchron eine Owner-Notification-Mail an `CUSTOMER_ONBOARDING_OWNER_EMAIL`.
 
 ### Request body
 
@@ -2310,11 +2318,14 @@ confirmation email to the board member.
   "boardName": "Max Mustermann",
   "boardEmail": "max.mustermann@example.org",
   "boardPhone": "+43 1 234567",
-  "agbVersion": "1.0",
-  "avvVersion": "1.0",
-  "turnstileToken": "0.xxxx"
+  "agbAccepted": true,
+  "avvAccepted": true
 }
 ```
+
+`agbAccepted` und `avvAccepted` müssen beide `true` sein. Die Versionen werden
+serverseitig aus `AGBVersion` / `AVVVersion`-Konstanten gestempelt und gegen
+Migrations-Identitäten der Markdown-Dateien gehalten.
 
 ### Response 201
 
@@ -2324,42 +2335,15 @@ confirmation email to the board member.
 
 ### Errors
 - `400` — validation error
-- `404` — RC number unknown or inactive
-- `409` — already a confirmed submission for this RC
-- `429` — rate limit exceeded
+- `403` — Tenant-Mismatch (RC nicht in Claims) oder fehlende Auth
+- `409` — bereits eine `submitted`- oder `approved`-Submission für diese RC
 
-## 9.2 Confirm onboarding email
-
-### POST `/api/customer/onboarding/confirm-email`
-
-Public endpoint. Validates the confirm-token (32-byte urlsafe-base64,
-single-use, 7-day TTL). On success: marks submission `confirmed`, persists
-`email_confirmed_at`+`confirm_ip`+`confirm_user_agent`, upserts the
-`registration_entrypoint` row, and appends an `activated` event to
-`customer_onboarding_event_log`. Background goroutine then sends the welcome
-email to the board and a notification to the owner.
-
-### Request body
-
-```json
-{ "token": "8XKy2…urlsafe-base64-32" }
-```
-
-### Response 200
-
-```json
-{ "rcNumber": "RC-12345", "vereinsname": "Musterbetrieb GmbH" }
-```
-
-### Errors
-- `400` — token missing or malformed
-- `410` — token expired, already used, or submission in terminal state
-
-## 9.3 List customer onboarding submissions (admin)
+## 9.2 List customer onboarding submissions (admin)
 
 ### GET `/api/admin/customer-onboarding/submissions`
 
-Owner-only. Optional query param `status` filters by lifecycle value.
+Superuser-only. Optional query param `status` (komma-separierte Liste) filtert
+auf einen oder mehrere Lifecycle-Werte. Default: alle 3 Statuswerte.
 
 ### Response 200
 
@@ -2371,56 +2355,96 @@ Owner-only. Optional query param `status` filters by lifecycle value.
     "vereinsname": "Musterbetrieb GmbH",
     "boardName": "Max Mustermann",
     "boardEmail": "max.mustermann@example.org",
-    "status": "confirmed",
+    "status": "submitted",
     "agbVersion": "1.0",
     "avvVersion": "1.0",
-    "submittedAt": "2026-06-05T10:00:00Z",
-    "activatedAt": "2026-06-05T10:08:00Z",
-    "rejectedAt": null,
-    "otherForRCCount": 0
+    "submittedAt": "2026-06-06T10:00:00Z",
+    "approvedAt": null,
+    "rejectedAt": null
   }
 ]
 ```
 
-## 9.4 Get customer onboarding detail (admin)
+## 9.3 Get customer onboarding detail (admin)
 
 ### GET `/api/admin/customer-onboarding/submissions/{id}`
 
-Owner-only. Returns the submission, all other submissions for the same RC, and
-the current contract status derived from the event log.
+Superuser-only. Liefert die Submission inkl. aktuellem Vertragsstatus aus dem
+Event-Log.
 
 ### Response 200
 
 ```json
 {
-  "submission": { "id": "uuid", "status": "confirmed", "...": "..." },
-  "otherSubmissions": [],
+  "submission": {
+    "id": "uuid",
+    "rcNumber": "RC-12345",
+    "status": "approved",
+    "...": "...",
+    "submittedBySubject": "keycloak-sub-of-tenant-admin",
+    "approvedAt": "2026-06-06T10:08:00Z",
+    "approvedBySubject": "keycloak-sub-of-owner"
+  },
   "contract": {
     "active": true,
     "latestEventType": "activated",
-    "latestEventAt": "2026-06-05T10:08:00Z",
-    "latestReasonCode": "email_confirmed",
+    "latestEventAt": "2026-06-06T10:08:00Z",
+    "latestReasonCode": "owner_approve",
     "latestReasonText": "",
-    "latestActorKind": "system",
-    "latestActorSubject": "system",
+    "latestActorKind": "human",
+    "latestActorSubject": "keycloak-sub-of-owner",
     "suspendedSince": null
   }
 }
 ```
 
+## 9.4 Approve customer onboarding submission (admin)
+
+### POST `/api/admin/customer-onboarding/submissions/{id}/approve`
+
+Superuser-only. Schaltet `submitted` → `approved` in einer Transaktion:
+1. AVV-PDF wird generiert (best-effort, bei Fehler ohne Anhang weiter)
+2. `ApproveTx` atomar mit Advisory-Lock auf `rc_number`:
+   - `customer_onboarding_submission.status='approved'`, `approved_at`, `approved_by_subject`
+   - Event `activated` in `customer_onboarding_event_log` (`reason_code=owner_approve`, `actor_kind=human`)
+   - `registration_entrypoint.is_active=true` — wenn der Stub fehlt → 404, Tx rückgerollt
+3. Welcome-Mail an den Vorstand mit AVV-PDF im Anhang. Fehler werden geloggt,
+   blockieren den Approve aber NICHT (BUG-2 Fix 2026-06-06 — die frühere Variante
+   sendete VOR dem Commit und konnte bei Tx-Fail einen „aktiviert"-benachrichtigten,
+   nicht-aktiven Vorstand erzeugen). Bei Mail-Fehler kann der Owner das
+   AVV-PDF separat über 9.6a `/avv-pdf` erneut herunterladen.
+
+### Request body
+
+```json
+{}
+```
+
+### Response 200
+
+```json
+{ "result": "ok" }
+```
+
+### Errors
+- `404` — Submission nicht gefunden, oder `registration_entrypoint`-Stub fehlt
+- `409` — Submission nicht im Status `submitted`
+
 ## 9.5 Reject customer onboarding submission (admin)
 
 ### POST `/api/admin/customer-onboarding/submissions/{id}/reject`
 
-Owner-only. Behavior depends on current status:
-- **Pre-Confirm** (`awaiting_email_confirmation`): pure status transition to
-  `owner_rejected`, no event written.
-- **Post-Confirm** (`confirmed`): also appends a `suspended` event with
-  `reason_code='owner_decision'`. The contract is immediately treated as
-  inactive; the Soft-Suspend guards (9.7) take effect.
+Superuser-only. Behavior depends on current status:
+- **Pre-Approve** (`submitted`): Status-Transition auf `owner_rejected`,
+  Reason + Keycloak-Subject werden persistiert. Kein Event geschrieben.
+- **Post-Approve** (`approved` mit aktivem Vertrag): atomar
+  - Event `suspended` mit `reason_code='owner_decision'` ins Event-Log
+  - `registration_entrypoint.is_active=false` (sperrt zusätzlich die
+    Public-Member-Onboarding-Form, Soft-Suspend-Guards greifen)
+  - Submission bleibt `approved` als historischer Beleg
 
-If `notifyMember=true`, a reject mail is sent to the board member with
-hard-fail semantics — failed mail aborts the reject.
+Bei `notifyMember=true` wird eine Reject-Mail an den Vorstand mit Hard-Fail-
+Semantik verschickt — Mail-Fehler bricht den Reject ab.
 
 ### Request body
 
@@ -2431,26 +2455,26 @@ hard-fail semantics — failed mail aborts the reject.
 ### Response 200
 
 ```json
-{ "status": "owner_rejected" }
+{ "result": "ok" }
 ```
 
 ### Errors
-- `400` — reason missing
-- `404` — submission not found
-- `409` — submission in a non-rejectable status
-- `502` — mail send failed (hard-fail; reject rolled back)
+- `400` — Reason fehlt
+- `404` — Submission nicht gefunden
+- `409` — Submission im falschen Status oder Vertrag bereits suspendiert
+- `500` — Reject-Mail-Fehler (Tx rückgerollt)
 
 ## 9.6 Get tenant onboarding status (admin)
 
 ### GET `/api/admin/customer-onboarding/status?rc_number=...`
 
-Returns the tenant-card data for the `/admin/settings/` page. Requires
-Keycloak auth + tenant access (RC number must be in `RCNumbers` claim or
-caller must be superuser).
+Liefert die Status-Card-Daten für den `/admin/settings/`-Bereich. Tenant-Admin
+sieht seine eigene erste RC aus den Claims; Superuser kann via Query-Param
+`rc_number` jede beliebige RC abfragen.
 
 ### Response 200
 
-Four possible states:
+Fünf mögliche States:
 
 ```json
 { "state": "none" }
@@ -2458,24 +2482,25 @@ Four possible states:
 
 ```json
 {
-  "state": "awaiting_email_confirmation",
+  "state": "submitted",
   "boardEmail": "max.mustermann@example.org",
-  "submittedAt": "2026-06-05T10:00:00Z"
+  "boardName": "Max Mustermann",
+  "submittedAt": "2026-06-06T10:00:00Z"
 }
 ```
 
 ```json
 {
-  "state": "activated",
+  "state": "approved",
   "boardEmail": "...",
   "boardName": "...",
   "boardPhone": "+43 1 234567",
   "agbVersion": "1.0",
-  "agbAcceptedAt": "2026-06-05T10:00:00Z",
+  "agbAcceptedAt": "2026-06-06T10:00:00Z",
   "avvVersion": "1.0",
-  "avvAcceptedAt": "2026-06-05T10:00:00Z",
+  "avvAcceptedAt": "2026-06-06T10:00:00Z",
   "submittedAt": "...",
-  "activatedAt": "...",
+  "approvedAt": "...",
   "submissionId": "uuid"
 }
 ```
@@ -2489,11 +2514,39 @@ Four possible states:
 }
 ```
 
+```json
+{
+  "state": "owner_rejected",
+  "rejectedAt": "...",
+  "rejectionReason": "Plausibilitätsprüfung negativ"
+}
+```
+
+## 9.6a Download AVV acceptance PDF *(BUG-1 Fix 2026-06-06)*
+
+### GET `/api/admin/customer-onboarding/submissions/{id}/avv-pdf`
+
+Liefert das AVV-Akzept-PDF einer `approved`-Submission. Wird beim Approve einmalig
+als Welcome-Mail-Anhang versendet; dieser Endpoint erlaubt Self-Service-Re-Download.
+
+Zugriff: Superuser ODER Tenant-Admin der RC der Submission. PDF wird deterministisch
+aus den persistierten Submission-Daten regeneriert.
+
+### Response 200
+
+- Content-Type: `application/pdf`
+- Content-Disposition: `attachment; filename="AVV-Akzept-<rcnumber>.pdf"`
+
+### Errors
+- `403` — Caller ist weder Superuser noch Tenant-Admin der RC
+- `404` — Submission nicht gefunden
+- `409` — Submission nicht im Status `approved` (kein PDF für `submitted`/`owner_rejected`)
+
 ## 9.7 Soft-Suspend guard *(PROJ-71)*
 
-Six existing admin endpoints are Soft-Suspend-protected. If the addressed
-tenant's contract is currently `suspended`, they respond with `403` and a
-generic message. Affected endpoints:
+Sechs bestehende Admin-Endpoints sind Soft-Suspend-geschützt. Wenn der
+Vertrag der adressierten EEG aktuell `suspended` ist, antworten sie mit `403`
+und einer generischen Fehlermeldung:
 
 - `POST /api/admin/applications/{id}/import`
 - `GET  /api/admin/applications/export` (Excel)
@@ -2502,5 +2555,9 @@ generic message. Affected endpoints:
 - `POST /api/admin/eeg/resync-from-core` (PROJ-32)
 - `POST /api/admin/sepa-mandate/renewal`
 
-The contract checker is fail-open: on DB-lookup error, the endpoint is allowed
-through (availability > strictness), and the error is logged.
+Zusätzlich wird beim Soft-Suspend `registration_entrypoint.is_active=false`
+gesetzt — damit sperrt auch die Public-Member-Onboarding-Form (`/onboarding`)
+für die suspendierte RC.
+
+Der Contract-Checker ist fail-open: bei DB-Lookup-Fehler wird der Endpoint
+durchgelassen (Verfügbarkeit > Strenge), Fehler wird geloggt.

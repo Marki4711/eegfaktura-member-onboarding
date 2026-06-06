@@ -499,49 +499,52 @@ Rules:
 
 ### 3.X `member_onboarding.customer_onboarding_submission` *(PROJ-71)*
 
-EEG-Customer-Onboarding (SaaS-Buchung durch EEG-Vorstand). Trennt strikt zwischen
-**Anmeldung** (linearer Lifecycle, historischer Akt) und **Vertrag** (zyklisch,
-laufende Beziehung). Anmeldung wird hier abgebildet, Vertrag im Event-Log (siehe 3.Y).
+EEG-Customer-Onboarding (SaaS-Buchung durch bereits per Keycloak
+authentifizierten EEG-Admin). Trennt strikt zwischen **Anmeldung** (linearer
+Lifecycle, historischer Akt) und **Vertrag** (zyklisch, laufende Beziehung).
+Anmeldung wird hier abgebildet, Vertrag im Event-Log (siehe 3.Y).
+
+Architektur-Rewrite 2026-06-06: kein Public-Form mehr, kein Confirm-Token —
+der Admin ist per JWT identifiziert. Owner-Approve ist der Aktivierungs-Schritt.
 
 Purpose:
-- Aufnahme aller Submit-Daten + AGB/AVV-Akzeptanz-Audit (Version + Timestamp + IP + User-Agent)
-- Confirm-Token-Verwaltung (TTL 7 Tage, single-use)
-- Owner-Reject-Pfad (Pre- oder Post-Confirm)
-- Hijacking-Schutz: max. eine `confirmed`-Submission pro `rc_number` via Partial-UNIQUE
+- Aufnahme aller Submit-Daten + AGB/AVV-Akzeptanz-Audit (Version + Timestamp)
+- Submit-Forensik (Keycloak-Subject + IP + User-Agent)
+- Owner-Approve/Reject-Pfad
 
-Status:
-- `awaiting_email_confirmation` — initial nach Submit, Confirm-Token aktiv
-- `confirmed` — nach Klick auf Bestätigungs-Link, Vertrag wird aktiviert
-- `owner_rejected` — Owner hat im BackOffice abgelehnt (Pre- oder Post-Confirm möglich)
-- `expired` — Confirm-Token abgelaufen (TTL überschritten)
-- `superseded` — neuere Submission für selbe RC hat diesen Eintrag ersetzt
+Status (linear):
+- `submitted` — initial nach Submit durch EEG-Admin, wartet auf Owner-Entscheidung
+- `approved` — Owner hat freigeschaltet; Vertrag aktiv (siehe 3.Y für Vertragsstatus)
+- `owner_rejected` — Owner hat vor Approve abgelehnt
 
 Fields (Kerngruppen):
 - Identität: `id` (UUID PK), `rc_number`, `vereinsname`, `legal_form`, `uid_number`
 - Rechnungsadresse: `billing_street`, `billing_street_number`, `billing_zip`, `billing_city`, `billing_country_code`
 - Vorstand: `board_name`, `board_email`, `board_phone`
 - AGB/AVV-Audit: `agb_accepted_at`, `agb_version`, `avv_accepted_at`, `avv_version`
-- Submit-Meta: `onboarding_ip`, `onboarding_user_agent`, `submitted_at`
-- Confirm-Token: `confirm_token`, `confirm_token_expires_at`, `email_confirmed_at`, `confirm_ip`, `confirm_user_agent`
-- Owner-Reject: `owner_rejected_at`, `rejection_reason`, `rejected_by_subject`
-- Status-Lifecycle: `status`, `superseded_at`, `superseded_by_submission_id`
+- Submit-Audit: `submitted_by_subject` (Keycloak `sub`), `submit_ip`, `submit_user_agent`, `submitted_at`
+- Owner-Approve: `approved_at`, `approved_by_subject`
+- Owner-Reject (pre-approve): `owner_rejected_at`, `rejection_reason`, `rejected_by_subject`
 - Standard-Audit: `created_at`, `updated_at`
 
 Indexes:
 - `(rc_number, status)`
 - `(status, submitted_at DESC)`
-- Partial UNIQUE on `confirm_token` WHERE `confirm_token IS NOT NULL`
-- Partial UNIQUE on `rc_number` WHERE `status = 'confirmed'`
+- Partial UNIQUE on `rc_number` WHERE `status IN ('submitted', 'approved')` — verhindert Doppel-Einreichung
 
 Constraints:
-- CHECK `status IN ('awaiting_email_confirmation', 'confirmed', 'owner_rejected', 'expired', 'superseded')`
+- CHECK `status IN ('submitted', 'approved', 'owner_rejected')`
 - CHECK `legal_form IN ('verein', 'genossenschaft', 'gesellschaft')`
 
 Rules:
 - Submit erzeugt immer einen neuen Eintrag — kein Update bestehender Submissions.
-- Confirm setzt Status `confirmed`, persistiert `email_confirmed_at` + `confirm_ip/UA`,
-  und schreibt parallel ein `activated`-Event in `customer_onboarding_event_log`.
-- Owner-Reject mit `confirmed`-Vorgänger schreibt zusätzlich ein `suspended`-Event.
+- Approve setzt Status `approved` atomar zusammen mit Event-Log `activated`
+  und `registration_entrypoint.is_active=true` (ApproveTx mit Advisory-Lock).
+- Pre-Approve-Reject (Status `submitted` → `owner_rejected`) ist reiner Status-Wechsel,
+  kein Event-Log-Eintrag — der Vertrag entstand nie.
+- Post-Approve-Reject (Status `approved` mit aktivem Vertrag) ist ein Soft-Suspend:
+  Submission bleibt `approved`, Event-Log bekommt `suspended`,
+  `registration_entrypoint.is_active=false`.
 - DSGVO-Recht-auf-Löschung: Submission löschbar; FKs aus dem Event-Log auf
   `caused_by_submission_id` haben `ON DELETE SET NULL`.
 
@@ -562,7 +565,7 @@ Fields:
 - `event_at` — `TIMESTAMPTZ NOT NULL DEFAULT NOW()`
 - `actor_kind` — CHECK `IN ('human', 'system', 'webhook')`
 - `actor_subject` — Keycloak-Subject bei human, `"system"` bei automatischen, Webhook-ID bei webhook
-- `reason_code` — Freitext-Enum (z.B. `email_confirmed`, `owner_decision`, `payment_failed`)
+- `reason_code` — Freitext-Enum (z.B. `owner_approve`, `owner_decision`, `payment_failed`, `legacy_bestandsschutz`)
 - `reason_text` — optional, längere Beschreibung
 - `caused_by_submission_id` — UUID NULL, FK auf `customer_onboarding_submission(id)` ON DELETE SET NULL
 - `created_at`
