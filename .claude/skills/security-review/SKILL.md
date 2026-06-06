@@ -152,22 +152,30 @@ For each changed area, answer:
 
 ### 12. Run Security Scans
 
+Solo-Dev-Stack (seit 2026-06-06, Snyk-Wechsel; siehe `docs/security.md`):
+
 ```bash
-# Go dependency CVEs
+# Go dependency CVEs (Stdlib + Module + Reachability)
 govulncheck ./... 2>/dev/null || echo "govulncheck not installed"
 
-# Go SAST (if snyk available via MCP)
-# snyk code test
+# Go SAST
+gosec -severity medium -confidence medium ./... 2>/dev/null || echo "gosec not installed"
+
+# Multi-Lang SAST (kann lange dauern, nur bei Bedarf manuell)
+# semgrep scan --config=p/security-audit --config=p/golang --config=p/typescript --severity=ERROR
 
 # npm high-severity CVEs
 npm audit --audit-level=high 2>/dev/null
 
-# IaC (if snyk available)
-# snyk iac test helm/
-
-# Container (if snyk available)
-# snyk container test
+# IaC (Helm + Dockerfiles)
+trivy config helm/ --severity HIGH,CRITICAL --quiet 2>/dev/null || echo "trivy not installed"
+trivy config . --severity HIGH,CRITICAL --quiet 2>/dev/null || true
 ```
+
+Im CI laufen diese Scans automatisch via `.github/workflows/security-scan.yml`
+mit SARIF-Upload in den GitHub Security-Tab — die Tab-Findings sind die
+maßgebliche Sicht für Triage. Lokale Runs sind nur fuer schnelles Feedback
+während des Reviews gedacht.
 
 ### 13. Document Findings
 
@@ -205,7 +213,9 @@ Present findings and wait for the user to approve which ones to fix and in what 
 ### Scan Results
 govulncheck: [result]
 npm audit: [result]
-Snyk: [result or "not available"]
+gosec: [result or "not run"]
+Semgrep: [result or "not run"]
+Trivy IaC: [result or "not run"]
 
 ### Verdict: APPROVED / BLOCKED
 [rationale]

@@ -24,39 +24,47 @@ The repository uses the following GitHub security features:
 | **Push Protection** | Blocks pushes containing detected secrets |
 | **Code Scanning / CodeQL** | Static analysis for security-relevant code patterns |
 
-### Snyk (Ergänzender Scanner)
+### Ergänzende Scanner (Solo-Dev-Stack seit 2026-06-06)
 
-Snyk wird als ergänzender Scanner für folgende Bereiche eingesetzt:
+Snyk wurde am 2026-06-06 abgelöst — der Mindesttarif von 5 Seats passt nicht
+zum aktuellen Solo-Setup. Die vier Snyk-Module sind durch kostenlose Tools
+ersetzt; der Rückstieg ist mit der Backup-Konfig unter
+`private/snyk-restore/` jederzeit möglich.
 
-| Scan-Typ | Ziel | Befehle |
-|----------|------|---------|
-| Open Source | Dependency-CVEs (npm + Go) | `snyk test` |
-| Code (SAST) | First-party code, XSS, Injection | `snyk code test` |
-| IaC | Helm-Templates, Kubernetes-YAML | `snyk iac test helm/` |
-| Container | Docker-Images, Base-Layer-CVEs | `snyk container test` |
+| Scan-Typ | Ziel | Tool | Wo |
+|---|---|---|---|
+| **SAST (Multi-Lang)** | First-party code: XSS, Injection, Secrets-im-Code | **Semgrep CE** | `security-scan.yml` |
+| **SAST (Go-spezifisch)** | Go-Patterns: schwache Crypto, unsichere File-Modes, fehlende Error-Checks | **gosec** | `security-scan.yml` |
+| **Open Source (Go)** | CVEs in Go-Dependencies + Stdlib-Reachability | **govulncheck** + Dependabot (gomod) | `ci.yml` + `dependabot.yml` |
+| **Open Source (npm)** | CVEs in npm-Dependencies | **npm audit** + Dependabot (npm) | `ci.yml` + `dependabot.yml` |
+| **IaC** | Helm-Templates, Dockerfiles, K8s-Manifeste | **Trivy config-scan** | `security-scan.yml` |
+| **Container** | Base-Image-Layer-CVEs vor Push in die Registry | **Trivy image-scan** | `docker-publish.yml` (existiert bereits) |
 
-**CI-Aufteilung seit 2026-05-19** (Free-Tier-Limits-Strategie für privates Repo):
+**Workflow-Trigger** (`security-scan.yml`):
+- Push auf `main` — SAST-Analogie zum alten Snyk-Code-Push-Trigger
+- Pull-Request — Vorab-Sicht auf Findings, kein Build-Fail
+- Cron Sonntags 04:00 UTC — Drift-Erkennung bei unverändertem Code
+- `workflow_dispatch` — manuelles On-Demand-Run
 
-- **`.github/workflows/snyk.yml`** — schlanker Push-Trigger auf `main`. Nur Snyk Code (SAST) + Monitor-Snapshot. ~30 Code-Tests/Monat (Limit 100).
-- **`.github/workflows/snyk-weekly.yml`** — Cron sonntags 04:00 UTC + `workflow_dispatch`. Snyk Open Source (Go + npm) und Snyk Container (4 Base-Images). 8 OSS- + 16 Container-Tests/Monat (Limits 200 / ~100).
+**Findings landen in der GitHub Security-Tab** über SARIF-Upload —
+zentralisierte Triage statt verstreute Tool-spezifische Reports.
 
-Begründung der Trennung: Dependency-Updates fängt Dependabot über die PR-Pipeline ohnehin auf — der Wochen-Run ist die Sicherheits­abdeckung für „CVE zwischenzeitlich disclosed bei unveränderten deps". Base-Images ändern sich nicht zwischen Code-Pushes; der separate `weekly-rebuild.yml` hat zudem einen eigenen Trivy-Scan vor dem Push in die Registry.
-
-Pull-Request-Trigger ist bei beiden Workflows entfernt (Solo-Dev: push-to-main = Merge).
+**Rückstieg auf Snyk** (falls Team auf >5 Seats wächst oder spezifische
+Snyk-Findings vermisst werden): siehe `private/snyk-restore/README.md`.
 
 ### Abdeckung der Finding-Klassen
 
 | Finding-Klasse | Abgedeckt durch |
 |---------------|-----------------|
-| Dependency-CVEs (npm) | Dependabot, npm audit, Snyk OSS |
-| Dependency-CVEs (Go) | Dependabot, govulncheck, Snyk OSS |
-| Veraltete Base Images | Wöchentliche GitHub-Actions-Rebuilds, Snyk Container |
+| Dependency-CVEs (npm) | Dependabot, npm audit |
+| Dependency-CVEs (Go) | Dependabot, govulncheck |
+| Veraltete Base Images | Wöchentliche GitHub-Actions-Rebuilds, Trivy image-scan |
 | Kompromittierte Base Images (Supply Chain) | Trivy-Scan zwischen Build und Push (exit-code 1 bei CRITICAL) |
 | Kompromittierte GitHub Actions (Supply Chain) | SHA-Pinning aller Actions + Dependabot (github-actions, weekly) |
-| Secrets im Code | GitHub Secret Scanning, Push Protection |
-| XSS / Injection (SAST) | Snyk Code, CodeQL |
-| Container läuft als root | Snyk IaC, manuelle Helm-Review |
-| Docker-/IaC-Misconfigurations | Snyk IaC, helm lint, kubeconform |
+| Secrets im Code | GitHub Secret Scanning, Push Protection, Semgrep `p/secrets` |
+| XSS / Injection (SAST) | Semgrep, gosec, CodeQL |
+| Container läuft als root | Trivy IaC, manuelle Helm-Review |
+| Docker-/IaC-Misconfigurations | Trivy IaC, helm lint, kubeconform |
 | Auth/Authz-Fehler | Manuelles Code-Review, `/security-review` |
 | Mandantentrennung | Manuelles Code-Review, `/security-review` |
 | Business-Logik-Fehler | QA (`/qa`), manuelles Review |
@@ -90,14 +98,14 @@ Implementierung
 /deploy
 ```
 
-### Für Security-Findings (Dependabot / Snyk / Scanner)
+### Für Security-Findings (Dependabot / Scanner)
 
-1. Finding erkennen (Dependabot PR, Snyk-Alert, Scanner-Report)
-2. Auswirkung einschätzen: Ist die vulnerable Code-Path im Produktionseinsatz?
+1. Finding erkennen (Dependabot PR, GitHub Security-Tab, Scanner-Report)
+2. Auswirkung einschätzen: Ist der vulnerable Code-Path im Produktionseinsatz?
 3. Fix-Branch erstellen: `fix/security-<package>-<cve>`
 4. Fix minimal-invasiv umsetzen (Patch-Version bevorzugen vor Major-Upgrade)
 5. Tests, Lint, Build ausführen
-6. Snyk/govulncheck erneut scannen
+6. govulncheck / npm audit / Semgrep erneut scannen
 7. PR erstellen mit Referenz auf CVE
 8. Review und Merge
 
@@ -124,8 +132,8 @@ uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
 Wenn ein Finding als False Positive eingestuft wird:
 - Begründung in einem Kommentar im PR dokumentieren
-- Snyk-Inline-Suppression oder `.snyk`-Datei mit Kommentar (kein stilles Ignorieren)
-- Kein pauschales `snyk ignore --all`
+- Tool-spezifische Suppression mit Begründungs-Kommentar im Code (Semgrep: `// nosemgrep: <rule>`, gosec: `// #nosec G<code>`)
+- Kein pauschales Ignorieren ganzer Regeln/Verzeichnisse ohne dokumentierte Begründung
 
 ---
 
@@ -149,7 +157,7 @@ Folgende Bereiche erfordern bei Änderungen dediziertes `/security-review`:
 **Runtime-Hygiene:**
 - Frontend-Image läuft auf **Node 22 LTS** (Node 20 ist seit 2026-04-30 EOL; Bump vom 2026-05-17). Bei nächstem Runtime-Wechsel den `cycle`-Eintrag in `.github/workflows/eol-check.yml` und den `@types/node`-Ignore-Filter in `.github/dependabot.yml` nachziehen.
 - Monatlicher EOL-Check-Workflow (`.github/workflows/eol-check.yml`) fragt endoflife.date für Node / Go / PostgreSQL und öffnet ein GitHub-Issue, sobald eine Komponente innerhalb von 60 Tagen EOL erreicht.
-- Snyk-Container-Scan deckt 4 Base-Images ab (`node:22-alpine`, `golang:1.26-alpine`, `alpine:3.20`, `postgres:16-alpine`) — Ergänzung zur reaktiven EOL-Erkennung.
+- Trivy-Image-Scan im Docker-Publish-Workflow deckt die Backend- und Frontend-Images vor dem Push in die Registry ab (`exit-code 1` bei CRITICAL); Trivy IaC im `security-scan.yml` scannt die Dockerfile-Konfiguration selbst (HIGH+CRITICAL).
 
 ---
 
@@ -191,78 +199,70 @@ Die folgenden Punkte sind als known Issues dokumentiert und werden in nachfolgen
 
 ---
 
-## Lokale Snyk-Nutzung
+## Lokale Scanner-Nutzung
 
-### Installation und Authentifizierung
-
-```bash
-npm install -g snyk
-snyk auth          # öffnet Browser für OAuth-Login
-```
-
-Token wird lokal gespeichert — **niemals ins Repository committen**.
-
-### Dependency-Scan
+### Go-Stdlib + Module CVE-Scan
 
 ```bash
-# Go-Module
-snyk test --all-projects
-
-# npm
-snyk test
+go install golang.org/x/vuln/cmd/govulncheck@latest
+govulncheck ./...
 ```
 
-### SAST (Code-Scan)
+### npm-Dependency-Scan
 
 ```bash
-snyk code test
+npm audit --audit-level=high
 ```
 
-### IaC-Scan
-
-Helm-Templates enthalten Go-Template-Syntax (`{{ }}`), die kein valides YAML ist.
-Daher müssen die Templates zuerst gerendert werden:
+### SAST (Go-spezifisch) — gosec
 
 ```bash
-helm template member-onboarding helm/member-onboarding \
-  -f helm/member-onboarding/values.yaml \
-  > /tmp/rendered-helm.yaml
-
-snyk iac test /tmp/rendered-helm.yaml
+go install github.com/securego/gosec/v2/cmd/gosec@latest
+gosec -severity medium -confidence medium ./...
 ```
 
-Über Snyk MCP in Claude Code erfolgt dies automatisch beim `/security-review`.
-
-### Snyk in Claude Code (MCP)
-
-Snyk kann über das Model Context Protocol (MCP) in Claude Code eingebunden werden.
-Die Konfiguration erfolgt lokal über den `claude mcp` Befehl — **nicht ins Repository committen**.
+### SAST (Multi-Language) — Semgrep
 
 ```bash
-# Einmalige Einrichtung
-npm install -g snyk
-snyk auth                                              # Browser-Login
-claude mcp add --scope user -t stdio Snyk -- npx -y snyk@latest mcp -t stdio
+# CLI-Install (einmalig)
+python -m pip install semgrep   # ODER: brew install semgrep
+
+# Voller Scan mit den Regel-Paketen aus security-scan.yml
+semgrep scan \
+  --config=p/security-audit \
+  --config=p/owasp-top-ten \
+  --config=p/golang \
+  --config=p/typescript \
+  --config=p/react \
+  --config=p/secrets \
+  --severity=WARNING --severity=ERROR \
+  --metrics=off
 ```
 
-Danach Claude Code neu starten. Prüfen mit: `claude mcp list` → `Snyk: ✓ Connected`
+### IaC-Scan — Trivy
 
-**Hinweis:** `mcpServers` in `settings.json` ist kein unterstütztes Format — ausschließlich `claude mcp add` verwenden.
+```bash
+# Trivy installieren (einmalig)
+brew install trivy   # oder Paket-Manager der Wahl
+
+# Helm-Charts scannen
+trivy config helm/ --severity HIGH,CRITICAL
+
+# Dockerfiles + Repo-weite IaC
+trivy config . --severity HIGH,CRITICAL
+```
 
 ---
 
 ## Manuelle Schritte (einmalig einrichten)
 
-- [x] Snyk-Token lokal via `snyk auth` konfiguriert
-- [x] Snyk MCP lokal in Claude Code konfiguriert (`claude mcp add --scope user`)
-- [x] Snyk Code (SAST) für Organisation `marki4711` aktiviert
-- [x] Dependabot-Alerts aktiviert (`.github/dependabot.yml`)
+- [x] Dependabot-Alerts aktiviert (`.github/dependabot.yml` — `npm` + `gomod` + `github-actions`)
 - [x] GitHub Secret Scanning aktiviert
 - [x] GitHub Push Protection aktiviert
 - [x] GitHub Dependabot Security Updates aktiviert
 - [x] CodeQL aktiviert
-- [x] GitHub-Repository auf snyk.io importieren (für CI-Alerts im PR-Flow) — `snyk monitor` läuft auch in CI automatisch
-- [x] Snyk-GitHub-Action in `.github/workflows/snyk.yml` ergänzt — SAST + SCA (Go + npm), `SNYK_TOKEN` als GitHub Secret gesetzt
+- [x] gosec + Semgrep + Trivy in `.github/workflows/security-scan.yml` (SARIF-Upload in GitHub Security-Tab)
+- [x] Trivy-Image-Scan in `.github/workflows/docker-publish.yml` (Build-Block bei CRITICAL)
 
 ## Lizenz-Compliance
 
