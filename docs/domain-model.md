@@ -497,6 +497,89 @@ Rules:
 
 ---
 
+### 3.X `member_onboarding.customer_onboarding_submission` *(PROJ-71)*
+
+EEG-Customer-Onboarding (SaaS-Buchung durch EEG-Vorstand). Trennt strikt zwischen
+**Anmeldung** (linearer Lifecycle, historischer Akt) und **Vertrag** (zyklisch,
+laufende Beziehung). Anmeldung wird hier abgebildet, Vertrag im Event-Log (siehe 3.Y).
+
+Purpose:
+- Aufnahme aller Submit-Daten + AGB/AVV-Akzeptanz-Audit (Version + Timestamp + IP + User-Agent)
+- Confirm-Token-Verwaltung (TTL 7 Tage, single-use)
+- Owner-Reject-Pfad (Pre- oder Post-Confirm)
+- Hijacking-Schutz: max. eine `confirmed`-Submission pro `rc_number` via Partial-UNIQUE
+
+Status:
+- `awaiting_email_confirmation` — initial nach Submit, Confirm-Token aktiv
+- `confirmed` — nach Klick auf Bestätigungs-Link, Vertrag wird aktiviert
+- `owner_rejected` — Owner hat im BackOffice abgelehnt (Pre- oder Post-Confirm möglich)
+- `expired` — Confirm-Token abgelaufen (TTL überschritten)
+- `superseded` — neuere Submission für selbe RC hat diesen Eintrag ersetzt
+
+Fields (Kerngruppen):
+- Identität: `id` (UUID PK), `rc_number`, `vereinsname`, `legal_form`, `uid_number`
+- Rechnungsadresse: `billing_street`, `billing_street_number`, `billing_zip`, `billing_city`, `billing_country_code`
+- Vorstand: `board_name`, `board_email`, `board_phone`
+- AGB/AVV-Audit: `agb_accepted_at`, `agb_version`, `avv_accepted_at`, `avv_version`
+- Submit-Meta: `onboarding_ip`, `onboarding_user_agent`, `submitted_at`
+- Confirm-Token: `confirm_token`, `confirm_token_expires_at`, `email_confirmed_at`, `confirm_ip`, `confirm_user_agent`
+- Owner-Reject: `owner_rejected_at`, `rejection_reason`, `rejected_by_subject`
+- Status-Lifecycle: `status`, `superseded_at`, `superseded_by_submission_id`
+- Standard-Audit: `created_at`, `updated_at`
+
+Indexes:
+- `(rc_number, status)`
+- `(status, submitted_at DESC)`
+- Partial UNIQUE on `confirm_token` WHERE `confirm_token IS NOT NULL`
+- Partial UNIQUE on `rc_number` WHERE `status = 'confirmed'`
+
+Constraints:
+- CHECK `status IN ('awaiting_email_confirmation', 'confirmed', 'owner_rejected', 'expired', 'superseded')`
+- CHECK `legal_form IN ('verein', 'genossenschaft', 'gesellschaft')`
+
+Rules:
+- Submit erzeugt immer einen neuen Eintrag — kein Update bestehender Submissions.
+- Confirm setzt Status `confirmed`, persistiert `email_confirmed_at` + `confirm_ip/UA`,
+  und schreibt parallel ein `activated`-Event in `customer_onboarding_event_log`.
+- Owner-Reject mit `confirmed`-Vorgänger schreibt zusätzlich ein `suspended`-Event.
+- DSGVO-Recht-auf-Löschung: Submission löschbar; FKs aus dem Event-Log auf
+  `caused_by_submission_id` haben `ON DELETE SET NULL`.
+
+### 3.Y `member_onboarding.customer_onboarding_event_log` *(PROJ-71)*
+
+Append-only Event-Log für den Vertragsstatus. Source-of-Truth für „ist EEG aktiv?".
+
+Purpose:
+- Vollständiger Audit-Trail über Aktivierungs- und Suspendierungs-Zyklen
+- Entkopplung Submission-Lifecycle (linear) von Vertrag-Lifecycle (zyklisch)
+- Erweiterbar für künftige Billing-Events (`payment_failed`, `mandate_revoked`)
+  ohne Schema-Migration des Submission-Modells
+
+Fields:
+- `id` (UUID PK)
+- `rc_number` — kein FK, EEG-Decommissioning soll Event-Log nicht kaskadieren
+- `event_type` — CHECK `IN ('activated', 'suspended', 'reactivated', 'terminated', 'note')`
+- `event_at` — `TIMESTAMPTZ NOT NULL DEFAULT NOW()`
+- `actor_kind` — CHECK `IN ('human', 'system', 'webhook')`
+- `actor_subject` — Keycloak-Subject bei human, `"system"` bei automatischen, Webhook-ID bei webhook
+- `reason_code` — Freitext-Enum (z.B. `email_confirmed`, `owner_decision`, `payment_failed`)
+- `reason_text` — optional, längere Beschreibung
+- `caused_by_submission_id` — UUID NULL, FK auf `customer_onboarding_submission(id)` ON DELETE SET NULL
+- `created_at`
+
+Indexes:
+- `idx_coe_rc_event_at_desc` `(rc_number, event_at DESC)` — Hot-Path für `CheckContract`
+
+Rules:
+- **Append-only** — keine UPDATE/DELETE im Application-Code, nur INSERT.
+- `CheckContract(rc_number)` liest das jüngste Event (`ORDER BY event_at DESC LIMIT 1`)
+  und leitet daraus `active`/`suspended` ab.
+- Bestandsschutz-Migration `000064` schreibt für bereits existierende EEGs ein initiales
+  `activated`-Event mit `actor_kind='system'`, `reason_code='legacy_bestandsschutz'`.
+- Multi-Tenant-Isolation: `rc_number` muss bei jedem Lese-Pfad explizit gefiltert werden.
+
+---
+
 ## 4. Status Model
 
 Allowed status values (12):

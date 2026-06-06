@@ -2276,3 +2276,231 @@ will receive `401` from this point onwards.
 ### Response 204
 
 No body.
+
+## 9. Customer Onboarding API *(PROJ-71)*
+
+EEG-Customer-Onboarding: ein EEG-Vorstand bucht die SaaS-Plattform. Die
+Public-Endpunkte sind unauthentifiziert (mit Turnstile + Rate-Limit), die
+Admin-Endpunkte sind Keycloak-geschützt und Owner-only (Superuser-Flag im JWT).
+
+## 9.1 Submit customer onboarding
+
+### POST `/api/customer/onboarding`
+
+Public endpoint. Rate-limited (10 req/10 min per IP), Turnstile-protected when
+`TURNSTILE_SECRET_KEY` is set. Validates the RC number against
+`member_onboarding.registration_entrypoint`, creates a
+`customer_onboarding_submission` row with status `awaiting_email_confirmation`,
+and triggers a background goroutine that generates the AVV-PDF and sends the
+confirmation email to the board member.
+
+### Request body
+
+```json
+{
+  "rcNumber": "RC-12345",
+  "legalForm": "verein",
+  "vereinsname": "Musterbetrieb GmbH",
+  "uidNumber": "ATU12345678",
+  "billingStreet": "Musterstraße",
+  "billingStreetNumber": "42",
+  "billingZip": "1010",
+  "billingCity": "Wien",
+  "billingCountryCode": "AT",
+  "boardName": "Max Mustermann",
+  "boardEmail": "max.mustermann@example.org",
+  "boardPhone": "+43 1 234567",
+  "agbVersion": "1.0",
+  "avvVersion": "1.0",
+  "turnstileToken": "0.xxxx"
+}
+```
+
+### Response 201
+
+```json
+{ "submissionId": "11111111-2222-3333-4444-555555555555" }
+```
+
+### Errors
+- `400` — validation error
+- `404` — RC number unknown or inactive
+- `409` — already a confirmed submission for this RC
+- `429` — rate limit exceeded
+
+## 9.2 Confirm onboarding email
+
+### POST `/api/customer/onboarding/confirm-email`
+
+Public endpoint. Validates the confirm-token (32-byte urlsafe-base64,
+single-use, 7-day TTL). On success: marks submission `confirmed`, persists
+`email_confirmed_at`+`confirm_ip`+`confirm_user_agent`, upserts the
+`registration_entrypoint` row, and appends an `activated` event to
+`customer_onboarding_event_log`. Background goroutine then sends the welcome
+email to the board and a notification to the owner.
+
+### Request body
+
+```json
+{ "token": "8XKy2…urlsafe-base64-32" }
+```
+
+### Response 200
+
+```json
+{ "rcNumber": "RC-12345", "vereinsname": "Musterbetrieb GmbH" }
+```
+
+### Errors
+- `400` — token missing or malformed
+- `410` — token expired, already used, or submission in terminal state
+
+## 9.3 List customer onboarding submissions (admin)
+
+### GET `/api/admin/customer-onboarding/submissions`
+
+Owner-only. Optional query param `status` filters by lifecycle value.
+
+### Response 200
+
+```json
+[
+  {
+    "id": "uuid",
+    "rcNumber": "RC-12345",
+    "vereinsname": "Musterbetrieb GmbH",
+    "boardName": "Max Mustermann",
+    "boardEmail": "max.mustermann@example.org",
+    "status": "confirmed",
+    "agbVersion": "1.0",
+    "avvVersion": "1.0",
+    "submittedAt": "2026-06-05T10:00:00Z",
+    "activatedAt": "2026-06-05T10:08:00Z",
+    "rejectedAt": null,
+    "otherForRCCount": 0
+  }
+]
+```
+
+## 9.4 Get customer onboarding detail (admin)
+
+### GET `/api/admin/customer-onboarding/submissions/{id}`
+
+Owner-only. Returns the submission, all other submissions for the same RC, and
+the current contract status derived from the event log.
+
+### Response 200
+
+```json
+{
+  "submission": { "id": "uuid", "status": "confirmed", "...": "..." },
+  "otherSubmissions": [],
+  "contract": {
+    "active": true,
+    "latestEventType": "activated",
+    "latestEventAt": "2026-06-05T10:08:00Z",
+    "latestReasonCode": "email_confirmed",
+    "latestReasonText": "",
+    "latestActorKind": "system",
+    "latestActorSubject": "system",
+    "suspendedSince": null
+  }
+}
+```
+
+## 9.5 Reject customer onboarding submission (admin)
+
+### POST `/api/admin/customer-onboarding/submissions/{id}/reject`
+
+Owner-only. Behavior depends on current status:
+- **Pre-Confirm** (`awaiting_email_confirmation`): pure status transition to
+  `owner_rejected`, no event written.
+- **Post-Confirm** (`confirmed`): also appends a `suspended` event with
+  `reason_code='owner_decision'`. The contract is immediately treated as
+  inactive; the Soft-Suspend guards (9.7) take effect.
+
+If `notifyMember=true`, a reject mail is sent to the board member with
+hard-fail semantics — failed mail aborts the reject.
+
+### Request body
+
+```json
+{ "reason": "Plausibilitätsprüfung negativ", "notifyMember": true }
+```
+
+### Response 200
+
+```json
+{ "status": "owner_rejected" }
+```
+
+### Errors
+- `400` — reason missing
+- `404` — submission not found
+- `409` — submission in a non-rejectable status
+- `502` — mail send failed (hard-fail; reject rolled back)
+
+## 9.6 Get tenant onboarding status (admin)
+
+### GET `/api/admin/customer-onboarding/status?rc_number=...`
+
+Returns the tenant-card data for the `/admin/settings/` page. Requires
+Keycloak auth + tenant access (RC number must be in `RCNumbers` claim or
+caller must be superuser).
+
+### Response 200
+
+Four possible states:
+
+```json
+{ "state": "none" }
+```
+
+```json
+{
+  "state": "awaiting_email_confirmation",
+  "boardEmail": "max.mustermann@example.org",
+  "submittedAt": "2026-06-05T10:00:00Z"
+}
+```
+
+```json
+{
+  "state": "activated",
+  "boardEmail": "...",
+  "boardName": "...",
+  "boardPhone": "+43 1 234567",
+  "agbVersion": "1.0",
+  "agbAcceptedAt": "2026-06-05T10:00:00Z",
+  "avvVersion": "1.0",
+  "avvAcceptedAt": "2026-06-05T10:00:00Z",
+  "submittedAt": "...",
+  "activatedAt": "...",
+  "submissionId": "uuid"
+}
+```
+
+```json
+{
+  "state": "suspended",
+  "rejectedAt": "...",
+  "rejectionReason": "Plausibilitätsprüfung negativ",
+  "submissionId": "uuid"
+}
+```
+
+## 9.7 Soft-Suspend guard *(PROJ-71)*
+
+Six existing admin endpoints are Soft-Suspend-protected. If the addressed
+tenant's contract is currently `suspended`, they respond with `403` and a
+generic message. Affected endpoints:
+
+- `POST /api/admin/applications/{id}/import`
+- `GET  /api/admin/applications/export` (Excel)
+- `GET  /api/admin/applications/{id}/approval-pdf`
+- `POST /api/admin/reconciliation/run` (PROJ-69)
+- `POST /api/admin/eeg/resync-from-core` (PROJ-32)
+- `POST /api/admin/sepa-mandate/renewal`
+
+The contract checker is fail-open: on DB-lookup error, the endpoint is allowed
+through (availability > strictness), and the error is logged.
