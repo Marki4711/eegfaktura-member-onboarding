@@ -2298,34 +2298,28 @@ Vertragsstatus lebt im `customer_onboarding_event_log`.
 ### POST `/api/admin/customer-onboarding/submit`
 
 Keycloak-JWT-protected. Der `rcNumber` im Body muss in der `RCNumbers`-Claim
-des Aufrufers enthalten sein (oder Superuser). Erzeugt eine
-`customer_onboarding_submission`-Zeile im Status `submitted` und feuert
-asynchron eine Owner-Notification-Mail an `CUSTOMER_ONBOARDING_OWNER_EMAIL`.
+des Aufrufers enthalten sein (oder Superuser). Variante B 2026-06-06:
+Stammdaten kommen LIVE aus `registration_entrypoint` (PROJ-32-Sync), nur
+der RC + die zwei Akzept-Booleans werden uebertragen.
+
+Backend-Ablauf:
+1. Laed Stammdaten aus `registration_entrypoint` (Pflicht — sonst 404).
+2. Generiert AVV-PDF SYNCHRON aus den Live-Stammdaten.
+3. Persistiert Submission im Status `submitted` zusammen mit dem PDF-Blob.
+4. Feuert asynchron Owner-Notification-Mail an `CUSTOMER_ONBOARDING_OWNER_EMAIL`.
 
 ### Request body
 
 ```json
 {
   "rcNumber": "RC-12345",
-  "legalForm": "verein",
-  "vereinsname": "Musterbetrieb GmbH",
-  "uidNumber": "ATU12345678",
-  "billingStreet": "Musterstraße",
-  "billingStreetNumber": "42",
-  "billingZip": "1010",
-  "billingCity": "Wien",
-  "billingCountryCode": "AT",
-  "boardName": "Max Mustermann",
-  "boardEmail": "max.mustermann@example.org",
-  "boardPhone": "+43 1 234567",
   "agbAccepted": true,
   "avvAccepted": true
 }
 ```
 
 `agbAccepted` und `avvAccepted` müssen beide `true` sein. Die Versionen werden
-serverseitig aus `AGBVersion` / `AVVVersion`-Konstanten gestempelt und gegen
-Migrations-Identitäten der Markdown-Dateien gehalten.
+serverseitig aus `AGBVersion` / `AVVVersion`-Konstanten gestempelt.
 
 ### Response 201
 
@@ -2336,7 +2330,9 @@ Migrations-Identitäten der Markdown-Dateien gehalten.
 ### Errors
 - `400` — validation error
 - `403` — Tenant-Mismatch (RC nicht in Claims) oder fehlende Auth
+- `404` — kein `registration_entrypoint`-Stub fuer die RC (Admin-Auto-Sync nicht gelaufen)
 - `409` — bereits eine `submitted`- oder `approved`-Submission für diese RC
+- `500` — PDF-Generierung fehlgeschlagen (kein Submission-Insert)
 
 ## 9.2 List customer onboarding submissions (admin)
 
