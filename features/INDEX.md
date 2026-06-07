@@ -88,5 +88,6 @@ Central tracking for all features.
 | PROJ-72 | Member-Onboarding-Cockpit — Superuser-Übersicht aller EEGs unter `/admin/cockpit` mit Aktiv-Badge, Customer-Onboarding-State, Anträge-Pipeline (offen/erledigt) und Direkt-Links zu Anträgen & Einstellungen. Default-Sort nach Aktivität, alternativ nach Pipeline-Größe oder RC alphabetisch. Volltextsuche RC/Name. Live-Aggregation pro Aufruf. | Planned | `features/PROJ-72-member-onboarding-cockpit.md` | 2026-06-06 |
 | PROJ-73 | Cleanup: verwaisten EEG-Toggle `use_company_sepa_mandate` entfernt — Domain-Logik seit PROJ-48 funktionslos; Toggle verwirrt Admins, die ihn umlegen und sehen, dass nichts passiert. Migration 000066 + Settings-UI-Aufräumung + Doku. | In Progress | `features/PROJ-73-cleanup-use-company-sepa-mandate.md` | 2026-06-06 |
 | PROJ-74 | B2B-Mandat-Gate-Fix: `buildSEPAMandateData` durchlässt B2B-Anträge auch bei `SEPAMandateEnabled=false` (SEPA-Rulebook erlaubt keine Online-Zustimmung für Firmenlastschrift). Hart-Fail beim Import wenn Stammdaten fehlen. UI-Klarstellung an beiden SEPA-Toggles via Hint-Popover. | Planned | `features/PROJ-74-b2b-mandate-gate-fix.md` | 2026-06-06 |
+| PROJ-75 | SEPA-Einwilligungs-Checkbox in Bankverbindungs-Card verschoben — direkt unter den Konto-Eingabefeldern statt im allgemeinen Einwilligungsblock; neuer Text mit EEG-Name + Creditor-ID aus PROJ-32-Sync. | In Progress | `features/PROJ-75-sepa-consent-checkbox-relocation.md` | 2026-06-06 |
 
-## Next Available ID: PROJ-75
+## Next Available ID: PROJ-76

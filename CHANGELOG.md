@@ -10,6 +10,24 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### UX — PROJ-75: SEPA-Einwilligungs-Checkbox in der Bankverbindungs-Card *(2026-06-06)*
+
+Tester-Wunsch 2026-06-06: Die SEPA-Einwilligungs-Checkbox im öffentlichen
+Anmeldeformular saß bisher im allgemeinen Einwilligungsblock — weit weg
+von den Konto-Eingabefeldern. Neuer Platz: direkt unter den
+Eingabefeldern IBAN/Kontoinhaber:in/Bankname in der Bankverbindungs-Card.
+
+Außerdem zeigt der neue Text den konkreten EEG-Namen und die Creditor-ID,
+die aus dem Public-Registration-Config-Payload kommen (Backend liefert
+`eegName` und `creditorId` neu im
+`GET /api/public/registration/{rc_number}`-Endpoint).
+
+Fallback-Verhalten: wenn EEG noch keinen PROJ-32-Sync gemacht hat,
+greift ein generischer Text ohne Namen; die Creditor-Zeile wird
+ausgeblendet, wenn die ID leer ist. Sichtbarkeits-Bedingung der Checkbox
+bleibt unverändert (`sepaMandateEnabled=false` = Online-Zustimmungs-
+Lösung).
+
 ### Fix — PROJ-74: B2B-Mandate trotz `SEPAMandateEnabled=false` + Hart-Fail-Schutz *(2026-06-06)*
 
 Aufgedeckt durch Tester-Befund 2026-06-06: bei `SEPAMandateEnabled=false`
