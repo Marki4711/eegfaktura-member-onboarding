@@ -1265,6 +1265,7 @@ Wenn du einen Antrag bereits per Import-Button verarbeitet hast und die Mitglied
 </ul>
 <p><strong>Mitgliedstypen</strong> und <strong>Pflichtfelder</strong> orientieren sich an der <code>field_config</code> der EEG — die gleichen Regeln wie im öffentlichen Formular. Für <code>private</code>/<code>farmer</code> sind <code>firstname</code> + <code>lastname</code> Pflicht, für <code>company</code>/<code>municipality</code>/<code>association</code> ist <code>companyName</code> Pflicht.</p>
 <p><strong>Vollständige technische Referenz</strong> (alle Felder, Validierungen, Fehler-Codes, Mitgliedstyp-Details): <a href="https://github.com/Marki4711/eegfaktura-member-onboarding/blob/main/docs/api-spec.md#8-external-api">API-Spezifikation, Sektion „External API"</a>.</p>
+<p><strong>Neu seit Juni 2026:</strong> Du kannst im Request-Body das optionale Feld <code>submitterIp</code> mitgeben (z.B. <code>"submitterIp": "203.0.113.42"</code>). Wenn dein Backend die End-User-IP aus dem ursprünglichen Browser-Request kennt, dokumentiert die Plattform sie als Audit-Trail im SEPA-Firmenlastschrift-Mandat-PDF (rechtskonform nach § 76 (3) EIWOG 2010). Ohne dieses Feld wird das PDF im klassischen Format mit Datum/Unterschriftsfeld erstellt.</p>
 <hr />
 <h2 id="datenweiterleitung">Datenweiterleitung<a class="headerlink" href="#datenweiterleitung" title="Permanent link">&para;</a></h2>
 <p><img alt="Datenweiterleitung" src="../images/admin-settings-datenweiterleitung.png" /></p>

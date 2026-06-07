@@ -694,6 +694,17 @@
 <p>Übersicht der Änderungen der letzten Tage, die für <strong>EEG-Admins</strong> und <strong>Mitglieder</strong> spürbar sind. Technische Details, Bug-Fixes ohne UI-Auswirkung und Infrastruktur-Themen sind hier bewusst weggelassen — die finden sich in der Commit-Historie.</p>
 <hr />
 <h2 id="2026-06-07">2026-06-07<a class="headerlink" href="#2026-06-07" title="Permanent link">&para;</a></h2>
+<p><strong>SEPA-Firmenlastschrift-PDF mit elektronischem Audit-Trail</strong></p>
+<p>Bei SEPA-Firmenlastschrift-Mandaten (<code>einzugsart=b2b</code>) erscheint im PDF nicht mehr ein leeres Datums- und Unterschriftsfeld, sondern ein Audit-Trail-Text, der die elektronische Zustimmung deines Mitglieds rechtskonform dokumentiert:</p>
+<blockquote>
+<p>Der Kunde hat der <strong>\&lt;EEG-Name&gt;</strong> nach Verifizierung seiner E-Mail-Adresse am <strong>\&lt;Datum&gt;</strong> <strong>\&lt;Uhrzeit&gt;</strong> von der IP-Adresse <strong>\&lt;IP&gt;</strong> auf elektronischem Weg (formfreie Willenserklärung gem. § 76 (3) EIWOG 2010) seine Zustimmung zum Vertrag im obigen Sinne sowie für das SEPA-Lastschriftmandat erteilt.</p>
+</blockquote>
+<p>Das Mitglied muss das PDF dadurch <strong>nicht mehr physisch unterschreiben</strong> — die elektronische Zustimmung gilt als formfreie Willenserklärung gemäß EIWOG.</p>
+<p><strong>Voraussetzungen für den Audit-Trail:</strong>
+- Der Antrag wurde nach dem 7. Juni 2026 eingereicht.
+- Für Anträge aus deiner eigenen Website-Integration über die externe API: dein Backend muss die End-User-IP im neuen <code>submitterIp</code>-Body-Feld mitliefern (siehe API-Beschreibung im Settings-Bereich).</p>
+<p><strong>Was passiert mit alten Anträgen?</strong> Bestandsanträge (vor Juni 2026 eingereicht) erhalten weiterhin das klassische Mandat-PDF mit Datum/Unterschriftsfeld — sie wurden ohne IP-Erfassung gespeichert.</p>
+<p><strong>Hinweis Core-Mandat:</strong> Diese Änderung betrifft <strong>nur</strong> SEPA-Firmenlastschrift-Mandate (B2B). Das Basis-SEPA-Mandat für Privat-Mitglieder bleibt im klassischen Format mit Datum/Unterschriftsfeld.</p>
 <p><strong>Vorstands-Genehmigungs-Workflow</strong></p>
 <p>Neuer Toggle „Beitrittserklärung vom Vorstand genehmigen lassen, statt Beitrittsbestätigung automatisch zu versenden" in den EEG-Einstellungen (Alle Optionen). Wenn aktiv:</p>
 <ul>
