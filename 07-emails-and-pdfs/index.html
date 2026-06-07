@@ -667,7 +667,7 @@ eines Antrags.</p>
 <td><strong>Beitrittsbestätigung</strong> (die formale Mitgliedschafts-Bestätigung)</td>
 <td>beim Wechsel auf Status „Aktiviert"</td>
 <td>Beitrittsbestätigungs-PDF (volles Antrags-Detail + Mitgliedsnummer)</td>
-<td>sowohl beim regulären <code>ready_for_activation → activated</code> als auch beim manuellen Skip-Import <code>approved → activated</code>. Wird <strong>genau einmal</strong> verschickt (auch bei mehrfachen Status-Wechseln).</td>
+<td>sowohl beim regulären <code>ready_for_activation → activated</code> als auch beim manuellen Skip-Import <code>approved → activated</code>. Wird <strong>genau einmal</strong> verschickt (auch bei mehrfachen Status-Wechseln). <strong>Entfällt, wenn die EEG den Vorstands-Genehmigungs-Workflow aktiviert hat</strong> — dann gibt es stattdessen Mail-Nr. C′ an den EEG-Kontakt. Das Mitglied wird in diesem Fall über die reguläre eegFaktura-Aktivierungs-Mail vom Core informiert.</td>
 </tr>
 </tbody>
 </table>
@@ -700,6 +700,12 @@ eines Antrags.</p>
 <td><strong>Mitglied aktiviert</strong></td>
 <td>parallel zu Mitglieder-Mail #6 (Wechsel auf „Aktiviert")</td>
 <td>gleiche Beitrittsbestätigungs-PDF wie das Mitglied</td>
+</tr>
+<tr>
+<td>C′</td>
+<td><strong>Beitrittserklärung zur Unterzeichnung</strong></td>
+<td>beim Wechsel auf „Aktiviert", wenn die EEG den Vorstands-Genehmigungs-Workflow aktiviert hat</td>
+<td>Beitrittserklärungs-PDF mit Vorstands-Signaturblock am Ende. Vorstand unterschreibt und leitet manuell ans Mitglied weiter. Mail-Nr. 6 an das Mitglied entfällt; das Mitglied wird über die reguläre eegFaktura-Aktivierungs-Mail informiert. <strong>Pflicht-Bedingung:</strong> EEG-Kontakt-Mail muss gepflegt sein, sonst bricht der Aktivierungs-Übergang ab.</td>
 </tr>
 </tbody>
 </table>

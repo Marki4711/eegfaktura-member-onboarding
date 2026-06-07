@@ -329,6 +329,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#2026-06-07" class="md-nav__link">
+    <span class="md-ellipsis">
+      2026-06-07
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#2026-06-01" class="md-nav__link">
     <span class="md-ellipsis">
       2026-06-01
@@ -683,6 +692,17 @@
 
 <h1 id="was-ist-neu">Was ist neu?<a class="headerlink" href="#was-ist-neu" title="Permanent link">&para;</a></h1>
 <p>Übersicht der Änderungen der letzten Tage, die für <strong>EEG-Admins</strong> und <strong>Mitglieder</strong> spürbar sind. Technische Details, Bug-Fixes ohne UI-Auswirkung und Infrastruktur-Themen sind hier bewusst weggelassen — die finden sich in der Commit-Historie.</p>
+<hr />
+<h2 id="2026-06-07">2026-06-07<a class="headerlink" href="#2026-06-07" title="Permanent link">&para;</a></h2>
+<p><strong>Vorstands-Genehmigungs-Workflow</strong></p>
+<p>Neuer Toggle „Beitrittserklärung vom Vorstand genehmigen lassen, statt Beitrittsbestätigung automatisch zu versenden" in den EEG-Einstellungen (Alle Optionen). Wenn aktiv:</p>
+<ul>
+<li>Beim Wechsel auf „Aktiviert" geht eine Beitrittserklärung mit Vorstands-Signaturblock an den EEG-Kontakt statt einer Beitrittsbestätigung an das Mitglied.</li>
+<li>Der Vorstand unterschreibt das Dokument und leitet es per Hand an das Mitglied weiter.</li>
+<li>Das Mitglied bekommt die reguläre Aktivierungs-Mail aus eegFaktura und weiß so, dass sein Status auf „Aktiviert" steht — nur die zusätzliche Plattform-Mail entfällt.</li>
+<li>Im Antrags-Detail erscheint nach erfolgreicher Aktivierung ein blauer Hinweisblock plus ein Knopf „Beitrittserklärung herunterladen". Damit kannst du das PDF jederzeit neu erzeugen, z. B. wenn der Vorstand das Dokument verlegt hat.</li>
+</ul>
+<p><strong>Hinweis:</strong> Wenn der Toggle aktiv ist, muss die EEG-Kontakt-Mail gepflegt sein. Fehlt sie, bricht der Aktivierungs-Übergang ab — der Antrag bleibt im vorherigen Status, du siehst die Fehlermeldung direkt.</p>
 <hr />
 <h2 id="2026-06-01">2026-06-01<a class="headerlink" href="#2026-06-01" title="Permanent link">&para;</a></h2>
 <p><strong>Stammdaten aktivierter Mitglieder mit eegFaktura abgleichen</strong></p>
