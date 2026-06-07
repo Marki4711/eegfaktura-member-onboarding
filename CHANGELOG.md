@@ -10,6 +10,49 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Feature — PROJ-76: Vorstands-Genehmigungs-Workflow für Beitrittserklärung *(2026-06-07)*
+
+Per-EEG-Toggle, der den Aktivierungs-Mail-Pfad umstellt. Hintergrund:
+manche EEGs wollen die Beitrittsbestätigung nicht automatisch ans Mitglied
+versenden, sondern durch den Vorstand formell genehmigen lassen
+(Statuten-Anforderung Aufnahmebeschluss, Bedarf an unterschriebener
+Bestätigung).
+
+**Bei aktivem Toggle:**
+- Beim Wechsel auf „Aktiviert" entfällt die Member-Beitrittsbestätigungs-
+  Mail über die Plattform komplett.
+- Stattdessen geht eine **Beitrittserklärung** (mit Vorstands-
+  Signaturblock am Ende) an den EEG-Kontakt. Vorstand unterschreibt
+  manuell und leitet ans Mitglied weiter.
+- Das Mitglied wird über die reguläre eegFaktura-Core-Aktivierungs-Mail
+  über seinen Status informiert (Core-Pfad, läuft unabhängig).
+- **Sync hard-fail vor Commit**: bei fehlendem `contact_email` oder
+  SMTP-Outage rollt der Status-Wechsel zurück, der Antrag bleibt im
+  vorherigen Status. Admin sieht aussagekräftige Fehlermeldung.
+
+**Download-Knopf im Antrags-Detail:** ein blauer Info-Block mit
+Versand-Datum + „Beitrittserklärung herunterladen" macht das PDF
+jederzeit on-demand verfügbar. Nützlich, wenn der Vorstand das
+Dokument verlegt hat.
+
+**Technisches:**
+- Single PDF-Renderer mit Variant-Parameter (kein Code-Duplikat).
+- Separate Spalte `application.board_declaration_sent_at` neben
+  `activation_notification_sent_at` — saubere semantische Trennung der
+  Mail-Events; bei ResetImport werden beide Spalten synchron auf NULL
+  gesetzt.
+- Bug-Fix als Beifang: `activation_notification_sent_at` war im
+  ResetImport-Pfad bisher **nicht** zurückgesetzt — Re-Aktivierungen im
+  Auto-Modus hätten keine Mail mehr versandt. Mit PROJ-76 mitgefixed.
+- Toggle ist Teil des PROJ-67-Awareness-Triggers (Erweitert-Modus).
+- Configexport (PROJ-61) toleriert Pre-PROJ-76-Bundles (Schema-Feld
+  ist `*bool, omitempty`).
+- Migrations 000067 + 000068 (zwei `ALTER ADD COLUMN`, beide
+  nicht-blocking auf PostgreSQL).
+
+PROJ-65 (Vorstands-Signaturblock im bestehenden PDF, Planned) wird
+durch PROJ-76 vollständig abgedeckt und ist auf **Superseded** gesetzt.
+
 ### UX — PROJ-75: SEPA-Einwilligungs-Checkbox in der Bankverbindungs-Card *(2026-06-06)*
 
 Tester-Wunsch 2026-06-06: Die SEPA-Einwilligungs-Checkbox im öffentlichen

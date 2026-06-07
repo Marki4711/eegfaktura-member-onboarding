@@ -1357,7 +1357,8 @@ Returns the EEG settings — the eight Core-mastered fields (PROJ-32) plus the o
   "activationMode": "participant_active",
   "cooperativeSharesEnabled": true,
   "cooperativeRequiredShares": 1,
-  "cooperativeShareAmountCents": 10000
+  "cooperativeShareAmountCents": 10000,
+  "boardApprovalWorkflowEnabled": false
 }
 ```
 
@@ -1366,6 +1367,8 @@ Returns the EEG settings — the eight Core-mastered fields (PROJ-32) plus the o
 `registrationActive` is `false` by default. `sepaMandateEnabled` and `sepaMandateAtImport` (PROJ-48) default to `false`. (PROJ-73 removed the obsolete `useCompanySEPAMandate` EEG toggle; B2B/Core mandate selection now lives exclusively in the per-application `einzugsart` field.) `showCentralPolicy` defaults to `true`. `memberNumberStart` defaults to `1`. `requireEmailConfirmation` (PROJ-31) defaults to `false`.
 
 `cooperativeSharesEnabled` (PROJ-37) defaults to `false`. When `true`, both `cooperativeRequiredShares` (positive integer, minimum mandatory shares per member) and `cooperativeShareAmountCents` (positive integer, price per share in cents) are returned. When `false`, those two value fields are omitted.
+
+`boardApprovalWorkflowEnabled` (PROJ-76) defaults to `false`. When `true`, the `→ activated` transition sends a **Beitrittserklärung** (with Vorstands-Signaturblock) to the EEG contact instead of an automatic Beitrittsbestätigung to the member. The board signs manually and forwards the document; the member is informed via the regular eegFaktura-Core activation mail. Status transition is sync hard-fail: missing `contact_email` or SMTP failure rolls back the activation.
 
 ### Errors
 - `400` missing `rc_number`
@@ -1394,7 +1397,8 @@ Writes the onboarding-only editable fields. The Core-mastered fields (`eegId`, `
   "activationMode": "any_meter_registration_started",
   "cooperativeSharesEnabled": true,
   "cooperativeRequiredShares": 1,
-  "cooperativeShareAmountCents": 10000
+  "cooperativeShareAmountCents": 10000,
+  "boardApprovalWorkflowEnabled": false
 }
 ```
 

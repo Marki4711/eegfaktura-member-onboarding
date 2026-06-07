@@ -115,7 +115,7 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 
 | ID | Feature |
 |----|---------|
-| PROJ-65 | Vorstands-Signaturblock im Beitrittsbestätigungs-PDF (per-EEG-Toggle, Default aus) |
+| ~~PROJ-65~~ | ~~Vorstands-Signaturblock im Beitrittsbestätigungs-PDF~~ — Superseded durch PROJ-76 |
 | PROJ-67 | Basic-/Advanced-Modus für Einstellungen — reduzierte Sicht für kleine EEGs |
 | PROJ-69 | Reconciliation-basierter Billing-Backstop — Free-Rider-Detection via periodischem Core-Match (IBAN+E-Mail), setzt `faktura_handover_at` rückwirkend |
 | PROJ-70 | Stammdaten-Resync für aktivierte Anträge — On-Demand-Pull von Core-Werten pro Antrag, bei IBAN-/Kontoinhaber-Wechsel SEPA-Mandat-Invalidierung + Rückfall auf `awaiting_bank_confirmation` |
@@ -124,6 +124,7 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 | PROJ-73 | Cleanup: verwaisten EEG-Toggle `use_company_sepa_mandate` entfernt — Domain-Logik seit PROJ-48 funktionslos; Settings-UI aufgeräumt, Migration 000066 |
 | PROJ-74 | B2B-Mandat-Gate-Fix — `buildSEPAMandateData` lässt B2B-Anträge auch bei `SEPAMandateEnabled=false` durch (SEPA-Rulebook), Hart-Fail bei fehlenden Stammdaten, UI-Klarstellung an den SEPA-Toggles |
 | PROJ-75 | SEPA-Einwilligungs-Checkbox in Bankverbindungs-Card verschoben, mit EEG-spezifischem Text + Creditor-ID |
+| PROJ-76 | Vorstands-Genehmigungs-Workflow für Beitrittserklärung — per-EEG-Toggle, eigenes PDF mit Vorstands-Signaturblock, Mail-Routing-Wechsel und On-Demand-Download im Admin-UI; supersedes PROJ-65 |
 
 ### On Hold
 

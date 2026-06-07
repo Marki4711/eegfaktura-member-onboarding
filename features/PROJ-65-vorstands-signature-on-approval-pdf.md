@@ -1,9 +1,21 @@
 # PROJ-65 — Vorstands-Signaturblock im Beitrittsbestätigungs-PDF
 
-**Status:** Planned
+**Status:** Superseded (durch PROJ-76, 2026-06-07)
 **Created:** 2026-05-30
 **Owner:** TBD
 **Source:** Tester-Feedback (Dani Strasser, 2026-05-30)
+
+> **Superseded-Hinweis:** PROJ-65 hätte nur einen Signaturblock am Ende des
+> bestehenden Beitrittsbestätigungs-PDF ergänzt, ohne das Mail-Routing zu
+> ändern (Mitglied bekommt das PDF weiter automatisch). Owner hat sich
+> 2026-06-07 für die größere Workflow-Lösung entschieden: PROJ-76 trennt
+> Auto-Modus und Vorstands-Genehmigungs-Modus per EEG-Toggle, generiert
+> bei aktivem Toggle ein eigenes **Beitrittserklärungs-PDF** mit Signaturblock
+> und routet die Mail an den EEG-Kontakt statt ans Mitglied. PROJ-65 wird
+> nicht implementiert; sein Anwendungsfall (Statuten-konforme Vorstands-
+> Signatur) ist von PROJ-76 vollständig abgedeckt.
+>
+> Siehe `features/PROJ-76-board-approval-workflow.md`.
 
 ## Hintergrund
 

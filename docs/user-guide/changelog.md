@@ -4,6 +4,21 @@
 
 ---
 
+## 2026-06-07
+
+**Vorstands-Genehmigungs-Workflow**
+
+Neuer Toggle „Beitrittserklärung vom Vorstand genehmigen lassen, statt Beitrittsbestätigung automatisch zu versenden" in den EEG-Einstellungen (Alle Optionen). Wenn aktiv:
+
+- Beim Wechsel auf „Aktiviert" geht eine Beitrittserklärung mit Vorstands-Signaturblock an den EEG-Kontakt statt einer Beitrittsbestätigung an das Mitglied.
+- Der Vorstand unterschreibt das Dokument und leitet es per Hand an das Mitglied weiter.
+- Das Mitglied bekommt die reguläre Aktivierungs-Mail aus eegFaktura und weiß so, dass sein Status auf „Aktiviert" steht — nur die zusätzliche Plattform-Mail entfällt.
+- Im Antrags-Detail erscheint nach erfolgreicher Aktivierung ein blauer Hinweisblock plus ein Knopf „Beitrittserklärung herunterladen". Damit kannst du das PDF jederzeit neu erzeugen, z. B. wenn der Vorstand das Dokument verlegt hat.
+
+**Hinweis:** Wenn der Toggle aktiv ist, muss die EEG-Kontakt-Mail gepflegt sein. Fehlt sie, bricht der Aktivierungs-Übergang ab — der Antrag bleibt im vorherigen Status, du siehst die Fehlermeldung direkt.
+
+---
+
 ## 2026-06-01
 
 **Stammdaten aktivierter Mitglieder mit eegFaktura abgleichen**

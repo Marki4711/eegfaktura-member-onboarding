@@ -115,6 +115,18 @@ Die beiden Toggles **SEPA-Mandat von der EEG bereitstellen** + **SEPA-Mandat ers
 
 **Mandatsreferenz manuell überschreiben:** Sowohl die Antragsnummer- als auch die Mitgliedsnummer-basierte Auto-Ableitung ist nicht zwingend. Im Admin-Edit-Form jedes Antrags gibt es ein Eingabefeld **Mandatsreferenz** (z. B. für externe Kundennummern aus eurem Buchhaltungssystem). Ein dort eingetragener Wert hat **Vorrang** und wird beim Import in eegFaktura mit übernommen (analog zum Mandatsdatum). Beide Felder werden, falls leer gelassen, automatisch beim Import abgeleitet — siehe Tabelle oben.
 
+### Beitrittserklärung vom Vorstand genehmigen lassen *(Alle Optionen)*
+
+Manche EEGs wollen die Beitrittsbestätigung nicht automatisch ans Mitglied versenden lassen, sondern stattdessen vom Vorstand formell genehmigen lassen — z. B. weil die Statuten einen Aufnahmebeschluss erfordern oder die EEG den Beitrittsprozess mit einer unterschriebenen Bestätigung dokumentieren will.
+
+**Toggle aktiv:** Beim Wechsel auf Status „Aktiviert" entfällt die automatische Beitrittsbestätigungs-Mail an das Mitglied. Stattdessen geht eine Beitrittserklärung mit Vorstands-Signaturblock am Ende an die in den EEG-Stammdaten hinterlegte Kontakt-E-Mail. Der Vorstand unterschreibt das Dokument und leitet es per Hand an das Mitglied weiter. Das Mitglied wird zusätzlich über die reguläre eegFaktura-Aktivierungs-Mail über seinen Status informiert.
+
+**Toggle aus (Standard):** Verhalten wie bisher — Mitglied bekommt automatisch die Beitrittsbestätigung als PDF-Anhang zur Aktivierungs-Mail.
+
+**Vor der Aktivierung sicherstellen:** Wenn der Toggle aktiv ist, **muss** die EEG-Kontakt-Mail gepflegt sein. Fehlt sie, bricht der Aktivierungs-Übergang ab und der Antrag bleibt im vorherigen Status. Du siehst die Fehlermeldung direkt im Aktivierungs-Vorgang.
+
+**Beitrittserklärung im Nachhinein herunterladen:** Im Antrags-Detail erscheint nach erfolgreicher Aktivierung ein blauer Hinweisblock mit dem Datum des Versands plus einem Knopf „Beitrittserklärung herunterladen". Damit kannst du das PDF jederzeit neu erzeugen — z. B. wenn der Vorstand das Dokument verlegt hat.
+
 ### Genossenschaftsanteile *(Alle Optionen)*
 
 > Diese Sektion ist nur in **Alle Optionen** sichtbar.

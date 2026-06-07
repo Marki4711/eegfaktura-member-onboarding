@@ -78,7 +78,7 @@ Central tracking for all features.
 | PROJ-62 | Mitgliedstypen Kleinunternehmer + Unternehmen zusammenführen (sole_proprietor entfällt, company-Typ mit optionaler UID = Kleinunternehmerregelung) | Approved | `features/PROJ-62-merge-sole-proprietor-into-company.md` | 2026-05-24 |
 | PROJ-63 | USt-Pflicht-Checkbox bei Unternehmen + Verein (UI-Gate für UID-Eingabe, kein DB-Feld) | In Progress | `features/PROJ-63-vat-liability-checkbox.md` | 2026-05-24 |
 | PROJ-64 | Faktura-Handover-Billing-Trigger (Excel-Bypass-Schließung — `application.faktura_handover_at` deckt /import UND /export/excel) | Deployed | `features/PROJ-64-faktura-handover-billing-trigger.md` | 2026-05-29 |
-| PROJ-65 | Vorstands-Signaturblock im Beitrittsbestätigungs-PDF (per-EEG-Toggle, Default aus — Statuten-/FA-Konformität bei EEGs mit Beidseits-Unterschrifts-Anforderung) | Planned | `features/PROJ-65-vorstands-signature-on-approval-pdf.md` | 2026-05-30 |
+| PROJ-65 | Vorstands-Signaturblock im Beitrittsbestätigungs-PDF — Superseded durch PROJ-76 (größere Workflow-Lösung mit Mail-Routing-Wechsel) | Superseded | `features/PROJ-65-vorstands-signature-on-approval-pdf.md` | 2026-06-07 |
 | PROJ-66 | Auto-Save für Settings-Editoren (Formular-Felder) + Tab-Switch-Schutz (alle drei Save-Button-Editoren) + Browser-Unload-Warnung | Deployed | `features/PROJ-66-settings-auto-save-and-tab-switch-guard.md` | 2026-05-30 |
 | PROJ-67 | Standard-/Erweitert-Modus für Einstellungen — reduzierte Sicht für kleine EEGs (Toggle am Seitenkopf, Default Standard für neue EEGs, advanced für bestehende, mit Doku-Spiegelung) | Deployed | `features/PROJ-67-settings-standard-advanced-mode.md` | 2026-05-30 |
 | PROJ-68 | admin_value-Default-Mechanismus entfernen (UI-Input, DB-Spalte, applyAdminValues-Funktion, Tests, Doku); admin_only-State bleibt als reine Public-Form-Hide-Markierung | Deployed | `features/PROJ-68-remove-admin-value-default-mechanism.md` | 2026-05-30 |
@@ -89,5 +89,6 @@ Central tracking for all features.
 | PROJ-73 | Cleanup: verwaisten EEG-Toggle `use_company_sepa_mandate` entfernt — Domain-Logik seit PROJ-48 funktionslos; Toggle verwirrt Admins, die ihn umlegen und sehen, dass nichts passiert. Migration 000066 + Settings-UI-Aufräumung + Doku. | In Progress | `features/PROJ-73-cleanup-use-company-sepa-mandate.md` | 2026-06-06 |
 | PROJ-74 | B2B-Mandat-Gate-Fix: `buildSEPAMandateData` durchlässt B2B-Anträge auch bei `SEPAMandateEnabled=false` (SEPA-Rulebook erlaubt keine Online-Zustimmung für Firmenlastschrift). Hart-Fail beim Import wenn Stammdaten fehlen. UI-Klarstellung an beiden SEPA-Toggles via Hint-Popover. | Planned | `features/PROJ-74-b2b-mandate-gate-fix.md` | 2026-06-06 |
 | PROJ-75 | SEPA-Einwilligungs-Checkbox in Bankverbindungs-Card verschoben — direkt unter den Konto-Eingabefeldern statt im allgemeinen Einwilligungsblock; neuer Text mit EEG-Name + Creditor-ID aus PROJ-32-Sync. | In Progress | `features/PROJ-75-sepa-consent-checkbox-relocation.md` | 2026-06-06 |
+| PROJ-76 | Vorstands-Genehmigungs-Workflow für Beitrittserklärung — per-EEG-Toggle, eigenes PDF „Beitrittserklärung" mit Vorstands-Signaturblock, Mail-Routing-Wechsel auf EEG-Kontakt statt Mitglied, On-Demand-Download im Admin-UI. Supersedes PROJ-65. | In Progress | `features/PROJ-76-board-approval-workflow.md` | 2026-06-07 |
 
-## Next Available ID: PROJ-76
+## Next Available ID: PROJ-77
