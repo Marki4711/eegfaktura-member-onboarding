@@ -10,6 +10,59 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Feature — PROJ-78: Toggle „Elektronisches SEPA-Mandat" (B2B + CORE separat) *(2026-06-07)*
+
+Zwei unabhängige Per-EEG-Schalter steuern, ob das SEPA-Mandat-PDF den
+elektronischen Audit-Trail-Block (§ 76 (3) EIWOG 2010) oder den klassischen
+Datum/Unterschrift-Block rendert — getrennt für Basislastschrift (CORE)
+und Firmenlastschrift (B2B). **Default beide FALSE** (klassische Variante),
+weil die Rechtsbewertung der elektronischen Willenserklärung derzeit
+geklärt wird; bis dahin soll kein EEG unbemerkt in die fragliche Variante
+laufen. Die heute mittag mit PROJ-77 deployte B2B-Audit-Variante ist
+damit bis zum aktiven Opt-in eines EEG faktisch stillgelegt.
+
+**Toggles getrennt**, weil die Rechtsbewertung für Geschäftsleute (B2B)
+anders ausfallen kann als für Verbraucher (CORE). Ein EEG könnte z. B.
+B2B-Audit zulassen, weil hier ohnehin höhere Sorgfaltsannahme gilt,
+während CORE weiterhin physisch unterschrieben werden muss.
+
+**Backend:**
+- Migration 000070: zwei neue Spalten `registration_entrypoint.sepa_mandate_core_audit_enabled BOOLEAN NOT NULL DEFAULT FALSE` und `…b2b_audit_enabled BOOLEAN NOT NULL DEFAULT FALSE` (eine kombinierte Migration, beide Spalten zusammen)
+- Audit-Block-Render-Logik aus `pdf.GenerateCompany` in einen geteilten Helper `renderSEPAAuditBlock` extrahiert; klassischer Unterschriftsblock bleibt inline pro Generator (B2B + CORE haben unterschiedliche Layouts)
+- CORE-SEPA-PDF (`pdf.Generate`) erhält den Audit-Block-Pfad neu — selbe Wortlaut-Variante wie B2B, mit derselben Gate-Bedingung `Toggle && AuditDaten vollständig`
+- `buildSEPAMandateData` wählt anhand `app.Einzugsart` den passenden Toggle aus dem EEG und übergibt das Ergebnis als `SEPAMandateData.ElectronicMandateEnabled` an den Renderer
+- Renderer-Check (Short-Circuit): `if data.ElectronicMandateEnabled && AuditTenant != "" && !AcceptedAt.IsZero() && AuditIP != ""`
+- `SaveEEGSettings`-Signatur um beide Booleans erweitert; `PUT /api/admin/settings/eeg` akzeptiert die neuen Felder; `GET /api/admin/settings/eeg` liefert sie zurück
+- Configexport-Schema erweitert (`*bool, omitempty`); Importer setzt nil → FALSE (konservativer Default für Pre-PROJ-78-Bundles); Diff zeigt beide Felder als separate Zeilen
+- Resend (PROJ-70) und Activate-Mail-Trigger (PROJ-46/53) übernehmen automatisch den aktuellen Toggle-Stand der EEG — Toggle ist EEG-Policy, kein Antrags-Snapshot
+
+**Frontend:**
+- Zwei neue Toggles im Admin-Settings-Editor, jeweils im **Advanced-Modus** sichtbar:
+  - **CORE-Audit-Toggle** im bestehenden `{isAdvanced && sepaMandateEnabled && (…)}`-Block neben „SEPA-Mandat erst beim Import senden" — nur sinnvoll wenn CORE-PDF überhaupt erzeugt wird
+  - **B2B-Audit-Toggle** in einem **separaten** `{isAdvanced && (…)}`-Block direkt darunter — **NICHT** an `sepaMandateEnabled` gekoppelt (B2B-Mandate-PDFs werden unabhängig vom CORE-Toggle erzeugt, PROJ-74)
+- Hint-Popover je Toggle erklärt § 76 (3) EIWOG-Hintergrund und die Wahlfreiheit pro Mandat-Typ
+- `isAdvancedEEGSettingsActive` triggert auf jeden TRUE-Wert eines der beiden Toggles
+- TypeScript-Typen: `EEGSettings.sepaMandateCoreAuditEnabled?`, `EEGSettings.sepaMandateB2BAuditEnabled?`, `EEGSettingsSavePayload.sepaMandateCoreAuditEnabled` (required), `…B2BAuditEnabled` (required)
+
+**Tests:**
+- PDF-Snapshot-Tests (`internal/pdf/generator_test.go`):
+  - PROJ-77 B2B-Tests um `ElectronicMandateEnabled=true` ergänzt (Regression-Schutz)
+  - NEU `Generate_AuditBlock_RenderedWhenAllFieldsSet` (CORE-Pendant)
+  - NEU `Generate_AuditBlock_FallbackOnMissingIP` (CORE-Pendant)
+  - NEU `Generate_AuditBlock_VerifyVerbToggle` (CORE-Pendant)
+  - NEU `Generate_AuditBlock_IPv6` (CORE-Pendant)
+  - NEU `GenerateCompany_ToggleFalse_FallsBackToClassic` (B2B-Toggle-Übersteuerung)
+  - UMGEBAUT `Generate_ToggleFalse_IgnoresAuditFields` (ersetzt PROJ-77 `Generate_Core_IgnoresAuditFields`)
+- Service-Layer-Tabellen-Test `TestBuildSEPAMandateData_PROJ78_ToggleMapping` mit 6 Permutationen `{core,b2b} × CoreToggle × B2BToggle`
+- Frontend-Unit-Tests in `settings-mode.test.ts` für CORE-Toggle, B2B-Toggle und beide-Toggles-gleichzeitig
+
+**Owner-Entscheidungen festgehalten:**
+- Default beide FALSE für ALLE EEGs (Test-Betrieb erlaubt abrupten Cut; keine Backward-Compat-Sonderlogik für PROJ-77-Bestands-Audits)
+- Spalten-Namenskonvention `sepa_mandate_*_audit_enabled` (innerhalb der `sepa_mandate_*`-Gruppe; nicht `electronic_*`)
+- Service-Layer wählt pro `einzugsart`; Renderer bleibt mandatstyp-agnostisch
+- Audit-Render-Helper geteilt, klassischer Block inline pro Generator (Layout-Unterschiede CORE/B2B)
+- Service-Layer-Test als Tabelle, PDF-Tests als individuelle Funktionen mit klaren Failure-Lokationen
+
 ### Feature — PROJ-77: B2B-Mandat-Audit-Block (§ 76 (3) EIWOG 2010) *(2026-06-07)*
 
 Im SEPA-Firmenlastschrift-Mandat-PDF (`einzugsart=b2b`) ersetzt ein

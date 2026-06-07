@@ -6,6 +6,23 @@
 
 ## 2026-06-07
 
+**Elektronisches SEPA-Mandat als Opt-in pro EEG (CORE + B2B getrennt)**
+
+In den EEG-Einstellungen (Modus *Alle Optionen*) gibt es zwei neue Toggles:
+
+- **Im CORE-Mandat den elektronischen Audit-Trail nutzen (statt manueller Unterschrift)** — sichtbar nur wenn die Basislastschrift im Onboarding aktiv ist.
+- **Im B2B-Mandat den elektronischen Audit-Trail nutzen (statt manueller Unterschrift)** — immer sichtbar im Modus *Alle Optionen*, weil B2B-Mandate beim Import unabhängig erzeugt werden.
+
+Mit diesen Toggles entscheidet die EEG selbst — und für CORE und B2B unabhängig voneinander —, ob das jeweilige Mandat-PDF mit dem elektronischen Audit-Trail-Block oder mit der klassischen Datum/Unterschrift-Zeile ausgestattet wird. **Standard ist „aus" für beide**: das PDF kommt klassisch mit Unterschriftslinie, das Mitglied unterschreibt physisch.
+
+Hintergrund: Die Rechtsbewertung der elektronischen Willenserklärung (formfreie Willenserklärung gem. § 76 (3) EIWOG 2010) wird derzeit geklärt. Bis dahin soll keine EEG unbemerkt in die neue Variante laufen — wer den Audit-Trail bereits jetzt nutzen will, schaltet ihn pro Mandat-Typ bewusst ein. Die Trennung CORE vs. B2B berücksichtigt, dass für Geschäftsleute (Firmenlastschrift) eine andere Sorgfalt gilt als für Verbraucher.
+
+**Was sich für Bestandsanträge ändert:** Beim erneuten Senden eines Mandats („SEPA-Mandat erneut senden" im Antragsdetail) oder bei der automatischen Mandat-Generierung beim Aktivieren übernimmt das System immer den aktuellen Stand der Toggles. Bereits an Mitglieder versandte PDFs bleiben unverändert.
+
+Details und Erklärungen: siehe [Admin-Einstellungen → SEPA-Lastschriftmandat → Elektronisches SEPA-Mandat statt Datum/Unterschrift](06-admin-settings.md).
+
+---
+
 **SEPA-Firmenlastschrift-PDF mit elektronischem Audit-Trail**
 
 Bei SEPA-Firmenlastschrift-Mandaten (`einzugsart=b2b`) erscheint im PDF nicht mehr ein leeres Datums- und Unterschriftsfeld, sondern ein Audit-Trail-Text, der die elektronische Zustimmung deines Mitglieds rechtskonform dokumentiert:

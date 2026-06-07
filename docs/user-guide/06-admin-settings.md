@@ -115,6 +115,23 @@ Die beiden Toggles **SEPA-Mandat von der EEG bereitstellen** + **SEPA-Mandat ers
 
 **Mandatsreferenz manuell überschreiben:** Sowohl die Antragsnummer- als auch die Mitgliedsnummer-basierte Auto-Ableitung ist nicht zwingend. Im Admin-Edit-Form jedes Antrags gibt es ein Eingabefeld **Mandatsreferenz** (z. B. für externe Kundennummern aus eurem Buchhaltungssystem). Ein dort eingetragener Wert hat **Vorrang** und wird beim Import in eegFaktura mit übernommen (analog zum Mandatsdatum). Beide Felder werden, falls leer gelassen, automatisch beim Import abgeleitet — siehe Tabelle oben.
 
+#### Elektronisches SEPA-Mandat statt Datum/Unterschrift *(Alle Optionen)*
+
+Standardmäßig enthält jedes SEPA-Mandat-PDF (Basislastschrift und Firmenlastschrift) eine **Datum/Ort/Unterschrift-Zeile**. Das Mitglied druckt das PDF aus, unterschreibt und schickt es per Post oder gescannt zurück. Klassischer Papier-Workflow.
+
+Im Modus *Alle Optionen* findest du zwei Schalter, die das Mandat-PDF stattdessen mit einem **elektronischen Audit-Trail-Block** ausstatten. Statt der Unterschriftsline druckt das PDF dann automatisch einen Block der Form:
+
+> *Der Kunde hat der Musterstadt EEG nach Verifizierung seiner E-Mail-Adresse am 21.05.2026 11:50 von der IP-Adresse 192.0.2.42 auf elektronischem Weg (formfreie Willenserklärung gem. § 76 (3) EIWOG 2010) seine Zustimmung zum Vertrag im obigen Sinne sowie für das SEPA-Lastschriftmandat erteilt.*
+
+Die zwei Toggles sind **unabhängig**, weil die Rechtsbewertung der elektronischen Willenserklärung für Geschäftsleute (Firmenlastschrift / B2B) anders ausfallen kann als für Verbraucher (Basislastschrift / CORE):
+
+- **Im CORE-Mandat den elektronischen Audit-Trail nutzen (statt manueller Unterschrift)** — sichtbar nur wenn „SEPA-Mandat von der EEG bereitstellen" aktiv ist; entscheidet über die Privat-/Basislastschrift-Variante.
+- **Im B2B-Mandat den elektronischen Audit-Trail nutzen (statt manueller Unterschrift)** — immer sichtbar im Modus *Alle Optionen*; entscheidet über die Firmenlastschrift-Variante. B2B-Mandate werden beim Import unabhängig vom CORE-Toggle erzeugt.
+
+**Standard für beide Toggles ist „aus"** — also klassischer Unterschriftsblock. Die elektronische Variante ist erst aktiv, wenn die EEG sie bewusst einschaltet.
+
+> **Hinweis:** Wenn der Audit-Trail aktiv ist, aber für einen einzelnen Antrag noch keine IP-Adresse gespeichert wurde (Altanträge aus der Zeit vor der elektronischen Erfassung), fällt das PDF automatisch auf die klassische Unterschriftslinie zurück. Es kommt also nie zu einem fehlerhaften Audit-Block ohne Datenbasis.
+
 ### Beitrittserklärung vom Vorstand genehmigen lassen *(Alle Optionen)*
 
 Manche EEGs wollen die Beitrittsbestätigung nicht automatisch ans Mitglied versenden lassen, sondern stattdessen vom Vorstand formell genehmigen lassen — z. B. weil die Statuten einen Aufnahmebeschluss erfordern oder die EEG den Beitrittsprozess mit einer unterschriebenen Bestätigung dokumentieren will.

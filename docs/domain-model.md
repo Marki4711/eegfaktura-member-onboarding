@@ -52,6 +52,8 @@ Fields:
 - `cooperative_shares_enabled` *(PROJ-37)* — boolean, default false; aktiviert die Genossenschaftsanteile-Erfassung im Mitgliederformular. Wenn TRUE, müssen die beiden folgenden Felder gesetzt sein.
 - `cooperative_required_shares` *(PROJ-37)* — INT NULL, CHECK `> 0`; Pflichtanteils-Mindestmaß pro Mitglied. NULL wenn Feature deaktiviert.
 - `cooperative_share_amount_cents` *(PROJ-37)* — BIGINT NULL, CHECK `> 0`; Preis pro Anteil in Cent. NULL wenn Feature deaktiviert. Speicherung als Integer-Cents vermeidet Float-Drift.
+- `sepa_mandate_core_audit_enabled` *(PROJ-78)* — boolean, default false; wenn true, rendert das CORE-SEPA-Lastschriftmandat-PDF den elektronischen Audit-Trail-Block (formfreie Willenserklärung gem. § 76 (3) EIWOG 2010 — Tenant, Zustimmungs-Zeitstempel, IP-Adresse) **anstatt** des klassischen Datum/Unterschrift-Blocks. Bei false bleibt der klassische Block, auch wenn alle Audit-Daten vorhanden sind. Audit-Fallback (PROJ-77): selbst bei Toggle=true fällt der Renderer auf den klassischen Block zurück, wenn `application.sepa_mandate_accepted_ip` NULL ist (Legacy-Anträge ohne IP-Erfassung).
+- `sepa_mandate_b2b_audit_enabled` *(PROJ-78)* — boolean, default false; analog für das B2B-Firmenlastschriftmandat-PDF. Beide Toggles sind **unabhängig**, weil die Rechtsbewertung der elektronischen Willenserklärung für Geschäftsleute (B2B) anders ausfallen kann als für Verbraucher (CORE).
 - `created_at`
 - `updated_at`
 

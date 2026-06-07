@@ -1358,7 +1358,9 @@ Returns the EEG settings — the eight Core-mastered fields (PROJ-32) plus the o
   "cooperativeSharesEnabled": true,
   "cooperativeRequiredShares": 1,
   "cooperativeShareAmountCents": 10000,
-  "boardApprovalWorkflowEnabled": false
+  "boardApprovalWorkflowEnabled": false,
+  "sepaMandateCoreAuditEnabled": false,
+  "sepaMandateB2BAuditEnabled": false
 }
 ```
 
@@ -1369,6 +1371,8 @@ Returns the EEG settings — the eight Core-mastered fields (PROJ-32) plus the o
 `cooperativeSharesEnabled` (PROJ-37) defaults to `false`. When `true`, both `cooperativeRequiredShares` (positive integer, minimum mandatory shares per member) and `cooperativeShareAmountCents` (positive integer, price per share in cents) are returned. When `false`, those two value fields are omitted.
 
 `boardApprovalWorkflowEnabled` (PROJ-76) defaults to `false`. When `true`, the `→ activated` transition sends a **Beitrittserklärung** (with Vorstands-Signaturblock) to the EEG contact instead of an automatic Beitrittsbestätigung to the member. The board signs manually and forwards the document; the member is informed via the regular eegFaktura-Core activation mail. Status transition is sync hard-fail: missing `contact_email` or SMTP failure rolls back the activation.
+
+`sepaMandateCoreAuditEnabled` and `sepaMandateB2BAuditEnabled` (PROJ-78) both default to `false`. When `true` for the matching mandate type (`einzugsart=core` resp. `einzugsart=b2b`), the SEPA-mandate PDF renders the electronic audit-trail block (formfreie Willenserklärung gem. § 76 (3) EIWOG 2010 — Tenant, Zustimmungs-Zeitstempel, IP-Adresse) **in place of** the classic Datum/Unterschrift-Block. When `false`, the classic block is always rendered, even if the audit data is fully populated. The two toggles are independent: a single EEG can opt into the electronic variant for B2B (Geschäftsleute) while keeping CORE (Verbraucher) on the classic signature workflow, or vice versa. Audit fallback (PROJ-77): even with the toggle on, the renderer falls back to the classic block if any of the three audit data fields (`AuditTenant`, `sepa_mandate_accepted_at`, `sepa_mandate_accepted_ip`) is empty — relevant for legacy applications without IP capture.
 
 ### Errors
 - `400` missing `rc_number`
@@ -1398,7 +1402,9 @@ Writes the onboarding-only editable fields. The Core-mastered fields (`eegId`, `
   "cooperativeSharesEnabled": true,
   "cooperativeRequiredShares": 1,
   "cooperativeShareAmountCents": 10000,
-  "boardApprovalWorkflowEnabled": false
+  "boardApprovalWorkflowEnabled": false,
+  "sepaMandateCoreAuditEnabled": false,
+  "sepaMandateB2BAuditEnabled": false
 }
 ```
 
