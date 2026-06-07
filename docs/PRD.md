@@ -120,6 +120,8 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 | PROJ-69 | Reconciliation-basierter Billing-Backstop — Free-Rider-Detection via periodischem Core-Match (IBAN+E-Mail), setzt `faktura_handover_at` rückwirkend |
 | PROJ-70 | Stammdaten-Resync für aktivierte Anträge — On-Demand-Pull von Core-Werten pro Antrag, bei IBAN-/Kontoinhaber-Wechsel SEPA-Mandat-Invalidierung + Rückfall auf `awaiting_bank_confirmation` |
 | PROJ-71 | EEG-Customer-Onboarding-Formular + AVV-PDF + Auto-Antwort-Mail — Self-Service-Anmeldung für zahlende EEG-Kunden (Phase A der Customer-Onboarding-Pipeline) |
+| PROJ-72 | Member-Onboarding-Cockpit — Owner-EEG-Übersicht aller EEGs mit Live-KPIs (Aktiv-Badge, Customer-Onboarding-State, Anträge-Pipeline) und Direkt-Links zu Anträgen & Einstellungen |
+| PROJ-73 | Cleanup: verwaisten EEG-Toggle `use_company_sepa_mandate` entfernt — Domain-Logik seit PROJ-48 funktionslos; Settings-UI aufgeräumt, Migration 000066 |
 
 ### On Hold
 

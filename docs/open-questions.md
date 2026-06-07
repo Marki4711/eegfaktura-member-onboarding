@@ -98,7 +98,7 @@ Mit diesen drei Features sind alle ursprünglichen Teilfragen abgedeckt.
 
 **Auflösung (durch PROJ-12, PROJ-14, PROJ-46, PROJ-47):**
 - **PROJ-12** liefert eine vollständige SEPA-Basislastschrift-PDF mit Creditor-ID, EEG-Adresse, Member-Adresse, IBAN-Eingabefeld — generiert beim Submit, als E-Mail-Anhang versendet.
-- **PROJ-14** ergänzt die Firmenlastschrift-PDF-Variante (B2B); per EEG via `useCompanySEPAMandate` aktivierbar. Welcher Antrag welche Variante bekommt entscheidet die Admin pro Antrag über `application.einzugsart` (`core`/`b2b`/`kein_sepa`) — **PROJ-48** entfernte das frühere Auto-Mapping von Mitgliedstyp auf Mandat-Variante.
+- **PROJ-14** ergänzt die Firmenlastschrift-PDF-Variante (B2B). Welcher Antrag welche Variante bekommt entscheidet der Admin pro Antrag über `application.einzugsart` (`core`/`b2b`/`kein_sepa`) — **PROJ-48** entfernte das frühere Auto-Mapping von Mitgliedstyp auf Mandat-Variante. **PROJ-73** entfernte den verwaisten EEG-globalen Toggle `useCompanySEPAMandate`, der seit PROJ-48 funktionslos war.
 - Per EEG steuerbar via `SEPAMandateEnabled`: TRUE = PDF wird generiert und versendet, FALSE = inline-Checkbox im Form reicht (für EEGs ohne formales SEPA-Erfordernis).
 - **PROJ-46 Stage B** verschiebt die Beitrittsbestätigungs-PDF an den Import-Zeitpunkt, damit die später vergebene Mitgliedsnummer einbettbar ist.
 - **PROJ-47** schließt die B2B-Lücke: beim Import wird die Firmenlastschrift-PDF erneut generiert, diesmal mit ausgefüllter Mandatsreferenz = Mitgliedsnummer, und an die Member-Mail (+ EEG-Kopie) angehängt. Der Member kann sie ausdrucken und seiner Hausbank vorlegen.

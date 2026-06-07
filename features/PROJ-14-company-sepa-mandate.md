@@ -1,8 +1,17 @@
 # PROJ-14: SEPA-Firmenlastschriftmandat für Unternehmen
 
-## Status: Deployed
+## Status: Superseded (durch PROJ-48 + PROJ-73, 2026-06-06)
 **Created:** 2026-04-24
-**Last Updated:** 2026-04-24
+**Last Updated:** 2026-06-06
+
+> **Superseded-Hinweis:** Der per-EEG-Toggle `use_company_sepa_mandate` und das
+> Auto-Mapping `member_type=company|association → B2B-Mandat` wurden durch
+> das per-Antrag-`einzugsart`-Modell ersetzt. PROJ-48 schaltete das
+> Auto-Mapping ab, der Toggle blieb seither funktionslos. PROJ-73 entfernte
+> den verwaisten Schalter (Migration 000066) inklusive Settings-UI-Aufräumung.
+> Die Firmenlastschrift-PDF-Generierung selbst (PROJ-14 Kerneit) bleibt
+> unverändert aktiv — sie wird heute über `application.einzugsart=b2b`
+> ausgelöst.
 
 ## Dependencies
 - Requires: PROJ-12 (SEPA-Lastschriftmandat PDF) — bestehende PDF-Infrastruktur wird erweitert

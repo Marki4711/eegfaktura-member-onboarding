@@ -10,6 +10,23 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Cleanup — PROJ-73: Verwaisten EEG-Toggle `use_company_sepa_mandate` entfernt *(2026-06-06)*
+
+PROJ-14 hatte den Toggle eingeführt, um pro EEG zu entscheiden, ob
+Unternehmen/Vereine das B2B-Mandat-PDF statt des Core-Mandats erhalten.
+PROJ-48 ersetzte diese Auto-Mapping-Logik durch das per-Antrag-
+`einzugsart`-Modell — der EEG-Toggle blieb seither funktionslos im
+Settings-UI und verwirrte Admins, die ihn umlegten und beobachteten,
+dass nichts passierte.
+
+**Migration 000066** droppt `registration_entrypoint.use_company_sepa_mandate`.
+Bestehende `=true`-Werte gehen verloren — verlustfrei, weil der Toggle
+keine Domain-Wirkung hatte. Der Schalter ist aus dem Settings-UI und
+allen Backend-/Frontend-Schichten entfernt. Backup-Imports aus
+PROJ-61 (Config-Export-Bundles) tolerieren das alte Feld weiterhin —
+es wird beim Decoder ignoriert. `PROJ-14`-Spec auf **Superseded**
+markiert mit Verweis auf das aktuelle `einzugsart`-Modell.
+
 ### Feature — PROJ-64: Faktura-Handover-Billing-Trigger *(2026-05-29)*
 
 Schließt die Lücke zwischen dem geplanten Quartals-Verrechnungs-Modell

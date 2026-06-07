@@ -39,8 +39,7 @@ Fields:
 - `rc_number`
 - `is_active` — boolean, default false; controls whether the public registration form is active; must be explicitly enabled by the admin via the settings page
 - `intro_text` — nullable, sanitized HTML string for the public registration form
-- `sepa_mandate_enabled` — boolean, default false; controls whether SEPA mandate PDF is attached to welcome email
-- `use_company_sepa_mandate` — boolean, default false; opts the EEG in to the SEPA B2B (Firmenlastschrift) mandate variant. The per-application mandate type lives in `application.einzugsart` (`core` | `b2b` | `kein_sepa`) and is set by the admin, not auto-derived from `member_type` (PROJ-48 removed the previous auto-mapping). Only evaluated when `sepa_mandate_enabled = true`.
+- `sepa_mandate_enabled` — boolean, default false; controls whether SEPA mandate PDF is attached to welcome email. The per-application mandate variant (Core vs B2B) lives in `application.einzugsart` (`core` | `b2b` | `kein_sepa`) and is set by the admin per application. PROJ-73 (2026-06-06) removed the obsolete `use_company_sepa_mandate` EEG toggle, which had been a no-op since PROJ-48 replaced the auto-mapping with the per-application `einzugsart` model.
 - `sepa_mandate_at_import` *(PROJ-48)* — boolean, default false; when true, SEPA mandate PDFs are generated at import time (with assigned `member_number` printed as Mandatsreferenz) instead of submit time. Use for digital-signature workflows where the signed PDF cannot be modified afterwards.
 - `show_central_policy` — boolean, default true; when false, the central operator privacy policy is not shown in the public registration form (for EEGs that configure their own policy as a legal document)
 - `member_number_start` — INT NOT NULL DEFAULT 1; starting value for the per-EEG member number auto-increment counter; the first member number assigned for this EEG will be this value
