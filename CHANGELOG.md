@@ -10,6 +10,41 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Fix — PROJ-74: B2B-Mandate trotz `SEPAMandateEnabled=false` + Hart-Fail-Schutz *(2026-06-06)*
+
+Aufgedeckt durch Tester-Befund 2026-06-06: bei `SEPAMandateEnabled=false`
+sperrte `buildSEPAMandateData` ALLE PDF-Generierungspfade — auch B2B.
+Das war für Core korrekt (Online-Zustimmung als Fallback), für B2B aber
+ein rechtswidriger Zustand: SEPA-Regelwerk erlaubt für die Firmenlastschrift
+keine reine Online-Zustimmung.
+
+Gate-Logik in `buildSEPAMandateData`:
+- `einzugsart="b2b"` → Toggle wird ignoriert, nur Stammdaten-Vollständigkeit zählt.
+- `einzugsart="core"` → heutiges Verhalten unverändert (Toggle muss aktiv sein).
+- `einzugsart="kein_sepa"` oder leer → kein Mandat.
+
+`MissingMandateFields` ist seit dem Fix ein reiner Daten-Check (frühere
+Frühe-Rückgabe bei `!SEPAMandateEnabled` entfällt) und ist als exportierte
+Helper-Funktion auch im `importing`-Package verfügbar.
+
+**Hart-Fail im Pre-Import-Check** (Status-Wechsel `approved → imported`):
+fehlen für einen B2B-Antrag EEG-Stammdaten, lehnt
+`POST /api/admin/applications/{id}/import` den Status-Wechsel mit
+`409 Conflict` ab und nennt die fehlenden Felder. Der Antrag bleibt im
+vorherigen Status, bis die Stammdaten gepflegt sind. Für Core-Anträge
+bleibt es bei Skip+Warn (Online-Zustimmung als Fallback). Der Resync-Pfad
+(PROJ-70) erhält dieselbe Hart-Fail-Logik mit präziserer Fehlermeldung.
+
+**Settings-UI-Klarstellung:**
+- Hint-Popover am Toggle „SEPA-Mandat von der EEG bereitstellen": klärt,
+  dass der Schalter nur Core-Mandate (Privat) steuert und B2B-Mandate
+  unabhängig davon erzeugt werden.
+- Hint-Popover am Toggle „SEPA-Mandat erst beim Import senden": klärt,
+  dass das Versand-Timing nur Core-Anträge betrifft.
+- Warn-Banner „Stammdaten unvollständig" erscheint künftig auch bei
+  `SEPAMandateEnabled=false`, sofern Pflichtfelder fehlen — mit
+  Konjunktiv-Text „Falls Sie B2B-Anträge bearbeiten…".
+
 ### Cleanup — PROJ-73: Verwaisten EEG-Toggle `use_company_sepa_mandate` entfernt *(2026-06-06)*
 
 PROJ-14 hatte den Toggle eingeführt, um pro EEG zu entscheiden, ob

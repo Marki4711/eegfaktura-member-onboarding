@@ -122,6 +122,7 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 | PROJ-71 | EEG-Customer-Onboarding-Formular + AVV-PDF + Auto-Antwort-Mail — Self-Service-Anmeldung für zahlende EEG-Kunden (Phase A der Customer-Onboarding-Pipeline) |
 | PROJ-72 | Member-Onboarding-Cockpit — Owner-EEG-Übersicht aller EEGs mit Live-KPIs (Aktiv-Badge, Customer-Onboarding-State, Anträge-Pipeline) und Direkt-Links zu Anträgen & Einstellungen |
 | PROJ-73 | Cleanup: verwaisten EEG-Toggle `use_company_sepa_mandate` entfernt — Domain-Logik seit PROJ-48 funktionslos; Settings-UI aufgeräumt, Migration 000066 |
+| PROJ-74 | B2B-Mandat-Gate-Fix — `buildSEPAMandateData` lässt B2B-Anträge auch bei `SEPAMandateEnabled=false` durch (SEPA-Rulebook), Hart-Fail bei fehlenden Stammdaten, UI-Klarstellung an den SEPA-Toggles |
 
 ### On Hold
 

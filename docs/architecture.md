@@ -277,7 +277,8 @@ Standalone build and standalone migrations in repository `eegfaktura-member-onbo
 
 | Übergang | Member-Mail | Member-Anhänge | EEG-Mail | Modus |
 |---|---|---|---|---|
-| `→ submitted` (default: `sepa_mandate_at_import=false`) | ✅ Eingangsbestätigung (+ Confirm-Link bei PROJ-31) | SEPA-Mandat-PDF (Basis/Firma je `einzugsart`, Mandatsref-Platzhalter) wenn `sepaMandateEnabled=true` | ✅ Antrags-Notification | best-effort async |
+| `→ submitted` (default: `sepa_mandate_at_import=false`) | ✅ Eingangsbestätigung (+ Confirm-Link bei PROJ-31) | SEPA-Mandat-PDF (Core, Mandatsref-Platzhalter) wenn `sepaMandateEnabled=true`. Submit ist hartkodiert `einzugsart=core` — B2B-Mandate kommen erst nach Admin-Edit beim Import. | ✅ Antrags-Notification | best-effort async |
+| `approved → imported` (B2B-Pre-Check, PROJ-74) | — | — | — | **Hart-Fail** bei `einzugsart=b2b` ohne vollständige EEG-Stammdaten: Status-Wechsel bricht ab, HTTP-Antwort nennt fehlende Felder. Begründung: SEPA-Rulebook erlaubt für Firmenlastschrift keine reine Online-Zustimmung — ohne Mandat-PDF wäre der Import rechtswidrig. |
 | `→ submitted` (PROJ-48: `sepa_mandate_at_import=true`) | ✅ Eingangsbestätigung + Hinweis „Mandat wird beim Import versendet" | — (kein Mandat-Anhang beim Submit) | ✅ Antrags-Notification | best-effort async |
 | `submitted → email_confirmed` (PROJ-31) | ❌ | — | ✅ aufgeschobene Notification | best-effort async |
 | `→ needs_info` (PROJ-43) | ✅ Rückfrage 1:1 | — | ❌ | **hard-fail sync** |
