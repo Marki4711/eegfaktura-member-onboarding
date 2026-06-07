@@ -156,6 +156,7 @@ Fields:
 - `account_holder`
 - `sepa_mandate_accepted`
 - `sepa_mandate_accepted_at`
+- `sepa_mandate_accepted_ip` *(PROJ-77)* — INET, nullable. Speichert die End-User-IP zum Zeitpunkt der SEPA-Mandats-Akzeptanz als Audit-Trail (formfreie Willenserklärung gem. § 76 (3) EIWOG 2010). Gesetzt beim Public-Submit aus der realIP-Middleware bzw. beim externen API-Submit aus dem optionalen `submitterIp`-Body-Param. **Erst-Submit gewinnt** (Re-Submit nach `needs_info`-Korrektur überschreibt nicht, COALESCE im UPDATE). **ResetImport behält den Wert** (Audit-Anker). NULL bei Bestandsanträgen → B2B-PDF fällt auf klassischen Datum/Unterschrift-Block zurück.
 - `einzugsart` — VARCHAR(20) NOT NULL DEFAULT 'core'; SEPA mandate type: `core` = Basislastschrift, `b2b` = Firmenlastschrift, `kein_sepa` = kein SEPA-Mandat (admin trägt Zahlungsdaten manuell im Core nach)
 - `bank_name` — nullable; bank name used in SEPA mandate
 - `mandate_reference` — nullable; SEPA mandate reference number

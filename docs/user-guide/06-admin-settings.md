@@ -311,6 +311,61 @@ Dieser Abschnitt zeigt den API-Key für die externe Registrierungs-API. Der Key 
 
 Über **Neuen Key generieren** kannst du den bestehenden Key ungültig machen und einen neuen ausstellen.
 
+### Nutzung der API
+
+Die externe API erlaubt einen einzigen Endpunkt: das **Einreichen eines Antrags** im Namen einer EEG. Der API-Key identifiziert die EEG; eine `rcNumber` im Request-Body ist nicht nötig.
+
+**Authentifizierung** — der Key wird im `Authorization`-Header gesendet:
+
+```
+Authorization: Bearer moak_<dein-32-stelliger-key>
+Content-Type: application/json
+```
+
+**Beispiel-Aufruf** mit `curl`:
+
+```bash
+curl -X POST https://member-onboarding.eegfaktura.at/api/external/v1/applications \
+  -H "Authorization: Bearer moak_dein32stelligerkeyhier...." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "memberType": "private",
+    "firstname": "Max",
+    "lastname": "Mustermann",
+    "email": "max.mustermann@example.org",
+    "residentStreet": "Musterstraße",
+    "residentStreetNumber": "1",
+    "residentZip": "8010",
+    "residentCity": "Graz",
+    "residentCountry": "AT",
+    "iban": "AT61 1904 3002 3457 3201",
+    "accountHolder": "Max Mustermann",
+    "privacyAccepted": true,
+    "sepaMandateAccepted": true,
+    "meteringPoints": [
+      {
+        "meteringPoint": "AT0010000000000000001000000000001",
+        "direction": "CONSUMPTION",
+        "participationFactor": 100
+      }
+    ]
+  }'
+```
+
+Bei Erfolg antwortet die API mit Status `201` und der eindeutigen `id` plus `referenceNumber` des angelegten Antrags. Der Antrag landet direkt im Status „Eingereicht" und durchläuft danach denselben Prüfprozess wie ein Antrag aus dem öffentlichen Formular.
+
+**Wichtige Limits:**
+
+- Maximal **10 Anfragen pro 60 Sekunden** pro Key (Burst-Schutz).
+- Maximal **200 Einreichungen pro Tag** pro Key (UTC-Reset um Mitternacht).
+- Bei Überschreitung antwortet die API mit `429 Too Many Requests` und einem `Retry-After`-Header.
+
+**Mitgliedstypen** und **Pflichtfelder** orientieren sich an der `field_config` der EEG — die gleichen Regeln wie im öffentlichen Formular. Für `private`/`farmer` sind `firstname` + `lastname` Pflicht, für `company`/`municipality`/`association` ist `companyName` Pflicht.
+
+**Vollständige technische Referenz** (alle Felder, Validierungen, Fehler-Codes, Mitgliedstyp-Details): [API-Spezifikation, Sektion „External API"](https://github.com/Marki4711/eegfaktura-member-onboarding/blob/main/docs/api-spec.md#8-external-api).
+
+**Neu seit Juni 2026:** Du kannst im Request-Body das optionale Feld `submitterIp` mitgeben (z.B. `"submitterIp": "203.0.113.42"`). Wenn dein Backend die End-User-IP aus dem ursprünglichen Browser-Request kennt, dokumentiert die Plattform sie als Audit-Trail im SEPA-Firmenlastschrift-Mandat-PDF (rechtskonform nach § 76 (3) EIWOG 2010). Ohne dieses Feld wird das PDF im klassischen Format mit Datum/Unterschriftsfeld erstellt.
+
 ---
 
 ## Datenweiterleitung

@@ -6,6 +6,22 @@
 
 ## 2026-06-07
 
+**SEPA-Firmenlastschrift-PDF mit elektronischem Audit-Trail**
+
+Bei SEPA-Firmenlastschrift-Mandaten (`einzugsart=b2b`) erscheint im PDF nicht mehr ein leeres Datums- und Unterschriftsfeld, sondern ein Audit-Trail-Text, der die elektronische Zustimmung deines Mitglieds rechtskonform dokumentiert:
+
+> Der Kunde hat der **\<EEG-Name\>** nach Verifizierung seiner E-Mail-Adresse am **\<Datum\>** **\<Uhrzeit\>** von der IP-Adresse **\<IP\>** auf elektronischem Weg (formfreie Willenserklärung gem. § 76 (3) EIWOG 2010) seine Zustimmung zum Vertrag im obigen Sinne sowie für das SEPA-Lastschriftmandat erteilt.
+
+Das Mitglied muss das PDF dadurch **nicht mehr physisch unterschreiben** — die elektronische Zustimmung gilt als formfreie Willenserklärung gemäß EIWOG.
+
+**Voraussetzungen für den Audit-Trail:**
+- Der Antrag wurde nach dem 7. Juni 2026 eingereicht.
+- Für Anträge aus deiner eigenen Website-Integration über die externe API: dein Backend muss die End-User-IP im neuen `submitterIp`-Body-Feld mitliefern (siehe API-Beschreibung im Settings-Bereich).
+
+**Was passiert mit alten Anträgen?** Bestandsanträge (vor Juni 2026 eingereicht) erhalten weiterhin das klassische Mandat-PDF mit Datum/Unterschriftsfeld — sie wurden ohne IP-Erfassung gespeichert.
+
+**Hinweis Core-Mandat:** Diese Änderung betrifft **nur** SEPA-Firmenlastschrift-Mandate (B2B). Das Basis-SEPA-Mandat für Privat-Mitglieder bleibt im klassischen Format mit Datum/Unterschriftsfeld.
+
 **Vorstands-Genehmigungs-Workflow**
 
 Neuer Toggle „Beitrittserklärung vom Vorstand genehmigen lassen, statt Beitrittsbestätigung automatisch zu versenden" in den EEG-Einstellungen (Alle Optionen). Wenn aktiv:

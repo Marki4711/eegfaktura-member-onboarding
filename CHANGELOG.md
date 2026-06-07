@@ -10,6 +10,50 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Feature — PROJ-77: B2B-Mandat-Audit-Block (§ 76 (3) EIWOG 2010) *(2026-06-07)*
+
+Im SEPA-Firmenlastschrift-Mandat-PDF (`einzugsart=b2b`) ersetzt ein
+Audit-Trail-Text den klassischen Datum/Unterschrift-Block. Der Text
+dokumentiert die elektronische SEPA-Zustimmung als formfreie
+Willenserklärung gemäß § 76 (3) EIWOG 2010 — das Mitglied muss nicht
+mehr physisch unterschreiben.
+
+**Audit-Text** mit drei Platzhaltern:
+- EEG-Name (`registration_entrypoint.eeg_name`)
+- Zustimmungs-Zeitpunkt (`application.sepa_mandate_accepted_at`)
+- IP-Adresse (`application.sepa_mandate_accepted_ip`, neu)
+
+**Wortlaut-Variante** je nach `require_email_confirmation` der EEG:
+„nach Verifizierung" (Bestätigungs-Link aktiv) vs. „nach Eingabe"
+(ohne Bestätigung).
+
+**Backend:**
+- Migration 000069: neue Spalte `application.sepa_mandate_accepted_ip INET NULL`
+- Public-Submit erfasst IP via bestehender `realIP`-Middleware
+- Externe API erweitert um optionalen `submitterIp`-Body-Param
+  (Server-zu-Server-Pattern: EEG-Integrator gibt End-User-IP mit)
+- Validierung via `net.ParseIP`; ungültig → 400 mit Feld-Hinweis
+- B2B-PDF-Renderer (`GenerateCompany`): Variant-Switch mit Kopfzeile
+  „Elektronisch erteiltes Mandat (gem. § 76 (3) EIWOG 2010)" und
+  `MultiCell`-Auto-Umbruch für IPv6-Adressen
+- `UpdateTx` schützt die IP via `COALESCE` (Erst-Submit gewinnt)
+- ResetImport behält den Audit-Trail (kein Cleanup)
+- PROJ-70-Resync rendert das PDF mit der ursprünglichen Member-IP
+
+**Excel-Export:** neues Field `sepa_mandate_accepted_ip` registriert;
+Default per EEG-FieldConfig-Pattern hidden (DSGVO-minimal).
+
+**Datenschutz-Erklärung** (`/datenschutz`) um expliziten EIWOG-Hinweis
+ergänzt.
+
+**Backward-Compat:** Bestandsanträge ohne IP fallen auf den klassischen
+Datum/Unterschrift-Block zurück. Core-Mandat-PDF (`einzugsart=core`)
+bleibt vollständig unverändert — Audit-Block ist B2B-spezifisch.
+
+**Tests:** 5 neue PDF-Snapshot-Tests (Audit gerendert, IPv6, langer
+Tenant-Name, Wortlaut-Wechsel, Fallback, Core-Regression). Alle 12
+Pakete grün.
+
 ### Feature — PROJ-76: Vorstands-Genehmigungs-Workflow für Beitrittserklärung *(2026-06-07)*
 
 Per-EEG-Toggle, der den Aktivierungs-Mail-Pfad umstellt. Hintergrund:

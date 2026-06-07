@@ -2193,11 +2193,29 @@ The API key determines the EEG — no `rcNumber` in the body.
   "accountHolder": "Josef Muster",
   "privacyAccepted": true,
   "sepaMandateAccepted": true,
+  "submitterIp": "203.0.113.42",
   "meteringPoints": [
     { "meteringPoint": "AT0010000000000000001000000000001", "direction": "CONSUMPTION", "participationFactor": 100 }
   ]
 }
 ```
+
+### `submitterIp` (PROJ-77, NEU 2026-06-07)
+
+Optionaler Body-Param mit der **End-User-IP** zum Zeitpunkt der
+SEPA-Mandats-Akzeptanz. Wird beim B2B-Firmenlastschrift-PDF als
+Audit-Trail-Text gerendert (formfreie Willenserklärung gem. § 76 (3)
+EIWOG 2010).
+
+- Format: IPv4 (`192.0.2.42`) oder IPv6 (`2001:db8::42`)
+- Validierung: bei ungültigem Format → `400 validation_error` mit
+  Feld-Hinweis
+- Fehlt der Param oder ist leer: das B2B-PDF fällt auf den klassischen
+  Datum/Unterschrift-Block zurück (Backward-Compat).
+- Hintergrund: bei Server-zu-Server-Integration ist `r.RemoteAddr` die
+  IP des EEG-Integrators, nicht des Mitglieds. Nur der EEG-Integrator
+  kennt die End-User-IP aus seinem ursprünglichen Browser-Request und
+  muss sie explizit mitgeben.
 
 ### memberType values
 

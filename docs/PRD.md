@@ -125,6 +125,7 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 | PROJ-74 | B2B-Mandat-Gate-Fix — `buildSEPAMandateData` lässt B2B-Anträge auch bei `SEPAMandateEnabled=false` durch (SEPA-Rulebook), Hart-Fail bei fehlenden Stammdaten, UI-Klarstellung an den SEPA-Toggles |
 | PROJ-75 | SEPA-Einwilligungs-Checkbox in Bankverbindungs-Card verschoben, mit EEG-spezifischem Text + Creditor-ID |
 | PROJ-76 | Vorstands-Genehmigungs-Workflow für Beitrittserklärung — per-EEG-Toggle, eigenes PDF mit Vorstands-Signaturblock, Mail-Routing-Wechsel und On-Demand-Download im Admin-UI; supersedes PROJ-65 |
+| PROJ-77 | B2B-Mandat-Audit-Block — elektronische SEPA-Zustimmung wird als formfreie Willenserklärung (§ 76 (3) EIWOG) im Firmenlastschrift-PDF dokumentiert (Tenant, Zustimmungs-Zeitstempel, IP); ersetzt den klassischen Unterschriftsblock für Anträge mit IP-Erfassung |
 
 ### On Hold
 
