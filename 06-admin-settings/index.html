@@ -581,6 +581,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#elektronisches-sepa-mandat-statt-datumunterschrift-alle-optionen" class="md-nav__link">
+    <span class="md-ellipsis">
+      Elektronisches SEPA-Mandat statt Datum/Unterschrift (Alle Optionen)
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1038,6 +1047,21 @@ Wenn du einen Antrag bereits per Import-Button verarbeitet hast und die Mitglied
 </table>
 <p><strong>Wenn du den Hinweis-Absatz im Formular loswerden willst:</strong> den Toggle „SEPA-Mandat erst beim Import erzeugen" auf <strong>aus</strong> stellen. Dann läuft alles wie im Default — das Mandat geht beim Einreichen mit der Bestätigungs-Mail raus, die Referenz ist die Antragsnummer.</p>
 <p><strong>Mandatsreferenz manuell überschreiben:</strong> Sowohl die Antragsnummer- als auch die Mitgliedsnummer-basierte Auto-Ableitung ist nicht zwingend. Im Admin-Edit-Form jedes Antrags gibt es ein Eingabefeld <strong>Mandatsreferenz</strong> (z. B. für externe Kundennummern aus eurem Buchhaltungssystem). Ein dort eingetragener Wert hat <strong>Vorrang</strong> und wird beim Import in eegFaktura mit übernommen (analog zum Mandatsdatum). Beide Felder werden, falls leer gelassen, automatisch beim Import abgeleitet — siehe Tabelle oben.</p>
+<h4 id="elektronisches-sepa-mandat-statt-datumunterschrift-alle-optionen">Elektronisches SEPA-Mandat statt Datum/Unterschrift <em>(Alle Optionen)</em><a class="headerlink" href="#elektronisches-sepa-mandat-statt-datumunterschrift-alle-optionen" title="Permanent link">&para;</a></h4>
+<p>Standardmäßig enthält jedes SEPA-Mandat-PDF (Basislastschrift und Firmenlastschrift) eine <strong>Datum/Ort/Unterschrift-Zeile</strong>. Das Mitglied druckt das PDF aus, unterschreibt und schickt es per Post oder gescannt zurück. Klassischer Papier-Workflow.</p>
+<p>Im Modus <em>Alle Optionen</em> findest du zwei Schalter, die das Mandat-PDF stattdessen mit einem <strong>elektronischen Audit-Trail-Block</strong> ausstatten. Statt der Unterschriftsline druckt das PDF dann automatisch einen Block der Form:</p>
+<blockquote>
+<p><em>Der Kunde hat der Musterstadt EEG nach Verifizierung seiner E-Mail-Adresse am 21.05.2026 11:50 von der IP-Adresse 192.0.2.42 auf elektronischem Weg (formfreie Willenserklärung gem. § 76 (3) EIWOG 2010) seine Zustimmung zum Vertrag im obigen Sinne sowie für das SEPA-Lastschriftmandat erteilt.</em></p>
+</blockquote>
+<p>Die zwei Toggles sind <strong>unabhängig</strong>, weil die Rechtsbewertung der elektronischen Willenserklärung für Geschäftsleute (Firmenlastschrift / B2B) anders ausfallen kann als für Verbraucher (Basislastschrift / CORE):</p>
+<ul>
+<li><strong>Im CORE-Mandat den elektronischen Audit-Trail nutzen (statt manueller Unterschrift)</strong> — sichtbar nur wenn „SEPA-Mandat von der EEG bereitstellen" aktiv ist; entscheidet über die Privat-/Basislastschrift-Variante.</li>
+<li><strong>Im B2B-Mandat den elektronischen Audit-Trail nutzen (statt manueller Unterschrift)</strong> — immer sichtbar im Modus <em>Alle Optionen</em>; entscheidet über die Firmenlastschrift-Variante. B2B-Mandate werden beim Import unabhängig vom CORE-Toggle erzeugt.</li>
+</ul>
+<p><strong>Standard für beide Toggles ist „aus"</strong> — also klassischer Unterschriftsblock. Die elektronische Variante ist erst aktiv, wenn die EEG sie bewusst einschaltet.</p>
+<blockquote>
+<p><strong>Hinweis:</strong> Wenn der Audit-Trail aktiv ist, aber für einen einzelnen Antrag noch keine IP-Adresse gespeichert wurde (Altanträge aus der Zeit vor der elektronischen Erfassung), fällt das PDF automatisch auf die klassische Unterschriftslinie zurück. Es kommt also nie zu einem fehlerhaften Audit-Block ohne Datenbasis.</p>
+</blockquote>
 <h3 id="beitrittserklarung-vom-vorstand-genehmigen-lassen-alle-optionen">Beitrittserklärung vom Vorstand genehmigen lassen <em>(Alle Optionen)</em><a class="headerlink" href="#beitrittserklarung-vom-vorstand-genehmigen-lassen-alle-optionen" title="Permanent link">&para;</a></h3>
 <p>Manche EEGs wollen die Beitrittsbestätigung nicht automatisch ans Mitglied versenden lassen, sondern stattdessen vom Vorstand formell genehmigen lassen — z. B. weil die Statuten einen Aufnahmebeschluss erfordern oder die EEG den Beitrittsprozess mit einer unterschriebenen Bestätigung dokumentieren will.</p>
 <p><strong>Toggle aktiv:</strong> Beim Wechsel auf Status „Aktiviert" entfällt die automatische Beitrittsbestätigungs-Mail an das Mitglied. Stattdessen geht eine Beitrittserklärung mit Vorstands-Signaturblock am Ende an die in den EEG-Stammdaten hinterlegte Kontakt-E-Mail. Der Vorstand unterschreibt das Dokument und leitet es per Hand an das Mitglied weiter. Das Mitglied wird zusätzlich über die reguläre eegFaktura-Aktivierungs-Mail über seinen Status informiert.</p>

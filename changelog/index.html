@@ -694,6 +694,17 @@
 <p>Übersicht der Änderungen der letzten Tage, die für <strong>EEG-Admins</strong> und <strong>Mitglieder</strong> spürbar sind. Technische Details, Bug-Fixes ohne UI-Auswirkung und Infrastruktur-Themen sind hier bewusst weggelassen — die finden sich in der Commit-Historie.</p>
 <hr />
 <h2 id="2026-06-07">2026-06-07<a class="headerlink" href="#2026-06-07" title="Permanent link">&para;</a></h2>
+<p><strong>Elektronisches SEPA-Mandat als Opt-in pro EEG (CORE + B2B getrennt)</strong></p>
+<p>In den EEG-Einstellungen (Modus <em>Alle Optionen</em>) gibt es zwei neue Toggles:</p>
+<ul>
+<li><strong>Im CORE-Mandat den elektronischen Audit-Trail nutzen (statt manueller Unterschrift)</strong> — sichtbar nur wenn die Basislastschrift im Onboarding aktiv ist.</li>
+<li><strong>Im B2B-Mandat den elektronischen Audit-Trail nutzen (statt manueller Unterschrift)</strong> — immer sichtbar im Modus <em>Alle Optionen</em>, weil B2B-Mandate beim Import unabhängig erzeugt werden.</li>
+</ul>
+<p>Mit diesen Toggles entscheidet die EEG selbst — und für CORE und B2B unabhängig voneinander —, ob das jeweilige Mandat-PDF mit dem elektronischen Audit-Trail-Block oder mit der klassischen Datum/Unterschrift-Zeile ausgestattet wird. <strong>Standard ist „aus" für beide</strong>: das PDF kommt klassisch mit Unterschriftslinie, das Mitglied unterschreibt physisch.</p>
+<p>Hintergrund: Die Rechtsbewertung der elektronischen Willenserklärung (formfreie Willenserklärung gem. § 76 (3) EIWOG 2010) wird derzeit geklärt. Bis dahin soll keine EEG unbemerkt in die neue Variante laufen — wer den Audit-Trail bereits jetzt nutzen will, schaltet ihn pro Mandat-Typ bewusst ein. Die Trennung CORE vs. B2B berücksichtigt, dass für Geschäftsleute (Firmenlastschrift) eine andere Sorgfalt gilt als für Verbraucher.</p>
+<p><strong>Was sich für Bestandsanträge ändert:</strong> Beim erneuten Senden eines Mandats („SEPA-Mandat erneut senden" im Antragsdetail) oder bei der automatischen Mandat-Generierung beim Aktivieren übernimmt das System immer den aktuellen Stand der Toggles. Bereits an Mitglieder versandte PDFs bleiben unverändert.</p>
+<p>Details und Erklärungen: siehe <a href="../06-admin-settings/">Admin-Einstellungen → SEPA-Lastschriftmandat → Elektronisches SEPA-Mandat statt Datum/Unterschrift</a>.</p>
+<hr />
 <p><strong>SEPA-Firmenlastschrift-PDF mit elektronischem Audit-Trail</strong></p>
 <p>Bei SEPA-Firmenlastschrift-Mandaten (<code>einzugsart=b2b</code>) erscheint im PDF nicht mehr ein leeres Datums- und Unterschriftsfeld, sondern ein Audit-Trail-Text, der die elektronische Zustimmung deines Mitglieds rechtskonform dokumentiert:</p>
 <blockquote>
