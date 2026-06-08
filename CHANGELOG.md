@@ -10,6 +10,32 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Feature — PROJ-83: Letzte EEG-Auswahl im Admin-Settings persistieren *(2026-06-08)*
+
+`/admin/settings` initialisierte `selectedRc` bisher immer auf
+`rcNumbers[0]`. Bei 10+ EEGs war das jedes Mal ein Mehrklick im
+Listbox-Auswahlmenü.
+
+Fix via `localStorage`-Persistenz (Owner-Direktive — Variante B aus
+der Analyse). Neuer Helper `src/lib/last-used-rc.ts` mit `readLastUsedRc`/
+`writeLastUsedRc`/`clearLastUsedRc`. Sicherheits-Eigenschaften:
+- Storage-Inhalt ist nur die RC-Nummer als String — kein Token, kein
+  PII, kein JSON-Wrapper mit Extras (verifiziert per Vitest-Test)
+- Tenant-Scope-Validation beim Lesen: wenn die persistierte RC nicht
+  mehr in den aktuellen `rcNumbers` (JWT-Claim) enthalten ist, wird
+  der Wert still verworfen und aus dem Storage entfernt — kein Risiko
+  einer 403-Schleife oder „komischen Auswahl"
+- LocalStorage-Fehler (Privat-Modus, Quota) werden geschluckt, der
+  UI-Pfad fällt auf das heutige Default-Verhalten
+
+Namespaced Storage-Key `eegfaktura-onboarding:settings:lastRc` —
+kein Konflikt mit anderen Anwendungen oder zukünftigen
+Settings-Persistenzen.
+
+Tests: 9 neue Vitest-Cases (Verhalten + Sicherheits-Anker). Build clean.
+
+Spec: `features/PROJ-83-last-used-eeg-persistence.md`.
+
 ### Fix — PROJ-82: Settings-Formular-Editor — UI-Staleness bei Tab-Wechsel *(2026-06-08)*
 
 `AdminFieldConfigEditor` persistierte Konfigurationsänderungen korrekt in

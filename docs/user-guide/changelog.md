@@ -6,6 +6,10 @@
 
 ## 2026-06-08
 
+**EEG-Auswahl wird gemerkt**
+
+Wenn ihr die Einstellungen für eine bestimmte EEG geöffnet habt und beim nächsten Besuch wieder auf `/admin/settings` springt, ist diese EEG direkt vorausgewählt — kein Sprung zurück auf die erste EEG der Liste. Funktioniert pro Browser. Wenn ihr für die zuletzt gewählte EEG keine Berechtigung mehr habt (Rollenwechsel, EEG entfernt), fällt die Auswahl still auf die erste verfügbare zurück.
+
 **Behoben: Einstellungen im Formular-Tab waren nach Tab-Wechsel veraltet**
 
 Wenn ihr in den EEG-Einstellungen ein Formular-Feld (Antragsteller oder Zählpunkt) umgestellt habt, wurde der neue Wert zwar sofort gespeichert. Wenn ihr aber auf einen anderen Tab gewechselt und wieder zurück zum Formular-Tab gesprungen seid, hat der Editor noch den alten Stand angezeigt. Erst ein Hard-Reload der Seite hat den aktuellen Stand gezeigt.
