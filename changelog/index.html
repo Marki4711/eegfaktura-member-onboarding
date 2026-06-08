@@ -703,6 +703,8 @@
 <p>Übersicht der Änderungen der letzten Tage, die für <strong>EEG-Admins</strong> und <strong>Mitglieder</strong> spürbar sind. Technische Details, Bug-Fixes ohne UI-Auswirkung und Infrastruktur-Themen sind hier bewusst weggelassen — die finden sich in der Commit-Historie.</p>
 <hr />
 <h2 id="2026-06-08">2026-06-08<a class="headerlink" href="#2026-06-08" title="Permanent link">&para;</a></h2>
+<p><strong>EEG-Auswahl wird gemerkt</strong></p>
+<p>Wenn ihr die Einstellungen für eine bestimmte EEG geöffnet habt und beim nächsten Besuch wieder auf <code>/admin/settings</code> springt, ist diese EEG direkt vorausgewählt — kein Sprung zurück auf die erste EEG der Liste. Funktioniert pro Browser. Wenn ihr für die zuletzt gewählte EEG keine Berechtigung mehr habt (Rollenwechsel, EEG entfernt), fällt die Auswahl still auf die erste verfügbare zurück.</p>
 <p><strong>Behoben: Einstellungen im Formular-Tab waren nach Tab-Wechsel veraltet</strong></p>
 <p>Wenn ihr in den EEG-Einstellungen ein Formular-Feld (Antragsteller oder Zählpunkt) umgestellt habt, wurde der neue Wert zwar sofort gespeichert. Wenn ihr aber auf einen anderen Tab gewechselt und wieder zurück zum Formular-Tab gesprungen seid, hat der Editor noch den alten Stand angezeigt. Erst ein Hard-Reload der Seite hat den aktuellen Stand gezeigt.</p>
 <p>Ab jetzt bleibt die Anzeige nach Tab-Wechsel synchron mit dem gespeicherten Stand. Der Auto-Save selbst ist unverändert — der Bug betraf nur die Anzeige, nicht die Persistierung.</p>
