@@ -46,10 +46,28 @@ Die Einstellungsseite besteht aus mehreren Tabs. Welcher Tab wie speichert, ist 
 
 | Tab | Speichern-Verhalten |
 |---|---|
-| **Stammdaten & SEPA** | Expliziter **„Konfiguration speichern"**-Button am Ende. Die Felder hängen voneinander ab (SEPA-Toggle + Mandat-Timing + Default-Einzugsart), daher willst du sie als bewussten Sammel-Klick absetzen. |
+| **Stammdaten & SEPA** | **Auto-Speichern** mit Wartetext-Hinweis. Jede Änderung wird nach ca. einer halben Sekunde Tipp-Pause automatisch persistiert; oben in der Karte zeigt ein Status-Indikator „Speichert…" / „Gespeichert". Wenn ein Schalter eine Folge-Eingabe verlangt (z. B. Genossenschaftsanteile aktivieren, ohne Anteilswert anzugeben), wartet der Auto-Save freundlich, bis du fertig bist — direkt unter dem Schalter erscheint ein gelber Hinweis-Banner, der zeigt, was noch fehlt. |
 | **Einleitungstext** | Expliziter **„Speichern"**-Button. Im Hintergrund läuft zusätzlich alle 30 Sekunden ein **Auto-Speichern als Sicherheitsnetz**, damit ein Browser-Crash dich nicht den ganzen Text kostet. |
 | **Formular-Felder** | **Auto-Speichern.** Jede Toggle-Änderung wird automatisch persistiert; oben in der Karte zeigt ein Status-Indikator „Speichert…" / „Gespeichert". Es gibt keinen Speichern-Button mehr. |
 | **Rechtsdokumente, Externe API, Datenweiterleitung, Import/Export** | Jede Aktion (Hinzufügen, Bearbeiten, Löschen, Schlüssel-Generieren …) wird **sofort** persistiert. Kein Sammel-Save nötig. |
+
+**Hinweis-Banner bei Stammdaten & SEPA — wann erscheint er?**
+
+Drei Schalter haben Pflicht-Folge-Eingaben:
+
+- **Genossenschaftsanteile erfassen** → benötigt „Pflichtanteile je Standort" + „Anteilswert in Euro"
+- **Im CORE-Mandat den elektronischen Audit-Trail nutzen** → benötigt zusätzlich „SEPA-Mandat erst beim Import senden"
+- **SEPA-Feld für ausgewählte Mitgliedstypen auf optional setzen** → benötigt mindestens einen ausgewählten Mitgliedstyp
+
+Wenn du einen dieser Schalter einschaltest, ohne die Folge-Felder auszufüllen, erscheint direkt unter dem Schalter ein gelber Hinweis:
+
+> **Änderungen werden gespeichert, sobald die folgenden Pflichtfelder ausgefüllt sind:**
+> - Pflichtanteile je Standort (aktuell leer)
+> - Anteilswert in Euro (aktuell leer)
+
+Sobald du die fehlenden Werte einträgst, verschwindet der Banner und der Auto-Save speichert. Du bekommst keinen roten Fehler-Toast wie früher beim klassischen Save-Button — der Editor wartet einfach freundlich, bis dein Stand sauber konfigurierbar ist.
+
+**Wenn du einen Schalter wieder ausschaltest**, blendet der Editor die Sub-Felder vollständig aus und setzt deren Werte zurück. Die DB-Spalten werden beim nächsten Auto-Save geleert. Wenn du den Schalter später erneut einschaltest, startest du sauber bei null.
 
 **Schutz vor Datenverlust:** Wenn du den Tab oder die EEG wechselst, während es in **Stammdaten**, **Einleitungstext** oder **Formular-Felder** ungespeicherte Änderungen gibt, erscheint ein Confirm-Dialog („Hier bleiben" / „Verwerfen und wechseln"). Tabs mit ungespeicherten Änderungen tragen außerdem ein orangenes Punkt-Symbol im Tab-Header. Beim Schließen des Browser-Tabs oder beim Refresh warnt zusätzlich der Browser selbst.
 

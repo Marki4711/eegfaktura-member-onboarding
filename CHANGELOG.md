@@ -10,6 +10,50 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Feature — PROJ-84: EEG-Stammdaten-Editor auf Auto-Save mit Cross-Field-Gate *(2026-06-08)*
+
+Der `AdminEEGSettingsEditor` (Tab „Stammdaten & SEPA" unter
+`/admin/settings`) hatte als einziger Settings-Editor noch einen
+expliziten „Konfiguration speichern"-Button — weil drei
+Cross-Field-Validierungen (PROJ-37 Genossenschaftsanteile,
+PROJ-80 SEPA-CORE-Audit-Coupling, PROJ-81 SEPA-Wahl-Whitelist)
+serverseitig greifen, die einen naiven Auto-Save mit Halb-Zuständen
+torpediert hätten.
+
+Owner-Beobachtung 2026-06-08: „Es ist unintuitiv, dass bei den
+Formular-Feldern automatisch gespeichert wird, bei den Stammdaten aber
+nicht."
+
+Fix: die drei Backend-Regeln werden client-seitig in
+`src/lib/eeg-settings-validation.ts` gespiegelt (`validateCooperativeShares`,
+`validateSEPACoreAuditCoupling`, `validateSEPAOptionalWhitelist`, plus
+Aggregat `validateEEGSettingsForAutoSave`). Vor jedem
+`autoSave.schedule()` läuft der Aggregat-Validator; bei einem
+unvollständigen Bündel wird der Schedule übersprungen und ein amber
+Hint-Banner direkt unter dem zugehörigen Master-Toggle gerendert.
+
+Owner-approbierter Wortlaut: „Änderungen werden gespeichert, sobald die
+folgenden Pflichtfelder ausgefüllt sind:" + bullet-Liste der konkret
+fehlenden Felder.
+
+Owner-Entscheidungen aus /grill-me 2026-06-08:
+- Toggle-OFF blendet Sub-Felder vollständig aus und resetet den State
+  (Validation wird dadurch automatisch grün, Backend cleart die
+  DB-Spalten beim nächsten Save)
+- Kein Feature-Flag — Roll-back via Git-Revert
+- Last-Write-Wins (kein Optimistic-Lock)
+- `onSaved`-Callback Editor → Parent verhindert Stale-Cache analog
+  PROJ-82
+
+Backend-Validation bleibt unverändert als Defense-in-Depth. Drift-Schutz
+via Vitest-Permutationstest (23 Test-Cases in
+`src/lib/eeg-settings-validation.test.ts`); bei Backend-Regel-Änderung
+ohne Frontend-Update bleibt CI rot und Deploy blockiert.
+
+Pure Frontend-Änderung: keine API/DB/Migration/Helm-Änderung.
+
+Spec: `features/PROJ-84-eeg-settings-auto-save.md`.
+
 ### Feature — PROJ-83: Letzte EEG-Auswahl im Admin-Settings persistieren *(2026-06-08)*
 
 `/admin/settings` initialisierte `selectedRc` bisher immer auf

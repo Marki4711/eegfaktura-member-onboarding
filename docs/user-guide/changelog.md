@@ -6,6 +6,14 @@
 
 ## 2026-06-08
 
+**EEG-Stammdaten werden jetzt automatisch gespeichert**
+
+Im Tab **Stammdaten & SEPA** gibt es keinen „Konfiguration speichern"-Button mehr. Jede Änderung wird nach einer halben Sekunde Tipp-Pause automatisch persistiert; oben in der Karte zeigt ein Status-Indikator „Speichert…" / „Gespeichert" — genau wie schon im Formular-Felder-Tab.
+
+Wenn du einen Schalter aktivierst, der eine Folge-Eingabe verlangt (z. B. Genossenschaftsanteile aktivieren, ohne die Anteilswert-Eingabe), zeigt ein gelber Hinweis-Banner direkt unter dem Schalter, was noch fehlt: *„Änderungen werden gespeichert, sobald die folgenden Pflichtfelder ausgefüllt sind: …"*. Sobald du fertig bist, verschwindet der Banner und der Auto-Save speichert. Kein roter Fehler-Toast mehr.
+
+Wenn du einen Schalter wieder ausschaltest, werden die Sub-Felder ausgeblendet und beim nächsten Auto-Save aus der DB geleert.
+
 **EEG-Auswahl wird gemerkt**
 
 Wenn ihr die Einstellungen für eine bestimmte EEG geöffnet habt und beim nächsten Besuch wieder auf `/admin/settings` springt, ist diese EEG direkt vorausgewählt — kein Sprung zurück auf die erste EEG der Liste. Funktioniert pro Browser. Wenn ihr für die zuletzt gewählte EEG keine Berechtigung mehr habt (Rollenwechsel, EEG entfernt), fällt die Auswahl still auf die erste verfügbare zurück.
