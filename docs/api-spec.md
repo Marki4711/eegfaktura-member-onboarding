@@ -284,7 +284,7 @@ Required-validation runs per-subfield: each name/email/phone is required only wh
 - `privacyVersion` required when `privacyAccepted = true`
 - `iban` required (15–34 characters, whitespace is normalized)
 - `accountHolder` required
-- `sepaMandateAccepted` must be `true`
+- `sepaMandateAccepted` — context-dependent (PROJ-81): must be `true` unless the EEG has activated the SEPA-choice option (`sepaOptionalEnabled = true`) **AND** the member's `memberType` is in `sepaOptionalMemberTypes`. In that case, `false` is accepted and the application is stored with `einzugsart = "kein_sepa"` (no mandate PDF). Bank fields (`iban`, `accountHolder`) remain mandatory regardless — eegFaktura-Core requires bank data for every member.
 
 ### Response 201
 ```json
@@ -1356,7 +1356,9 @@ Returns the EEG settings — the eight Core-mastered fields (PROJ-32) plus the o
   "cooperativeShareAmountCents": 10000,
   "boardApprovalWorkflowEnabled": false,
   "sepaMandateCoreAuditEnabled": false,
-  "sepaMandateB2BAuditEnabled": false
+  "sepaMandateB2BAuditEnabled": false,
+  "sepaOptionalEnabled": false,
+  "sepaOptionalMemberTypes": []
 }
 ```
 
@@ -1369,6 +1371,8 @@ Returns the EEG settings — the eight Core-mastered fields (PROJ-32) plus the o
 `boardApprovalWorkflowEnabled` (PROJ-76) defaults to `false`. When `true`, the `→ activated` transition sends a **Beitrittserklärung** (with Vorstands-Signaturblock) to the EEG contact instead of an automatic Beitrittsbestätigung to the member. The board signs manually and forwards the document; the member is informed via the regular eegFaktura-Core activation mail. Status transition is sync hard-fail: missing `contact_email` or SMTP failure rolls back the activation.
 
 `sepaMandateCoreAuditEnabled` and `sepaMandateB2BAuditEnabled` (PROJ-78) both default to `false`. When `true` for the matching mandate type (`einzugsart=core` resp. `einzugsart=b2b`), the SEPA-mandate PDF renders the electronic audit-trail block (formfreie Willenserklärung gem. § 76 (3) EIWOG 2010 — Tenant, Zustimmungs-Zeitstempel, IP-Adresse) **in place of** the classic Datum/Unterschrift-Block. When `false`, the classic block is always rendered, even if the audit data is fully populated. The two toggles are independent: a single EEG can opt into the electronic variant for B2B (Geschäftsleute) while keeping CORE (Verbraucher) on the classic signature workflow, or vice versa. Audit fallback (PROJ-77): even with the toggle on, the renderer falls back to the classic block if any of the three audit data fields (`AuditTenant`, `sepa_mandate_accepted_at`, `sepa_mandate_accepted_ip`) is empty — relevant for legacy applications without IP capture.
+
+`sepaOptionalEnabled` and `sepaOptionalMemberTypes` (PROJ-81) default to `false` / `[]`. When `sepaOptionalEnabled = true`, the SEPA-mandate online-consent checkbox is rendered **optional instead of mandatory** in the public registration form for the listed member types. A member who does not tick the checkbox is recorded with `einzugsart = "kein_sepa"` (no mandate PDF). **Bank fields (`IBAN`, `accountHolder`) remain mandatory in all cases** — eegFaktura-Core requires bank data for every member regardless of mandate status. Allowed list values: `private`, `farmer`, `association`, `municipality`. `company` is **never** valid in the list (B2B mandatory direct debit) — the backend returns `400` if a request body includes `company`. The configexport importer silently filters `company` and logs a warning. Cross-field validation: when `sepaOptionalEnabled = true` and `sepaOptionalMemberTypes` is empty, the save endpoint returns `400`.
 
 ### Errors
 - `400` missing `rc_number`
@@ -1399,7 +1403,9 @@ Writes the onboarding-only editable fields. The Core-mastered fields (`eegId`, `
   "cooperativeShareAmountCents": 10000,
   "boardApprovalWorkflowEnabled": false,
   "sepaMandateCoreAuditEnabled": false,
-  "sepaMandateB2BAuditEnabled": false
+  "sepaMandateB2BAuditEnabled": false,
+  "sepaOptionalEnabled": false,
+  "sepaOptionalMemberTypes": ["private", "farmer"]
 }
 ```
 
@@ -2229,8 +2235,9 @@ Same as public API: `private` | `farmer` | `municipality` | `company` | `associa
 ### Required fields
 
 `memberType`, `email`, `residentStreet`, `residentStreetNumber`, `residentZip`, `residentCity`,
-`iban`, `accountHolder`, `privacyAccepted: true`,
-`sepaMandateAccepted: true`, `meteringPoints` (min 1).
+`iban`, `accountHolder`, `privacyAccepted: true`, `meteringPoints` (min 1).
+
+`sepaMandateAccepted` — context-dependent (PROJ-81): must be `true` unless the EEG has activated the SEPA-choice option (`sepaOptionalEnabled = true`) **AND** the member's `memberType` is in `sepaOptionalMemberTypes`. In that case, `false` is accepted; the application is stored with `einzugsart = "kein_sepa"` (no mandate PDF). Bank fields (`iban`, `accountHolder`) remain mandatory regardless.
 
 For `natural_person` types (`private`, `farmer`): `firstname` + `lastname` required.
 For legal entity types (`municipality`, `company`, `association`): `companyName` required.

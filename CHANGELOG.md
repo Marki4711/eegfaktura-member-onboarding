@@ -10,6 +10,117 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Feature — PROJ-81: SEPA-Einwilligung optional pro Mitgliedstyp *(2026-06-08)*
+
+Per-EEG-Toggle „SEPA-Wahl im Formular zulassen" mit konfigurierbarer
+Mitgliedstyp-Whitelist. Wenn aktiv, ist die SEPA-Einwilligungs-Checkbox
+im Public-Form für die gelisteten Mitgliedstypen optional. Bei nicht
+angekreuzter Checkbox wird `einzugsart=kein_sepa` gesetzt, kein
+Mandat-PDF erzeugt. Bankdaten bleiben IMMER Pflicht (eegFaktura-Core
+verlangt sie für jedes Mitglied — Owner-Direktive 2026-06-08).
+
+`company` darf nie in der Whitelist sein (B2B-Pflicht-Lastschrift) —
+Backend rejected, Configexport-Importer filtert und loggt.
+
+**Datenmodell:**
+- Migration `000072` ergänzt zwei Spalten auf
+  `member_onboarding.registration_entrypoint`:
+  - `sepa_optional_enabled BOOLEAN NOT NULL DEFAULT FALSE`
+  - `sepa_optional_member_types TEXT[] NOT NULL DEFAULT '{}'`
+
+**Backend:**
+- Zentraler Helper `shared.IsSEPAOptional(ep, memberType)` als Wahrheit
+  für Public-Submit, externe API und Admin-Service.
+  `IsValidSEPAOptionalMemberType()` als Whitelist-Check (private/farmer/
+  association/municipality — company nie).
+- `CreateApplicationRequest.SepaMandateAccepted` ohne `required`-Tag.
+  IBAN/AccountHolder bleiben `required` (Owner-Direktive: Bankdaten
+  immer Pflicht).
+- `application_service.CreateApplication`: Defense-in-Depth-Check und
+  server-side `einzugsart`-Entscheidung (`kein_sepa` wenn Checkbox aus
+  + Toggle/Mitgliedstyp passt).
+- `internal/http/external.go`: harter SEPA-Check entfernt, durchgereicht
+  an Service-Helper.
+- `internal/http/admin.go`: GET/PUT-Body um beide Felder erweitert,
+  Cross-Field-Validation (Toggle on ⇒ Liste nicht leer; `company` in
+  Liste → 400; ungültige Mitgliedstypen → 400).
+- `RegistrationEntrypointRepository.SaveEEGSettings` + `SaveAllEEGSettingsTx`
+  + `EEGSettingsForImport` um beide Felder erweitert.
+- Configexport: Schema/Exporter/Importer/Diff um beide Felder erweitert.
+  Importer filtert `company` defensiv aus der Liste und loggt via
+  `slog.Warn`.
+
+**Mail-Hinweis bei kein_sepa (alle drei EEG-Mail-Pfade):**
+- `application_submitted_eeg.html`, `application_activated_eeg.html`,
+  PROJ-76-Beitrittserklärung-Mail bekommen einen gelben Hinweis-Banner
+  bei `app.einzugsart=="kein_sepa"`: „Kein SEPA-Lastschriftmandat
+  erteilt — die Abrechnung muss über einen alternativen Zahlungsweg
+  direkt mit dem Mitglied vereinbart werden."
+- Single source of truth über `NoSepaMandate bool` auf den Mail-Daten-
+  Structs (`eegSubmissionData`, `activationTemplateData`) und inline
+  im `SendBoardApprovalRequest`-Body.
+- `application_imported_eeg.html` braucht keinen Eingriff (Mail geht
+  bei `kein_sepa` nicht raus).
+
+**Frontend:**
+- `EEGSettings`, `EEGSettingsSavePayload`, `RegistrationConfig` und
+  `ConfigEEGSettings` um beide Felder erweitert.
+- Neuer Helper `src/lib/sepa-optional.ts` (`isSepaOptional()` +
+  `isValidSepaOptionalMemberType()`) als TS-Pendant des Go-Helpers,
+  inklusive Mitgliedstyp-Labels und -Reihenfolge.
+- `src/components/admin-eeg-settings-editor.tsx`: Master-Toggle +
+  4er-Checkbox-Liste (eingerückt, sichtbar nur bei aktivem Toggle).
+  Pre-Save-Validation für „Toggle on + leere Liste" (UX-Komfort,
+  Backend ist die Wahrheit).
+- `src/components/registration-form.tsx`: `buildFormSchema` bekommt
+  Sepa-Optional-Subset; Sternchen am Checkbox-Label + zod-`required`-
+  Check konditional. Live-Re-Evaluation bei `memberType`-Wechsel über
+  `form.watch`. Bei optionaler Variante zusätzlich Inline-Hint unter
+  der Checkbox.
+- `src/components/admin-application-detail.tsx`: blauer Info-Banner
+  über der Bankverbindungs-Karte bei `einzugsart=kein_sepa`.
+- `src/lib/settings-mode.ts`: `sepaOptionalEnabled=true` löst
+  Advanced-Mode aus (analog PROJ-76/78 — Toggle bleibt nach Reload
+  sichtbar).
+- `src/components/admin-legal-documents-editor.tsx`: vollständiger
+  Snapshot beim Toggle-Save um die beiden neuen Felder ergänzt
+  (verhindert versehentliches Reset auf Default).
+
+**Beifang-Fixes (im selben Commit):**
+- `internal/dataexport/excel/fields.go`: `EinzugsartLabels` korrigiert
+  — vor PROJ-81 kannte die Map nur `basis` und `b2b`, während die DB
+  seit PROJ-23 `core`/`b2b`/`kein_sepa` speichert. Map hat jetzt alle
+  drei Werte mit Labels. PROJ-81 macht den Bug sichtbarer (mehr
+  `kein_sepa`-Anträge im Public-Form).
+- `internal/application/application_service.go`: veralteter Block-
+  Kommentar in `buildSEPAMandateData` aktualisiert (PROJ-80 hatte
+  `SEPAMandateEnabled` entfernt, der Kommentar zog nicht nach).
+
+**Tests:**
+- `internal/shared/sepa_optional_test.go`: 8 Permutationen für den
+  Go-Helper + Whitelist-Check.
+- `internal/configexport/sanitize_sepa_optional_test.go`: 6 Cases
+  inkl. company-Filter.
+- `internal/dataexport/excel/fields_test.go`: fixiert das gefixte
+  `EinzugsartLabels`-Mapping.
+- `internal/mail/service_test.go`: zwei neue Tests für `NoSepaMandate`-
+  Flag-Mapping (kein_sepa vs. core).
+- `src/lib/sepa-optional.test.ts` (Vitest): Spiegel der Go-Helper-
+  Permutationen, dient als Drift-Schutz zwischen Backend und Frontend.
+- `src/lib/settings-mode.test.ts`: Advanced-Mode-Trigger-Test für
+  `sepaOptionalEnabled=true`.
+
+**Doku:**
+- `docs/api-spec.md`: GET/PUT `/api/admin/settings/eeg` um die zwei
+  Felder erweitert; Public-Submit- und Externe-API-Validation-Regeln
+  ergänzt.
+- `docs/domain-model.md`: zwei neue Spalten auf
+  `registration_entrypoint` dokumentiert.
+- `docs/user-guide/06-admin-settings.md`: neuer Abschnitt „SEPA-Wahl
+  im Formular zulassen" mit Beispiel (Max Mustermann), Hinweis auf
+  abweichenden Abrechnungsweg, Bankdaten-Pflicht.
+- `docs/user-guide/changelog.md`: Eintrag 2026-06-08 (PROJ-frei).
+
 ### Feature — PROJ-80: SEPA-Settings-Vereinfachung *(2026-06-08)*
 
 Der EEG-Toggle „SEPA-Mandat als Datei dem Antragsteller übermitteln"

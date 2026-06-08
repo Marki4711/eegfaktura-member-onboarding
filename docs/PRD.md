@@ -128,6 +128,7 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 | PROJ-77 | B2B-Mandat-Audit-Block — elektronische SEPA-Zustimmung wird als formfreie Willenserklärung (§ 76 (3) EIWOG) im Firmenlastschrift-PDF dokumentiert (Tenant, Zustimmungs-Zeitstempel, IP); ersetzt den klassischen Unterschriftsblock für Anträge mit IP-Erfassung |
 | PROJ-78 | Toggle „Elektronisches SEPA-Mandat" (B2B + CORE separat) — zwei unabhängige Per-EEG-Schalter steuern Audit-Trail-Variante vs. klassischer Unterschriftsblock pro Mandat-Typ; CORE-Audit neu, B2B-Audit (PROJ-77) hinter Toggle; Default beide FALSE (klassisch) bis Rechtsklärung |
 | PROJ-80 | SEPA-Settings-Vereinfachung — `sepaMandateEnabled`-Toggle entfernt; Online-Zustimmung + CORE-PDF werden Konstanten; nur noch CORE-Audit + Timing als Konfig; Timing-Label umbenannt; Migration-Backfill für Bestands-EEGs; EEG-Mail-Kopie bei Audit-Variante (Ablage-Pflicht); Konsistenz-Anpassung Kurz-Erklärungen unter allen SEPA-Toggles |
+| PROJ-81 | SEPA-Einwilligung optional pro Mitgliedstyp — Per-EEG-Master-Toggle + konfigurierbare Mitgliedstyp-Liste (private/association/municipality, `company` zwangsweise ausgenommen). SEPA-Einwilligungs-Checkbox wird im Public-Form für gewählte Mitgliedstypen optional; bei Nicht-Anhaken werden Bankdaten ebenfalls optional und `einzugsart` auf `kein_sepa` gesetzt; Backend-Defense-in-Depth-Validation |
 
 ### On Hold
 
@@ -141,7 +142,7 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 | PROJ-51 | Anzeige offener Nutzungsgebühren im Admin-UI | Wartet auf Klärung des Abrechnungs- und Status-Pflege-Konzepts |
 | PROJ-55 | Nachmelden von Zählpunkten anhand der Mitgliedsnummer | Wartet auf Self-Service-Portal-Direction (Owner-Entscheidung 2026-05-23) |
 
-> **Next available feature ID:** PROJ-68 (siehe `features/INDEX.md`).
+> **Next available feature ID:** PROJ-82 (siehe `features/INDEX.md`).
 
 ## 5. Success Metrics
 
