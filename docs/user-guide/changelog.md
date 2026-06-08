@@ -6,6 +6,10 @@
 
 ## 2026-06-08
 
+**USt-Pflicht-Status wird in der Antrags-Detail-Ansicht angezeigt**
+
+Bei Anträgen vom Mitgliedstyp *Unternehmen* oder *Verein* siehst du jetzt in der Antrags-Detail-Ansicht direkt unter der UID-Nummer einen zusätzlichen Eintrag *„USt-pflichtig: Ja"* oder *„USt-pflichtig: Nein (Kleinunternehmerregelung)"*. Vorher musste der Status aus dem leeren UID-Feld abgeleitet werden — jetzt ist er sofort erkennbar, genau wie in der Bearbeiten-Maske.
+
 **EEG-Stammdaten werden jetzt automatisch gespeichert**
 
 Im Tab **Stammdaten & SEPA** gibt es keinen „Konfiguration speichern"-Button mehr. Jede Änderung wird nach einer halben Sekunde Tipp-Pause automatisch persistiert; oben in der Karte zeigt ein Status-Indikator „Speichert…" / „Gespeichert" — genau wie schon im Formular-Felder-Tab.

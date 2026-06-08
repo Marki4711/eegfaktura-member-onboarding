@@ -10,6 +10,30 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Fix — PROJ-87: USt-Pflicht-Status in der Antrags-Detail-Ansicht sichtbar *(2026-06-08)*
+
+Tester-Feedback 2026-06-08: in der Antrags-Detail-Ansicht
+(`admin-application-detail.tsx`) war der USt-Pflicht-Status eines
+Antragstellers (Kleinunternehmer ja/nein) nicht direkt erkennbar.
+Der Admin musste „leere UID-Nummer ⇒ Kleinunternehmer" im Kopf
+nachvollziehen — in der Bearbeiten-Maske dagegen zeigte eine
+Checkbox den Wert direkt.
+
+Fix: neuer `<Field>`-Eintrag „USt-pflichtig" mit Wert „Ja" oder
+„Nein (Kleinunternehmerregelung)" für Mitgliedstyp `company` und
+`association`. Position: zwischen UID-Nummer und Firmenbuch-/
+Vereinsnummer.
+
+Ableitungs-Logik identisch zum Edit-Form
+(`admin-edit-form.tsx:100-102`):
+`!!(application.uidNumber && application.uidNumber.trim() !== "")`
+Beide Pfade leiten aus demselben DB-Feld ab (PROJ-63-Direktive:
+`vatLiable` ist kein DB-Feld, sondern reines UI-Gate).
+
+5-Zeilen-Frontend-Change. Kein API/DB/Helm-Eingriff.
+
+Spec: `features/PROJ-87-vatliable-status-in-admin-detail.md`.
+
 ### Fix — PROJ-86: isKnownStatus-Whitelist PROJ-46-Drift-Hotfix *(2026-06-08)*
 
 `isKnownStatus()` in `internal/http/admin.go` listete nur 9 von 12
