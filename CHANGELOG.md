@@ -38,7 +38,7 @@ wenn Audit aktiv).
 
 | CORE-Audit | Timing | Verhalten |
 |---|---|---|
-| aus | aus | PDF beim Submit, mit Unterschriftenfeld, Mandatsreferenz = Antragsnummer. Mitglied unterschreibt + sendet zurück. |
+| aus | aus | PDF beim Submit, mit Unterschriftenfeld, Mandatsreferenz bleibt leer (Platzhalter „wird von der EEG ausgefüllt"). Mitglied unterschreibt + sendet zurück; EEG trägt die Mandatsreferenz später nach. |
 | aus | an | PDF erst beim Import, mit Unterschriftenfeld, Mandatsreferenz = Mitgliedsnummer. Mitglied unterschreibt + sendet zurück. |
 | an | an | PDF erst beim Import, mit Audit-Trail-Block, Mandatsreferenz = Mitgliedsnummer. Mitglied muss nichts mehr tun. |
 

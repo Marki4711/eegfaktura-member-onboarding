@@ -108,13 +108,13 @@ Das System erzeugt für jedes SEPA-Mitglied automatisch ein Mandat-PDF. Die zwei
 Im Modus *Alle Optionen* findest du zwei Toggles unterhalb des SEPA-Lastschriftmandat-Abschnitts:
 
 - **Im CORE-Mandat den elektronischen Audit-Trail nutzen (statt manueller Unterschrift)** — entscheidet, ob das CORE-Mandat-PDF (Basislastschrift, Privat) einen Audit-Trail-Block oder ein klassisches Unterschriftenfeld trägt.
-- **SEPA-Mandat erst beim Import senden (Mandatsreferenz = Mitgliedsnummer)** — entscheidet, ob das PDF sofort mit der Bestätigungs-Mail rausgeht (Mandatsreferenz = Antragsnummer) oder erst beim Import (Mandatsreferenz = Mitgliedsnummer).
+- **SEPA-Mandat erst beim Import senden (Mandatsreferenz = Mitgliedsnummer)** — entscheidet, ob das PDF sofort mit der Bestätigungs-Mail rausgeht (mit Platzhalter „Mandatsreferenz wird von der EEG ausgefüllt" — die EEG trägt sie später händisch nach) oder erst beim Import (Mandatsreferenz = Mitgliedsnummer).
 
 Drei gültige Kombinationen:
 
 | CORE-Audit | Timing | Was passiert |
 |---|---|---|
-| **aus** *(Default)* | **aus** *(Default)* | PDF kommt sofort mit der Bestätigungs-Mail, hat ein Unterschriftenfeld. Mitglied unterschreibt und sendet zurück. Mandatsreferenz = Antragsnummer. |
+| **aus** *(Default)* | **aus** *(Default)* | PDF kommt sofort mit der Bestätigungs-Mail, hat ein Unterschriftenfeld. Mitglied unterschreibt und sendet zurück. Mandatsreferenz bleibt leer (Platzhalter „wird von der EEG ausgefüllt") — die EEG trägt sie händisch nach. |
 | **aus** | **an** | PDF kommt erst beim Import, hat ein Unterschriftenfeld. Mitglied unterschreibt und sendet zurück. Mandatsreferenz = Mitgliedsnummer. Sinnvoll für digitale Signatur-Workflows. |
 | **an** | **an** *(automatisch erzwungen)* | PDF kommt erst beim Import, mit Audit-Trail-Block. Mitglied muss nichts mehr zurücksenden. Mandatsreferenz = Mitgliedsnummer. EEG-Kontakt bekommt eine zusätzliche Ablage-Kopie per E-Mail. |
 
@@ -124,7 +124,7 @@ Drei gültige Kombinationen:
 
 **Warn-Banner:** Wenn EEG-Stammdaten unvollständig sind (Name, Adresse, Creditor-ID), zeigt der Editor eine gelbe Warnung. Solange Pflichtfelder fehlen, wird kein PDF erzeugt.
 
-**Mandatsreferenz manuell überschreiben:** Sowohl die Antragsnummer- als auch die Mitgliedsnummer-basierte Auto-Ableitung ist nicht zwingend. Im Admin-Edit-Form jedes Antrags gibt es ein Eingabefeld **Mandatsreferenz** (z. B. für externe Kundennummern aus eurem Buchhaltungssystem). Ein dort eingetragener Wert hat **Vorrang** und wird beim Import in eegFaktura mit übernommen (analog zum Mandatsdatum).
+**Mandatsreferenz manuell überschreiben:** Die Mitgliedsnummer-basierte Auto-Ableitung beim Import-Zeitpunkt ist nicht zwingend. Im Admin-Edit-Form jedes Antrags gibt es ein Eingabefeld **Mandatsreferenz** (z. B. für externe Kundennummern aus eurem Buchhaltungssystem). Ein dort eingetragener Wert hat **Vorrang** und wird beim Import in eegFaktura mit übernommen (analog zum Mandatsdatum). Bei Submit-Zeit-PDFs (Timing aus, Audit aus) bleibt das Feld im PDF leer mit Platzhalter — die EEG trägt die Referenz später beim Bearbeiten des Mandats händisch nach.
 
 #### B2B-Firmenlastschrift
 

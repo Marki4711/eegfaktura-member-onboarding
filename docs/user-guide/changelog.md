@@ -11,7 +11,7 @@
 Der Schalter „SEPA-Mandat als Datei dem Antragsteller übermitteln" entfällt. Das System erzeugt jetzt für jedes Mitglied automatisch ein SEPA-Mandat-PDF. Zwei Schalter steuern weiterhin die Variante:
 
 - **„Im CORE-Mandat den elektronischen Audit-Trail nutzen"** entscheidet, ob das PDF einen Audit-Trail-Block enthält (kein Rücksenden nötig) oder ein klassisches Unterschriftenfeld.
-- **„SEPA-Mandat erst beim Import senden"** entscheidet, ob das PDF sofort mit der Bestätigungs-Mail rausgeht (Mandatsreferenz = Antragsnummer) oder erst beim Import (Mandatsreferenz = Mitgliedsnummer).
+- **„SEPA-Mandat erst beim Import senden"** entscheidet, ob das PDF sofort mit der Bestätigungs-Mail rausgeht (mit Platzhalter „Mandatsreferenz wird von der EEG ausgefüllt" — die EEG trägt sie später händisch nach) oder erst beim Import (Mandatsreferenz = Mitgliedsnummer).
 
 Wenn der Audit-Trail aktiv ist, wird das Mandat automatisch erst beim Import gesendet, weil das PDF beim Submit-Zeitpunkt noch keine Mitgliedsnummer hätte und damit unvollständig wäre.
 
