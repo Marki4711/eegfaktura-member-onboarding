@@ -8,13 +8,13 @@
 
 **SEPA-Feld für ausgewählte Mitgliedstypen optional (Mitgliedstypen-Whitelist)**
 
-Manche EEGs erzwingen SEPA-Lastschrift nicht für alle Mitgliedstypen. Im SEPA-Block der EEG-Einstellungen gibt es jetzt einen Schalter **„SEPA-Feld für ausgewählte Mitgliedstypen auf optional setzen"** mit darunterliegender Auswahl der berechtigten Mitgliedstypen (*Privat*, *Pauschalierter Landwirt*, *Verein*, *Gemeinde*). Für die ausgewählten Mitgliedstypen wird die SEPA-Einwilligungs-Checkbox im Mitgliederformular optional — wenn das Mitglied sie weglässt, wird der Antrag mit „Kein SEPA" gespeichert, ohne Mandat-PDF.
+Manche EEGs erzwingen SEPA-Lastschrift nicht für alle Mitgliedstypen. Im SEPA-Block der EEG-Einstellungen gibt es jetzt einen Schalter **„SEPA-Feld für ausgewählte Mitgliedstypen auf optional setzen"** mit darunterliegender Auswahl der berechtigten Mitgliedstypen (*Privat*, *Pauschalierter Landwirt*, *Verein*, *Gemeinde*, *Unternehmen*). Für die ausgewählten Mitgliedstypen wird die SEPA-Einwilligungs-Checkbox im Mitgliederformular optional — wenn das Mitglied sie weglässt, wird der Antrag mit „Kein SEPA" gespeichert, ohne Mandat-PDF.
 
 Wichtig: **Bankdaten bleiben in jedem Fall Pflicht** — eegFaktura-Core verlangt sie für jedes Mitglied, unabhängig vom Mandat. Die EEG kann sie nach der Aktivierung für manuelle Zahlungsklärung nutzen.
 
 Wenn ein Mitglied ohne SEPA-Mandat einreicht, bekommt die EEG in allen automatischen Info-Mails (Submit-Bestätigung, Aktivierungs-Mail, Beitrittserklärung an den Vorstand) einen gelben Hinweis-Banner: *„Kein SEPA-Lastschriftmandat erteilt — die Abrechnung muss über einen alternativen Zahlungsweg direkt mit dem Mitglied vereinbart werden."* Im Antrags-Detail siehst du über der Bankverbindungs-Karte denselben Hinweis als blauen Info-Streifen.
 
-Firmen-Mitglieder bleiben unverändert SEPA-pflichtig (B2B-Lastschrift) und tauchen in der Wahlfreiheits-Liste gar nicht erst auf.
+Auch Unternehmen sind wählbar — bei „Kein SEPA" gibt es ohnehin keine Lastschrift, also greift das SEPA-B2B-Regelwerk gar nicht. Die Abrechnung läuft dann manuell. Nur wenn das Unternehmen per Firmenlastschrift gezogen werden soll, bleibt das B2B-Mandat zwingend.
 
 **SEPA-Einstellungen vereinfacht**
 

@@ -145,11 +145,11 @@ Auch beim B2B-Audit-Pfad bekommt der EEG-Kontakt die Ablage-Kopie per E-Mail.
 
 Manche EEGs erzwingen SEPA-Lastschrift nicht für alle Mitglieder — typische Fälle sind Privatmitglieder, die per Dauerauftrag oder Überweisung zahlen möchten, oder Vereine mit eigener Buchhaltung, die nicht per Lastschrift gezogen werden wollen. Mit diesem Toggle kannst du das SEPA-Einwilligungs-Feld im Mitgliederformular für ausgewählte Mitgliedstypen **optional** statt verpflichtend machen.
 
-**Toggle aktiv:** Im Modus *Alle Optionen* öffnet sich darunter eine Liste mit vier Checkboxen — *Privat*, *Pauschalierter Landwirt*, *Verein*, *Gemeinde*. Du wählst, für welche Mitgliedstypen die SEPA-Einwilligung im Formular optional sein soll. Mitglieder dieser Typen können den Antrag dann auch ohne Häkchen bei der SEPA-Lastschriftermächtigung einreichen — in dem Fall wird die *Einzugsart* auf „Kein SEPA" gesetzt und es wird kein Mandat-PDF erzeugt.
+**Toggle aktiv:** Im Modus *Alle Optionen* öffnet sich darunter eine Liste mit fünf Checkboxen — *Privat*, *Pauschalierter Landwirt*, *Verein*, *Gemeinde*, *Unternehmen*. Du wählst, für welche Mitgliedstypen die SEPA-Einwilligung im Formular optional sein soll. Mitglieder dieser Typen können den Antrag dann auch ohne Häkchen bei der SEPA-Lastschriftermächtigung einreichen — in dem Fall wird die *Einzugsart* auf „Kein SEPA" gesetzt und es wird kein Mandat-PDF erzeugt.
 
 **Toggle aus (Standard):** Verhalten wie bisher — alle Mitglieder müssen der SEPA-Lastschrift im Formular zustimmen.
 
-**Was die Mitgliedstypen-Liste NICHT enthält:** Firmen-Mitglieder (`Unternehmen`) werden nicht angeboten und tauchen in der Liste gar nicht erst auf. Für sie gilt unverändert die Pflicht zur Firmenlastschrift (B2B) — das SEPA-Regelwerk lässt für Geschäftslastschriften keine bloße Online-Zustimmung zu.
+**Auch Unternehmen sind wählbar:** Wenn ein Unternehmen die SEPA-Einwilligung weglässt, wird gar keine Lastschrift gezogen — das SEPA-B2B-Regelwerk (Firmenlastschrift mit unterschriebenem Mandat) greift dann nicht, weil es gar keine Lastschrift gibt. Die Abrechnung läuft manuell (Überweisung, Dauerauftrag). Wenn das Unternehmen aber per Lastschrift zahlen soll, bleibt das B2B-Mandat zwingend — dann darf es die Checkbox nicht weglassen.
 
 **Wichtig — Bankdaten bleiben Pflicht:** IBAN und Kontowortlaut müssen im Formular auch dann ausgefüllt werden, wenn das Mitglied die SEPA-Einwilligung weglässt. Hintergrund: eegFaktura-Core verlangt Bankdaten für jedes Mitglied. Die EEG kann sie nach der Aktivierung für manuelle Zahlungsklärung nutzen (Überweisungsanforderung, späteres Mandat-Setup per Hand).
 

@@ -48,7 +48,7 @@ Mitgliedstypen die SEPA-Einwilligung optional statt Pflicht ist.
 | Mechanik | NUR die SEPA-Einwilligungs-Checkbox wird optional (nicht entfernt) |
 | Bankdaten-Logik | Bankdaten (IBAN, Kontowortlaut) bleiben IMMER Pflicht im Public-Form — eegFaktura-Core verlangt sie. Bei nicht angekreuzter Checkbox wird `einzugsart=kein_sepa` gesetzt, Mandat-PDF entfällt, Bankdaten sind aber erfasst (Owner-Korrektur 2026-06-08 mid-implementation). |
 | Settings-Ort | SEPA-Sektion (unter den 3 SEPA-Toggles aus PROJ-80) |
-| B2B (`company`) | Pflicht-Lastschrift bleibt — `company` bekommt nie die Wahl angeboten |
+| B2B (`company`) | **Folge-Klärung 2026-06-08:** `company` ist erlaubt, weil bei `einzugsart=kein_sepa` gar keine Lastschrift gezogen wird und das B2B-SDD-Rulebook damit nicht greift. Nur wenn ein Unternehmen per Lastschrift gezogen werden soll, bleibt das B2B-Mandat zwingend. |
 | Bestandsanträge | Nur Public-Form-Pfad betroffen, Admin-Edit-Pfad bleibt wie heute |
 
 ### Vorab-Defaults aus /grill-me (Auto-Mode 2026-06-08)
