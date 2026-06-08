@@ -703,6 +703,14 @@
 <p>Übersicht der Änderungen der letzten Tage, die für <strong>EEG-Admins</strong> und <strong>Mitglieder</strong> spürbar sind. Technische Details, Bug-Fixes ohne UI-Auswirkung und Infrastruktur-Themen sind hier bewusst weggelassen — die finden sich in der Commit-Historie.</p>
 <hr />
 <h2 id="2026-06-08">2026-06-08<a class="headerlink" href="#2026-06-08" title="Permanent link">&para;</a></h2>
+<p><strong>Behoben: SEPA-Mandat-Mail bat trotz Audit-Trail um Unterschrift</strong></p>
+<p>Wenn ihr den Toggle „Im CORE-Mandat den elektronischen Audit-Trail nutzen" oder „Im B2B-Mandat den elektronischen Audit-Trail nutzen" aktiviert hattet, wurde im PDF der Audit-Trail-Block korrekt gerendert (keine Unterschriftslinie). Die Mail an das Mitglied bat aber trotzdem darum, das PDF zu unterschreiben und zurückzusenden bzw. der Hausbank vorzulegen. Tester-Befund.</p>
+<p>Ab jetzt spiegelt die Mail die PDF-Variante:</p>
+<ul>
+<li>Bei aktivem <strong>CORE-Audit-Trail</strong>: Mail sagt „Zustimmung wurde elektronisch dokumentiert, keine weitere Aktion nötig". Eine Ablage-Kopie geht an euch.</li>
+<li>Bei aktivem <strong>B2B-Audit-Trail</strong>: Mail sagt „elektronisch dokumentiert, keine Unterschrift nötig" — aber der Hinweis auf die Pre-Notification bei der Hausbank des Mitglieds bleibt erhalten (das ist SEPA-B2B-Regelwerk, unabhängig vom Mandat-Modus).</li>
+<li>Bei deaktiviertem Audit-Trail: heutige Klassik-Variante bleibt unverändert (Unterschrift + Rücksendung).</li>
+</ul>
 <p><strong>USt-Pflicht-Status wird in der Antrags-Detail-Ansicht angezeigt</strong></p>
 <p>Bei Anträgen vom Mitgliedstyp <em>Unternehmen</em> oder <em>Verein</em> siehst du jetzt in der Antrags-Detail-Ansicht direkt unter der UID-Nummer einen zusätzlichen Eintrag <em>„USt-pflichtig: Ja"</em> oder <em>„USt-pflichtig: Nein (Kleinunternehmerregelung)"</em>. Vorher musste der Status aus dem leeren UID-Feld abgeleitet werden — jetzt ist er sofort erkennbar, genau wie in der Bearbeiten-Maske.</p>
 <p><strong>EEG-Stammdaten werden jetzt automatisch gespeichert</strong></p>
