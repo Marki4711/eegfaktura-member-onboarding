@@ -329,6 +329,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#2026-06-08" class="md-nav__link">
+    <span class="md-ellipsis">
+      2026-06-08
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#2026-06-07" class="md-nav__link">
     <span class="md-ellipsis">
       2026-06-07
@@ -692,6 +701,19 @@
 
 <h1 id="was-ist-neu">Was ist neu?<a class="headerlink" href="#was-ist-neu" title="Permanent link">&para;</a></h1>
 <p>Übersicht der Änderungen der letzten Tage, die für <strong>EEG-Admins</strong> und <strong>Mitglieder</strong> spürbar sind. Technische Details, Bug-Fixes ohne UI-Auswirkung und Infrastruktur-Themen sind hier bewusst weggelassen — die finden sich in der Commit-Historie.</p>
+<hr />
+<h2 id="2026-06-08">2026-06-08<a class="headerlink" href="#2026-06-08" title="Permanent link">&para;</a></h2>
+<p><strong>SEPA-Einstellungen vereinfacht</strong></p>
+<p>Der Schalter „SEPA-Mandat als Datei dem Antragsteller übermitteln" entfällt. Das System erzeugt jetzt für jedes Mitglied automatisch ein SEPA-Mandat-PDF. Zwei Schalter steuern weiterhin die Variante:</p>
+<ul>
+<li><strong>„Im CORE-Mandat den elektronischen Audit-Trail nutzen"</strong> entscheidet, ob das PDF einen Audit-Trail-Block enthält (kein Rücksenden nötig) oder ein klassisches Unterschriftenfeld.</li>
+<li><strong>„SEPA-Mandat erst beim Import senden"</strong> entscheidet, ob das PDF sofort mit der Bestätigungs-Mail rausgeht (Mandatsreferenz = Antragsnummer) oder erst beim Import (Mandatsreferenz = Mitgliedsnummer).</li>
+</ul>
+<p>Wenn der Audit-Trail aktiv ist, wird das Mandat automatisch erst beim Import gesendet, weil das PDF beim Submit-Zeitpunkt noch keine Mitgliedsnummer hätte und damit unvollständig wäre.</p>
+<p>Wenn der Audit-Trail aktiv ist, bekommt zusätzlich die EEG-Kontaktadresse eine Ablage-Kopie des Mandats — das Mitglied muss nichts zurücksenden, daher hat die EEG sonst kein Beleg-Exemplar.</p>
+<p>EEGs, die bisher mit reiner Online-Zustimmung gearbeitet haben (ohne PDF-Versand), bekommen automatisch den Audit-Trail-Modus und das Import-Timing aktiviert. Damit bleibt das Mitglieder-Erlebnis gleich (keine Unterschrift nötig), und die EEG hat ein vollständig dokumentiertes Mandat.</p>
+<p><strong>Bankverbindung: „Kontoinhaber:in" → „Kontowortlaut"</strong></p>
+<p>Das Feld „Kontoinhaber:in" im Mitglieder-Formular heißt jetzt <strong>„Kontowortlaut"</strong> und hat einen erklärenden Hinweis-Text: bitte den exakten Wortlaut aus dem Konto-/Bankauszug eintragen — bei gemeinsamen Konten beide Namen. Hintergrund: bei gemeinsamen Haushaltskonten haben Mitglieder bisher oft nur den eigenen Namen eingetragen, was dazu führte, dass die Bank die SEPA-Lastschrift abgelehnt hat (Kontowortlaut stimmt nicht mit dem Konto überein).</p>
 <hr />
 <h2 id="2026-06-07">2026-06-07<a class="headerlink" href="#2026-06-07" title="Permanent link">&para;</a></h2>
 <p><strong>Elektronisches SEPA-Mandat als Opt-in pro EEG (CORE + B2B getrennt)</strong></p>
