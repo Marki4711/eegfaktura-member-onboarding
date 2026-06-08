@@ -12,7 +12,7 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ### Feature — PROJ-81: SEPA-Einwilligung optional pro Mitgliedstyp *(2026-06-08)*
 
-Per-EEG-Toggle „SEPA-Wahl im Formular zulassen" mit konfigurierbarer
+Per-EEG-Toggle „SEPA-Feld für ausgewählte Mitgliedstypen auf optional setzen" mit konfigurierbarer
 Mitgliedstyp-Whitelist. Wenn aktiv, ist die SEPA-Einwilligungs-Checkbox
 im Public-Form für die gelisteten Mitgliedstypen optional. Bei nicht
 angekreuzter Checkbox wird `einzugsart=kein_sepa` gesetzt, kein

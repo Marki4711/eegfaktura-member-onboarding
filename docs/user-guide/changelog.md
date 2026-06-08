@@ -6,9 +6,9 @@
 
 ## 2026-06-08
 
-**SEPA-Wahl im Formular zulassen (Mitgliedstypen-Whitelist)**
+**SEPA-Feld für ausgewählte Mitgliedstypen optional (Mitgliedstypen-Whitelist)**
 
-Manche EEGs erzwingen SEPA-Lastschrift nicht für alle Mitgliedstypen. Im SEPA-Block der EEG-Einstellungen gibt es jetzt einen Schalter **„SEPA-Wahl im Formular zulassen (für ausgewählte Mitgliedstypen)"** mit darunterliegender Auswahl der berechtigten Mitgliedstypen (*Privat*, *Pauschalierter Landwirt*, *Verein*, *Gemeinde*). Für die ausgewählten Mitgliedstypen wird die SEPA-Einwilligungs-Checkbox im Mitgliederformular optional — wenn das Mitglied sie weglässt, wird der Antrag mit „Kein SEPA" gespeichert, ohne Mandat-PDF.
+Manche EEGs erzwingen SEPA-Lastschrift nicht für alle Mitgliedstypen. Im SEPA-Block der EEG-Einstellungen gibt es jetzt einen Schalter **„SEPA-Feld für ausgewählte Mitgliedstypen auf optional setzen"** mit darunterliegender Auswahl der berechtigten Mitgliedstypen (*Privat*, *Pauschalierter Landwirt*, *Verein*, *Gemeinde*). Für die ausgewählten Mitgliedstypen wird die SEPA-Einwilligungs-Checkbox im Mitgliederformular optional — wenn das Mitglied sie weglässt, wird der Antrag mit „Kein SEPA" gespeichert, ohne Mandat-PDF.
 
 Wichtig: **Bankdaten bleiben in jedem Fall Pflicht** — eegFaktura-Core verlangt sie für jedes Mitglied, unabhängig vom Mandat. Die EEG kann sie nach der Aktivierung für manuelle Zahlungsklärung nutzen.
 

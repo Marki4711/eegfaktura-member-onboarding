@@ -141,9 +141,9 @@ Auch beim B2B-Audit-Pfad bekommt der EEG-Kontakt die Ablage-Kopie per E-Mail.
 
 > **Hinweis:** Wenn der Audit-Trail aktiv ist, aber für einen einzelnen Antrag noch keine IP-Adresse gespeichert wurde (Altanträge aus der Zeit vor der elektronischen Erfassung), fällt das PDF automatisch auf die klassische Unterschriftslinie zurück. Es kommt also nie zu einem fehlerhaften Audit-Block ohne Datenbasis.
 
-### SEPA-Wahl im Formular zulassen *(Alle Optionen)*
+### SEPA-Feld für ausgewählte Mitgliedstypen auf optional setzen *(Alle Optionen)*
 
-Manche EEGs erzwingen SEPA-Lastschrift nicht für alle Mitglieder — typische Fälle sind Privatmitglieder, die per Dauerauftrag oder Überweisung zahlen möchten, oder Vereine mit eigener Buchhaltung, die nicht per Lastschrift gezogen werden wollen. Mit diesem Toggle kannst du die SEPA-Einwilligungs-Checkbox im Mitgliederformular für ausgewählte Mitgliedstypen **optional** statt verpflichtend rendern.
+Manche EEGs erzwingen SEPA-Lastschrift nicht für alle Mitglieder — typische Fälle sind Privatmitglieder, die per Dauerauftrag oder Überweisung zahlen möchten, oder Vereine mit eigener Buchhaltung, die nicht per Lastschrift gezogen werden wollen. Mit diesem Toggle kannst du das SEPA-Einwilligungs-Feld im Mitgliederformular für ausgewählte Mitgliedstypen **optional** statt verpflichtend machen.
 
 **Toggle aktiv:** Im Modus *Alle Optionen* öffnet sich darunter eine Liste mit vier Checkboxen — *Privat*, *Pauschalierter Landwirt*, *Verein*, *Gemeinde*. Du wählst, für welche Mitgliedstypen die SEPA-Einwilligung im Formular optional sein soll. Mitglieder dieser Typen können den Antrag dann auch ohne Häkchen bei der SEPA-Lastschriftermächtigung einreichen — in dem Fall wird die *Einzugsart* auf „Kein SEPA" gesetzt und es wird kein Mandat-PDF erzeugt.
 

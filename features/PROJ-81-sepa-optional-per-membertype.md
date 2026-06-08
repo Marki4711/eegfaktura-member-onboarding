@@ -879,4 +879,45 @@ Begründung:
 **Optionaler Cleanup (nicht-blockierend):** Bei einem zukünftigen Touch von `admin.go SaveEEGSettings` könnte ein `validate:"max=10"` auf `SEPAOptionalMemberTypes` ergänzt werden. Klein, kein eigener PROJ-Aufwand nötig.
 
 ## Deployment
-_To be added by /deploy_
+
+**Datum:** 2026-06-08
+**Tag:** `v1.22.0-PROJ-81`
+**Commit-SHA:** `25036ef`
+**Vorgänger-Tag:** `v1.21.0-PROJ-80`
+
+**Code im Remote:**
+- Push erfolgreich nach Rebase gegen den Helm-Image-Bump-Commit (`3b9d747` — sha-5b1e3fd)
+- Image-Build via GitHub Actions wartet auf Fertigstellung; CI-Workflows getriggert:
+  - CI Build & Test
+  - Build and Push Docker Images (erzeugt `sha-25036ef`-Tag)
+  - Security Scan (gosec + Semgrep + Trivy)
+- Helm-Image-Tag wird nach erfolgreichem Image-Build vom auto-bump-Job aktualisiert (Pattern: `chore: update Helm image tags to sha-25036ef [skip ci]`)
+
+**Was der Owner manuell auf dem Cluster ausführt:**
+```bash
+# Migration 000072 läuft automatisch über den Pre-Deploy migrate-Job.
+# Keine Cluster-Konfiguration anzupassen — kein neuer Helm-Wert nötig.
+helm upgrade eegfaktura-member-onboarding ./helm/member-onboarding \
+  -f helm/member-onboarding/values-env.yaml \
+  -f helm/member-onboarding/values-secret.yaml
+```
+
+**Post-Deployment-Verifikation:**
+- Rollout-Status: `kubectl rollout status deployment/... -n eegfaktura-member-onboarding-test`
+- Health-Check: `GET https://member-onboarding-test.eegfaktura.at/health` → 200
+- Functional-Check:
+  - Admin-Settings → Erweitert → neuer Toggle „SEPA-Wahl im Formular zulassen" sichtbar
+  - Toggle aktivieren, Privat ankreuzen, Save → 200
+  - Public-Form `/register/<RC>` als Privat-Mitglied: SEPA-Checkbox ohne Sternchen + Inline-Hint sichtbar
+  - Public-Form als Unternehmen: SEPA-Checkbox bleibt Pflicht (Sternchen)
+  - Submit ohne SEPA-Häkchen → 201, Antrag bekommt `einzugsart=kein_sepa`
+  - EEG-Submit-Mail enthält gelben Hinweis-Banner
+
+**Rollback-Pfad:**
+- `helm rollback eegfaktura-member-onboarding` revertiert die Pods
+- Down-Migration 000072 droppt die 2 Spalten via `IF EXISTS` (idempotent)
+
+**Bekannte Beobachtungen für Tester:**
+- Bestehende EEGs starten mit Toggle FALSE — Verhalten ist garantiert unverändert, bis Admin den Toggle aktiv setzt
+- Bestehende Anträge mit `einzugsart=kein_sepa` (durch Admin-Edit-Pfad gesetzt) bekommen ab jetzt im Antrags-Detail den blauen Info-Banner über der Bankverbindungs-Karte
+- Excel-Export für `core`-Anträge zeigt jetzt das Label „SEPA-Basismandat" statt des Roh-Werts „core" (Beifang-Fix Excel-Label-Map)
