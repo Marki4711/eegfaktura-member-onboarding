@@ -10,6 +10,98 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Feature — PROJ-80: SEPA-Settings-Vereinfachung *(2026-06-08)*
+
+Der EEG-Toggle „SEPA-Mandat als Datei dem Antragsteller übermitteln"
+(`sepa_mandate_enabled`) ist entfernt. Das System erzeugt jetzt für jedes
+SEPA-Mitglied (`einzugsart != kein_sepa`) automatisch ein Mandat-PDF; die
+Variante (Audit-Trail vs. Unterschriftenfeld) wird durch die zwei
+nachgelagerten Toggles aus PROJ-78 gesteuert.
+
+**Neue Konstanten** (vorher konfigurierbar, jetzt Pflicht):
+- Online-Zustimmung-Checkbox im Mitgliederformular ist immer Pflicht.
+- SEPA-Mandat-PDF wird für jedes SEPA-Mitglied automatisch erzeugt
+  (sofern die EEG-Stammdaten reichen).
+- Bankverbindungs-Block im Public-Form bleibt konditional auf
+  `einzugsart != kein_sepa` (unverändert).
+
+**Cross-Field-Coupling (CORE-Audit ⇒ Timing):** wenn
+`sepa_mandate_core_audit_enabled = TRUE`, ist `sepa_mandate_at_import = TRUE`
+zwingend. Bei Audit-Pfad hat das Mitglied keine Aktion mehr — das PDF darf
+beim Submit-Zeitpunkt nicht raus, weil noch keine Mitgliedsnummer als
+Mandatsreferenz vorhanden ist (Mandat wäre unvollständig). Drei Schichten
+erzwingen das: Migration-Backfill, Backend-Validation (400 bei
+Unstimmigkeit), Frontend-UI (Timing-Toggle wird auto-aktiviert + disabled,
+wenn Audit aktiv).
+
+**Verhaltens-Matrix (3 gültige Kombinationen):**
+
+| CORE-Audit | Timing | Verhalten |
+|---|---|---|
+| aus | aus | PDF beim Submit, mit Unterschriftenfeld, Mandatsreferenz = Antragsnummer. Mitglied unterschreibt + sendet zurück. |
+| aus | an | PDF erst beim Import, mit Unterschriftenfeld, Mandatsreferenz = Mitgliedsnummer. Mitglied unterschreibt + sendet zurück. |
+| an | an | PDF erst beim Import, mit Audit-Trail-Block, Mandatsreferenz = Mitgliedsnummer. Mitglied muss nichts mehr tun. |
+
+**EEG-Kopie des SEPA-Mandat-PDF bei Audit-Pfad:** bei aktivem CORE-Audit-
+Toggle (resp. B2B-Audit-Toggle) bekommt die EEG-Kontaktadresse eine
+separate Ablage-Kopie der Mandat-PDF — Mitglied muss nichts zurücksenden,
+EEG hätte sonst keinen Beleg. Subject: „Ablage-Kopie: SEPA-Mandat — {Name},
+Antrag {Referenznummer}". Best-effort (Member-Mail ist sync hart-fail,
+EEG-Kopie ist nachgelagert und blockiert den Import nicht). Bei
+Klassik-Pfad keine EEG-Kopie (Mitglied sendet Original zurück).
+
+**Backend:**
+- Migration 000071: Backfill `UPDATE … SET sepa_mandate_core_audit_enabled = TRUE, sepa_mandate_at_import = TRUE WHERE sepa_mandate_enabled = FALSE`, dann `ALTER TABLE … DROP COLUMN sepa_mandate_enabled`
+- `shared.RegistrationEntrypoint.SEPAMandateEnabled` entfernt
+- `registration_entrypoint_repo.go` SELECT + `SaveEEGSettings`-Signatur ohne den Parameter
+- `registration_entrypoint_repo_tx.go` `EEGSettingsForImport.SEPAMandateEnabled` raus
+- `application_service.go` `buildSEPAMandateData` CORE-Pfad ohne Toggle-Check (nur noch Stammdaten-Check)
+- `mail/service.go`:
+  - `ResolveSepaMandateType` ohne den Toggle (nur noch `kein_sepa`/`!Accepted`/`b2b`/`core`-Vier-Fall-Logik)
+  - `memberTemplateData.SEPAMandateEnabled` raus, Template `application_submitted_member.html` vereinfacht
+  - `SendMandateAtImportNotification`: EEG-Kopie nur bei aktivem Audit-Toggle der jeweiligen einzugsart; Subject „Ablage-Kopie"; best-effort
+  - `buildActivationData` Hint-Logik ohne den Toggle
+- `http/admin.go`:
+  - GET-Response-Map + PUT-Body-Struct ohne `sepaMandateEnabled`
+  - Cross-Field-Validation: `sepaMandateCoreAuditEnabled && !sepaMandateAtImport` → 400 mit Feld-Hinweis
+- `pdf/approval_pdf.go` `SEPAMandateEnabled` raus, Zustimmungs-Liste vereinfacht
+- `configexport`: Schema-Feld `LegacySEPAMandateEnabled *bool, omitempty` (Pattern wie PROJ-73 `LegacyUseCompanySEPAMandate`); Exporter setzt nichts; Importer ignoriert und loggt `slog.Info`; Diff zeigt das Feld nicht mehr
+- `resync_service.go` `!entrypoint.SEPAMandateEnabled`-Guard entfällt
+- `registration_service.go` + `shared.RegistrationConfig` ohne `SEPAMandateEnabled`-Public-Field
+
+**Frontend:**
+- `EEGSettings.sepaMandateEnabled` + `EEGSettingsSavePayload.sepaMandateEnabled` + `RegistrationConfig.sepaMandateEnabled` raus
+- `admin-eeg-settings-editor.tsx`:
+  - Toggle-Block + State + Snapshot + Save-Payload + reload/discard ohne `sepaMandateEnabled`
+  - Warn-Banner vereinfacht (kein Toggle-abhängiger Wortlaut mehr)
+  - CORE-Audit-Toggle + Timing-Toggle aus dem `{isAdvanced && sepaMandateEnabled && …}`-Block in ein eigenständiges `{isAdvanced && …}` herausgezogen
+  - Cross-Field-Coupling im UI: CORE-Audit aktivieren → Timing-Toggle wird auto-gesetzt + disabled, mit Erklärungs-Popover
+  - Timing-Toggle umbenannt: „SEPA-Mandat erst beim Import senden (Mandatsreferenz = Mitgliedsnummer)"
+  - Kurz-Erklärungen unter allen drei SEPA-Toggles (Konsistenz mit anderen Settings — Tester-Bitte 2026-06-08)
+- `admin-legal-documents-editor.tsx` Save-Payload-Anpassung
+- `registration-form.tsx`:
+  - `buildFormSchema`-Signatur ohne den Parameter; Online-Zustimmung-Validation immer aktiv
+  - Hinweis-Absatz bei Timing-Toggle ohne `sepaMandateEnabled`-Vorbedingung
+  - Online-Zustimmung-Checkbox immer sichtbar (vorher conditional auf `!sepaMandateEnabled`)
+  - **Label-Wechsel** (Tester-Bitte 2026-06-08): „Kontoinhaber:in *" → **„Kontowortlaut *"** mit neuem Hint-Popover (Erklärung gemeinsame Haushaltskonten). Hintergrund: SEPA-Lastschriften wurden abgelehnt, weil bei gemeinsamen Konten nur ein Name eingetragen war
+- `settings-mode.test.ts` ohne `sepaMandateEnabled`-Property
+
+**Doku:**
+- `docs/api-spec.md` GET/PUT-Beispiele + Beschreibung ohne `sepaMandateEnabled`, mit Coupling-Erklärung
+- `docs/domain-model.md` `sepa_mandate_enabled` als „entfernt durch PROJ-80" markiert mit Backfill-Beschreibung
+- `docs/user-guide/06-admin-settings.md` SEPA-Sektion umgeschrieben (Drei-Permutationen-Matrix statt Vier; neue Konstanten; PROJ-frei)
+- `docs/user-guide/changelog.md` 2026-06-08-Eintrag
+
+**Tests:**
+- `internal/application/application_service_test.go`:
+  - `baseEntrypoint`-Helper ohne Parameter
+  - `TestBuildSEPAMandateData_ReturnsNilWhenDisabled` entfällt
+  - `TestBuildSEPAMandateData_Core_StillRequiresSEPAMandateEnabled` ersetzt durch `TestBuildSEPAMandateData_PROJ80_CoreAlwaysReturnsMandate` (positiver Test)
+  - alle `baseEntrypoint(true|false)`-Aufrufe auf `baseEntrypoint()` umgestellt
+- `internal/mail/service_test.go`:
+  - `ResolveSepaMandateType`-Tests ohne `SEPAMandateEnabled`; `_OnlineConsentOnly`-Test entfällt
+  - `BuildActivationData`-Tests umgebaut; `_OnlineConsent_KeinMandateHint` entfällt
+
 ### Feature — PROJ-78: Toggle „Elektronisches SEPA-Mandat" (B2B + CORE separat) *(2026-06-07)*
 
 Zwei unabhängige Per-EEG-Schalter steuern, ob das SEPA-Mandat-PDF den

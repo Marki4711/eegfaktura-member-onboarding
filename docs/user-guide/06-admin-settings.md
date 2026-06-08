@@ -95,40 +95,49 @@ Neun Werte werden direkt aus eegFaktura übernommen und sind in der Onboarding-O
 
 ![SEPA-Lastschriftmandat](images/admin-settings-eeg-sepa.png)
 
-- **SEPA-Mandat von der EEG bereitstellen**: Wenn aktiv, generiert das Onboarding automatisch ein SEPA-Mandats-PDF. (In jeder Ansicht sichtbar.)
-- **Firmenlastschrift (B2B) für Unternehmen und Gemeinden anbieten** *(Alle Optionen)*: Erscheint nur wenn SEPA aktiv ist UND die Ansicht auf "Alle Optionen" steht. Aktiviere diese Option, wenn Unternehmen und Gemeinden ein B2B-Mandat erhalten sollen. Welche Mandats-Variante (Basislastschrift CORE oder Firmenlastschrift B2B) ein konkreter Antrag bekommt, wird **nicht** automatisch aus dem Mitgliedstyp abgeleitet — die Wahl trifft die Admin pro Antrag über das Feld „Einzugsart" (`core` / `b2b` / `kein_sepa`, Default `core`).
-- **SEPA-Mandat erst beim Import erzeugen** *(Alle Optionen)*: Wenn aktiv, wird das Mandat **nicht** dem Willkommensmail beigelegt, sondern erst beim Import mit der zugewiesenen Mitgliedsnummer als Mandatsreferenz ausgegeben. Sinnvoll, wenn du digitale Signatur (z. B. ID Austria) einsetzt — ein signiertes PDF darf nicht mehr verändert werden, daher muss die Mandatsreferenz vor der Signatur eingedruckt sein. Im Registrierungsformular erscheint dann ein erklärender Hinweis, dass das Mandat später folgt.
+Das System erzeugt für jedes SEPA-Mitglied automatisch ein Mandat-PDF. Die zwei Toggles unten entscheiden, wie das PDF aussieht und wann es verschickt wird.
 
-> **Hinweis:** Wenn das SEPA-Mandat aktiviert ist, aber Stammdaten fehlen, erscheint eine Warnung. Solange Felder fehlen, wird kein PDF generiert.
+**Was bleibt jetzt immer gleich:**
+
+- Im Mitglieder-Formular ist die SEPA-Lastschriftmandats-Checkbox direkt unter den Konto-Eingabefeldern als Pflicht-Auswahl sichtbar — das Mitglied stimmt mit seiner Auswahl der Lastschrift zu.
+- Das SEPA-Mandat-PDF wird automatisch erzeugt (sofern die EEG-Stammdaten — Name, Adresse, Creditor-ID — vollständig sind).
+- Der Bankverbindungs-Block bleibt im Formular Pflicht, außer das Mitglied wird im Admin auf „Einzugsart = kein SEPA" gesetzt.
 
 #### Welche Toggle-Kombination ergibt was?
 
-Die beiden Toggles **SEPA-Mandat von der EEG bereitstellen** + **SEPA-Mandat erst beim Import erzeugen** ergeben in Kombination vier Verhaltensvarianten. Hier eine Übersicht, damit du beim Bedienen weißt, was das Mitglied im Formular sieht und wann das PDF rausgeht:
+Im Modus *Alle Optionen* findest du zwei Toggles unterhalb des SEPA-Lastschriftmandat-Abschnitts:
 
-| SEPA-Mandat aktiv | Mandat erst bei Import | Modus | Im Mitglieder-Formular | Wann kommt das Mandats-PDF | Mandatsreferenz |
-|---|---|---|---|---|---|
-| **aus** | (irrelevant) | beide Ansichten | Pflicht-Checkbox „Ich erteile … SEPA-Lastschriftmandat" als Online-Zustimmung. Kein Hinweis-Text. | Nie — Onboarding generiert kein PDF. Mitglied stimmt online zu, EEG nutzt eigenes Mandat-Verfahren. | — |
-| **an** | **aus** *(Default)* | beide Ansichten | Keine zusätzliche Checkbox, kein Hinweis-Text — Mitglied trägt nur IBAN ein. | Sofort bei Einreichen, als Anhang der Bestätigungs-Mail. | Antrags-Referenznummer (`<RC>-<Jahr>-<NNNN>`) |
-| **an** | **an** | nur Alle Optionen | Hinweis-Absatz im Bankverbindungs-Block: „Das SEPA-Lastschriftmandat erhältst du nach der Freigabe deines Antrags per E-Mail — mit eingetragener Mandatsreferenz (deiner Mitgliedsnummer) zur Unterschrift." | Erst beim Import in eegFaktura, als Anhang der Beitrittsbestätigungs-Mail. | Mitgliedsnummer (in eegFaktura vergeben) |
+- **Im CORE-Mandat den elektronischen Audit-Trail nutzen (statt manueller Unterschrift)** — entscheidet, ob das CORE-Mandat-PDF (Basislastschrift, Privat) einen Audit-Trail-Block oder ein klassisches Unterschriftenfeld trägt.
+- **SEPA-Mandat erst beim Import senden (Mandatsreferenz = Mitgliedsnummer)** — entscheidet, ob das PDF sofort mit der Bestätigungs-Mail rausgeht (Mandatsreferenz = Antragsnummer) oder erst beim Import (Mandatsreferenz = Mitgliedsnummer).
 
-**Wenn du den Hinweis-Absatz im Formular loswerden willst:** den Toggle „SEPA-Mandat erst beim Import erzeugen" auf **aus** stellen. Dann läuft alles wie im Default — das Mandat geht beim Einreichen mit der Bestätigungs-Mail raus, die Referenz ist die Antragsnummer.
+Drei gültige Kombinationen:
 
-**Mandatsreferenz manuell überschreiben:** Sowohl die Antragsnummer- als auch die Mitgliedsnummer-basierte Auto-Ableitung ist nicht zwingend. Im Admin-Edit-Form jedes Antrags gibt es ein Eingabefeld **Mandatsreferenz** (z. B. für externe Kundennummern aus eurem Buchhaltungssystem). Ein dort eingetragener Wert hat **Vorrang** und wird beim Import in eegFaktura mit übernommen (analog zum Mandatsdatum). Beide Felder werden, falls leer gelassen, automatisch beim Import abgeleitet — siehe Tabelle oben.
+| CORE-Audit | Timing | Was passiert |
+|---|---|---|
+| **aus** *(Default)* | **aus** *(Default)* | PDF kommt sofort mit der Bestätigungs-Mail, hat ein Unterschriftenfeld. Mitglied unterschreibt und sendet zurück. Mandatsreferenz = Antragsnummer. |
+| **aus** | **an** | PDF kommt erst beim Import, hat ein Unterschriftenfeld. Mitglied unterschreibt und sendet zurück. Mandatsreferenz = Mitgliedsnummer. Sinnvoll für digitale Signatur-Workflows. |
+| **an** | **an** *(automatisch erzwungen)* | PDF kommt erst beim Import, mit Audit-Trail-Block. Mitglied muss nichts mehr zurücksenden. Mandatsreferenz = Mitgliedsnummer. EEG-Kontakt bekommt eine zusätzliche Ablage-Kopie per E-Mail. |
 
-#### Elektronisches SEPA-Mandat statt Datum/Unterschrift *(Alle Optionen)*
+> **Auto-Kopplung:** Wenn du den CORE-Audit-Toggle einschaltest, wird der Timing-Toggle automatisch mit aktiviert und gesperrt — denn ein Audit-Trail-PDF, das beim Submit-Zeitpunkt rausgeht, hätte noch keine Mitgliedsnummer und wäre damit ein unvollständiges Mandat.
 
-Standardmäßig enthält jedes SEPA-Mandat-PDF (Basislastschrift und Firmenlastschrift) eine **Datum/Ort/Unterschrift-Zeile**. Das Mitglied druckt das PDF aus, unterschreibt und schickt es per Post oder gescannt zurück. Klassischer Papier-Workflow.
+> **EEG-Kopie bei Audit-Trail:** Im Audit-Pfad muss das Mitglied nichts zurücksenden — der EEG würde sonst kein Beleg-Exemplar haben. Deshalb geht beim Import zusätzlich zur Mitglieder-Mail eine separate Mail mit derselben PDF-Kopie an die EEG-Kontakt-Adresse. Subject: „Ablage-Kopie: SEPA-Mandat — *Mitgliedsname*, Antrag *Referenznummer*". Diese Kopie ist nur ein Ablage-Beleg, kein Action-Item.
 
-Im Modus *Alle Optionen* findest du zwei Schalter, die das Mandat-PDF stattdessen mit einem **elektronischen Audit-Trail-Block** ausstatten. Statt der Unterschriftsline druckt das PDF dann automatisch einen Block der Form:
+**Warn-Banner:** Wenn EEG-Stammdaten unvollständig sind (Name, Adresse, Creditor-ID), zeigt der Editor eine gelbe Warnung. Solange Pflichtfelder fehlen, wird kein PDF erzeugt.
 
+**Mandatsreferenz manuell überschreiben:** Sowohl die Antragsnummer- als auch die Mitgliedsnummer-basierte Auto-Ableitung ist nicht zwingend. Im Admin-Edit-Form jedes Antrags gibt es ein Eingabefeld **Mandatsreferenz** (z. B. für externe Kundennummern aus eurem Buchhaltungssystem). Ein dort eingetragener Wert hat **Vorrang** und wird beim Import in eegFaktura mit übernommen (analog zum Mandatsdatum).
+
+#### B2B-Firmenlastschrift
+
+B2B-Mandate (`einzugsart=b2b`, für Unternehmen, Gemeinden, Vereine) werden **immer** erzeugt — unabhängig vom CORE-Toggle, weil das SEPA-Regelwerk eine schriftliche Mandats-Vereinbarung für Firmenlastschriften verlangt. Die Mandatsreferenz ist immer die Mitgliedsnummer; das PDF kommt erst beim Import.
+
+Im Modus *Alle Optionen* findest du einen separaten Toggle:
+
+- **Im B2B-Mandat den elektronischen Audit-Trail nutzen (statt manueller Unterschrift)** — wirkt unabhängig vom CORE-Toggle, weil die Rechtsbewertung für Geschäftsleute (B2B) anders ausfallen kann als für Verbraucher (CORE).
+
+Auch beim B2B-Audit-Pfad bekommt der EEG-Kontakt die Ablage-Kopie per E-Mail.
+
+> **Beispiel-Wortlaut Audit-Trail-Block:**
 > *Der Kunde hat der Musterstadt EEG nach Verifizierung seiner E-Mail-Adresse am 21.05.2026 11:50 von der IP-Adresse 192.0.2.42 auf elektronischem Weg (formfreie Willenserklärung gem. § 76 (3) EIWOG 2010) seine Zustimmung zum Vertrag im obigen Sinne sowie für das SEPA-Lastschriftmandat erteilt.*
-
-Die zwei Toggles sind **unabhängig**, weil die Rechtsbewertung der elektronischen Willenserklärung für Geschäftsleute (Firmenlastschrift / B2B) anders ausfallen kann als für Verbraucher (Basislastschrift / CORE):
-
-- **Im CORE-Mandat den elektronischen Audit-Trail nutzen (statt manueller Unterschrift)** — sichtbar nur wenn „SEPA-Mandat von der EEG bereitstellen" aktiv ist; entscheidet über die Privat-/Basislastschrift-Variante.
-- **Im B2B-Mandat den elektronischen Audit-Trail nutzen (statt manueller Unterschrift)** — immer sichtbar im Modus *Alle Optionen*; entscheidet über die Firmenlastschrift-Variante. B2B-Mandate werden beim Import unabhängig vom CORE-Toggle erzeugt.
-
-**Standard für beide Toggles ist „aus"** — also klassischer Unterschriftsblock. Die elektronische Variante ist erst aktiv, wenn die EEG sie bewusst einschaltet.
 
 > **Hinweis:** Wenn der Audit-Trail aktiv ist, aber für einen einzelnen Antrag noch keine IP-Adresse gespeichert wurde (Altanträge aus der Zeit vor der elektronischen Erfassung), fällt das PDF automatisch auf die klassische Unterschriftslinie zurück. Es kommt also nie zu einem fehlerhaften Audit-Block ohne Datenbasis.
 

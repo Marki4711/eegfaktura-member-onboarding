@@ -102,7 +102,6 @@ No direct access to eegFaktura core tables takes place.
     "transformer": "hidden"
   },
   "introText": "<p>Willkommen!</p>",
-  "sepaMandateEnabled": true,
   "sepaMandateAtImport": false,
   "showCentralPolicy": true,
   "requireEmailConfirmation": false,
@@ -136,9 +135,7 @@ No direct access to eegFaktura core tables takes place.
 
 `introText` is `null` when no text is configured.
 
-`sepaMandateEnabled` is `false` by default. When `true`, SEPA mandate checkboxes and PDF generation are activated.
-
-`sepaMandateAtImport` (PROJ-48) is `false` by default. When `true`, the registration form shows an explanatory hint that the SEPA mandate will be sent later (at import time) with the Mitgliedsnummer printed as Mandatsreferenz, instead of being attached to the welcome mail. Only meaningful when `sepaMandateEnabled = true`.
+`sepaMandateAtImport` (PROJ-48) is `false` by default. When `true`, the registration form shows an explanatory hint that the SEPA mandate will be sent later (at import time) with the Mitgliedsnummer printed as Mandatsreferenz, instead of being attached to the welcome mail. PROJ-80 (2026-06-08) removed the `sepaMandateEnabled` toggle — the SEPA-Mandate-PDF is now always generated for SEPA members; the variant (audit-trail vs. signature field) is steered exclusively by `sepaMandateCoreAuditEnabled` resp. `sepaMandateB2BAuditEnabled`. Cross-Field-Coupling: when `sepaMandateCoreAuditEnabled = true`, this toggle is forced to `true` (the audit-trail PDF needs the Mitgliedsnummer as Mandatsreferenz to be complete).
 
 `requireEmailConfirmation` (PROJ-31): when `true`, the registration success view shows the „Bitte E-Mail-Postfach prüfen"-Hinweis instead of the default „wird nun von unserem Team geprüft"-Text. Backend also gates the admin status transitions accordingly.
 
@@ -1347,7 +1344,6 @@ Returns the EEG settings — the eight Core-mastered fields (PROJ-32) plus the o
   "contactEmail": "kontakt@beispiel-eeg.at",
   "lastSyncedFromCoreAt": "2026-05-14T16:58:58.750289Z",
   "registrationActive": true,
-  "sepaMandateEnabled": true,
   "sepaMandateAtImport": false,
   "showCentralPolicy": true,
   "memberNumberStart": 1,
@@ -1366,7 +1362,7 @@ Returns the EEG settings — the eight Core-mastered fields (PROJ-32) plus the o
 
 **Core-mastered fields** (PROJ-32, read-only — only modified via `/sync` below): `eegId`, `eegName`, `eegStreet`, `eegStreetNumber`, `eegZip`, `eegCity`, `creditorId`, `contactEmail`. `lastSyncedFromCoreAt` is `null` until the first successful sync.
 
-`registrationActive` is `false` by default. `sepaMandateEnabled` and `sepaMandateAtImport` (PROJ-48) default to `false`. (PROJ-73 removed the obsolete `useCompanySEPAMandate` EEG toggle; B2B/Core mandate selection now lives exclusively in the per-application `einzugsart` field.) `showCentralPolicy` defaults to `true`. `memberNumberStart` defaults to `1`. `requireEmailConfirmation` (PROJ-31) defaults to `false`.
+`registrationActive` is `false` by default. `sepaMandateAtImport` (PROJ-48) defaults to `false`. (PROJ-73 removed the obsolete `useCompanySEPAMandate` EEG toggle; PROJ-80 removed the `sepaMandateEnabled` toggle. B2B/Core mandate selection now lives exclusively in the per-application `einzugsart` field; the variant of the always-generated PDF — audit-trail vs. signature field — is steered by `sepaMandateCoreAuditEnabled` / `sepaMandateB2BAuditEnabled`.) `showCentralPolicy` defaults to `true`. `memberNumberStart` defaults to `1`. `requireEmailConfirmation` (PROJ-31) defaults to `false`.
 
 `cooperativeSharesEnabled` (PROJ-37) defaults to `false`. When `true`, both `cooperativeRequiredShares` (positive integer, minimum mandatory shares per member) and `cooperativeShareAmountCents` (positive integer, price per share in cents) are returned. When `false`, those two value fields are omitted.
 
@@ -1390,7 +1386,6 @@ Writes the onboarding-only editable fields. The Core-mastered fields (`eegId`, `
 ```json
 {
   "registrationActive": true,
-  "sepaMandateEnabled": true,
   "sepaMandateAtImport": false,
   "showCentralPolicy": true,
   "memberNumberStart": 1,
@@ -1416,9 +1411,9 @@ Writes the onboarding-only editable fields. The Core-mastered fields (`eegId`, `
 
 **Mandate variant (Core vs B2B)** is selected per application via the `einzugsart` field (`core` | `b2b` | `kein_sepa`, default `core`). PROJ-73 (2026-06-06) removed the obsolete `useCompanySEPAMandate` EEG-global toggle, which had been a no-op since PROJ-48 replaced the auto-mapping `company|association → b2b` with the per-application `einzugsart` model. A legacy admin client that still sends `useCompanySEPAMandate` in the body is tolerated — the unknown field is ignored.
 
-`sepaMandateEnabled`: **wirkt nur auf Core-Mandate (Privat).** Wenn `false`, gilt für Privat-Anträge eine reine Online-Zustimmung statt PDF-Mandat. PROJ-74 (2026-06-06): B2B-Mandate (`einzugsart=b2b`) sind vom Toggle unabhängig — sie werden in jedem Fall als PDF beim Import generiert, weil das SEPA-Regelwerk für die Firmenlastschrift eine unterschriebene Mandatsvorlage verlangt. Fehlt es an EEG-Stammdaten (z.B. `creditorId`) für ein B2B-Mandat, bricht der `POST /api/admin/applications/{id}/import` mit `409 Conflict` ab und nennt die fehlenden Felder.
+**PROJ-80 (2026-06-08)** entfernt den `sepaMandateEnabled`-Toggle. Seit PROJ-80 wird das SEPA-Mandat-PDF für jedes SEPA-Mitglied (`einzugsart != kein_sepa`) automatisch erzeugt; die Variante (Audit-Trail vs. klassisches Unterschriftenfeld) wird über `sepaMandateCoreAuditEnabled` und `sepaMandateB2BAuditEnabled` (PROJ-78) gesteuert. Die Online-Zustimmung-Checkbox im Public-Form ist Pflicht. Fehlt es an EEG-Stammdaten (z.B. `creditorId`), bricht der `POST /api/admin/applications/{id}/import` mit `409 Conflict` ab und nennt die fehlenden Felder.
 
-`sepaMandateAtImport` (PROJ-48): when `true`, **Core**-mandates are generated **at import time** (with the assigned Mitgliedsnummer printed as Mandatsreferenz) rather than at submit time (without reference). Use when the EEG runs a digital signature workflow on the Core-mandate — a signed PDF cannot be modified afterwards, so the reference must be present before signing. When `false` (default), Core-mandates are generated at submit time with a `<Mitgliedsnummer wird beim Import vergeben>` placeholder. Only evaluated when `sepaMandateEnabled = true`. PROJ-74-Klarstellung: **wirkt nur auf Core-Mandate.** B2B-Mandate kommen unabhängig vom Toggle beim Import — die Mandatsreferenz wird erst dort vergeben.
+`sepaMandateAtImport` (PROJ-48): when `true`, **Core**-mandates are generated **at import time** (with the assigned Mitgliedsnummer printed as Mandatsreferenz) rather than at submit time (without reference). Use when the EEG runs a digital signature workflow on the Core-mandate — a signed PDF cannot be modified afterwards, so the reference must be present before signing. When `false` (default), Core-mandates are generated at submit time with the application reference number as Mandatsreferenz. PROJ-80 Cross-Field-Coupling: wenn `sepaMandateCoreAuditEnabled = true`, ist `sepaMandateAtImport = true` zwingend (Backend-Validation 400 sonst). PROJ-74-Klarstellung: **wirkt nur auf Core-Mandate.** B2B-Mandate kommen unabhängig vom Toggle beim Import — die Mandatsreferenz wird erst dort vergeben.
 
 `memberNumberStart`: starting value for the per-EEG member number auto-increment counter. Defaults to `1` when not explicitly set.
 
