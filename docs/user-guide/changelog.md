@@ -6,6 +6,16 @@
 
 ## 2026-06-08
 
+**Behoben: SEPA-Mandat-Mail bat trotz Audit-Trail um Unterschrift**
+
+Wenn ihr den Toggle „Im CORE-Mandat den elektronischen Audit-Trail nutzen" oder „Im B2B-Mandat den elektronischen Audit-Trail nutzen" aktiviert hattet, wurde im PDF der Audit-Trail-Block korrekt gerendert (keine Unterschriftslinie). Die Mail an das Mitglied bat aber trotzdem darum, das PDF zu unterschreiben und zurückzusenden bzw. der Hausbank vorzulegen. Tester-Befund.
+
+Ab jetzt spiegelt die Mail die PDF-Variante:
+
+- Bei aktivem **CORE-Audit-Trail**: Mail sagt „Zustimmung wurde elektronisch dokumentiert, keine weitere Aktion nötig". Eine Ablage-Kopie geht an euch.
+- Bei aktivem **B2B-Audit-Trail**: Mail sagt „elektronisch dokumentiert, keine Unterschrift nötig" — aber der Hinweis auf die Pre-Notification bei der Hausbank des Mitglieds bleibt erhalten (das ist SEPA-B2B-Regelwerk, unabhängig vom Mandat-Modus).
+- Bei deaktiviertem Audit-Trail: heutige Klassik-Variante bleibt unverändert (Unterschrift + Rücksendung).
+
 **USt-Pflicht-Status wird in der Antrags-Detail-Ansicht angezeigt**
 
 Bei Anträgen vom Mitgliedstyp *Unternehmen* oder *Verein* siehst du jetzt in der Antrags-Detail-Ansicht direkt unter der UID-Nummer einen zusätzlichen Eintrag *„USt-pflichtig: Ja"* oder *„USt-pflichtig: Nein (Kleinunternehmerregelung)"*. Vorher musste der Status aus dem leeren UID-Feld abgeleitet werden — jetzt ist er sofort erkennbar, genau wie in der Bearbeiten-Maske.

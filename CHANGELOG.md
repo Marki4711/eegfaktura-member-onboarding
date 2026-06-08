@@ -10,6 +10,48 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Fix — PROJ-88: Mail-Templates auf Audit-Trail-Variante umgestellt *(2026-06-08)*
+
+PROJ-78 hat das PDF-Rendering auf den Audit-Trail-Block umgestellt
+(keine Unterschriftslinie mehr), aber die Mail-Templates wurden
+nicht mitgezogen — bei aktivem Audit-Toggle bekam das Mitglied
+trotzdem „bitte unterschreiben und Hausbank vorlegen" als Anweisung.
+
+Tester-Befund 2026-06-08: trotz aktivem `SEPAMandateB2BAuditEnabled`
+sagte die Mail weiter „die druckbare Firmenlastschrift-Mandats-PDF
+[…] mit eingedruckter Mandatsreferenz — bitte unterschreiben und
+deiner Hausbank vorlegen".
+
+Fix: `mandateAtImportData`-Struct um zwei neue Felder erweitert
+(`CoreAuditActive`, `B2BAuditActive`), aus den Per-EEG-Toggles
+abgeleitet. Beide Mail-Templates (Member + EEG) auf 4-Branch-Logik
+umgestellt:
+
+- **CORE Klassik:** unverändert — „unterschreibe und sende zurück"
+- **CORE Audit:** neu — „dein SEPA-Mandat ist mit elektronisch
+  dokumentierter Zustimmung beigefügt. Keine weitere Aktion nötig."
+  EEG-Kopie sagt „Ablage-Kopie geht separat, du kannst Lastschriften
+  sofort einziehen"
+- **B2B Klassik:** unverändert — „unterschreiben + Hausbank vorlegen"
+- **B2B Audit:** neu — „elektronisch dokumentiert, keine Unterschrift
+  mehr nötig" + Pre-Notification-Hinweis an die Hausbank bleibt
+  erhalten (B2B-SEPA-Rulebook-Pflicht, unabhängig vom Mandat-Modus)
+
+Owner-approbierte Wortlaute. 4 neue Integration-Tests in
+`internal/mail/service_test.go` fixieren die Branches:
+- `TestSendMandateAtImport_CoreKlassik_AsksForSignature`
+- `TestSendMandateAtImport_CoreAudit_DoesNotAskForSignature`
+- `TestSendMandateAtImport_B2BKlassik_AsksForSignatureAndBank`
+- `TestSendMandateAtImport_B2BAudit_NoSignatureButKeepBankPreNotification`
+
+Letzter Test verifiziert explizit, dass die B2B-Pre-Notification
+auch im Audit-Pfad erhalten bleibt — verhindert ein Edge-Case-Bug
+bei zukünftigen Wortlaut-Anpassungen.
+
+Pure Backend-Mail-Änderung: keine API/DB/Helm-Aenderung.
+
+Spec: `features/PROJ-88-mail-audit-trail-spiegel.md`.
+
 ### Fix — PROJ-87: USt-Pflicht-Status in der Antrags-Detail-Ansicht sichtbar *(2026-06-08)*
 
 Tester-Feedback 2026-06-08: in der Antrags-Detail-Ansicht
