@@ -10,6 +10,37 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Fix — PROJ-89: B2B-Klassik-PDF Signatur-Layout an CORE angeglichen *(2026-06-08)*
+
+Tester-Befund 2026-06-08: im B2B-Klassik-PDF saß der Signatur-Block
+visuell gequetscht — vorbefülltes Datum fast auf der Unterschrifts-
+linie, Caption „Ort, Datum, Unterschrift" auf einer schmalen
+70mm-Linie zusammengedrückt, BIC-Fußnote klebte am Box-Ende. Das
+CORE-PDF hatte das identische Problem bereits sauber gelöst.
+
+Fix in `internal/pdf/generator.go` `GenerateCompany`-Klassik-Block:
+- Zwei separate Linien: links 70mm „Datum, Ort", rechts ~95mm
+  „Unterschrift" — exakt wie im CORE-PDF
+- `f.Ln(15)` → `f.Ln(18)` vor dem Block für mehr Höhe
+- `f.Ln(4)` → `f.Ln(8)` nach dem Block für Abstand zur BIC-Fußnote
+
+Der Audit-Block-Pfad (`shouldRenderSEPAAuditBlock`) bleibt
+unangetastet.
+
+Scope-Reduktion 2026-06-08: ursprünglich war geplant, den
+B2B-Klassik-Mail-Klartext gleich mit zu überarbeiten („Was wir von
+dir brauchen" als nummerierte 3-Punkte-Liste analog zur CORE-
+Klassik-Mail). Owner hat erkannt, dass die Mail-Aussage „erst nach
+deiner Rückmeldung schalten wir frei" inhaltlich mit der
+PROJ-79-Praxis (b2b sofort als CORE im Faktura anlegen, Aktivierung
+ohne Bank-Klärung) kollidiert. Mail-Klartext wurde auf die
+`awaiting_bank_confirmation`-Strategie-Klärung vertagt — PROJ-89 =
+nur PDF-Layout.
+
+Pure Backend-PDF-Änderung: keine API/DB/Helm-Änderung.
+
+Spec: `features/PROJ-89-b2b-pdf-signature-layout.md`.
+
 ### Fix — PROJ-88: Mail-Templates auf Audit-Trail-Variante umgestellt *(2026-06-08)*
 
 PROJ-78 hat das PDF-Rendering auf den Audit-Trail-Block umgestellt
