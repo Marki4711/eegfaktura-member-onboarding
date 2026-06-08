@@ -10,6 +10,45 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Fix — PROJ-86: isKnownStatus-Whitelist PROJ-46-Drift-Hotfix *(2026-06-08)*
+
+`isKnownStatus()` in `internal/http/admin.go` listete nur 9 von 12
+Werten der `shared.ApplicationStatus`-Enumeration. Die drei
+PROJ-46-Status (`awaiting_bank_confirmation`, `ready_for_activation`,
+`activated`) fehlten seit ihrer Einführung 2026-05-17. Konsequenz:
+jeder direkte `POST /api/admin/applications/{id}/status` mit einem
+dieser Werte wurde vom Backend mit `400 Validation failed:
+toStatus = unrecognised status value` abgelehnt. Das Frontend zeigte
+nur die generische Top-Level-Message, nicht den Field-Error — daher
+unbemerkt geblieben.
+
+Owner-Befund 2026-06-08: nach `helm upgrade` von PROJ-79/82/83/84
+zeigte ein b2b-Antrag im Status „Warte auf Bank-Bestätigung" beim
+Klick auf „Bank-Bestätigung erhalten" das rote „Validation failed".
+Auto-Modus (Activation-Check-Batch) und Vorstands-Workflow (PROJ-76)
+gehen am Endpoint vorbei — dadurch ist der Bug Wochen lang
+unauffällig geblieben.
+
+Fix: switch-Liste in `isKnownStatus` um die 3 fehlenden Status
+erweitert. Doc-Kommentar dokumentiert die Drift-Geschichte.
+
+Drift-Wache: neuer Go-Test `TestIsKnownStatus_CoversAllApplicationStatuses`
+iteriert über alle `shared.Status*`-Konstanten und prüft, dass jeder
+Wert von `isKnownStatus` akzeptiert wird. Eine
+`adminUnreachableStatuses`-Map ist vorbereitet für künftige
+internal-only-Status mit Begründungs-Eintrag. Plus
+`TestIsKnownStatus_RejectsUnknownStrings` als Strict-Mode-Anker.
+
+Pure Backend-Änderung: keine API-Vertragsänderung, keine
+Migration, keine Helm-Werte-Änderung.
+
+Sekundär-Befund (außerhalb PROJ-86-Scope): `admin-status-actions.tsx`
+zeigt bei Nicht-Conflict-Fehlern nur die generische Top-Level-
+`err.message` statt die Field-Errors. Bekannt, separater Fix wenn
+Owner es priorisiert.
+
+Spec: `features/PROJ-86-isknownstatus-proj46-drift-hotfix.md`.
+
 ### Feature — PROJ-84: EEG-Stammdaten-Editor auf Auto-Save mit Cross-Field-Gate *(2026-06-08)*
 
 Der `AdminEEGSettingsEditor` (Tab „Stammdaten & SEPA" unter

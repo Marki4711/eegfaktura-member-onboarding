@@ -732,4 +732,102 @@ PROJ-84 berührt **KEINEN** Pflicht-Trigger laut CLAUDE.md:
 → **`/security-review` nicht erforderlich.** Direkt zu `/deploy`.
 
 ## Deployment
-_To be added by /deploy_
+
+**Datum:** 2026-06-08
+**Versions-Tag:** `v1.23.3-PROJ-84` (Patch-Bump, weil reine UX-Konsistenz-Verbesserung ohne neuen Feature-Pfad — Verhalten von Stammdaten-Save wechselt von Button auf Auto-Save, aber funktional gleicher Stand)
+**Image-SHA:** `sha-2ec2a70`
+**Helm-Auto-Bump:** `92d3daa chore: update Helm image tags to sha-2ec2a70 [skip ci]`
+**Status:** Code merged + Helm-Image bereitgestellt, **wartet auf manuellen `helm upgrade` durch Owner**
+
+### CI-Status (alle grün)
+
+| Workflow | Dauer | Ergebnis |
+|---|---|---|
+| Build and Push Docker Images | 4m25s | ✓ Image `sha-2ec2a70` zu Docker Hub gepusht |
+| CI Build & Test | 1m3s | ✓ TSC + Vitest + Next-Build |
+| Security Scan (gosec + Semgrep + Trivy) | 1m8s | ✓ keine neuen Findings |
+| User Guide (MkDocs) | 23s | ✓ Doku gebaut |
+| Mirror to Public | 15s | ✓ Mirror aktualisiert |
+
+### Pre-Deploy-Status (verifiziert)
+
+| Check | Ergebnis |
+|---|---|
+| `npx tsc --noEmit` | clean |
+| `npx vitest run` | 88 / 88 grün (23 neue PROJ-84 + 9 PROJ-83 + 56 Bestand) |
+| `npm run build` | clean |
+| QA-Sektion | APPROVED (21 ACs Pass + 2 N/A, 13/13 ECs OK, 0 Findings) |
+| `/security-review` | nicht erforderlich laut CLAUDE.md-Trigger-Liste |
+| `govulncheck ./...` | 0 callable vulnerabilities |
+| `gosec` full-Repo | 0 issues / 32980 Lines |
+| `npm audit --audit-level=high` | 0 high/critical |
+| `grep PROJ- docs/user-guide/` | leer (PROJ-frei) |
+| `git status helm/` | clean (keine Helm-Werte-Änderung) |
+| DB-Migration | keine (pure Frontend-Änderung) |
+
+### Geänderte Dateien
+
+| Pfad | Status |
+|---|---|
+| `src/lib/eeg-settings-validation.ts` | **New** — 3 Validator-Funktionen + Aggregat + Lead-In-Konstante |
+| `src/lib/eeg-settings-validation.test.ts` | **New** — 23 Vitest-Cases mit Backend-Drift-Ankern |
+| `src/components/admin-eeg-settings-editor.tsx` | Modified — Auto-Save mit Cross-Field-Gate, Save-Button raus, AutoSaveIndicator + HintBanner (3×), Toggle-OFF-State-Reset, onSaved-Callback |
+| `src/app/admin/settings/page.tsx` | Modified — `onSaved={(s) => setEegSettings(s)}` verdrahtet |
+| `docs/user-guide/06-admin-settings.md` | Modified — Sektion „Speichern, Auto-Speichern" umgeschrieben + Subblock „Hinweis-Banner — wann erscheint er?" |
+| `docs/user-guide/changelog.md` | Modified — PROJ-frei |
+| `CHANGELOG.md` | Modified — Release-Notes-Block |
+| `features/PROJ-84-eeg-settings-auto-save.md` | Modified — Status Approved, QA-Sektion komplett |
+| `features/INDEX.md` | Modified — Status auf Deployed |
+
+### Owner-Aktion-Liste
+
+PROJ-84 ist der dritte Frontend-Patch in Folge (nach PROJ-82 + PROJ-83), der
+auf den Cluster-Apply wartet. **Du kannst PROJ-82 + PROJ-83 + PROJ-84 in
+einem einzigen `helm upgrade`-Lauf live bringen.**
+
+**Schritt 1: `helm upgrade` auf test (~2 Min)**
+
+```bash
+helm upgrade eegfaktura-member-onboarding ./helm/member-onboarding \
+  -f helm/member-onboarding/values-env.yaml \
+  -f helm/member-onboarding/values-secret.yaml
+```
+
+- Keine neuen ENV-Variablen für PROJ-84 → `values-env.yaml` bleibt unverändert
+- Keine Migration → Migrate-Job läuft idempotent durch
+- `values.yaml` zeigt bereits auf `sha-2ec2a70` (Auto-Bump-Commit `92d3daa`)
+
+**Schritt 2: Verify (~2 Min)**
+
+```bash
+kubectl rollout status deployment/eegfaktura-member-onboarding-frontend -n eegfaktura-member-onboarding-test
+curl -fsS https://member-onboarding-test.eegfaktura.at/health || true   # Backend-Endpoint via Ingress evtl. nicht erreichbar; Frontend-200 ist der relevante Check
+curl -sI https://member-onboarding-test.eegfaktura.at/ | head -3
+```
+
+Dann **Funktionstest** im Browser:
+1. `/admin/settings` öffnen, Tab „Stammdaten & SEPA"
+2. Genossenschaftsanteile-Toggle EIN — gelber Banner „Änderungen werden gespeichert, sobald die folgenden Pflichtfelder ausgefüllt sind: • Pflichtanteile je Standort (aktuell leer) • Anteilswert in Euro (aktuell leer)" sollte erscheinen
+3. Pflichtanteile + Anteilswert ausfüllen — Banner verschwindet, AutoSaveIndicator zeigt „Gespeichert HH:MM"
+4. Toggle wieder AUS — Sub-Felder werden ausgeblendet, Auto-Save speichert sofort (Banner ist von Anfang an grün, weil Toggle off)
+5. Wechsel auf Tab „Formular-Felder" + zurück — Stand ist synchron (PROJ-82-Stil-Cache-Sync)
+
+**Rollback (falls nötig):**
+
+```bash
+helm rollback eegfaktura-member-onboarding
+```
+
+PROJ-84 ist Frontend-only und Rollback-freundlich — keine DB-Daten verändert.
+
+### Versions-Historie
+
+| PROJ | Version | SHA | Stand |
+|---|---|---|---|
+| PROJ-78 | v1.20.0-PROJ-78 | sha-8a6fc6d | live |
+| PROJ-79 | v1.23.0-PROJ-79 | sha-fdc3c3e | live |
+| PROJ-80 | v1.21.0-PROJ-80 | sha-fb547a3 | live |
+| PROJ-81 | v1.22.0-PROJ-81 | sha-e38cc6d | live |
+| PROJ-82 | v1.23.1-PROJ-82 | sha-97efc42 | wartet auf helm upgrade |
+| PROJ-83 | v1.23.2-PROJ-83 | sha-ee4c14f | wartet auf helm upgrade |
+| **PROJ-84** | **v1.23.3-PROJ-84** | **sha-2ec2a70** | **wartet auf helm upgrade** |
