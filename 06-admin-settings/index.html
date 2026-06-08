@@ -596,9 +596,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#sepa-wahl-im-formular-zulassen-alle-optionen" class="md-nav__link">
+  <a href="#sepa-feld-fur-ausgewahlte-mitgliedstypen-auf-optional-setzen-alle-optionen" class="md-nav__link">
     <span class="md-ellipsis">
-      SEPA-Wahl im Formular zulassen (Alle Optionen)
+      SEPA-Feld für ausgewählte Mitgliedstypen auf optional setzen (Alle Optionen)
     </span>
   </a>
   
@@ -1064,8 +1064,8 @@ Wenn du einen Antrag bereits per Import-Button verarbeitet hast und die Mitglied
 <em>Der Kunde hat der Musterstadt EEG nach Verifizierung seiner E-Mail-Adresse am 21.05.2026 11:50 von der IP-Adresse 192.0.2.42 auf elektronischem Weg (formfreie Willenserklärung gem. § 76 (3) EIWOG 2010) seine Zustimmung zum Vertrag im obigen Sinne sowie für das SEPA-Lastschriftmandat erteilt.</em></p>
 <p><strong>Hinweis:</strong> Wenn der Audit-Trail aktiv ist, aber für einen einzelnen Antrag noch keine IP-Adresse gespeichert wurde (Altanträge aus der Zeit vor der elektronischen Erfassung), fällt das PDF automatisch auf die klassische Unterschriftslinie zurück. Es kommt also nie zu einem fehlerhaften Audit-Block ohne Datenbasis.</p>
 </blockquote>
-<h3 id="sepa-wahl-im-formular-zulassen-alle-optionen">SEPA-Wahl im Formular zulassen <em>(Alle Optionen)</em><a class="headerlink" href="#sepa-wahl-im-formular-zulassen-alle-optionen" title="Permanent link">&para;</a></h3>
-<p>Manche EEGs erzwingen SEPA-Lastschrift nicht für alle Mitglieder — typische Fälle sind Privatmitglieder, die per Dauerauftrag oder Überweisung zahlen möchten, oder Vereine mit eigener Buchhaltung, die nicht per Lastschrift gezogen werden wollen. Mit diesem Toggle kannst du die SEPA-Einwilligungs-Checkbox im Mitgliederformular für ausgewählte Mitgliedstypen <strong>optional</strong> statt verpflichtend rendern.</p>
+<h3 id="sepa-feld-fur-ausgewahlte-mitgliedstypen-auf-optional-setzen-alle-optionen">SEPA-Feld für ausgewählte Mitgliedstypen auf optional setzen <em>(Alle Optionen)</em><a class="headerlink" href="#sepa-feld-fur-ausgewahlte-mitgliedstypen-auf-optional-setzen-alle-optionen" title="Permanent link">&para;</a></h3>
+<p>Manche EEGs erzwingen SEPA-Lastschrift nicht für alle Mitglieder — typische Fälle sind Privatmitglieder, die per Dauerauftrag oder Überweisung zahlen möchten, oder Vereine mit eigener Buchhaltung, die nicht per Lastschrift gezogen werden wollen. Mit diesem Toggle kannst du das SEPA-Einwilligungs-Feld im Mitgliederformular für ausgewählte Mitgliedstypen <strong>optional</strong> statt verpflichtend machen.</p>
 <p><strong>Toggle aktiv:</strong> Im Modus <em>Alle Optionen</em> öffnet sich darunter eine Liste mit vier Checkboxen — <em>Privat</em>, <em>Pauschalierter Landwirt</em>, <em>Verein</em>, <em>Gemeinde</em>. Du wählst, für welche Mitgliedstypen die SEPA-Einwilligung im Formular optional sein soll. Mitglieder dieser Typen können den Antrag dann auch ohne Häkchen bei der SEPA-Lastschriftermächtigung einreichen — in dem Fall wird die <em>Einzugsart</em> auf „Kein SEPA" gesetzt und es wird kein Mandat-PDF erzeugt.</p>
 <p><strong>Toggle aus (Standard):</strong> Verhalten wie bisher — alle Mitglieder müssen der SEPA-Lastschrift im Formular zustimmen.</p>
 <p><strong>Was die Mitgliedstypen-Liste NICHT enthält:</strong> Firmen-Mitglieder (<code>Unternehmen</code>) werden nicht angeboten und tauchen in der Liste gar nicht erst auf. Für sie gilt unverändert die Pflicht zur Firmenlastschrift (B2B) — das SEPA-Regelwerk lässt für Geschäftslastschriften keine bloße Online-Zustimmung zu.</p>
