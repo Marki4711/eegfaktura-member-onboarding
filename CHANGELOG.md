@@ -10,6 +10,28 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Fix — PROJ-82: Settings-Formular-Editor — UI-Staleness bei Tab-Wechsel *(2026-06-08)*
+
+`AdminFieldConfigEditor` persistierte Konfigurationsänderungen korrekt in
+der DB, aber der Parent-State `fieldConfig` in
+`src/app/admin/settings/page.tsx` wurde nicht aktualisiert. Bei Tab-Wechsel
+auf einen anderen Settings-Tab und zurück unmountet Radix-`TabsContent`
+den inaktiven Editor; beim Re-Mount initialisierte
+`useState(() => mergeWithDefaults(initialConfig))` aus dem alten
+Parent-Snapshot. Folge: Tab-Wechsel zurück zeigt den alten Stand, obwohl
+in der DB der neue Wert steht. Hard-Refresh fixte es, weil der
+Parent-Load-`useEffect` neu lief.
+
+Fix: neuer `onSaved`-Callback auf den Editor-Props. Nach erfolgreichem
+Auto-Save meldet der Editor den persistierten Stand zurück an den
+Parent, der sein `fieldConfig`-State synchronisiert. Beim nächsten
+Tab-Re-Mount kommt der frische Stand. Kein zusätzlicher API-Call,
+keine Backend-Änderung, keine Migration.
+
+Owner-Direktive 2026-06-08 (Variante B aus der Analyse).
+
+Spec: `features/PROJ-82-fieldconfig-editor-staleness-fix.md`.
+
 ### Feature — PROJ-79: B2B-Import als CORE in eegFaktura-Core *(2026-06-08)*
 
 `mapEinzugsart` in `internal/importing/payload.go` mappt jetzt

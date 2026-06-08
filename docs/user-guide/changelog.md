@@ -6,6 +6,12 @@
 
 ## 2026-06-08
 
+**Behoben: Einstellungen im Formular-Tab waren nach Tab-Wechsel veraltet**
+
+Wenn ihr in den EEG-Einstellungen ein Formular-Feld (Antragsteller oder Zählpunkt) umgestellt habt, wurde der neue Wert zwar sofort gespeichert. Wenn ihr aber auf einen anderen Tab gewechselt und wieder zurück zum Formular-Tab gesprungen seid, hat der Editor noch den alten Stand angezeigt. Erst ein Hard-Reload der Seite hat den aktuellen Stand gezeigt.
+
+Ab jetzt bleibt die Anzeige nach Tab-Wechsel synchron mit dem gespeicherten Stand. Der Auto-Save selbst ist unverändert — der Bug betraf nur die Anzeige, nicht die Persistierung.
+
 **Firmenlastschrift-Anträge werden im Faktura-Core zunächst als Basislastschrift angelegt**
 
 Wenn ein Antrag mit Einzugsart *Firmenlastschrift (B2B)* importiert wird, legt das System ihn im eegFaktura-Core jetzt zunächst als *Basislastschrift (CORE)* an — nicht als B2B. Hintergrund: die B2B-Aktivierung verlangt eine separate Mandatsvereinbarung zwischen Mitglied und dessen Hausbank, die in der Praxis Tage bis Wochen dauert. Eine sofortige B2B-Abbuchung würde ohne Bank-Aktivierung abgelehnt; der CORE-Pfad überbrückt die Klärungs-Phase risikolos.
