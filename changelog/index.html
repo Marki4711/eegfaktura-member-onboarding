@@ -703,6 +703,11 @@
 <p>Übersicht der Änderungen der letzten Tage, die für <strong>EEG-Admins</strong> und <strong>Mitglieder</strong> spürbar sind. Technische Details, Bug-Fixes ohne UI-Auswirkung und Infrastruktur-Themen sind hier bewusst weggelassen — die finden sich in der Commit-Historie.</p>
 <hr />
 <h2 id="2026-06-08">2026-06-08<a class="headerlink" href="#2026-06-08" title="Permanent link">&para;</a></h2>
+<p><strong>SEPA-Wahl im Formular zulassen (Mitgliedstypen-Whitelist)</strong></p>
+<p>Manche EEGs erzwingen SEPA-Lastschrift nicht für alle Mitgliedstypen. Im SEPA-Block der EEG-Einstellungen gibt es jetzt einen Schalter <strong>„SEPA-Wahl im Formular zulassen (für ausgewählte Mitgliedstypen)"</strong> mit darunterliegender Auswahl der berechtigten Mitgliedstypen (<em>Privat</em>, <em>Pauschalierter Landwirt</em>, <em>Verein</em>, <em>Gemeinde</em>). Für die ausgewählten Mitgliedstypen wird die SEPA-Einwilligungs-Checkbox im Mitgliederformular optional — wenn das Mitglied sie weglässt, wird der Antrag mit „Kein SEPA" gespeichert, ohne Mandat-PDF.</p>
+<p>Wichtig: <strong>Bankdaten bleiben in jedem Fall Pflicht</strong> — eegFaktura-Core verlangt sie für jedes Mitglied, unabhängig vom Mandat. Die EEG kann sie nach der Aktivierung für manuelle Zahlungsklärung nutzen.</p>
+<p>Wenn ein Mitglied ohne SEPA-Mandat einreicht, bekommt die EEG in allen automatischen Info-Mails (Submit-Bestätigung, Aktivierungs-Mail, Beitrittserklärung an den Vorstand) einen gelben Hinweis-Banner: <em>„Kein SEPA-Lastschriftmandat erteilt — die Abrechnung muss über einen alternativen Zahlungsweg direkt mit dem Mitglied vereinbart werden."</em> Im Antrags-Detail siehst du über der Bankverbindungs-Karte denselben Hinweis als blauen Info-Streifen.</p>
+<p>Firmen-Mitglieder bleiben unverändert SEPA-pflichtig (B2B-Lastschrift) und tauchen in der Wahlfreiheits-Liste gar nicht erst auf.</p>
 <p><strong>SEPA-Einstellungen vereinfacht</strong></p>
 <p>Der Schalter „SEPA-Mandat als Datei dem Antragsteller übermitteln" entfällt. Das System erzeugt jetzt für jedes Mitglied automatisch ein SEPA-Mandat-PDF. Zwei Schalter steuern weiterhin die Variante:</p>
 <ul>

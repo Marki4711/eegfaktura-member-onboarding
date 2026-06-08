@@ -596,6 +596,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#sepa-wahl-im-formular-zulassen-alle-optionen" class="md-nav__link">
+    <span class="md-ellipsis">
+      SEPA-Wahl im Formular zulassen (Alle Optionen)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#beitrittserklarung-vom-vorstand-genehmigen-lassen-alle-optionen" class="md-nav__link">
     <span class="md-ellipsis">
       Beitrittserklärung vom Vorstand genehmigen lassen (Alle Optionen)
@@ -1055,6 +1064,19 @@ Wenn du einen Antrag bereits per Import-Button verarbeitet hast und die Mitglied
 <em>Der Kunde hat der Musterstadt EEG nach Verifizierung seiner E-Mail-Adresse am 21.05.2026 11:50 von der IP-Adresse 192.0.2.42 auf elektronischem Weg (formfreie Willenserklärung gem. § 76 (3) EIWOG 2010) seine Zustimmung zum Vertrag im obigen Sinne sowie für das SEPA-Lastschriftmandat erteilt.</em></p>
 <p><strong>Hinweis:</strong> Wenn der Audit-Trail aktiv ist, aber für einen einzelnen Antrag noch keine IP-Adresse gespeichert wurde (Altanträge aus der Zeit vor der elektronischen Erfassung), fällt das PDF automatisch auf die klassische Unterschriftslinie zurück. Es kommt also nie zu einem fehlerhaften Audit-Block ohne Datenbasis.</p>
 </blockquote>
+<h3 id="sepa-wahl-im-formular-zulassen-alle-optionen">SEPA-Wahl im Formular zulassen <em>(Alle Optionen)</em><a class="headerlink" href="#sepa-wahl-im-formular-zulassen-alle-optionen" title="Permanent link">&para;</a></h3>
+<p>Manche EEGs erzwingen SEPA-Lastschrift nicht für alle Mitglieder — typische Fälle sind Privatmitglieder, die per Dauerauftrag oder Überweisung zahlen möchten, oder Vereine mit eigener Buchhaltung, die nicht per Lastschrift gezogen werden wollen. Mit diesem Toggle kannst du die SEPA-Einwilligungs-Checkbox im Mitgliederformular für ausgewählte Mitgliedstypen <strong>optional</strong> statt verpflichtend rendern.</p>
+<p><strong>Toggle aktiv:</strong> Im Modus <em>Alle Optionen</em> öffnet sich darunter eine Liste mit vier Checkboxen — <em>Privat</em>, <em>Pauschalierter Landwirt</em>, <em>Verein</em>, <em>Gemeinde</em>. Du wählst, für welche Mitgliedstypen die SEPA-Einwilligung im Formular optional sein soll. Mitglieder dieser Typen können den Antrag dann auch ohne Häkchen bei der SEPA-Lastschriftermächtigung einreichen — in dem Fall wird die <em>Einzugsart</em> auf „Kein SEPA" gesetzt und es wird kein Mandat-PDF erzeugt.</p>
+<p><strong>Toggle aus (Standard):</strong> Verhalten wie bisher — alle Mitglieder müssen der SEPA-Lastschrift im Formular zustimmen.</p>
+<p><strong>Was die Mitgliedstypen-Liste NICHT enthält:</strong> Firmen-Mitglieder (<code>Unternehmen</code>) werden nicht angeboten und tauchen in der Liste gar nicht erst auf. Für sie gilt unverändert die Pflicht zur Firmenlastschrift (B2B) — das SEPA-Regelwerk lässt für Geschäftslastschriften keine bloße Online-Zustimmung zu.</p>
+<p><strong>Wichtig — Bankdaten bleiben Pflicht:</strong> IBAN und Kontowortlaut müssen im Formular auch dann ausgefüllt werden, wenn das Mitglied die SEPA-Einwilligung weglässt. Hintergrund: eegFaktura-Core verlangt Bankdaten für jedes Mitglied. Die EEG kann sie nach der Aktivierung für manuelle Zahlungsklärung nutzen (Überweisungsanforderung, späteres Mandat-Setup per Hand).</p>
+<p><strong>Was passiert in den Folge-Mails?</strong> Wenn ein Mitglied ohne SEPA-Mandat einreicht, bekommt die EEG in allen automatischen Info-Mails (Submit-Bestätigung, Aktivierungs-Mail, Beitrittserklärung an den Vorstand) einen gelben Hinweis-Banner:</p>
+<blockquote>
+<p>⚠ <strong>Kein SEPA-Lastschriftmandat erteilt</strong> — die Bankdaten sind erfasst, aber kein Lastschriftauftrag aktiv. Die Abrechnung muss über einen alternativen Zahlungsweg (Überweisung, Dauerauftrag) direkt mit dem Mitglied vereinbart werden.</p>
+</blockquote>
+<p>So fällt es im Postfach sofort auf, dass für diesen Antrag ein abweichender Abrechnungs-Ablauf nötig ist.</p>
+<p><strong>Beispiel — Max Mustermann hakt die SEPA-Checkbox nicht an:</strong> Im Antrags-Detail erscheint über der Bankverbindungs-Karte ein blauer Info-Streifen mit der Mitteilung „Kein SEPA-Lastschriftmandat erteilt — die Bankdaten sind erfasst, aber kein Lastschriftauftrag aktiv. Zahlungsmodalitäten direkt mit dem Mitglied vereinbaren." Die Bank-Informationen siehst du wie sonst auch, nur das Mandat-PDF entfällt.</p>
+<p><strong>Bestehende Mitglieder umstellen:</strong> Der Admin-Edit-Form für einen einzelnen Antrag erlaubt weiterhin manuell die <em>Einzugsart</em> zu ändern — das ist unabhängig von diesem Toggle. Der Toggle wirkt nur auf neue Submits über das öffentliche Formular.</p>
 <h3 id="beitrittserklarung-vom-vorstand-genehmigen-lassen-alle-optionen">Beitrittserklärung vom Vorstand genehmigen lassen <em>(Alle Optionen)</em><a class="headerlink" href="#beitrittserklarung-vom-vorstand-genehmigen-lassen-alle-optionen" title="Permanent link">&para;</a></h3>
 <p>Manche EEGs wollen die Beitrittsbestätigung nicht automatisch ans Mitglied versenden lassen, sondern stattdessen vom Vorstand formell genehmigen lassen — z. B. weil die Statuten einen Aufnahmebeschluss erfordern oder die EEG den Beitrittsprozess mit einer unterschriebenen Bestätigung dokumentieren will.</p>
 <p><strong>Toggle aktiv:</strong> Beim Wechsel auf Status „Aktiviert" entfällt die automatische Beitrittsbestätigungs-Mail an das Mitglied. Stattdessen geht eine Beitrittserklärung mit Vorstands-Signaturblock am Ende an die in den EEG-Stammdaten hinterlegte Kontakt-E-Mail. Der Vorstand unterschreibt das Dokument und leitet es per Hand an das Mitglied weiter. Das Mitglied wird zusätzlich über die reguläre eegFaktura-Aktivierungs-Mail über seinen Status informiert.</p>
