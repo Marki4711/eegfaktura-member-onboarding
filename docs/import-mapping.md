@@ -66,6 +66,78 @@ The existing participant structure contains, among others:
 
 ---
 
+## 3.1 SEPA-Typ-Mapping beim Core-Import (PROJ-79)
+
+`application.einzugsart` wird beim Aufbau des Core-Payloads in
+`accountInfo.sepaDirectDebit` (Core-Enum, uppercase) übersetzt. Die
+Mapping-Funktion ist `mapEinzugsart` in `internal/importing/payload.go`.
+
+| Onboarding `application.einzugsart` | Core `accountInfo.sepaDirectDebit` | Core `accountInfo.sepa` |
+|---|---|---|
+| `core` (Basislastschrift) | `"CORE"` | `true` |
+| `b2b` (Firmenlastschrift) | `"CORE"` (PROJ-79, **absichtlich**) | `true` |
+| `kein_sepa` | `""` (omitempty) | `false` |
+| sonst (leer, unbekannt) | `""` (omitempty) | `false` |
+
+### Warum mappt `b2b` auf `CORE` und nicht auf `B2B`?
+
+Owner-Direktive 2026-06-08. Hintergrund:
+
+- Das **SEPA-B2B-SDD-Rulebook** (Firmenlastschrift) verlangt eine separate
+  Mandatsvereinbarung zwischen Mitglied und dessen Hausbank. Diese
+  Bank-Aktivierung dauert in der Praxis Tage bis Wochen.
+- Ohne aktive B2B-Mandatsvereinbarung würde die erste B2B-Lastschrift im
+  Faktura-Core von der Bank des Mitglieds **abgelehnt** werden — mit
+  unnötigen Mahnungs-Reflexen und Aufwand für die EEG.
+- Der CORE-Pfad (Basislastschrift) **überbrückt die Klärungs-Phase
+  risikolos**. CORE-Mandate sind ohne separate Bank-Aktivierung sofort
+  ziehbar.
+
+### Workflow für die EEG-Kontaktperson
+
+Damit der Übergang nicht vergessen wird, geht in der **Aktivierungs-Mail**
+an die EEG-Kontaktperson (sowohl im Auto-Modus PROJ-53 als auch im
+Vorstands-Modus PROJ-76) ein gelber **Hinweis-Banner** raus:
+
+> **⚠ Hinweis B2B-SEPA-Mandat:** Der Antrag wurde im Member-Onboarding mit
+> Einzugsart „Firmenlastschrift (B2B)" angelegt, aber zur Sicherheit im
+> eegFaktura-Core zunächst als Basislastschrift (CORE) importiert. Bitte
+> vereinbaren Sie die Firmenlastschrift-Aktivierung eigenständig mit der
+> Hausbank des Mitglieds. Sobald die Bank die B2B-Aktivierung bestätigt
+> hat, ändern Sie den SEPA-Typ im eegFaktura-Core manuell auf B2B.
+
+Der Banner-HTML lebt zentral in
+`internal/mail/b2b_notice.go` (`RenderB2BImportNoticeBanner`) — Single
+source of truth für beide Mail-Pfade.
+
+### Was bleibt unverändert
+
+- `application.einzugsart` bleibt im Member-Onboarding auf `b2b` — der
+  Admin sieht im Antrags-Detail weiterhin „Firmenlastschrift".
+- Das PROJ-46-Status-Modell triggert weiterhin
+  `imported → awaiting_bank_confirmation` bei `einzugsart=b2b`.
+- Das B2B-Mandat-PDF wird weiterhin erzeugt und an die Bank-Klärung
+  übergeben (PROJ-74-Hart-Fail bleibt erhalten).
+- PROJ-78 Audit-Toggle (elektronisches SEPA-Mandat) wirkt orthogonal —
+  nur auf das PDF-Rendering, nicht auf das Core-Mapping.
+
+### Bestand
+
+PROJ-79 wirkt nur auf **neue** Imports ab Deploy-Zeitpunkt. Bereits
+importierte B2B-Anlagen im Faktura-Core bleiben unangetastet. Kein
+Backfill, kein Migrations-Skript — laufende B2B-Lastschriften, deren
+Bank-Mandat schon aktiv ist, dürfen nicht gestört werden.
+
+### Praktische Trigger-Realität
+
+`einzugsart="b2b"` entsteht heute in der Production-Codebase
+**ausschließlich durch manuellen Admin-Edit** im Antrags-Detail
+(`internal/application/admin_service.go:448`). Public-Submit und Externe
+API erzeugen nur `core` oder `kein_sepa`. Die Mapping-Regel bleibt aber
+konsistent für zukünftige Self-Service-b2b-Pfade.
+
+---
+
 ## 4. Technical defaults
 
 These fields are not managed in onboarding but are set technically during import.

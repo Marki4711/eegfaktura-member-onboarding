@@ -10,6 +10,57 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Feature — PROJ-79: B2B-Import als CORE in eegFaktura-Core *(2026-06-08)*
+
+`mapEinzugsart` in `internal/importing/payload.go` mappt jetzt
+`einzugsart=b2b` auf `"CORE"` (statt `"B2B"`) im Core-API-Payload.
+Hintergrund: das SEPA-B2B-SDD-Rulebook verlangt eine separate
+Bank-Mandatsvereinbarung, die typischerweise Tage bis Wochen dauert.
+Bis dahin würde eine sofortige B2B-Abbuchung von der Hausbank des
+Mitglieds abgelehnt — der CORE-Pfad überbrückt diese Klärungs-Phase
+risikolos. `application.einzugsart` in der Onboarding-DB bleibt
+unverändert auf `b2b`; das Status-Modell läuft weiter über
+`awaiting_bank_confirmation` (PROJ-46).
+
+Beide Aktivierungs-Mail-Pfade (Auto-Modus aus PROJ-53 und
+Vorstands-Modus aus PROJ-76) rendern bei b2b-Anträgen einen gelben
+Hinweis-Banner mit der Aufforderung an die EEG-Kontaktperson, die
+B2B-Aktivierung mit der Hausbank des Mitglieds zu klären und nach
+Bestätigung den Core-SEPA-Typ manuell auf B2B umzustellen. Banner-HTML
+lebt zentral in `internal/mail/b2b_notice.go`
+(`RenderB2BImportNoticeBanner`) — Single source of truth für beide
+Pfade, bewusste Verbesserung gegenüber der PROJ-81-Doppelverdrahtung
+des kein_sepa-Banners.
+
+Hartkodierte globale Regel, kein Per-EEG-Toggle, keine DB-Migration,
+kein Helm-Eingriff. Bestandsanträge im Core bleiben unangetastet —
+laufende B2B-Lastschriften mit aktivem Mandat dürfen nicht gestört
+werden. Owner-Direktive 2026-06-08.
+
+In der heutigen Production-Codebase entsteht `einzugsart=b2b`
+ausschließlich durch manuellen Admin-Edit; Public-Submit und Externe
+API erzeugen nur `core` oder `kein_sepa`. Das Mapping bleibt aber
+konsistent für zukünftige b2b-Pfade.
+
+Tests:
+`TestBuildPayload_EinzugsartMapping` umgestellt + neuer
+`TestBuildPayload_B2B_IntentionallyMappedToCORE`-Regressions-Wache;
+Helper-Unit-Tests (`TestRenderB2BImportNoticeBanner` mit 7 Permutationen
++ `TestRenderB2BImportNoticeBanner_ContainsKeyPhrases`);
+Mail-Integration-Tests für beide Pfade
+(`TestSendActivationNotification_B2B_ShowsBanner_InEEGCopy`,
+`TestSendBoardApprovalRequest_B2B_ShowsBanner` + Negativ-Tests für
+einzugsart=core).
+
+Doku-Updates: neue Sektion `3.1 SEPA-Typ-Mapping beim Core-Import` in
+`docs/import-mapping.md`; neuer Subblock „Firmenlastschrift im
+Faktura-Core" in `docs/user-guide/06-admin-settings.md` (PROJ-frei,
+anonymisiertes Beispiel mit Musterbetrieb GmbH); Eintrag in
+`docs/user-guide/changelog.md`.
+
+Spec: `features/PROJ-79-b2b-import-as-core.md` (16 Owner-Entscheidungen
+aus /requirements + /grill-me).
+
 ### Feature — PROJ-81: SEPA-Einwilligung optional pro Mitgliedstyp *(2026-06-08)*
 
 Per-EEG-Toggle „SEPA-Feld für ausgewählte Mitgliedstypen auf optional setzen" mit konfigurierbarer
