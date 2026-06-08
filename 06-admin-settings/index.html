@@ -1008,7 +1008,7 @@ Wenn du einen Antrag bereits per Import-Button verarbeitet hast und die Mitglied
 <p>Im Modus <em>Alle Optionen</em> findest du zwei Toggles unterhalb des SEPA-Lastschriftmandat-Abschnitts:</p>
 <ul>
 <li><strong>Im CORE-Mandat den elektronischen Audit-Trail nutzen (statt manueller Unterschrift)</strong> — entscheidet, ob das CORE-Mandat-PDF (Basislastschrift, Privat) einen Audit-Trail-Block oder ein klassisches Unterschriftenfeld trägt.</li>
-<li><strong>SEPA-Mandat erst beim Import senden (Mandatsreferenz = Mitgliedsnummer)</strong> — entscheidet, ob das PDF sofort mit der Bestätigungs-Mail rausgeht (Mandatsreferenz = Antragsnummer) oder erst beim Import (Mandatsreferenz = Mitgliedsnummer).</li>
+<li><strong>SEPA-Mandat erst beim Import senden (Mandatsreferenz = Mitgliedsnummer)</strong> — entscheidet, ob das PDF sofort mit der Bestätigungs-Mail rausgeht (mit Platzhalter „Mandatsreferenz wird von der EEG ausgefüllt" — die EEG trägt sie später händisch nach) oder erst beim Import (Mandatsreferenz = Mitgliedsnummer).</li>
 </ul>
 <p>Drei gültige Kombinationen:</p>
 <table>
@@ -1023,7 +1023,7 @@ Wenn du einen Antrag bereits per Import-Button verarbeitet hast und die Mitglied
 <tr>
 <td><strong>aus</strong> <em>(Default)</em></td>
 <td><strong>aus</strong> <em>(Default)</em></td>
-<td>PDF kommt sofort mit der Bestätigungs-Mail, hat ein Unterschriftenfeld. Mitglied unterschreibt und sendet zurück. Mandatsreferenz = Antragsnummer.</td>
+<td>PDF kommt sofort mit der Bestätigungs-Mail, hat ein Unterschriftenfeld. Mitglied unterschreibt und sendet zurück. Mandatsreferenz bleibt leer (Platzhalter „wird von der EEG ausgefüllt") — die EEG trägt sie händisch nach.</td>
 </tr>
 <tr>
 <td><strong>aus</strong></td>
@@ -1042,7 +1042,7 @@ Wenn du einen Antrag bereits per Import-Button verarbeitet hast und die Mitglied
 <p><strong>EEG-Kopie bei Audit-Trail:</strong> Im Audit-Pfad muss das Mitglied nichts zurücksenden — der EEG würde sonst kein Beleg-Exemplar haben. Deshalb geht beim Import zusätzlich zur Mitglieder-Mail eine separate Mail mit derselben PDF-Kopie an die EEG-Kontakt-Adresse. Subject: „Ablage-Kopie: SEPA-Mandat — <em>Mitgliedsname</em>, Antrag <em>Referenznummer</em>". Diese Kopie ist nur ein Ablage-Beleg, kein Action-Item.</p>
 </blockquote>
 <p><strong>Warn-Banner:</strong> Wenn EEG-Stammdaten unvollständig sind (Name, Adresse, Creditor-ID), zeigt der Editor eine gelbe Warnung. Solange Pflichtfelder fehlen, wird kein PDF erzeugt.</p>
-<p><strong>Mandatsreferenz manuell überschreiben:</strong> Sowohl die Antragsnummer- als auch die Mitgliedsnummer-basierte Auto-Ableitung ist nicht zwingend. Im Admin-Edit-Form jedes Antrags gibt es ein Eingabefeld <strong>Mandatsreferenz</strong> (z. B. für externe Kundennummern aus eurem Buchhaltungssystem). Ein dort eingetragener Wert hat <strong>Vorrang</strong> und wird beim Import in eegFaktura mit übernommen (analog zum Mandatsdatum).</p>
+<p><strong>Mandatsreferenz manuell überschreiben:</strong> Die Mitgliedsnummer-basierte Auto-Ableitung beim Import-Zeitpunkt ist nicht zwingend. Im Admin-Edit-Form jedes Antrags gibt es ein Eingabefeld <strong>Mandatsreferenz</strong> (z. B. für externe Kundennummern aus eurem Buchhaltungssystem). Ein dort eingetragener Wert hat <strong>Vorrang</strong> und wird beim Import in eegFaktura mit übernommen (analog zum Mandatsdatum). Bei Submit-Zeit-PDFs (Timing aus, Audit aus) bleibt das Feld im PDF leer mit Platzhalter — die EEG trägt die Referenz später beim Bearbeiten des Mandats händisch nach.</p>
 <h4 id="b2b-firmenlastschrift">B2B-Firmenlastschrift<a class="headerlink" href="#b2b-firmenlastschrift" title="Permanent link">&para;</a></h4>
 <p>B2B-Mandate (<code>einzugsart=b2b</code>, für Unternehmen, Gemeinden, Vereine) werden <strong>immer</strong> erzeugt — unabhängig vom CORE-Toggle, weil das SEPA-Regelwerk eine schriftliche Mandats-Vereinbarung für Firmenlastschriften verlangt. Die Mandatsreferenz ist immer die Mitgliedsnummer; das PDF kommt erst beim Import.</p>
 <p>Im Modus <em>Alle Optionen</em> findest du einen separaten Toggle:</p>
