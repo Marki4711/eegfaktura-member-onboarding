@@ -10,6 +10,26 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Fix — PROJ-96: Du-Konsistenz in allen Mail-Pfaden *(2026-06-10)*
+
+Owner-Direktive: „überall Du". Tester-Befund TODO-4 aus dem Vorabend
+war kein Owner-Klärungs-Fall, sondern ein konkreter Bug. Code-Audit
+fand vier Sie-Stellen — die acht Mitglieder-Templates blieben sauber:
+
+- **PROJ-91-B2B-Vorbereitungs-Banner** (`b2b_notice.go` Member-Variante):
+  „Ihrer Hausbank … geben Sie der EEG kurz Bescheid" → Du-Form. Das war
+  die vom Tester konkret beobachtete Stelle (Firmen-SEPA-Mail).
+- **EEG-Customer-Onboarding-Welcome- + Reject-Mail** (Subjects + zwei
+  Templates): Anrede „Guten Tag" → „Hallo", durchgehend Du. Auch wenn
+  Empfänger ein EEG-Betreiber ist.
+- **Vorstands-Beitrittserklärungs-Mail** (`SendBoardApprovalRequest`):
+  „Sehr geehrtes Vorstandsmitglied," → „Hallo,". „Im Anhang finden Sie
+  … unterzeichnen Sie" → „findest du … unterschreibe". „Mit freundlichen
+  Grüßen" → „Liebe Grüße".
+
+Finale Grep über `internal/mail/` + `internal/pdf/`: 0 Treffer für
+`\b(Sie|Ihre|Ihr|Ihnen|Ihren|Ihres)\b`.
+
 ### Fix — PROJ-95: Tester-Bundle 2026-06-10 (Anlagenname-Wipe, Mandatsreferenz-Mail, Hallo-Whitespace) *(2026-06-10)*
 
 Drei Befunde aus dem Tester-Chat 2026-06-10 morgens nach dem

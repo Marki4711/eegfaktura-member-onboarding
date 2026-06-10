@@ -1,6 +1,6 @@
 # PROJ-95: Tester-Bundle 2026-06-10 (drei Mail-/Edit-Fixes)
 
-## Status: Approved
+## Status: Deployed (2026-06-10)
 **Created:** 2026-06-10
 **Last Updated:** 2026-06-10
 **Typ:** Hotfix-Bundle (Tester-Befund 2026-06-10)
@@ -142,9 +142,10 @@ ist member-number-stable, nicht mandate-reference-abhaengig.
 **Deploy-Bookkeeping 2026-06-10 (morgens):**
 
 - Hotfix-Cycle: direkter Commit, kein eigener /architecture-Pfad
-- Helm-Bump folgt nach CI gruen
-- Tag: `v1.25.0-PROJ-95` (Minor — Mail-Template-Schema-Aenderung +
-  Frontend-Field-Add)
+- Code-Commit: `be167d3`
+- Helm-Bump-Commit: `aa80bcf` (sha-be167d3)
+- Tag: `v1.25.0-PROJ-95` gesetzt + gepusht (Minor — Mail-Template-Schema-
+  Aenderung + Frontend-Field-Add)
 
 **Owner-Action:** im naechsten `helm upgrade`. Tester-Verifikation:
 1. Antrag mit Anlagenname submitten, Admin-Edit oeffnen + speichern
