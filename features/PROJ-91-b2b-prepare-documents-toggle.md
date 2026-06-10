@@ -1,6 +1,6 @@
 # PROJ-91: B2B-Vorbereitungs-Toggle im Admin-Edit (ersetzt PROJ-79-Heimlich-Mapping + entfernt awaiting_bank_confirmation)
 
-## Status: Architected (2026-06-09)
+## Status: Deployed (2026-06-09)
 **Created:** 2026-06-09
 **Last Updated:** 2026-06-09
 
@@ -887,4 +887,39 @@ Das Info-Finding zur MemberNumber-Filename-Validierung ist **kein Blocker** — 
 **Approved for /deploy.**
 
 ## Deployment
-_To be added by /deploy_
+
+**Deploy-Bookkeeping 2026-06-09 (Abend):**
+
+- Commit: `4abaf0a` (feat(PROJ-91): B2B-Vorbereitungs-Toggle …)
+- Helm-Auto-Bump: `91ba877` (image tag `sha-4abaf0a`)
+- Tag: `v1.24.0-PROJ-91`
+- CI: alle 4 Workflows grün (CI Build & Test, Security Scan, Docker Build, Mirror)
+- Vorgänger: `v1.23.8-PROJ-90` (Schema-Drift-Hotfix vom selben Tag, Vormittag)
+
+**Owner-Action offen:**
+
+```
+helm upgrade eegfaktura-member-onboarding ./helm/member-onboarding \
+  -f helm/member-onboarding/values-env.yaml \
+  -f helm/member-onboarding/values-secret.yaml
+```
+
+Was passiert beim Apply:
+1. Migration-Job läuft pre-Backend-Update (golang-migrate-Wrap → atomar)
+2. Migration 000074 macht:
+   - ADD COLUMN `prepare_b2b_documents`
+   - Bestand-b2b-Anträge → `einzugsart=core` + `prepare_b2b_documents=true`
+   - CHECK-Constraint ohne `awaiting_bank_confirmation`
+   - Bestand-Status `awaiting_bank_confirmation` → `ready_for_activation` + `status_log`-Audit
+3. Backend-Pod-Rollout mit neuem Code
+4. Frontend-Pod-Rollout parallel
+5. Drift-Window ~30 s zwischen Migration und Backend (akzeptiert)
+
+Verifikation nach Apply:
+- `\d member_onboarding.application` zeigt neue Spalte `prepare_b2b_documents`
+- Spalten-Default ist `false`
+- Bestand-Migration: `SELECT count(*) FROM member_onboarding.application WHERE einzugsart='b2b'` muss 0 sein
+- `SELECT count(*) FROM member_onboarding.application WHERE status='awaiting_bank_confirmation'` muss 0 sein
+- Tester: Antrag im Bearbeiten-Dialog → Einzugsart Core → Toggle „Mitglied für Umstellung auf B2B vorbereiten" sichtbar → aktivieren → Speichern → Reload → Antrags-Detail zeigt „B2B-Vorbereitung: Ja"
+
+Keine neuen ENV-Variablen erforderlich. Kein Helm-values-env-Update nötig.

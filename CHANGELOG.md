@@ -10,6 +10,28 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Fix — PROJ-92: ResetImportTx cleart mandate_reference + mandate_date *(2026-06-09)*
+
+Tester-Befund 2026-06-09 Abend: nach Import-Reset + Re-Import mit neuer
+Mitgliedsnummer zeigte das angehängte SEPA-PDF noch die alte Referenz vom
+ersten Import. Die Mail hatte schon die neue Mitgliedsnummer im Text —
+inkonsistent. Operativ ein Compliance-Problem (Mandat referenzierte eine
+Mitgliedsnummer, die im Core nach Reset gar nicht mehr existiert).
+
+Root-Cause: `ResetImportTx` cleart neun Spalten (`member_number`,
+`target_participant_id`, `bank_confirmed_at`, `activated_at`, Sent-At-
+Spalten, …), aber **nicht** `mandate_reference` und `mandate_date`.
+Beim Re-Import läuft `SetMandateReferenceIfEmpty` ins Leere (Feld ist
+nicht leer), die alte Referenz bleibt im SEPA-PDF stehen.
+
+Fix: `ResetImportTx`-UPDATE cleart jetzt zusätzlich `mandate_reference`
+und `mandate_date`. Beim nächsten Re-Import werden beide Felder über die
+bestehende Service-Logik mit der neuen Mitgliedsnummer und dem aktuellen
+Mandatsdatum sauber neu gesetzt.
+
+Keine Schema-Migration nötig. Eigenständig oder im Bundle mit PROJ-91
+über denselben `helm upgrade` deployable.
+
 ### Feature — PROJ-91: B2B-Vorbereitungs-Toggle (ersetzt PROJ-79-Heimlich-Mapping + entfernt awaiting_bank_confirmation) *(2026-06-09)*
 
 Owner-Direktive 2026-06-09: das heutige b2b→CORE-Heimlich-Mapping (PROJ-79)
