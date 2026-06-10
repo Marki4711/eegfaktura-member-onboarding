@@ -10,6 +10,41 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Fix — PROJ-94: Backfill `sepa_mandate_accepted_at` für Bestand *(2026-06-09)*
+
+Owner-Direktive 2026-06-09 (Abend): „Wäre es nicht sinnvoll, bei
+Verwendung von Audit-Trail ‚SEPA-Mandat akzeptiert am' durch den
+Zeitstempel automatisch auszufüllen?"
+
+Submit- und Admin-Edit-Pfad setzen den Zeitstempel heute bereits
+zuverlässig auf NOW. Lücke nur bei Bestand-Anträgen, die mit Migration
+000004 ohne Default-Wert erstellt wurden — dort steht das Feld auf NULL,
+während `sepa_mandate_accepted=true` ist. Audit-Trail-PDF + Admin-
+Detail zeigen leeren Wert.
+
+Fix: Migration `000075` backfilled NULL-Werte mit
+`COALESCE(submitted_at, created_at)` — dem tatsächlichen Akzept-
+Zeitpunkt aus Member-Sicht. Idempotent.
+
+### Fix — PROJ-93: Diagnose-Log für „Anlagenname kommt nicht in Faktura an" *(2026-06-09)*
+
+Tester-Befund 2026-06-09 (Dani Strasser, RC100387-2026-0007):
+„Bei der Firmenanmeldung hab ich auch wieder den Anlagennamen versucht
+— findet sich auch in ‚Deine Beitrittserklärung wurde eingereicht',
+kommt aber nicht in der Faktura an."
+
+Vollständiger Code-Audit ergab: Frontend → Request → DB → Repo →
+Payload-Mapping → Core-Model-Tags sind alle korrekt verdrahtet
+(`installation_name → InstallationName → EquipmentName → equipmentName`
+JSON-Tag matches Core `model.MeteringPoint`).
+
+Statt blind etwas zu fixen, das die Symptomatik nicht erklärt:
+strukturiertes `slog.Info` direkt vor `CreateParticipant`, das die
+tatsächlichen Equipment-Felder pro Meter im Payload surfact. Nächste
+Tester-Reproduktion zeigt im Backend-Log, ob das Wire-Format korrekt
+ist (dann Core-Side-Bug) oder leer (dann Onboarding-Drift in PROJ-95
+adressieren). Kein PII im Log.
+
 ### Fix — PROJ-92: ResetImportTx cleart mandate_reference + mandate_date *(2026-06-09)*
 
 Tester-Befund 2026-06-09 Abend: nach Import-Reset + Re-Import mit neuer

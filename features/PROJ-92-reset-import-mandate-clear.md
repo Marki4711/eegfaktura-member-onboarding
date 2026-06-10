@@ -1,6 +1,6 @@
 # PROJ-92: ResetImportTx clearet mandate_reference + mandate_date
 
-## Status: Approved
+## Status: Deployed (2026-06-09)
 **Created:** 2026-06-09
 **Last Updated:** 2026-06-09
 **Typ:** Hotfix (Tester-Befund 2026-06-09 Abend)
@@ -82,8 +82,9 @@ Keine /architecture-Phase nötig — 2-Zeilen-Erweiterung in
 
 - Hotfix-Cycle wie PROJ-86/87/88/89: direkter Commit, kein eigener
   /architecture-Pfad
-- Helm-Bump folgt nach CI grün
-- Tag: `v1.24.1-PROJ-92`
+- Code-Commit: `192d4ca`
+- Helm-Bump-Commit: `28b3b88` (sha-192d4ca)
+- Tag: `v1.24.1-PROJ-92` gesetzt + gepusht 2026-06-09 Abend
 
 **Owner-Action:** der `helm upgrade` läuft mit PROJ-91 + PROJ-92
 zusammen — PROJ-92 enthält keine Schema-Migration, nur Code-Change im
