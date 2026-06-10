@@ -4,6 +4,18 @@
 
 ---
 
+## 2026-06-10 (spät)
+
+**Reset-Dialoge: bessere Begründungs-Validierung**
+
+Bei „Aktivierung zurücksetzen" und „Auf Prüfung zurücksetzen" blieb der Bestätigen-Button auch bei zu kurzer Begründung klickbar — beim Klick kam dann nur „Validation failed" als nichtssagende Meldung. Jetzt ist der Button erst aktiv, sobald die Mindestlänge erreicht ist (10 Zeichen für die zwei Reset-Pfade aus dem heutigen Vormittag). Falls doch ein Server-Validierungsfehler kommt, wird die genaue Feld-Meldung gezeigt statt eines generischen Texts.
+
+**Datenweiterleitung: neue Spalte „Name"**
+
+Im Spalten-Picker steht in der Kategorie „Stammdaten" jetzt ein einzelnes Feld „Name", das je nach Mitgliedstyp den passenden Wert liefert: bei Unternehmen, Vereinen und Gemeinden den Firmenname, bei Privatpersonen und Landwirten den Vornamen und Nachnamen kombiniert. Wer beides braucht — also Firmenname und Personennamen in getrennten Spalten — fügt die bestehenden Spalten „Vorname", „Nachname" und „Firmenname" zusätzlich hinzu wie bisher.
+
+---
+
 ## 2026-06-10 (abends)
 
 **Mitglied-werden-Formular: Reihenfolge der Titel-Felder**

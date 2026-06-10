@@ -10,6 +10,27 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Fix — PROJ-100 Reset-Validierung + neue Datenweiterleitungs-Spalte „Name" *(2026-06-10, spät)*
+
+Zwei Tester-Befunde unmittelbar nach dem v1.27.1-Push:
+
+- **PROJ-100 Reset-Dialoge zeigten „Validation failed":** Der
+  „Zurücksetzen"-Button war auch bei zu kurzer Begründung
+  klickbar. Beim Klick antwortete das Backend mit 400 + Field-
+  Message, das Frontend zeigte aber nur den generischen Top-Level-
+  Text. Fix: Button ist jetzt disabled bis 10 Zeichen erreicht
+  sind (Bestand `reset_import` bleibt bei 5). Zusätzlich
+  `handleActionError` extrahiert bei `apiError.fields.reason`
+  die spezifische Field-Message statt der nichtssagenden
+  Top-Level-Aussage.
+- **Neues Datenweiterleitungs-Feld „Name"** in der Stammdaten-
+  Kategorie (`member_name`). Liefert je nach Mitgliedstyp den
+  passenden Wert ohne nachgelagertes Zusammenklicken im
+  Zielsystem:
+  - company / association / municipality → Firmenname
+  - private / farmer → Vorname + Nachname (sauber getrimmt,
+    Single-Spaces, leere Teile werden ausgelassen)
+
 ### Fix — Mitglied-werden-Formular und Beitrittserklärung-PDF *(2026-06-10, abends)*
 
 Tester-Befunde 2026-06-10 spät:
