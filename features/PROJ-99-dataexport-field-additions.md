@@ -1,6 +1,6 @@
 # PROJ-99: Datenweiterleitung — fehlende Felder im Field-Picker
 
-## Status: Approved
+## Status: Deployed (2026-06-10)
 **Created:** 2026-06-10
 **Last Updated:** 2026-06-10
 **Typ:** Feature-Add (Tester-Befund Dani 2026-06-10)
@@ -103,8 +103,9 @@ Excel-Renderer leere Strings für `nil` rendert.
 **Deploy-Bookkeeping 2026-06-10 (abends):**
 
 - Feature-Add; kein Schema-Change, keine Helm-Änderung.
-- Helm-Bump folgt nach CI grün.
-- Tag: `v1.26.1-PROJ-99`.
+- Code-Commit: `997d93f`
+- Helm-Bump-Commit: `d6c94f0` (sha-997d93f)
+- Tag: `v1.26.1-PROJ-99` gesetzt + gepusht.
 
 **Tester-Verifikation:** Dani konfiguriert eine Spalte „Jahresverbrauch
 (Summe)", speichert, exportiert. In der Excel-Spalte steht der
