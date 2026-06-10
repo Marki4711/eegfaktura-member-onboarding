@@ -10,6 +10,34 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Refactor — PROJ-98: Anrede-Konditional je Mitgliedstyp *(2026-06-10)*
+
+Owner-Korrektur der „überall Du"-Direktive von PROJ-96. Tester-Befund:
+bei Unternehmen + Gemeinden ist der konsequente Du-Ton komisch.
+
+Neue Regel:
+
+- Mitglieder-Mails: `company` + `municipality` → Sie. Privat,
+  Pauschalierter Landwirt, Verein bleiben Du.
+- EEG-Customer-Onboarding-Mails: zurück auf Sie (formaler B2B-
+  Kontext).
+- Vorstands-Beitrittserklärungs-Mail: zurück auf Sie.
+
+Implementation: neuer Template-Helper `anrede` (Sie- vs. Du-Begrüßung),
+neue Funktion `memberUsesFormalAddress` (single source of truth),
+`UseFormal bool` in 4 Mail-Data-Structs. Alle 5 Mitglieder-Templates
+auf inline-`{{if .UseFormal}}Sie-Block{{else}}Du-Block{{end}}`
+umgestellt. PROJ-91-Banner-Helper Member-Variante bekommt zweiten
+Param `useFormal`. PROJ-96-Stellen für Customer-Onboarding und
+Vorstand zurückgerollt.
+
+### Fix — PROJ-97 Aktionsleisten-Plazierung *(2026-06-10)*
+
+Nach dem 3-Dropdown-Refactor sprangen die 4 verbliebenen Aktions-
+Buttons im flex-justify-between-Wrapper auf „Zurück zur Liste"-Höhe.
+Header-Block schliesst nach den Header-Zeilen; Aktionsleiste sitzt
+als eigene Zeile mit justify-end darunter.
+
 ### Fix — PROJ-97: Aktions-Reihe im Antrags-Detail aufgeräumt *(2026-06-10)*
 
 Tester-Befund: deplazierter „Beitrittserklärung herunterladen"-Button
