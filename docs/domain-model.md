@@ -182,9 +182,10 @@ Fields:
 - `member_number` — nullable TEXT (since migration 000027); assigned at import time, chosen by the admin in the import dialog (pre-filled with the next free value derived from the core's existing participantNumber pattern, alphanumeric supported, e.g. "A006"). Shown as first data field in the approval PDF.
 - `email_confirmation_token_hash` — nullable BYTEA; SHA-256 of the single-use confirmation token (PROJ-31). NULL means no token has been issued. Cleared on confirmation (kept after consumption so a second click can return "already confirmed").
 - `email_confirmation_token_expires_at` — nullable TIMESTAMPTZ; token validity window (30 days).
-- `bank_confirmed_at` *(PROJ-46)* — nullable TIMESTAMPTZ; stamped when admin transitions `awaiting_bank_confirmation → ready_for_activation` after the member confirms hausbank pre-notification. NULL on the non-b2b auto-skip path.
+- `bank_confirmed_at` *(PROJ-46, deprecated by PROJ-91)* — nullable TIMESTAMPTZ; previously stamped on the `awaiting_bank_confirmation → ready_for_activation` transition. PROJ-91 (2026-06-09) removed that status and the associated trigger; the column remains in the schema as historical audit evidence for migrated existing rows. New code does not write the column anymore.
+- `prepare_b2b_documents` *(PROJ-91, Migration 000074)* — BOOLEAN NOT NULL DEFAULT FALSE; admin-controlled flag in the edit form (visible only at `einzugsart=core`). When TRUE, the post-import mandate mail attaches a second PDF (B2B-Firmenlastschrift-Mandat) and the EEG copy / Vorstands-Mail carry a workflow hint banner ("after bank activation, switch SEPA type to B2B in Faktura-Core manually"). Backend defense-in-depth resets the field to FALSE when `einzugsart != 'core'`.
 - `activated_at` *(PROJ-46)* — nullable TIMESTAMPTZ; stamped when admin manually activates OR the activation-check batch finds the member ACTIVE in Core. PROJ-53 extends the trigger: also stamped by the manual `approved → activated` skip-import path (`POST /mark-activated`).
-- `activation_notification_sent_at` *(PROJ-53)* — nullable TIMESTAMPTZ; set when the Beitrittsbestätigungs-Mail with PDF was successfully delivered. Guards against double-send when an application transitions in/out of `activated` multiple times. Migration 047 retro-fits the flag for applications that were already in `imported/ready_for_activation/awaiting_bank_confirmation/activated` at deploy time (hard cut-off: no duplicate mail to existing members). PROJ-76 cleart das Feld bei ResetImport synchron mit `board_declaration_sent_at` (vorherige Lücke: Re-Aktivierungen sendeten keine Mail mehr).
+- `activation_notification_sent_at` *(PROJ-53)* — nullable TIMESTAMPTZ; set when the Beitrittsbestätigungs-Mail with PDF was successfully delivered. Guards against double-send when an application transitions in/out of `activated` multiple times. Migration 047 retro-fits the flag for applications that were already in `imported/ready_for_activation/activated` (and the now-removed `awaiting_bank_confirmation`) at deploy time (hard cut-off: no duplicate mail to existing members). PROJ-76 cleart das Feld bei ResetImport synchron mit `board_declaration_sent_at` (vorherige Lücke: Re-Aktivierungen sendeten keine Mail mehr).
 - `board_declaration_sent_at` *(PROJ-76)* — nullable TIMESTAMPTZ; set when the Beitrittserklärung was successfully sent to the EEG contact in the Vorstands-Modus. Separate column from `activation_notification_sent_at` — two semantically different mail events. ResetImport clears both columns synchronously, so a re-activation triggers the appropriate mail again (Erst- vs. Re-Aktivierung is recognised via the previous non-NULL value).
 - `network_operator_authorization` *(PROJ-44)* — BOOLEAN NOT NULL DEFAULT FALSE; member-granted authorisation for the EEG to coordinate with the grid operator on their behalf. Per-EEG via `field_config` (default `hidden`).
 - `network_operator_authorization_at` *(PROJ-44)* — nullable TIMESTAMPTZ; audit timestamp set on FALSE→TRUE transition.
@@ -601,8 +602,7 @@ Allowed status values (12):
 - `rejected`
 - `imported` *(transient — Import-Service auto-routes immediately, see PROJ-46)*
 - `import_failed`
-- `awaiting_bank_confirmation` *(PROJ-46, only at `einzugsart=b2b`, set automatically by import service)*
-- `ready_for_activation` *(PROJ-46, set automatically by import service for non-b2b, or by admin after bank confirmation)*
+- `ready_for_activation` *(PROJ-46 / PROJ-91, set automatically by import service after import for ALL Einzugsarten. The B2B branch via `awaiting_bank_confirmation` was removed with PROJ-91 2026-06-09 — the `prepare_b2b_documents` flag on the application carries the workflow intent instead.)*
 - `activated` *(PROJ-46, strict end state — no transitions out, no reset)*
 
 Allowed transitions:
@@ -622,14 +622,10 @@ Allowed transitions:
 - `approved -> import_failed`
 - `approved -> activated` *(PROJ-53, admin manuell via `POST /api/admin/applications/{id}/mark-activated` — Ausnahmefall wenn Mitglied im Core bereits existiert und manuell überschrieben wurde; Mitgliedsnummer-Pflichteingabe; Import-Pfad wird übersprungen)*
 - `import_failed -> approved`
-- `imported -> awaiting_bank_confirmation` *(PROJ-46, auto by import service when `einzugsart=b2b`. Not exposed on `/status`.)*
-- `imported -> ready_for_activation` *(PROJ-46, auto by import service for non-b2b. Not exposed on `/status`.)*
-- `awaiting_bank_confirmation -> ready_for_activation` *(PROJ-46, admin manuell nach Bank-Bestätigung)*
-- `awaiting_bank_confirmation -> under_review` *(PROJ-46, admin rückwärts)*
+- `imported -> ready_for_activation` *(PROJ-46 / PROJ-91, auto by import service for ALL Einzugsarten. Not exposed on `/status`.)*
 - `ready_for_activation -> activated` *(PROJ-46, admin manuell ODER Batch-Button `POST /api/admin/applications/check-activation`)*
 - `ready_for_activation -> under_review` *(PROJ-46, admin rückwärts)*
 - `imported -> approved` *(PROJ-30, only via `POST /reset-import`, never via generic `/status`)*
-- `awaiting_bank_confirmation -> approved` *(PROJ-46, via `POST /reset-import`)*
 - `ready_for_activation -> approved` *(PROJ-46, via `POST /reset-import`)*
 
 When `registration_entrypoint.require_email_confirmation = TRUE` (PROJ-31), the generic admin `/status` endpoint rejects `submitted -> under_review|needs_info|approved` with 409 until the member has clicked the confirmation link. `submitted -> rejected` remains available as the admin's anti-spam override.

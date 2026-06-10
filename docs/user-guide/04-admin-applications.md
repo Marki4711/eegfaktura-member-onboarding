@@ -84,7 +84,7 @@ Die Detailansicht zeigt alle Angaben des Mitglieds:
 - **Zusatzangaben** — Beitrittsdatum, Personen im Haushalt, Wärmepumpe, E-Auto (inkl. Anzahl + Jahres-km), Warmwasser elektrisch. Die Karte erscheint nur, wenn die EEG mindestens eines dieser Felder im Mitglieder-Formular aktiviert hat und das Mitglied einen Wert eingetragen hat.
 
 ![Zusatzangaben-Karte mit Beitrittsdatum, Personen im Haushalt, Wärmepumpe etc.](images/admin-application-zusatzangaben.png)
-- **Bankverbindung** — IBAN, Kontoinhaber, SEPA-Mandat
+- **Bankverbindung** — IBAN, Kontoinhaber, SEPA-Mandat, Einzugsart und der Read-Only-Status „B2B-Vorbereitung" (Ja/Nein, siehe Abschnitt unten)
 - **Einwilligungen** — Datenschutz und Richtigkeitsbestätigung
 - **Antragsdaten** — Referenznummer, RC-Nummer, Mitgliedsnummer (nach erfolgreichem Import), Zeitstempel
 - **Zählpunkte** — alle angegebenen Zählpunkte mit Richtung und Teilnahmefaktor
@@ -108,6 +108,16 @@ Klicke auf **Bearbeiten**, nimm die Änderungen vor und speichere.
 > **Hinweis:** Änderungen an Antragsdaten werden im Statusverlauf nicht automatisch protokolliert. Nutze die Admin-Notiz für wichtige Vermerke.
 
 > **Hinweis:** Das Speichern der Admin-Notiz aktualisiert ausschließlich das Notizfeld — andere Antragsdaten (Mitgliedstyp, Zählpunkte, Teilnahmefaktor, …) werden dabei nicht überschrieben.
+
+## B2B-Vorbereitung mitsenden
+
+In der SEPA-Sektion des Bearbeiten-Dialogs erscheint bei Einzugsart „Core" der Toggle **„Mitglied für Umstellung auf B2B vorbereiten"**. Bei aktivem Toggle bekommt das Mitglied zusätzlich zum Basis-Lastschrift-Mandat (CORE) auch das Firmenlastschrift-Mandat (B2B) als zweites PDF — vorbereitet zur Vorlage bei der Hausbank. Im eegFaktura-Core wird der Antrag weiterhin als CORE angelegt; sobald die Hausbank den B2B-Mandatsantrag bestätigt hat, stellst du den SEPA-Typ im Faktura-Core manuell auf B2B um.
+
+Praxis-Beispiel (Musterbetrieb GmbH): Im Bearbeiten-Dialog Einzugsart „Core" wählen, Toggle „Mitglied für Umstellung auf B2B vorbereiten" anhaken. Beim Import bekommt das Mitglied zwei Mandate (CORE + B2B). Die Buchhaltung der Musterbetrieb GmbH reicht das B2B-Mandat bei ihrer Hausbank ein. Nach Rückmeldung der Bank ändert der Admin im Faktura-Core den SEPA-Typ.
+
+> **Wichtig:** Der Toggle wirkt zusammen mit der EEG-Einstellung *„SEPA-Mandat erst beim Import senden"* (siehe Admin-Einstellungen). Solange diese Einstellung deaktiviert ist, wird das Mandat schon beim Submit verschickt — in dem Fall geht das B2B-Mandat erst über die Aktion **„SEPA-Mandat erneut senden"** in der Antrags-Detailansicht raus. Empfehlung: aktiviere die EEG-Einstellung, wenn du den B2B-Vorbereitungs-Toggle regelmäßig nutzt.
+
+In der Detail-Ansicht eines Antrags zeigt das Feld **„B2B-Vorbereitung: Ja / Nein"** den aktuellen Zustand. Übersichten, Filter und Badges enthalten diese Information bewusst nicht — sie ist nur in der Detail-Ansicht eines einzelnen Antrags relevant.
 
 ## Entwürfe löschen
 

@@ -203,8 +203,7 @@ Allowed status values:
 - `rejected`
 - `imported`
 - `import_failed`
-- `awaiting_bank_confirmation` *(PROJ-46, only at `einzugsart=b2b`, set automatically by the import service)*
-- `ready_for_activation` *(PROJ-46, set automatically by import service for non-b2b, or by admin after bank-confirmation)*
+- `ready_for_activation` *(PROJ-46, set automatically by import service after import; with PROJ-91 the same path applies to all Einzugsarten — the previous b2b branch via `awaiting_bank_confirmation` was removed)*
 - `activated` *(PROJ-46, end state — strictly no transitions out)*
 
 Allowed transitions:
@@ -226,14 +225,10 @@ Allowed transitions:
 - `approved -> rejected` *(2026-05-29, Tester-Wunsch: nach `POST /reset-import` landet der Antrag wieder in `approved`; der Admin braucht dort die Ablehn-Option (Mitglied zurückgezogen, Daten-Qualität, …). Pflicht-Grund wie bei jedem Reject. `member_number` wurde durch `ResetImportTx` bereits genullt — keine Extra-Clearing-Logik.)*
 - `approved -> activated` *(PROJ-53, admin manuell als Ausnahmefall — Mitglied existiert im Core bereits und wurde dort manuell mit den Onboarding-Daten überschrieben; überspringt den Import-Pfad. Mitgliedsnummer-Eingabe im Admin-UI erforderlich.)*
 - `import_failed -> approved`
-- `imported -> awaiting_bank_confirmation` *(PROJ-46, auto-transition by import service when `einzugsart=b2b`. Not exposed on `/status`.)*
-- `imported -> ready_for_activation` *(PROJ-46, auto-transition by import service for non-b2b einzugsarten. Not exposed on `/status`.)*
-- `awaiting_bank_confirmation -> ready_for_activation` *(PROJ-46, admin manuell after member confirms bank coordination)*
-- `awaiting_bank_confirmation -> under_review` *(PROJ-46, admin rückwärts-Übergang)*
+- `imported -> ready_for_activation` *(PROJ-46 / PROJ-91, auto-transition by import service for ALL Einzugsarten. The B2B-branch via `awaiting_bank_confirmation` was removed with PROJ-91 2026-06-09 — the B2B-Vorbereitungs-Toggle on the application carries the workflow intent instead. Not exposed on `/status`.)*
 - `ready_for_activation -> activated` *(PROJ-46, admin manually OR via activation-check batch. Seit PROJ-53 entscheidet die per-EEG-Einstellung `activation_mode` über das Batch-Kriterium: `participant_active` (Default — Core-Teilnehmer-Status `ACTIVE`) oder `any_meter_registration_started` (min. ein Zählpunkt mit `processState ∈ PENDING/APPROVED/ACTIVE`). Beim Übergang wird die Beitrittsbestätigungs-Mail mit PDF versandt.)*
 - `ready_for_activation -> under_review` *(PROJ-46, admin rückwärts-Übergang)*
 - `imported -> approved` *(PROJ-30, only via dedicated `POST /reset-import` endpoint, never via generic `/status`)*
-- `awaiting_bank_confirmation -> approved` *(PROJ-46, via `POST /reset-import`)*
 - `ready_for_activation -> approved` *(PROJ-46, via `POST /reset-import`)*
 
 When `registration_entrypoint.require_email_confirmation = TRUE` (PROJ-31), the

@@ -1,6 +1,13 @@
 # PROJ-90: customer_onboarding_submission Schema-Drift-Aufholung
 
-## Status: In Progress
+## Status: Approved
+
+**Deploy-Bookkeeping:**
+- Commit: `c9c7a0a` (2026-06-09)
+- Helm-Auto-Bump: `260decb` (image tag `sha-c9c7a0a`)
+- Tag: `v1.23.8-PROJ-90`
+- CI: alle 4 Workflows grün (CI Build & Test, Security Scan, Docker Push, Mirror)
+- Owner-Action offen: `helm upgrade` auf test, danach Prod-Schema-Check + ggf. helm upgrade prod, danach Tester-Verification der Buchung
 **Created:** 2026-06-09
 **Last Updated:** 2026-06-09
 **Typ:** Hotfix (Schema-Drift seit 2026-06-06)

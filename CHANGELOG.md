@@ -10,6 +10,78 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Feature — PROJ-91: B2B-Vorbereitungs-Toggle (ersetzt PROJ-79-Heimlich-Mapping + entfernt awaiting_bank_confirmation) *(2026-06-09)*
+
+Owner-Direktive 2026-06-09: das heutige b2b→CORE-Heimlich-Mapping (PROJ-79)
+und der Marker-Status `awaiting_bank_confirmation` werden durch einen
+expliziten Admin-Edit-Toggle „Mitglied für Umstellung auf B2B vorbereiten"
+abgelöst. Mitglied wird mit SEPA-CORE im Faktura-Core angelegt, bekommt aber
+zusätzlich das B2B-Mandat-PDF zur Hausbank-Vorlage; nach Bank-Bestätigung
+stellt der Admin den SEPA-Typ im Faktura-Core manuell um.
+
+**Was sich ändert:**
+
+- Neue Spalte `application.prepare_b2b_documents BOOLEAN NOT NULL DEFAULT FALSE`
+  in Migration 000074. Toggle sichtbar im Admin-Edit-Form nur bei
+  `einzugsart=core`, mit Popover-Hilfetext. Anzeige als Read-Only-Field
+  „B2B-Vorbereitung: Ja/Nein" in der Antrags-Detail-Ansicht
+  (Scope-Begrenzung: nicht in Listen/Übersichten/Badges/Filtern — Owner-
+  Direktive 2026-06-09).
+- Status `awaiting_bank_confirmation` hart entfernt: Konstante, 4
+  Transitionen, DB-CHECK-Constraint, Frontend-Badge, Filter-Option und
+  „Bank-Bestätigung erhalten"-Button. PROJ-86 Drift-Wache-Test zieht
+  automatisch nach; neue Drift-Wache `admin_transitions_test.go`
+  verhindert künftiges Wiedereinführen.
+- PROJ-79 zurückgerollt: `mapEinzugsart('b2b')` returnt wieder `"B2B"`
+  statt `"CORE"`. Faktura-Core bekommt sauberen b2b-Wert, wenn der Admin
+  ihn explizit setzt — kein verstecktes Mapping mehr.
+- Import-Service: Auto-Trigger zu `awaiting_bank_confirmation` entfernt;
+  alle Einzugsarten gehen direkt auf `ready_for_activation` (Owner-
+  Direktive D2).
+- Mail-Service: `SendMandateAtImportNotification` bekommt 4. Param
+  `b2bMandatePDF []byte` — bei aktivem Toggle wird zusätzlich zum CORE-
+  Mandat das B2B-Mandat-PDF erzeugt (PROJ-74-Hard-Fail-Pattern: bei PDF-
+  Fehler kein Mail-Versand) und mitgesendet. Audit-Variante folgt
+  `SEPAMandateB2BAuditEnabled` (saubere Trennung von CORE-Audit-Toggle).
+- Banner-Helper-Umbau: `RenderB2BImportNoticeBanner(einzugsart)` ersetzt
+  durch `RenderB2BPrepareNoticeBannerMember(bool)` + `…EEG(bool)`.
+  Wortlaute Owner-approbiert: Member-Variante mitglied-fokussiert,
+  EEG-Variante Workflow-fokussiert.
+- Bestand-Migration (atomar via golang-migrate-Wrap): alle Anträge mit
+  `einzugsart='b2b'` werden auf `einzugsart='core'` + `prepare_b2b_documents=TRUE`
+  umgestellt; alle Anträge im Status `awaiting_bank_confirmation` werden
+  auf `ready_for_activation` gesetzt + Audit-Eintrag im `status_log`
+  (Actor=`SYSTEM-MIGRATION-PROJ-91`, Reason="PROJ-91: Status entfernt").
+
+**Audit-Trail:**
+
+`status_log` bekommt bei jeder Toggle-Änderung im Admin-Edit einen Eintrag
+mit Subject + Compile-Time-Reason („B2B-Vorbereitung aktiviert/deaktiviert").
+Innerhalb derselben Transaktion wie das UPDATE, damit Persist + Audit
+atomar sind. Defense-in-Depth: bei `einzugsart != 'core'` wird der Toggle
+serverseitig auf `false` zurückgesetzt, unabhängig vom Frontend-Request.
+
+**Bekannte V1-Limits (im User-Guide dokumentiert):**
+
+- Externe API (PROJ-13) und Excel-Import nehmen das Feld nicht entgegen
+  (Default FALSE bleibt). Eigene spätere PROJs falls Bedarf.
+- Submit-Pfad-Erweiterung out-of-scope: bei EEGs mit
+  `SEPAMandateAtImport=false` ist der Toggle erst beim Import oder per
+  manuellem „SEPA-Mandat erneut senden" wirksam. User-Guide-Empfehlung:
+  EEG-Einstellung aktivieren.
+
+19 Owner-Entscheidungen via AskUserQuestion festgenagelt (Q1-Q11 +
+T1-T8). 47 ACs (33 Pass / 4 N/A für Deploy / 10 nicht zutreffend),
+16 ECs Pass. QA-Fix-Welle 2026-06-09: 5 Findings adressiert (Toggle-
+Persistierung im Backend, Defense-in-Depth-Reset, Status-Log bei Diff,
+Migration-Smoke-Test, User-Guide-Doku). Security-Review APPROVED — keine
+PROJ-91-spezifischen Findings (1 Info-Finding zu Pre-existing
+MemberNumber-Filename-Pattern als Hardening-Empfehlung).
+
+Memory-Lessons aus PROJ-90 respektiert: Migration 000074 ist nach erstem
+Apply auf irgendeinem Cluster IMMUTABLE. Änderungen kommen als neue
+Aufhol-Migration mit nächster Nummer.
+
 ### Fix — PROJ-90: customer_onboarding_submission Schema-Drift-Aufholung *(2026-06-09)*
 
 Tester-Befund 2026-06-09: PROJ-71-Plattform-Buchung über „Vertrag &

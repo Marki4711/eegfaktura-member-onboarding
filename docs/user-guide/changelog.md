@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-06-09
+
+**Neues Toggle „Mitglied für Umstellung auf B2B vorbereiten"**
+
+In der SEPA-Sektion des Bearbeiten-Dialogs gibt es bei Einzugsart „Core" einen neuen Toggle. Wenn aktiv, bekommt das Mitglied beim Import zwei Mandate: das übliche CORE-Mandat plus zusätzlich das B2B-Firmenlastschrift-Mandat zur Vorlage bei der Hausbank. Im eegFaktura-Core wird der Antrag weiterhin als CORE angelegt — sobald die Hausbank die B2B-Aktivierung bestätigt hat, stellst du den SEPA-Typ im Faktura-Core manuell um. Sichtbar in der Detail-Ansicht als Feld „B2B-Vorbereitung: Ja / Nein" (nicht in Listen/Übersichten).
+
+> **Einstellungs-Tipp:** Der Toggle wirkt zusammen mit der EEG-Einstellung „SEPA-Mandat erst beim Import senden". Solange diese deaktiviert ist, wird das B2B-Mandat erst über „SEPA-Mandat erneut senden" zugestellt.
+
+**Status „Warte auf Bank-Bestätigung" entfernt**
+
+Der frühere Marker-Status für B2B-Anträge zwischen Import und Aktivierung entfällt. Anträge laufen jetzt direkt von „Importiert" auf „Bereit zur Aktivierung" — unabhängig vom Mandat-Typ. Bestand-Anträge im alten Status werden bei der Aktualisierung automatisch auf „Bereit zur Aktivierung" gesetzt; ein entsprechender Eintrag im Statusverlauf hält das Datum fest. Der „Bank-Bestätigung erhalten"-Button verschwindet aus der Detail-Ansicht.
+
+**Bestand-Anträge mit Einzugsart „B2B" werden auf „Core" + Vorbereitungs-Toggle migriert**
+
+Direkter Einzugsart-B2B-Pfad bleibt für Sonderfälle weiterhin im Bearbeiten-Dialog wählbar (z. B. wenn die Hausbank-Aktivierung schon erledigt ist und das Mitglied direkt B2B in den Core soll). Existierende Anträge werden mit dem Update automatisch auf das neue Modell (Core + Toggle=Ja) umgestellt.
+
+---
+
 ## 2026-06-08
 
 **Behoben: SEPA-Mandat-Mail bat trotz Audit-Trail um Unterschrift**
