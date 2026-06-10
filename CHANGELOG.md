@@ -10,6 +10,36 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Fix — PROJ-90: customer_onboarding_submission Schema-Drift-Aufholung *(2026-06-09)*
+
+Tester-Befund 2026-06-09: PROJ-71-Plattform-Buchung über „Vertrag &
+Onboarding-Status" scheiterte mit „An internal error occurred". Pod-Log
+auf test zeigte `pq: column "avv_pdf" of relation
+"customer_onboarding_submission" does not exist`.
+
+Root-Cause: Migration `000062_create_customer_onboarding_submission.up.sql`
+wurde am 2026-06-06 (Commit `2b1d96f`, PROJ-71-Variante-B-Refactor)
+inhaltlich umgeschrieben — Stammdaten-Spalten raus, `avv_pdf BYTEA NOT NULL`
+rein. Auf test-Cluster stand `schema_migrations.version=62` aber bereits
+**vor dem Refactor**, die neue Definition wurde also nie ausgeführt.
+Tabelle hatte noch Variante-A-Struktur, Service-Code Variante-B-Erwartung.
+
+Aufhol-Migration `000073_customer_onboarding_submission_schema_realign`:
+- `DELETE FROM` Bestand (Buchung lief seit 2026-06-06 nicht durch, keine
+  Variante-A-Daten zu erhalten)
+- `ADD COLUMN IF NOT EXISTS avv_pdf BYTEA NOT NULL`
+- `DROP COLUMN IF EXISTS` für alle 11 Variante-A-Stammdaten-Spalten
+  (`legal_form`, `vereinsname`, `uid_number`, `billing_*`, `board_*`)
+- `DROP CONSTRAINT IF EXISTS cos_legal_form_valid`
+
+Lessons in Memory `feedback_migration_after_apply_drift`: jede Migration
+ist nach ihrem ersten Apply auf irgendeinem Cluster **IMMUTABLE**.
+Inhaltliche Änderungen kommen als neue Aufhol-Migration mit nächster
+Nummer — niemals durch Re-Editieren der bestehenden Datei.
+
+Owner-Action: `helm upgrade` auf test (Migration-Job läuft), danach
+Prod-Schema-Check mit `\d` ob derselbe Drift vorliegt.
+
 ### Fix — PROJ-89: B2B-Klassik-PDF Signatur-Layout an CORE angeglichen *(2026-06-08)*
 
 Tester-Befund 2026-06-08: im B2B-Klassik-PDF saß der Signatur-Block
