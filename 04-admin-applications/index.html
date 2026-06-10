@@ -520,6 +520,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#b2b-vorbereitung-mitsenden" class="md-nav__link">
+    <span class="md-ellipsis">
+      B2B-Vorbereitung mitsenden
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#entwurfe-loschen" class="md-nav__link">
     <span class="md-ellipsis">
       Entwürfe löschen
@@ -750,7 +759,7 @@
 <li><strong>Zusatzangaben</strong> — Beitrittsdatum, Personen im Haushalt, Wärmepumpe, E-Auto (inkl. Anzahl + Jahres-km), Warmwasser elektrisch. Die Karte erscheint nur, wenn die EEG mindestens eines dieser Felder im Mitglieder-Formular aktiviert hat und das Mitglied einen Wert eingetragen hat.</li>
 </ul>
 <p><img alt="Zusatzangaben-Karte mit Beitrittsdatum, Personen im Haushalt, Wärmepumpe etc." src="../images/admin-application-zusatzangaben.png" />
-- <strong>Bankverbindung</strong> — IBAN, Kontoinhaber, SEPA-Mandat
+- <strong>Bankverbindung</strong> — IBAN, Kontoinhaber, SEPA-Mandat, Einzugsart und der Read-Only-Status „B2B-Vorbereitung" (Ja/Nein, siehe Abschnitt unten)
 - <strong>Einwilligungen</strong> — Datenschutz und Richtigkeitsbestätigung
 - <strong>Antragsdaten</strong> — Referenznummer, RC-Nummer, Mitgliedsnummer (nach erfolgreichem Import), Zeitstempel
 - <strong>Zählpunkte</strong> — alle angegebenen Zählpunkte mit Richtung und Teilnahmefaktor
@@ -771,6 +780,13 @@
 <p><strong>Hinweis:</strong> Änderungen an Antragsdaten werden im Statusverlauf nicht automatisch protokolliert. Nutze die Admin-Notiz für wichtige Vermerke.</p>
 <p><strong>Hinweis:</strong> Das Speichern der Admin-Notiz aktualisiert ausschließlich das Notizfeld — andere Antragsdaten (Mitgliedstyp, Zählpunkte, Teilnahmefaktor, …) werden dabei nicht überschrieben.</p>
 </blockquote>
+<h2 id="b2b-vorbereitung-mitsenden">B2B-Vorbereitung mitsenden<a class="headerlink" href="#b2b-vorbereitung-mitsenden" title="Permanent link">&para;</a></h2>
+<p>In der SEPA-Sektion des Bearbeiten-Dialogs erscheint bei Einzugsart „Core" der Toggle <strong>„Mitglied für Umstellung auf B2B vorbereiten"</strong>. Bei aktivem Toggle bekommt das Mitglied zusätzlich zum Basis-Lastschrift-Mandat (CORE) auch das Firmenlastschrift-Mandat (B2B) als zweites PDF — vorbereitet zur Vorlage bei der Hausbank. Im eegFaktura-Core wird der Antrag weiterhin als CORE angelegt; sobald die Hausbank den B2B-Mandatsantrag bestätigt hat, stellst du den SEPA-Typ im Faktura-Core manuell auf B2B um.</p>
+<p>Praxis-Beispiel (Musterbetrieb GmbH): Im Bearbeiten-Dialog Einzugsart „Core" wählen, Toggle „Mitglied für Umstellung auf B2B vorbereiten" anhaken. Beim Import bekommt das Mitglied zwei Mandate (CORE + B2B). Die Buchhaltung der Musterbetrieb GmbH reicht das B2B-Mandat bei ihrer Hausbank ein. Nach Rückmeldung der Bank ändert der Admin im Faktura-Core den SEPA-Typ.</p>
+<blockquote>
+<p><strong>Wichtig:</strong> Der Toggle wirkt zusammen mit der EEG-Einstellung <em>„SEPA-Mandat erst beim Import senden"</em> (siehe Admin-Einstellungen). Solange diese Einstellung deaktiviert ist, wird das Mandat schon beim Submit verschickt — in dem Fall geht das B2B-Mandat erst über die Aktion <strong>„SEPA-Mandat erneut senden"</strong> in der Antrags-Detailansicht raus. Empfehlung: aktiviere die EEG-Einstellung, wenn du den B2B-Vorbereitungs-Toggle regelmäßig nutzt.</p>
+</blockquote>
+<p>In der Detail-Ansicht eines Antrags zeigt das Feld <strong>„B2B-Vorbereitung: Ja / Nein"</strong> den aktuellen Zustand. Übersichten, Filter und Badges enthalten diese Information bewusst nicht — sie ist nur in der Detail-Ansicht eines einzelnen Antrags relevant.</p>
 <h2 id="entwurfe-loschen">Entwürfe löschen<a class="headerlink" href="#entwurfe-loschen" title="Permanent link">&para;</a></h2>
 <p>Wenn ein Mitglied einen Antrag begonnen, aber nie eingereicht hat (Status <code>draft</code>), kannst du ihn aus der Übersicht entfernen. Die Massen-Löschaktion respektiert dabei den aktiven <strong>EEG-Filter</strong>:</p>
 <ul>
