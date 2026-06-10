@@ -329,6 +329,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#2026-06-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      2026-06-10
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#2026-06-09" class="md-nav__link">
     <span class="md-ellipsis">
       2026-06-09
@@ -710,6 +719,16 @@
 
 <h1 id="was-ist-neu">Was ist neu?<a class="headerlink" href="#was-ist-neu" title="Permanent link">&para;</a></h1>
 <p>Übersicht der Änderungen der letzten Tage, die für <strong>EEG-Admins</strong> und <strong>Mitglieder</strong> spürbar sind. Technische Details, Bug-Fixes ohne UI-Auswirkung und Infrastruktur-Themen sind hier bewusst weggelassen — die finden sich in der Commit-Historie.</p>
+<hr />
+<h2 id="2026-06-10">2026-06-10<a class="headerlink" href="#2026-06-10" title="Permanent link">&para;</a></h2>
+<p><strong>Neue Statusaktion „Aktivierung zurücksetzen"</strong></p>
+<p>Im Status <em>Aktiviert</em> gibt es jetzt im Status-Block den Button „Aktivierung zurücksetzen". Damit kannst du einen Antrag zurück auf <em>Importiert</em> bringen — z. B. weil ein Mitglied versehentlich aktiviert wurde (manueller Klick oder Auto-Aktivierungs-Check trotz fehlender Core-Aktivität). Beim Reset wird ein gelber Warn-Banner eingeblendet, der dich daran erinnert, dass das Mitglied im eegFaktura-Core noch vorhanden sein kann und du dort separat den Status prüfen / korrigieren musst. Pflicht-Begründung von mindestens 10 Zeichen — landet im Statusverlauf mit dem Präfix <code>[reset-activation]</code>. Mitgliedsnummer und Core-Verknüpfung bleiben erhalten — es wird nur die Aktivierung selbst zurückgenommen.</p>
+<p><strong>Neue Statusaktion „Auf Prüfung zurücksetzen"</strong></p>
+<p>Im Status <em>Importiert</em> steht neben dem bestehenden Button „Import zurücksetzen" (der zurück auf <em>Genehmigt</em> führt) jetzt zusätzlich „Auf Prüfung zurücksetzen". Damit bringst du den Antrag in zwei Stufen zurück bis zu <em>In Prüfung</em> — und von dort über <em>Ablehnen</em> auf <em>Abgelehnt</em>. Geeignet wenn ein Antrag inhaltlich verworfen werden soll (Mitglied hat zurückgezogen, Daten-Qualität war ungenügend). Pflicht-Begründung mindestens 10 Zeichen, Präfix <code>[reset-to-review]</code> im Statusverlauf. Mitgliedsnummer und alle Import-Verknüpfungen werden genullt; das Mitglied bleibt aber im Core erhalten und muss dort gegebenenfalls separat gelöscht / deaktiviert werden — der Warn-Banner im Bestätigungs-Dialog erinnert daran.</p>
+<blockquote>
+<p><strong>Recovery-Pfad in voller Länge:</strong> <em>Aktiviert</em> → „Aktivierung zurücksetzen" → <em>Importiert</em> → „Auf Prüfung zurücksetzen" → <em>In Prüfung</em> → „Ablehnen" → <em>Abgelehnt</em>. Jeder Schritt mit Pflicht-Begründung, jeder Schritt sichtbar im Statusverlauf der Detail-Ansicht.</p>
+<p><strong>Warntext bei „Import zurücksetzen" aktualisiert:</strong> Der bisherige Hinweis „Anträge im Status 'Aktiviert' können nicht zurückgesetzt werden" passt nicht mehr — der Dialog verweist jetzt auf die neue Aktion „Aktivierung zurücksetzen" als ersten Schritt, falls du bei einem aktivierten Antrag gestartet bist.</p>
+</blockquote>
 <hr />
 <h2 id="2026-06-09">2026-06-09<a class="headerlink" href="#2026-06-09" title="Permanent link">&para;</a></h2>
 <p><strong>Neues Toggle „Mitglied für Umstellung auf B2B vorbereiten"</strong></p>
