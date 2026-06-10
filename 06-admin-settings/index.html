@@ -800,6 +800,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#welche-felder-gibt-es" class="md-nav__link">
+    <span class="md-ellipsis">
+      Welche Felder gibt es
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#job-ubersicht" class="md-nav__link">
     <span class="md-ellipsis">
       Job-Übersicht
@@ -1361,6 +1370,48 @@ Wenn du einen Antrag bereits per Import-Button verarbeitet hast und die Mitglied
 2. Bulk-Aktion <strong>Datenweiterleitung</strong> klicken → Plugin wählen → Job läuft im Hintergrund</p>
 <p>Aus dem <strong>Antragsdetail</strong>:
 - Schaltfläche <strong>Datenweiterleitung</strong> in der Aktionsleiste — leitet den einzelnen Antrag weiter.</p>
+<h3 id="welche-felder-gibt-es">Welche Felder gibt es<a class="headerlink" href="#welche-felder-gibt-es" title="Permanent link">&para;</a></h3>
+<p>Die Spalten-Auswahl im Editor enthält drei Arten von Feldern:</p>
+<ul>
+<li><strong>Stammdaten und Zählpunkt-Daten</strong> — werden vom Mitglied im Public-Form eingegeben (z. B. Name, Adresse, IBAN, Zählpunkt-Bezeichnung).</li>
+<li><strong>Form-Felder mit Sichtbarkeits-Schalter</strong> — werden nur befüllt, wenn das EEG das Feld unter <strong>Einstellungen → Formular-Felder</strong> auf <em>Optional</em>, <em>Pflicht</em> oder <em>Nur Admin</em> gestellt hat. Steht das Feld auf <em>Ausgeblendet</em>, sieht das Mitglied es nicht im Formular und der Wert bleibt leer. Beispiele: Beitrittsdatum, Personen im Haushalt, Wärmepumpe, E-Auto-Details, Genossenschaftsanteile.</li>
+<li><strong>System-Zeitstempel</strong> — werden automatisch vom System gesetzt, wenn der Antrag den entsprechenden Status erreicht. Diese Werte sind immer befüllt, sobald der Status durchlaufen wurde.</li>
+</ul>
+<p>Die wichtigsten zeitbezogenen Felder im Vergleich:</p>
+<table>
+<thead>
+<tr>
+<th>Feld</th>
+<th>Quelle</th>
+<th>Wann befüllt</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Beitrittsdatum</strong></td>
+<td>Mitglied im Public-Form</td>
+<td>Nur wenn das Feld unter <em>Formular-Felder</em> sichtbar ist <em>und</em> das Mitglied einen Wert einträgt</td>
+</tr>
+<tr>
+<td><strong>Importiert am</strong></td>
+<td>System</td>
+<td>Sobald der Antrag in das Zielsystem übergeben wurde</td>
+</tr>
+<tr>
+<td><strong>Aktiviert am</strong></td>
+<td>System</td>
+<td>Sobald der Antrag den Status <em>Aktiviert</em> erreicht</td>
+</tr>
+<tr>
+<td><strong>Eingereicht am</strong></td>
+<td>System</td>
+<td>Sobald das Mitglied den Antrag abschickt</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Wenn die Spalte <strong>Beitrittsdatum</strong> im Export leer bleibt, prüfe unter <em>Einstellungen → Formular-Felder</em>, ob das Feld auf <em>Ausgeblendet</em> steht. In dem Fall hat das Mitglied keinen Wert eintragen können. Wer als „Beitritt" eher das Datum der formellen Aktivierung im System meint, nimmt stattdessen <strong>Aktiviert am</strong>.</p>
+</blockquote>
 <h3 id="job-ubersicht">Job-Übersicht<a class="headerlink" href="#job-ubersicht" title="Permanent link">&para;</a></h3>
 <p><img alt="Datenweiterleitung Jobs" src="../images/admin-settings-datenweiterleitung-jobs.png" /></p>
 <p>Auf dieser Seite siehst du den Verlauf aller Jobs (Status, Anzahl Anträge, Zeitpunkt, Ergebnisdatei zum Download). Fehlerhafte Jobs erzeugen automatisch eine Benachrichtigungs-E-Mail an die EEG-Kontaktadresse.</p>
