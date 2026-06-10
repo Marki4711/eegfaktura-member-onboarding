@@ -477,6 +477,25 @@ Aus der **Antragsliste**:
 Aus dem **Antragsdetail**:
 - Schaltfläche **Datenweiterleitung** in der Aktionsleiste — leitet den einzelnen Antrag weiter.
 
+### Welche Felder gibt es
+
+Die Spalten-Auswahl im Editor enthält drei Arten von Feldern:
+
+- **Stammdaten und Zählpunkt-Daten** — werden vom Mitglied im Public-Form eingegeben (z. B. Name, Adresse, IBAN, Zählpunkt-Bezeichnung).
+- **Form-Felder mit Sichtbarkeits-Schalter** — werden nur befüllt, wenn das EEG das Feld unter **Einstellungen → Formular-Felder** auf *Optional*, *Pflicht* oder *Nur Admin* gestellt hat. Steht das Feld auf *Ausgeblendet*, sieht das Mitglied es nicht im Formular und der Wert bleibt leer. Beispiele: Beitrittsdatum, Personen im Haushalt, Wärmepumpe, E-Auto-Details, Genossenschaftsanteile.
+- **System-Zeitstempel** — werden automatisch vom System gesetzt, wenn der Antrag den entsprechenden Status erreicht. Diese Werte sind immer befüllt, sobald der Status durchlaufen wurde.
+
+Die wichtigsten zeitbezogenen Felder im Vergleich:
+
+| Feld | Quelle | Wann befüllt |
+|---|---|---|
+| **Beitrittsdatum** | Mitglied im Public-Form | Nur wenn das Feld unter *Formular-Felder* sichtbar ist *und* das Mitglied einen Wert einträgt |
+| **Importiert am** | System | Sobald der Antrag in das Zielsystem übergeben wurde |
+| **Aktiviert am** | System | Sobald der Antrag den Status *Aktiviert* erreicht |
+| **Eingereicht am** | System | Sobald das Mitglied den Antrag abschickt |
+
+> Wenn die Spalte **Beitrittsdatum** im Export leer bleibt, prüfe unter *Einstellungen → Formular-Felder*, ob das Feld auf *Ausgeblendet* steht. In dem Fall hat das Mitglied keinen Wert eintragen können. Wer als „Beitritt" eher das Datum der formellen Aktivierung im System meint, nimmt stattdessen **Aktiviert am**.
+
 ### Job-Übersicht
 
 ![Datenweiterleitung Jobs](images/admin-settings-datenweiterleitung-jobs.png)

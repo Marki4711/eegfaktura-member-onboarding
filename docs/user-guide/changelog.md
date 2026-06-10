@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-06-10
+
+**Neue Statusaktion „Aktivierung zurücksetzen"**
+
+Im Status *Aktiviert* gibt es jetzt im Status-Block den Button „Aktivierung zurücksetzen". Damit kannst du einen Antrag zurück auf *Importiert* bringen — z. B. weil ein Mitglied versehentlich aktiviert wurde (manueller Klick oder Auto-Aktivierungs-Check trotz fehlender Core-Aktivität). Beim Reset wird ein gelber Warn-Banner eingeblendet, der dich daran erinnert, dass das Mitglied im eegFaktura-Core noch vorhanden sein kann und du dort separat den Status prüfen / korrigieren musst. Pflicht-Begründung von mindestens 10 Zeichen — landet im Statusverlauf mit dem Präfix `[reset-activation]`. Mitgliedsnummer und Core-Verknüpfung bleiben erhalten — es wird nur die Aktivierung selbst zurückgenommen.
+
+**Neue Statusaktion „Auf Prüfung zurücksetzen"**
+
+Im Status *Importiert* steht neben dem bestehenden Button „Import zurücksetzen" (der zurück auf *Genehmigt* führt) jetzt zusätzlich „Auf Prüfung zurücksetzen". Damit bringst du den Antrag in zwei Stufen zurück bis zu *In Prüfung* — und von dort über *Ablehnen* auf *Abgelehnt*. Geeignet wenn ein Antrag inhaltlich verworfen werden soll (Mitglied hat zurückgezogen, Daten-Qualität war ungenügend). Pflicht-Begründung mindestens 10 Zeichen, Präfix `[reset-to-review]` im Statusverlauf. Mitgliedsnummer und alle Import-Verknüpfungen werden genullt; das Mitglied bleibt aber im Core erhalten und muss dort gegebenenfalls separat gelöscht / deaktiviert werden — der Warn-Banner im Bestätigungs-Dialog erinnert daran.
+
+> **Recovery-Pfad in voller Länge:** *Aktiviert* → „Aktivierung zurücksetzen" → *Importiert* → „Auf Prüfung zurücksetzen" → *In Prüfung* → „Ablehnen" → *Abgelehnt*. Jeder Schritt mit Pflicht-Begründung, jeder Schritt sichtbar im Statusverlauf der Detail-Ansicht.
+
+> **Warntext bei „Import zurücksetzen" aktualisiert:** Der bisherige Hinweis „Anträge im Status 'Aktiviert' können nicht zurückgesetzt werden" passt nicht mehr — der Dialog verweist jetzt auf die neue Aktion „Aktivierung zurücksetzen" als ersten Schritt, falls du bei einem aktivierten Antrag gestartet bist.
+
+---
+
 ## 2026-06-09
 
 **Neues Toggle „Mitglied für Umstellung auf B2B vorbereiten"**

@@ -10,6 +10,61 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Feature — PROJ-100: Status-Rollback für irrtümlich aktivierte Anträge *(2026-06-10)*
+
+Owner-Befund 2026-06-10: ein Antrag konnte irrtümlich im Status
+`activated` landen (manueller PROJ-53-Klick oder PROJ-46-Activation-
+Check trotz fehlender Core-Aktivität) und war von dort nicht mehr
+zurück-zuwerfen — `activated` war ein strict End-State.
+
+PROJ-100 öffnet zwei neue Admin-Rückwärts-Transitionen:
+
+- **`activated → imported`** via dedizierten Endpoint
+  `POST /api/admin/applications/{id}/reset-activation`. Cleart nur
+  drei Felder (`activated_at`, `activation_notification_sent_at`,
+  `board_declaration_sent_at`) — Mitgliedsnummer + Core-Verknüpfung
+  bleiben erhalten. Reason-Prefix `[reset-activation]` im status_log.
+- **`imported → under_review`** via dedizierten Endpoint
+  `POST /api/admin/applications/{id}/reset-to-review`. Cleart 13
+  Felder identisch zu `ResetImportTx` (verhindert PROJ-92-style
+  Mandate-Drift). Reason-Prefix `[reset-to-review]` plus
+  `[system] previous member_number=…` und `target_participant_id=…`
+  Suffixes für Audit-Spur.
+
+Beide Endpoints folgen dem PROJ-30-Pattern (NICHT in adminTransitions-
+Map — würde /status-Bypass öffnen ohne Field-Cleanup):
+
+- Mandatorischer Reason mit ≥10 Zeichen (höher als ResetImport min=5
+  wegen größerer Tragweite).
+- SELECT FOR UPDATE + DB-Status-Re-Check gegen Race-Conditions.
+- ResetToReview zusätzlich mit In-Flight-Check (refuses während
+  laufendem Import).
+- Atomare Transaktion mit status_log-Eintrag.
+- Keycloak-Auth + `checkTenantAccess` vor Service-Call.
+
+**Admin-UI** (`admin-status-actions.tsx`):
+
+- Im Status *Aktiviert*: neuer destruktiver Button „Aktivierung
+  zurücksetzen".
+- Im Status *Importiert*: zusätzlicher destruktiver Button „Auf
+  Prüfung zurücksetzen" neben dem bestehenden „Import zurücksetzen".
+- Confirm-Dialog mit Pflicht-Begründung + amber Warn-Banner: „Mitglied
+  ist im Core möglicherweise noch vorhanden / muss separat gelöscht
+  werden".
+- Bestand-Warntext bei „Import zurücksetzen" angepasst — verweist
+  jetzt auf den neuen Aktivierungs-Reset, statt fälschlich zu sagen
+  aktivierte Anträge seien nicht resetbar.
+
+**Drift-Wache:** neuer Test
+`TestAdminTransitions_PROJ100_RollbackPathsNotInMap` schlägt fehl,
+sobald jemand `StatusActivated` oder `StatusImported` versehentlich
+in die `adminTransitions`-Map einfügt — das würde den /status-Bypass
+ohne Field-Cleanup öffnen.
+
+**Keine DB-Migration**, **keine ENV-Variablen**, **keine
+Helm-Wert-Änderungen** — beide Ziel-Stati existieren bereits in
+der CHECK-Constraint, status_log-Schema reicht.
+
 ### Fix — PROJ-60: Spalten-Editor in Datenweiterleitung respektiert Dialog-Breite *(2026-06-10)*
 
 Tester-Befund 2026-06-10: beim Öffnen des „Bearbeiten"-Dialogs einer

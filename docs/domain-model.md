@@ -603,7 +603,7 @@ Allowed status values (12):
 - `imported` *(transient — Import-Service auto-routes immediately, see PROJ-46)*
 - `import_failed`
 - `ready_for_activation` *(PROJ-46 / PROJ-91, set automatically by import service after import for ALL Einzugsarten. The B2B branch via `awaiting_bank_confirmation` was removed with PROJ-91 2026-06-09 — the `prepare_b2b_documents` flag on the application carries the workflow intent instead.)*
-- `activated` *(PROJ-46, strict end state — no transitions out, no reset)*
+- `activated` *(PROJ-46, near-end state. With PROJ-100 2026-06-10 admin can roll back to `imported` via dedicated `POST /reset-activation` endpoint for irrtümliche Aktivierungen.)*
 
 Allowed transitions:
 - `draft -> submitted`
@@ -627,6 +627,8 @@ Allowed transitions:
 - `ready_for_activation -> under_review` *(PROJ-46, admin rückwärts)*
 - `imported -> approved` *(PROJ-30, only via `POST /reset-import`, never via generic `/status`)*
 - `ready_for_activation -> approved` *(PROJ-46, via `POST /reset-import`)*
+- `activated -> imported` *(PROJ-100 2026-06-10, only via dedicated `POST /reset-activation`, never via generic `/status`. Pflicht-Grund ≥10 Zeichen. Cleart `activated_at` + `activation_notification_sent_at` + `board_declaration_sent_at`; `member_number`, `target_participant_id`, `imported_at` bleiben — Mitglied existiert im Core weiterhin mit dieser Nummer.)*
+- `imported -> under_review` *(PROJ-100 2026-06-10, only via dedicated `POST /reset-to-review`, never via generic `/status`. Pflicht-Grund ≥10 Zeichen. Cleart 13 Felder identisch zu `ResetImportTx`. Zweite Stufe des Owner-Recovery-Pfads; von `under_review` aus erreicht `rejected` via Bestand-Pfad.)*
 
 When `registration_entrypoint.require_email_confirmation = TRUE` (PROJ-31), the generic admin `/status` endpoint rejects `submitted -> under_review|needs_info|approved` with 409 until the member has clicked the confirmation link. `submitted -> rejected` remains available as the admin's anti-spam override.
 

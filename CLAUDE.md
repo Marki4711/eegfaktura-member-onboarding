@@ -204,7 +204,7 @@ Allowed status values:
 - `imported`
 - `import_failed`
 - `ready_for_activation` *(PROJ-46, set automatically by import service after import; with PROJ-91 the same path applies to all Einzugsarten — the previous b2b branch via `awaiting_bank_confirmation` was removed)*
-- `activated` *(PROJ-46, end state — strictly no transitions out)*
+- `activated` *(PROJ-46, near-end state. With PROJ-100 2026-06-10 the admin can roll back to `imported` via dedicated `POST /reset-activation` — typical use-case: irrtümliche Aktivierung durch manuellen PROJ-53-Klick oder PROJ-46-Activation-Check-Batch trotz fehlender Core-Aktivität.)*
 
 Allowed transitions:
 
@@ -230,6 +230,8 @@ Allowed transitions:
 - `ready_for_activation -> under_review` *(PROJ-46, admin rückwärts-Übergang)*
 - `imported -> approved` *(PROJ-30, only via dedicated `POST /reset-import` endpoint, never via generic `/status`)*
 - `ready_for_activation -> approved` *(PROJ-46, via `POST /reset-import`)*
+- `activated -> imported` *(PROJ-100 2026-06-10, only via dedicated `POST /reset-activation` endpoint, never via generic `/status`. Pflicht-Grund ≥10 Zeichen. Cleart `activated_at` + `activation_notification_sent_at` + `board_declaration_sent_at`; member_number + target_participant_id + imported_at BLEIBEN — Mitglied existiert im Core weiterhin mit dieser Nummer.)*
+- `imported -> under_review` *(PROJ-100 2026-06-10, only via dedicated `POST /reset-to-review` endpoint, never via generic `/status`. Pflicht-Grund ≥10 Zeichen. Cleart 13 Felder identisch zu `ResetImportTx` — Import- + Aktivierungs-Bookkeeping wird vollständig rückgängig gemacht. Zweite Stufe des Owner-Recovery-Pfads; von `under_review` aus erreicht `rejected` via Bestand-Pfad.)*
 
 When `registration_entrypoint.require_email_confirmation = TRUE` (PROJ-31), the
 generic admin `/status` endpoint rejects `submitted -> under_review|needs_info|approved`

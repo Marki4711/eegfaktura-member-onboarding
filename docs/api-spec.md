@@ -670,7 +670,9 @@ Returns the admin list.
 Reachable only via dedicated endpoints (NOT via this generic `/status` route):
 - `submitted -> email_confirmed` — via member click on `POST /api/public/applications/confirm-email`
 - `imported -> ready_for_activation` — auto-transition by import service (since PROJ-91 for all einzugsarten; the previous b2b-branch via `awaiting_bank_confirmation` was removed), see 6.5
-- `imported|ready_for_activation -> approved` — via `POST /api/admin/applications/{id}/reset-import` (PROJ-30 + PROJ-46, see 6.5.3). NOT possible from `activated` (strict end state).
+- `imported|ready_for_activation -> approved` — via `POST /api/admin/applications/{id}/reset-import` (PROJ-30 + PROJ-46, see 6.5.5).
+- `activated -> imported` — via `POST /api/admin/applications/{id}/reset-activation` (PROJ-100, see 6.5.5b)
+- `imported -> under_review` — via `POST /api/admin/applications/{id}/reset-to-review` (PROJ-100, see 6.5.5c)
 
 When `registration_entrypoint.require_email_confirmation = TRUE` (PROJ-31), this endpoint rejects `submitted -> under_review|needs_info|approved` with HTTP 409 until the member has clicked the confirmation link. `submitted -> rejected` remains available as the admin's anti-spam override.
 
@@ -906,8 +908,9 @@ manually.
 ### Rules
 - Application must be in status `imported` or `ready_for_activation`
   (PROJ-46 expansion; the previous `awaiting_bank_confirmation` branch was
-  removed by PROJ-91). NOT `activated` — active members must be deactivated
-  in the Core first (otherwise 409).
+  removed by PROJ-91). NOT `activated` — admin must first call
+  `POST /reset-activation` (PROJ-100) to roll the activation back, then
+  this endpoint becomes available.
 - The transitions `imported → approved`, `ready_for_activation → approved`
   are **only** reachable via this endpoint; the generic `POST /status`
   does not accept them.
@@ -939,6 +942,120 @@ Returns the full `AdminApplicationDetail` after the reset (status now
 - `400` reason missing / too short / too long
 - `403` tenant mismatch
 - `409` application not in a resetable status (`activated` rejects here)
+
+---
+
+## 6.5.5b Reset activation back to imported (PROJ-100)
+
+### POST `/api/admin/applications/{id}/reset-activation`
+
+Transitions an application from `activated` back to `imported`. First step
+of the Owner-recovery chain for irrtümliche Aktivierungen — typical
+trigger: a wrong manual `mark-activated` click or a `check-activation`
+batch trigger that fired despite missing Core activity.
+
+The Core is **NOT** contacted. The admin verifies the Core member status
+separately. After this rollback the admin can either re-activate (via
+`mark-activated` once the Core lage is correct) or drill further back
+with `/reset-to-review` and then `rejected`.
+
+### Request
+```json
+{
+  "reason": "Aktivierung versehentlich angeklickt, Mitglied noch nicht im Core aktiv."
+}
+```
+
+| Field | Required | Constraints |
+|---|---|---|
+| `reason` | yes | 10–500 chars (after trimming). Higher bar than `/reset-import` (min 5) because the rollback reverts a member-visible activation. |
+
+### Rules
+- Application must be in status `activated` (otherwise 409).
+- Only reachable via this endpoint — generic `POST /status` does not accept
+  the transition; the `adminTransitions` map intentionally has no entry for
+  `activated`, and a drift-wache test enforces this.
+- Tenant-Admin scope: must match the EEG of the application.
+
+### Response 200
+Returns the full `AdminApplicationDetail` after the reset (status now
+`imported`).
+
+### Side effects
+- `status = imported`
+- `activated_at = NULL`
+- `activation_notification_sent_at = NULL` — so a fresh activation triggers
+  the Beitrittsbestätigungs-Mail again
+- `board_declaration_sent_at = NULL` — analog for the board-mode
+- `member_number`, `target_participant_id`, `imported_at`, `mandate_reference`,
+  `mandate_date`, `bank_confirmed_at` all **preserved** — the member is still
+  considered imported in the Core
+- write `status_log` entry with `from='activated'`, `to='imported'`,
+  `reason='[reset-activation] <user reason>'` (system prefix makes the
+  rollback visible in audit traces at a glance)
+
+### Failure responses
+- `400` reason missing / too short / too long
+- `403` tenant mismatch
+- `409` application not in `activated` status
+
+---
+
+## 6.5.5c Reset imported back to under_review (PROJ-100)
+
+### POST `/api/admin/applications/{id}/reset-to-review`
+
+Transitions an application from `imported` back to `under_review`. Second
+step of the Owner-recovery chain after `/reset-activation` — typically used
+when the admin decides the whole onboarding was wrong (data quality
+insufficient, member retreated). From `under_review` the bestehender
+Reject-Pfad reaches `rejected`.
+
+Every import- and activation-bookkeeping field is cleared (13 columns
+identical to `/reset-import`, only the target status differs). The Core
+is **NOT** contacted; the admin handles Core cleanup separately.
+
+### Request
+```json
+{
+  "reason": "Mitglied hat den Beitritt nachträglich zurückgezogen; Antrag wird abgelehnt."
+}
+```
+
+| Field | Required | Constraints |
+|---|---|---|
+| `reason` | yes | 10–500 chars (after trimming) |
+
+### Rules
+- Application must be in status `imported` (otherwise 409).
+- Refuses with 409 while an import is in flight (`import_started_at` set,
+  `import_finished_at` null) — identical guard to `/reset-import`.
+- Only reachable via this endpoint — the `adminTransitions` map has no
+  `imported` entry; drift-wache enforces.
+- Tenant-Admin scope: must match the EEG of the application.
+
+### Response 200
+Returns the full `AdminApplicationDetail` after the reset (status now
+`under_review`, `targetParticipantId` + `memberNumber` cleared).
+
+### Side effects
+Same 13 fields as `/reset-import` — `import_started_at`, `import_finished_at`,
+`imported_at`, `target_participant_id`, `import_error_message`,
+`member_number`, `bank_confirmed_at`, `activated_at`,
+`activation_notification_sent_at`, `board_declaration_sent_at`,
+`mandate_reference`, `mandate_date` — all set to NULL plus
+`updated_at = NOW()`. Only difference: target status is `under_review`
+instead of `approved`.
+
+write `status_log` entry with `from='imported'`, `to='under_review'`,
+`reason='[reset-to-review] <user reason>\n[system] previous target_participant_id=<uuid>\n[system] previous member_number=<x>'`
+(prefix + suffixes preserve both the rollback signal and the archived
+values for audit).
+
+### Failure responses
+- `400` reason missing / too short / too long
+- `403` tenant mismatch
+- `409` application not in `imported` status or import in flight
 
 ---
 
