@@ -739,6 +739,8 @@
 <p>Übersicht der Änderungen der letzten Tage, die für <strong>EEG-Admins</strong> und <strong>Mitglieder</strong> spürbar sind. Technische Details, Bug-Fixes ohne UI-Auswirkung und Infrastruktur-Themen sind hier bewusst weggelassen — die finden sich in der Commit-Historie.</p>
 <hr />
 <h2 id="2026-06-10-spat">2026-06-10 (spät)<a class="headerlink" href="#2026-06-10-spat" title="Permanent link">&para;</a></h2>
+<p><strong>Antrag ablehnen ohne Mail an den Beitrittswerber</strong></p>
+<p>Im „Antrag ablehnen"-Dialog gibt es jetzt eine Checkbox „Ablehnung per E-Mail an den Beitrittswerber übermitteln". Sie ist standardmäßig aktiv — das übliche Verhalten bleibt also gleich. Wenn ihr sie deaktiviert, wird die Ablehnungs-Mail nicht versendet (z. B. bei offensichtlichem Spam oder wenn das Mitglied telefonisch zurückgezogen hat). Die Begründung landet trotzdem im Statusverlauf, der Status springt normal auf „Abgelehnt". Bei „Info anfordern" gibt es bewusst keine Opt-out — ohne Mail an das Mitglied verliert dieser Status seinen Sinn.</p>
 <p><strong>Reset-Dialoge: bessere Begründungs-Validierung</strong></p>
 <p>Bei „Aktivierung zurücksetzen" und „Auf Prüfung zurücksetzen" blieb der Bestätigen-Button auch bei zu kurzer Begründung klickbar — beim Klick kam dann nur „Validation failed" als nichtssagende Meldung. Jetzt ist der Button erst aktiv, sobald die Mindestlänge erreicht ist (10 Zeichen für die zwei Reset-Pfade aus dem heutigen Vormittag). Falls doch ein Server-Validierungsfehler kommt, wird die genaue Feld-Meldung gezeigt statt eines generischen Texts.</p>
 <p><strong>Datenweiterleitung: neue Spalte „Name"</strong></p>
