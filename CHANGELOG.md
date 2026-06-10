@@ -10,6 +10,43 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Fix — PROJ-95: Tester-Bundle 2026-06-10 (Anlagenname-Wipe, Mandatsreferenz-Mail, Hallo-Whitespace) *(2026-06-10)*
+
+Drei Befunde aus dem Tester-Chat 2026-06-10 morgens nach dem
+PROJ-86–94-Deploy in einem Bundle.
+
+**A) Anlagenname verschwindet nach Admin-Edit.** Tester-Bericht
+„RC100387-2026-0009 hat die Namen leider wieder verloren". PROJ-93-
+Diagnose-Log zeigt `equipment_name=""` im Core-Payload — der Wert
+ist bereits vor dem `BuildPayload` leer. Root: `admin-edit-form.tsx`
+liess `transformer`, `installationNumber`, `installationName` und
+die vier PROJ-39-Zaehlpunkt-Adressfelder komplett aus dem Save-
+Payload. Backend `metering_point_repo.CreateBulkTx` macht beim Update
+ein `DELETE+INSERT` — fehlende Felder werden auf NULL geschrieben.
+Fix: Form-State + Save-Payload reichen jetzt alle sieben Felder durch.
+
+**B) Mail nutzt Mitgliedsnummer trotz manuell vergebener
+Mandatsreferenz.** Tester-Bericht „PDF + Faktura zeigen die manuelle
+Referenz korrekt, die Mail rendert hardcoded die Mitgliedsnummer".
+Root: `mandateAtImportData` hatte nur `MemberNumber`, kein
+`MandateReference`-Feld; die Imported-Templates rendern fest
+`{{.MemberNumber}}`. Fix: zwei neue Felder `MandateReference` +
+`IsCustomMandateReference`, `buildMandateAtImportData` wahlt
+`COALESCE(TrimSpace(app.MandateReference), MemberNumber)`. Templates
+zeigen den effektiven Wert; bei Admin-Override entfaellt der
+„(entspricht deiner Mitgliedsnummer)"-Zusatz, EEG-Mail zeigt
+„(vom Admin manuell vergeben)".
+
+**C) „Hallo ," — Leerzeichen vor Komma bei Firmen-Mandat.** Bei
+Firmen-Antraegen sind Firstname + Lastname leer; das Template-Pattern
+`Hallo {{if .Firstname}}{{.Firstname}} {{end}}{{.Lastname}},` rendert
+dann „Hallo ,". Fix: neuer Template-Helper `greetingName` (trimt
++ Fallback auf „zusammen"), fuenf Member-Templates unifiziert.
+
+PDF-Filenamen bleiben `sepa-mandat-{MemberNumber}.pdf` /
+`sepa-firmenlastschrift-mandat-{MemberNumber}.pdf` — File-Naming-
+Konvention bewusst stabil.
+
 ### Fix — PROJ-94: Backfill `sepa_mandate_accepted_at` für Bestand *(2026-06-09)*
 
 Owner-Direktive 2026-06-09 (Abend): „Wäre es nicht sinnvoll, bei
