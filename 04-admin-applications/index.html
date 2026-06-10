@@ -752,6 +752,63 @@
 <h2 id="detailansicht">Detailansicht<a class="headerlink" href="#detailansicht" title="Permanent link">&para;</a></h2>
 <p><img alt="Antragsdetail oben" src="../images/admin-application-detail-1.png" /></p>
 <p><img alt="Antragsdetail unten" src="../images/admin-application-detail-2.png" /></p>
+<p>Die Aktionsleiste oben rechts gruppiert Aktionen in zwei Dropdowns plus einzelne Top-Level-Buttons. Sichtbarkeit hängt vom aktuellen Status ab:</p>
+<table>
+<thead>
+<tr>
+<th>Aktion</th>
+<th>Dropdown / Top-Level</th>
+<th>Wann verfügbar</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Excel</strong></td>
+<td>Herunterladen</td>
+<td>ab Status <em>Genehmigt</em></td>
+</tr>
+<tr>
+<td><strong>Beitrittsbestätigung</strong></td>
+<td>Herunterladen</td>
+<td>ab Status <em>Genehmigt</em></td>
+</tr>
+<tr>
+<td><strong>Beitrittserklärung</strong></td>
+<td>Herunterladen</td>
+<td>Status <em>Aktiviert</em> + Vorstands-Genehmigungs-Workflow der EEG aktiv</td>
+</tr>
+<tr>
+<td><strong>Bestätigungs-Mail</strong> <em>(oder „Bestätigungs-Link" bei pendender E-Mail-Bestätigung)</em></td>
+<td>Erneut senden</td>
+<td>jederzeit</td>
+</tr>
+<tr>
+<td><strong>SEPA-Mandat</strong></td>
+<td>Erneut senden</td>
+<td>Status <em>Aktiviert</em></td>
+</tr>
+<tr>
+<td><strong>Stammdaten abgleichen</strong></td>
+<td>Top-Level</td>
+<td>Status <em>Aktiviert</em> (greift auf den Faktura-Core zu)</td>
+</tr>
+<tr>
+<td><strong>Datenweiterleitung</strong></td>
+<td>Top-Level</td>
+<td>jederzeit</td>
+</tr>
+<tr>
+<td><strong>Löschen</strong></td>
+<td>Top-Level (destruktiv)</td>
+<td>Status <em>Entwurf</em> oder <em>Abgelehnt</em></td>
+</tr>
+<tr>
+<td><strong>Bearbeiten</strong></td>
+<td>Top-Level (primär)</td>
+<td>Status <em>Eingereicht</em> / <em>In Prüfung</em> / <em>Rückfrage</em> / <em>Genehmigt</em> / <em>Import fehlgeschlagen</em></td>
+</tr>
+</tbody>
+</table>
 <p>Die Detailansicht zeigt alle Angaben des Mitglieds:</p>
 <ul>
 <li><strong>Statusaktionen</strong> — verfügbare Aktionen je nach aktuellem Status</li>
