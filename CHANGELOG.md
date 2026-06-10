@@ -10,6 +10,28 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Fix — PROJ-60: Spalten-Editor in Datenweiterleitung respektiert Dialog-Breite *(2026-06-10)*
+
+Tester-Befund 2026-06-10: beim Öffnen des „Bearbeiten"-Dialogs einer
+Datenweiterleitungs-Konfiguration waren die Spaltenbreiten für wenige
+Sekunden korrekt und wurden dann viel zu breit — Format- und
+Aktionen-Spalten waren nur per horizontalem Scroll erreichbar.
+
+Ursache: Radix `DialogContent` ist intern ein CSS-Grid mit Default
+`min-width: auto` für Grid-Items. Die Live-Preview-Tabelle mit
+16 Spalten erzwingt nach dem asynchronen API-Reload eine intrinsische
+Mindestbreite, die den Editor-Root und damit den Dialog auf ~1585px
+sprengt.
+
+Fixes in `src/components/data-export/excel-editor.tsx`:
+
+- `min-w-0` auf Editor-Root + Name/Format-Grid-Reihe → Grid-Items
+  dürfen unter ihre Content-Mindestbreite schrumpfen, `max-w-4xl`
+  greift wieder.
+- `table-fixed` auf der Spalten-Tabelle mit expliziten Breiten für
+  #, Format und Aktionen → Inputs und Selects passen sich an die
+  Zellenbreite an statt ihre Default-`min-width: 200px` zu erzwingen.
+
 ### Feature — PROJ-99: Datenweiterleitung — neue Felder im Excel-Field-Picker *(2026-06-10)*
 
 Tester-Befund Dani Strasser 2026-06-10: vier Felder fehlten in der
