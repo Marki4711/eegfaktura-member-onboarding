@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-06-10 (abends)
+
+**Mitglied-werden-Formular: Reihenfolge der Titel-Felder**
+
+Im „Persönliche Daten"-Block stehen Titel vor und Titel nach jetzt zusammen in einer Zeile ganz oben, darunter Vorname und Nachname. Vorher war Titel nach unter den Namen — die Reihenfolge ist jetzt logischer und auch im Admin-Edit-Dialog gleich.
+
+**Mehr Platz für die Vorstands-Unterschrift im Beitrittserklärung-PDF**
+
+Auf dem ausgedruckten PDF der Beitrittserklärung sitzt die Linie für Datum / Ort / Unterschrift Vorstand jetzt deutlich tiefer unter der Überschrift „Genehmigung durch den Vorstand" — genug Schreibhöhe für eine echte handschriftliche Unterschrift, ohne dass sich Tinte und Headline berühren.
+
+**Layout-Politur: IBAN und Kontowortlaut auf einer Linie**
+
+Im Bankverbindungs-Block des Public-Formulars saßen IBAN-Eingabefeld und Kontowortlaut-Eingabefeld minimal versetzt — der Hint-Popover beim Kontowortlaut-Label hat das verursacht. Beide Felder stehen jetzt pixelgenau auf gleicher Höhe.
+
+---
+
 ## 2026-06-10
 
 **Neue Statusaktion „Aktivierung zurücksetzen"**

@@ -10,6 +10,26 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Fix — Mitglied-werden-Formular und Beitrittserklärung-PDF *(2026-06-10, abends)*
+
+Tester-Befunde 2026-06-10 spät:
+
+- **Reihenfolge der Titel-Felder im „Persönliche Daten"-Block:** Titel
+  vor und Titel nach werden jetzt zusammen in der oberen Zeile angezeigt
+  (zwei Spalten), darunter Vorname + Nachname. Vorher war Titel nach
+  unter den Namen verstreut. Sowohl Public-Registrierung als auch
+  Admin-Edit symmetrisch angepasst.
+- **Mehr Schreibhöhe für die Vorstands-Unterschrift im
+  Beitrittserklärung-PDF:** der Vorstands-Signaturblock am Ende der
+  Beitrittserklärung hatte zu wenig Platz zwischen Header und
+  Unterschriften-Linie. Linien-Y von +6 mm auf +18 mm erhöht — gibt
+  jetzt eine echte Schreibhöhe für eine handschriftliche Signatur.
+- **IBAN- und Kontowortlaut-Labels auf gleicher Höhe:** der seit
+  PROJ-80 hinzugekommene Hint-Popover beim Kontowortlaut-Label
+  erzeugte einen Mini-Versatz gegenüber dem nüchternen IBAN-Label.
+  Beide Labels stehen jetzt im gleichen Layout-Wrapper, die Inputs
+  liegen pixelgenau auf einer Linie.
+
 ### Feature — PROJ-100: Status-Rollback für irrtümlich aktivierte Anträge *(2026-06-10)*
 
 Owner-Befund 2026-06-10: ein Antrag konnte irrtümlich im Status
