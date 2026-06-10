@@ -1,6 +1,6 @@
 # PROJ-97: Aktions-Reihe im Antrags-Detail aufgeräumt
 
-## Status: Approved
+## Status: Deployed (2026-06-10)
 **Created:** 2026-06-10
 **Last Updated:** 2026-06-10
 **Typ:** UI-Hotfix (Tester-Befund)
@@ -102,8 +102,8 @@ den Buttons zu hängen.
 **Deploy-Bookkeeping 2026-06-10 (nachmittags):**
 
 - UI-Hotfix-Cycle: direkter Commit, kein eigener /architecture-Pfad
-- Helm-Bump folgt nach CI grün
-- Tag: `v1.25.2-PROJ-97`
+- Code-Commits: `1a9336c` (Dropdown-Refactor) + `92c1263` (Plazierungs-Hotfix)
+- Tag: `v1.25.2-PROJ-97` gesetzt + gepusht (auf `1a9336c`)
 
 **Tester-Verifikation:** im Antrags-Detail die drei Dropdowns
 checken; in einem `activated`-Antrag mit Vorstands-Workflow

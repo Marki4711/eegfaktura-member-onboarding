@@ -10,6 +10,29 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Feature — PROJ-99: Datenweiterleitung — neue Felder im Excel-Field-Picker *(2026-06-10)*
+
+Tester-Befund Dani Strasser 2026-06-10: vier Felder fehlten in der
+Spalten-Auswahl der Datenweiterleitung (Mandatsreferenz,
+Jahresverbrauch, PV-Leistung, Speicher).
+
+Neu registriert in `internal/dataexport/excel/fields.go`:
+
+- **Mandatsreferenz** (`mandate_reference`, Kategorie „Bank"): direkter
+  Extract aus `application.mandate_reference`.
+- **Jahresverbrauch (Summe)** (`consumption_previous_year_sum`):
+  SUM-Aggregation über alle Zählpunkte.
+- **PV-Leistung (Summe, kWp)** (`pv_power_kwp_sum`): SUM-Aggregation.
+- **Speicher-Größe (Summe, kWh)** (`battery_size_kwh_sum`): SUM-
+  Aggregation.
+- **Speicher vorhanden** (`has_battery`): Bool, true sobald mindestens
+  ein Zählpunkt `battery_size_kwh > 0` hat.
+
+NULL-Handling: wenn alle Zählpunkte beim Aggregat-Feld NULL liefern,
+bleibt die Excel-Zelle leer (kein „0"). Neue Kategorie „Zählpunkte
+(aggregiert)" trennt visuell vom bestehenden Zählpunkte-Bucket.
+Bestand-Configs bleiben gültig — keine Migration.
+
 ### Refactor — PROJ-98: Anrede-Konditional je Mitgliedstyp *(2026-06-10)*
 
 Owner-Korrektur der „überall Du"-Direktive von PROJ-96. Tester-Befund:

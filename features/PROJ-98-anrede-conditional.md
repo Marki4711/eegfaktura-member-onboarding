@@ -1,6 +1,6 @@
 # PROJ-98: Anrede-Konditional je Mitgliedstyp
 
-## Status: Approved
+## Status: Deployed (2026-06-10)
 **Created:** 2026-06-10
 **Last Updated:** 2026-06-10
 **Typ:** Mail-Wortlaut-Refactor (Owner-Korrektur)
@@ -131,9 +131,10 @@ Privat + Pauschalierter Landwirt sowieso Du.
 **Deploy-Bookkeeping 2026-06-10 (nachmittags):**
 
 - Mail-Wortlaut-Refactor; kein Schema-Change, keine Helm-Änderung.
-- Helm-Bump folgt nach CI grün.
-- Tag: `v1.26.0-PROJ-98` (Minor — Mail-Template-Struktur-Refactor +
-  Banner-Helper-Signatur-Erweiterung).
+- Code-Commit: `ac60017`
+- Helm-Bump-Commit: `5955e9a` (sha-ac60017)
+- Tag: `v1.26.0-PROJ-98` gesetzt + gepusht (Minor — Mail-Template-
+  Struktur-Refactor + Banner-Helper-Signatur-Erweiterung).
 
 **Tester-Verifikation:** ein company-Mitglied importieren →
 Mandat-Mail mit „Sehr geehrte Damen und Herren," + Sie-Forms im
