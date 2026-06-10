@@ -329,6 +329,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#2026-06-10-spat" class="md-nav__link">
+    <span class="md-ellipsis">
+      2026-06-10 (spät)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#2026-06-10-abends" class="md-nav__link">
     <span class="md-ellipsis">
       2026-06-10 (abends)
@@ -728,6 +737,12 @@
 
 <h1 id="was-ist-neu">Was ist neu?<a class="headerlink" href="#was-ist-neu" title="Permanent link">&para;</a></h1>
 <p>Übersicht der Änderungen der letzten Tage, die für <strong>EEG-Admins</strong> und <strong>Mitglieder</strong> spürbar sind. Technische Details, Bug-Fixes ohne UI-Auswirkung und Infrastruktur-Themen sind hier bewusst weggelassen — die finden sich in der Commit-Historie.</p>
+<hr />
+<h2 id="2026-06-10-spat">2026-06-10 (spät)<a class="headerlink" href="#2026-06-10-spat" title="Permanent link">&para;</a></h2>
+<p><strong>Reset-Dialoge: bessere Begründungs-Validierung</strong></p>
+<p>Bei „Aktivierung zurücksetzen" und „Auf Prüfung zurücksetzen" blieb der Bestätigen-Button auch bei zu kurzer Begründung klickbar — beim Klick kam dann nur „Validation failed" als nichtssagende Meldung. Jetzt ist der Button erst aktiv, sobald die Mindestlänge erreicht ist (10 Zeichen für die zwei Reset-Pfade aus dem heutigen Vormittag). Falls doch ein Server-Validierungsfehler kommt, wird die genaue Feld-Meldung gezeigt statt eines generischen Texts.</p>
+<p><strong>Datenweiterleitung: neue Spalte „Name"</strong></p>
+<p>Im Spalten-Picker steht in der Kategorie „Stammdaten" jetzt ein einzelnes Feld „Name", das je nach Mitgliedstyp den passenden Wert liefert: bei Unternehmen, Vereinen und Gemeinden den Firmenname, bei Privatpersonen und Landwirten den Vornamen und Nachnamen kombiniert. Wer beides braucht — also Firmenname und Personennamen in getrennten Spalten — fügt die bestehenden Spalten „Vorname", „Nachname" und „Firmenname" zusätzlich hinzu wie bisher.</p>
 <hr />
 <h2 id="2026-06-10-abends">2026-06-10 (abends)<a class="headerlink" href="#2026-06-10-abends" title="Permanent link">&para;</a></h2>
 <p><strong>Mitglied-werden-Formular: Reihenfolge der Titel-Felder</strong></p>
