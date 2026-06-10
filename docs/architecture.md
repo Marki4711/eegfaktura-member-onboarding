@@ -163,7 +163,7 @@ Basic rules:
 
 ### Status values — keep three places in sync
 
-Current set (12 values): `draft`, `submitted`, `email_confirmed` *(PROJ-31)*, `under_review`, `needs_info`, `approved`, `rejected`, `imported`, `import_failed`, `awaiting_bank_confirmation` *(PROJ-46, b2b only)*, `ready_for_activation` *(PROJ-46)*, `activated` *(PROJ-46, strict end state)*.
+Current set (11 values): `draft`, `submitted`, `email_confirmed` *(PROJ-31)*, `under_review`, `needs_info`, `approved`, `rejected`, `imported`, `import_failed`, `ready_for_activation` *(PROJ-46; since PROJ-91 the single post-import path for all einzugsarten)*, `activated` *(PROJ-46, strict end state)*.
 
 Adding or removing an application status requires updates in all three:
 
@@ -179,27 +179,23 @@ Go-only tests don't catch a stale constraint — verify with an end-to-end trans
 > siehe [`docs/architecture-diagram.md` → „Status-Übergänge (vollständig)"](architecture-diagram.md#status-übergänge-vollständig).
 
 After a successful import the Import-Service auto-routes the application
-out of the transient `imported` state, branched by `application.einzugsart`:
+out of the transient `imported` state directly to `ready_for_activation`
+for all einzugsarten (since PROJ-91; the previous b2b-branch via
+`awaiting_bank_confirmation` was removed — the workflow intent „member
+shall be switched to B2B in the Core after bank confirmation" is now
+carried by the `application.prepare_b2b_documents` flag instead):
 
 ```
 approved → imported (transient, ms only)
-              ↓
-        einzugsart = 'b2b'? 
-         ├── ja →  awaiting_bank_confirmation  (Admin wartet auf
-         │            Member-Rückmeldung zur Hausbank-Pre-Notification)
-         │            ↓  (Admin manuell)
-         │       ready_for_activation
-         │            ↓  (Admin manuell ODER Batch-Button)
-         │       activated  (strict end state)
-         │
-         └── nein →  ready_for_activation  (auto-skip)
-                       ↓
-                  activated
+              ↓  (auto, all einzugsarten)
+        ready_for_activation
+              ↓  (Admin manuell ODER Batch-Button)
+        activated  (strict end state)
 ```
 
 The Batch-Button "Aktivierung im Core prüfen" (`POST /api/admin/applications/check-activation`) queries the Core's `GET /participant` per tenant, groups by `target_participant_id`, and transitions matching rows whose Core-Status is `ACTIVE` to `activated`. Manual `→ activated` per row is also available from the detail page.
 
-Reset-Import (`POST /reset-import`, PROJ-30 + PROJ-46) is allowed from `imported`, `awaiting_bank_confirmation`, and `ready_for_activation`. NOT from `activated` — deactivation must happen in the Core, not silently here.
+Reset-Import (`POST /reset-import`, PROJ-30 + PROJ-46) is allowed from `imported` and `ready_for_activation`. NOT from `activated` — deactivation must happen in the Core, not silently here.
 
 ## 6. Technology Decisions
 
@@ -283,7 +279,8 @@ Standalone build and standalone migrations in repository `eegfaktura-member-onbo
 | `submitted → email_confirmed` (PROJ-31) | ❌ | — | ✅ aufgeschobene Notification | best-effort async |
 | `→ needs_info` (PROJ-43) | ✅ Rückfrage 1:1 | — | ❌ | **hard-fail sync** |
 | `→ rejected` (PROJ-41) | ✅ Ablehnungs-Text 1:1 | — | ❌ | **hard-fail sync** |
-| `→ imported` (`einzugsart=b2b` auto → `awaiting_bank_confirmation`) — PROJ-53 | ✅ schlank: „Anlage Mandat — Beitrittsbestätigung folgt" + b2b-Bank-Hinweis | **PDF** Firmenlastschrift-Mandat mit Mandatsref = Mitgliedsnummer (PROJ-47) | ✅ Kopie + „warte auf Bank-Bestätigung" | best-effort async |
+| `→ imported` (`einzugsart=b2b` auto → `ready_for_activation`; seit PROJ-91 ohne Zwischenstop) — PROJ-53 | ✅ schlank: „Anlage Mandat — Beitrittsbestätigung folgt" + B2B-Vorbereitungs-Hinweis | **PDF** Firmenlastschrift-Mandat mit Mandatsref = Mitgliedsnummer (PROJ-47) | ✅ Kopie + B2B-Workflow-Hinweis | best-effort async |
+| `→ imported` (`einzugsart=core` + `prepare_b2b_documents=true` → `ready_for_activation`) — PROJ-91 | ✅ schlank inkl. B2B-Vorbereitungs-Hinweis | **2 PDFs**: CORE-Basislastschrift-Mandat + zusätzlich Firmenlastschrift-Mandat (Mandatsref = Mitgliedsnummer) | ✅ Kopie + B2B-Workflow-Hinweis | best-effort async; B2B-PDF-Generierung **sync hard-fail** (PROJ-74-Pattern) |
 | `→ imported` (`einzugsart=core` + `sepa_mandate_at_import=true` → `ready_for_activation`) — PROJ-53 | ✅ schlank: „Anlage Mandat — Beitrittsbestätigung folgt" + Hinweis zur Mandat-Signatur | **PDF** Basislastschrift-Mandat mit Mandatsref = Mitgliedsnummer | ✅ Kopie + „bereit zur Aktivierung" | best-effort async |
 | `→ imported` (sonst → `ready_for_activation`) — PROJ-53 | ❌ (keine Mail — die volle Beitrittsbestätigung folgt bei `activated`) | — | ❌ | — |
 | `→ activated` (PROJ-46/PROJ-53, Auto-Modus `board_approval_workflow_enabled=false`) | ✅ **volle Beitrittsbestätigung** mit PDF | **PDF** Beitrittsbestätigung (Mitgliedsnummer) | ✅ Kopie der Beitrittsbestätigungs-Mail mit PDF | best-effort async; idempotent via `activation_notification_sent_at` |

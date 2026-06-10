@@ -66,7 +66,7 @@ The existing participant structure contains, among others:
 
 ---
 
-## 3.1 SEPA-Typ-Mapping beim Core-Import (PROJ-79)
+## 3.1 SEPA-Typ-Mapping beim Core-Import (PROJ-79 → PROJ-91)
 
 `application.einzugsart` wird beim Aufbau des Core-Payloads in
 `accountInfo.sepaDirectDebit` (Core-Enum, uppercase) übersetzt. Die
@@ -75,66 +75,57 @@ Mapping-Funktion ist `mapEinzugsart` in `internal/importing/payload.go`.
 | Onboarding `application.einzugsart` | Core `accountInfo.sepaDirectDebit` | Core `accountInfo.sepa` |
 |---|---|---|
 | `core` (Basislastschrift) | `"CORE"` | `true` |
-| `b2b` (Firmenlastschrift) | `"CORE"` (PROJ-79, **absichtlich**) | `true` |
+| `b2b` (Firmenlastschrift) | `"B2B"` | `true` |
 | `kein_sepa` | `""` (omitempty) | `false` |
 | sonst (leer, unbekannt) | `""` (omitempty) | `false` |
 
-### Warum mappt `b2b` auf `CORE` und nicht auf `B2B`?
+### Geschichte: PROJ-79 → PROJ-91
 
-Owner-Direktive 2026-06-08. Hintergrund:
+PROJ-79 (2026-06-08) hatte `b2b` zunächst **bewusst auf `CORE`** gemappt
+— um die Bank-Klärungs-Phase mit dem CORE-Schutz zu überbrücken. PROJ-91
+(2026-06-09) hat diesen Heimlich-Mapping zurückgerollt und durch einen
+expliziten Admin-Toggle ersetzt:
 
-- Das **SEPA-B2B-SDD-Rulebook** (Firmenlastschrift) verlangt eine separate
-  Mandatsvereinbarung zwischen Mitglied und dessen Hausbank. Diese
-  Bank-Aktivierung dauert in der Praxis Tage bis Wochen.
-- Ohne aktive B2B-Mandatsvereinbarung würde die erste B2B-Lastschrift im
-  Faktura-Core von der Bank des Mitglieds **abgelehnt** werden — mit
-  unnötigen Mahnungs-Reflexen und Aufwand für die EEG.
-- Der CORE-Pfad (Basislastschrift) **überbrückt die Klärungs-Phase
-  risikolos**. CORE-Mandate sind ohne separate Bank-Aktivierung sofort
-  ziehbar.
+- **`einzugsart=b2b`** geht jetzt wieder direkt mit SEPA-B2B in den Core
+  (wie vor PROJ-79). Erste Lastschrift kann nur ausgeführt werden, wenn
+  die Hausbank des Mitglieds das B2B-Mandat registriert hat — kein
+  Rückbuchungsrisiko nach erfolgreicher Lastschrift.
+- **`einzugsart=core` + `prepare_b2b_documents=true`** ist der neue
+  Vorbereitungs-Pfad (PROJ-91): Antrag wird mit SEPA-CORE im Core
+  angelegt → Lastschriften starten sofort, das Mitglied bekommt aber
+  schon das B2B-Mandat-PDF zum Unterschreiben und Vorlegen bei seiner
+  Bank. Nach Bank-Bestätigung stellt der Admin den SEPA-Typ im Core
+  manuell auf B2B um.
 
-### Workflow für die EEG-Kontaktperson
+### Workflow-Hinweis in der Mail (PROJ-91)
 
-Damit der Übergang nicht vergessen wird, geht in der **Aktivierungs-Mail**
-an die EEG-Kontaktperson (sowohl im Auto-Modus PROJ-53 als auch im
-Vorstands-Modus PROJ-76) ein gelber **Hinweis-Banner** raus:
+Wenn `prepare_b2b_documents=true` ist, geht in der Mandat-Mail an
+Mitglied + EEG-Kontaktperson ein gelber **Hinweis-Banner** mit:
 
-> **⚠ Hinweis B2B-SEPA-Mandat:** Der Antrag wurde im Member-Onboarding mit
-> Einzugsart „Firmenlastschrift (B2B)" angelegt, aber zur Sicherheit im
-> eegFaktura-Core zunächst als Basislastschrift (CORE) importiert. Bitte
-> vereinbaren Sie die Firmenlastschrift-Aktivierung eigenständig mit der
-> Hausbank des Mitglieds. Sobald die Bank die B2B-Aktivierung bestätigt
-> hat, ändern Sie den SEPA-Typ im eegFaktura-Core manuell auf B2B.
+> **B2B-Vorbereitung:** Das Konto ist im eegFaktura-Core als SEPA-CORE
+> angelegt. Sobald die Hausbank des Mitglieds das B2B-Mandat bestätigt
+> hat, stellen Sie den SEPA-Typ im Core manuell auf B2B um.
 
 Der Banner-HTML lebt zentral in
-`internal/mail/b2b_notice.go` (`RenderB2BImportNoticeBanner`) — Single
-source of truth für beide Mail-Pfade.
+`internal/mail/b2b_notice.go` — Single source of truth für die zwei
+Mail-Pfade (Member-Variante + EEG-Variante).
 
-### Was bleibt unverändert
+### Bestand-Migration
 
-- `application.einzugsart` bleibt im Member-Onboarding auf `b2b` — der
-  Admin sieht im Antrags-Detail weiterhin „Firmenlastschrift".
-- Das PROJ-46-Status-Modell triggert weiterhin
-  `imported → awaiting_bank_confirmation` bei `einzugsart=b2b`.
-- Das B2B-Mandat-PDF wird weiterhin erzeugt und an die Bank-Klärung
-  übergeben (PROJ-74-Hart-Fail bleibt erhalten).
-- PROJ-78 Audit-Toggle (elektronisches SEPA-Mandat) wirkt orthogonal —
-  nur auf das PDF-Rendering, nicht auf das Core-Mapping.
-
-### Bestand
-
-PROJ-79 wirkt nur auf **neue** Imports ab Deploy-Zeitpunkt. Bereits
-importierte B2B-Anlagen im Faktura-Core bleiben unangetastet. Kein
-Backfill, kein Migrations-Skript — laufende B2B-Lastschriften, deren
-Bank-Mandat schon aktiv ist, dürfen nicht gestört werden.
+Migration 000074 (PROJ-91) hat alle Bestand-Anträge mit `einzugsart=b2b`
+auf `einzugsart=core` + `prepare_b2b_documents=true` umgestellt — sie
+verhalten sich seither wie der neue Vorbereitungs-Pfad. Im Faktura-Core
+schon importierte B2B-Anlagen wurden nicht angefasst; laufende
+B2B-Lastschriften mit aktivem Bank-Mandat bleiben unberührt.
 
 ### Praktische Trigger-Realität
 
 `einzugsart="b2b"` entsteht heute in der Production-Codebase
 **ausschließlich durch manuellen Admin-Edit** im Antrags-Detail
-(`internal/application/admin_service.go:448`). Public-Submit und Externe
-API erzeugen nur `core` oder `kein_sepa`. Die Mapping-Regel bleibt aber
-konsistent für zukünftige Self-Service-b2b-Pfade.
+(`internal/application/admin_service.go`). Public-Submit und Externe
+API erzeugen nur `core` oder `kein_sepa`. Der Vorbereitungs-Toggle
+`prepare_b2b_documents` ist ebenfalls Admin-only und nur bei
+`einzugsart=core` sichtbar.
 
 ---
 
@@ -181,7 +172,7 @@ These fields are added directly in eegFaktura after import or set by core defaul
 Onboarding-only fields (intentionally **not** sent to core):
 - `application.cooperative_shares_count` *(PROJ-37)* — cooperative shares are bookkeeping inside the EEG and have no representation in the core's participant model.
 - `application.network_operator_authorization` + `network_operator_authorization_at` *(PROJ-44)* — Vollmacht für die EEG, mit dem Netzbetreiber zu agieren. Keine Core-Repräsentation; lokal in `application` als Audit-Trail aufbewahrt.
-- `application.bank_confirmed_at` + `activated_at` *(PROJ-46)* — Audit-Timestamps für die Onboarding-Stati `awaiting_bank_confirmation` / `activated`. Nicht im Core.
+- `application.activated_at` *(PROJ-46)* — Audit-Timestamp für den Onboarding-Status `activated`. Nicht im Core. *(`bank_confirmed_at` wurde mit PROJ-91 deprecated; neuer Code schreibt das Feld nicht mehr, die Spalte bleibt als historischer Beleg für migrierte Bestand-Anträge.)*
 - `metering_point.generation_type` / `battery_size_kwh` / `inverter_manufacturer` *(PROJ-45)* — EEG-Optimierungs-Metadaten. Werden lokal gespeichert (Excel-Export für eegFaktura-Importer am Spalten-Ende ergänzt), gehen aber nicht über die JSON-`POST /participant`-API mit (Core kennt diese Felder noch nicht).
 
 ### Activation-Check (PROJ-46 Stage D + PROJ-53, reverse-read)

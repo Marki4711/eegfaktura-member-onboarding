@@ -1,6 +1,6 @@
 # PROJ-94: SEPA-Mandat-Akzept-am Backfill für Bestand
 
-## Status: Approved
+## Status: Deployed (2026-06-09)
 **Created:** 2026-06-09
 **Last Updated:** 2026-06-09
 **Typ:** Bestand-Backfill-Migration
@@ -89,8 +89,9 @@ Migration wirkungslos.
 **Deploy-Bookkeeping 2026-06-09 (Abend):**
 
 - Hotfix-Cycle: direkter Commit, kein eigener /architecture-Pfad
-- Helm-Bump folgt nach CI grün
-- Tag: `v1.24.3-PROJ-94`
+- Code-Commit: `55b6142`
+- Helm-Bump-Commit: `cf756c0` (sha-55b6142)
+- Tag: `v1.24.3-PROJ-94` gesetzt + gepusht 2026-06-09 Abend
 
 **Owner-Action:** im nächsten `helm upgrade` mit den anderen Bundle-
 Hotfixes. Migration läuft pre-Backend-Update automatisch via Migration-Job.

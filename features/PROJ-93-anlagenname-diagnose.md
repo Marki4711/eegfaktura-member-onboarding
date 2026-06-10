@@ -1,6 +1,6 @@
 # PROJ-93: Anlagenname kommt nicht in Faktura an — Diagnose-Log
 
-## Status: Approved
+## Status: Deployed (2026-06-09)
 **Created:** 2026-06-09
 **Last Updated:** 2026-06-09
 **Typ:** Diagnose-Hotfix (Tester-Befund 2026-06-09)
@@ -103,8 +103,9 @@ des Imports.
 
 - Diagnose-Hotfix wie PROJ-86/87/88/89: direkter Commit, kein eigener
   /architecture-Pfad
-- Helm-Bump folgt nach CI grün
-- Tag: `v1.24.2-PROJ-93`
+- Code-Commit: `55b6142`
+- Helm-Bump-Commit: `cf756c0` (sha-55b6142)
+- Tag: `v1.24.2-PROJ-93` gesetzt + gepusht 2026-06-09 Abend
 
 **Owner-Action:** im nächsten `helm upgrade` mit den anderen Bundle-
 Hotfixes. Tester-Verifikation nach Deploy: Antrag re-importieren,

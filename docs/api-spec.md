@@ -54,7 +54,7 @@ The business logic additionally validates the EEG authorization in the backend.
 ## 4. Domain Types
 
 ### Status
-Allowed values (12):
+Allowed values (11):
 - `draft`
 - `submitted`
 - `email_confirmed` *(PROJ-31, only when the EEG opts in to e-mail confirmation)*
@@ -64,8 +64,7 @@ Allowed values (12):
 - `rejected`
 - `imported` *(transient — import service auto-routes immediately, see PROJ-46)*
 - `import_failed`
-- `awaiting_bank_confirmation` *(PROJ-46, b2b only, set automatically by import service)*
-- `ready_for_activation` *(PROJ-46, set automatically by import service for non-b2b)*
+- `ready_for_activation` *(PROJ-46, set automatically by import service for all einzugsarten since PROJ-91)*
 - `activated` *(PROJ-46, strict end state)*
 
 ### Meter Direction
@@ -665,15 +664,13 @@ Returns the admin list.
 - `approved -> import_failed`
 - `approved -> rejected` *(2026-05-29: nach Reset-Import landet der Antrag wieder in `approved`; der Admin kann ihn von dort ablehnen, falls das Mitglied gar nicht (mehr) importiert werden soll. Pflicht-Grund. `member_number` ist nach Reset-Import bereits NULL bzw. vor Import gar nicht gesetzt — keine Extra-Clearing-Logik.)*
 - `import_failed -> approved`
-- `awaiting_bank_confirmation -> ready_for_activation` *(PROJ-46, admin manuell nach Bank-Bestätigung)*
-- `awaiting_bank_confirmation -> under_review` *(PROJ-46, admin rückwärts)*
 - `ready_for_activation -> activated` *(PROJ-46, admin manuell; auch via Batch-Endpoint, siehe 6.5.6)*
 - `ready_for_activation -> under_review` *(PROJ-46, admin rückwärts)*
 
 Reachable only via dedicated endpoints (NOT via this generic `/status` route):
 - `submitted -> email_confirmed` — via member click on `POST /api/public/applications/confirm-email`
-- `imported -> awaiting_bank_confirmation` / `imported -> ready_for_activation` — auto-transition by import service (Branch on `einzugsart`), see 6.5
-- `imported|awaiting_bank_confirmation|ready_for_activation -> approved` — via `POST /api/admin/applications/{id}/reset-import` (PROJ-30 + PROJ-46, see 6.5.3). NOT possible from `activated` (strict end state).
+- `imported -> ready_for_activation` — auto-transition by import service (since PROJ-91 for all einzugsarten; the previous b2b-branch via `awaiting_bank_confirmation` was removed), see 6.5
+- `imported|ready_for_activation -> approved` — via `POST /api/admin/applications/{id}/reset-import` (PROJ-30 + PROJ-46, see 6.5.3). NOT possible from `activated` (strict end state).
 
 When `registration_entrypoint.require_email_confirmation = TRUE` (PROJ-31), this endpoint rejects `submitted -> under_review|needs_info|approved` with HTTP 409 until the member has clicked the confirmation link. `submitted -> rejected` remains available as the admin's anti-spam override.
 
@@ -683,7 +680,7 @@ When `registration_entrypoint.require_email_confirmation = TRUE` (PROJ-31), this
 - on `approved`: set `approved_at`, set `reviewed_by_user_id`. **Since PROJ-46 Stage B no PDF/mail is generated here** — Beitrittsbestätigungs-PDF + Member/EEG mails are now generated/sent at import time (see 6.5), when the member number exists. The legacy `SendApprovalEmail` method and its template `application_approved_eeg.html` have been **removed** from the codebase.
 - on `rejected`: set `rejected_at`, set `reviewed_by_user_id`, **PROJ-41:** synchroner Mail-Versand an Mitglied mit `reason` 1:1 im Body
 - on `needs_info`: set `needs_info_reason`, **PROJ-43:** synchroner Mail-Versand an Mitglied mit `reason` 1:1 im Body
-- on `ready_for_activation` (when coming from `awaiting_bank_confirmation`): set `bank_confirmed_at` *(PROJ-46)*
+- *(PROJ-46/91: `bank_confirmed_at` trigger removed with PROJ-91; the column remains in the schema as historical evidence for migrated rows.)*
 - on `activated`: set `activated_at`, async welcome mail an Mitglied *(PROJ-46)*
 - always write entry in `status_log`
 
@@ -740,13 +737,13 @@ tariff assignment, the admin pflegt es manuell im Core nach).
 {
   "success": true,
   "applicationId": "3f8c8c2d-....",
-  "status": "awaiting_bank_confirmation",
+  "status": "ready_for_activation",
   "targetParticipantId": "4711",
   "memberTariffWarning": "core returned HTTP 404"
 }
 ```
 
-`status` reflects the final post-import status (PROJ-46): `awaiting_bank_confirmation` for `einzugsart=b2b`, otherwise `ready_for_activation`. `imported` is a transient intermediate state and is rarely seen — it remains only if the auto-followup transition fails (the admin can then reset via `/reset-import`).
+`status` reflects the final post-import status (PROJ-46): `ready_for_activation` for all einzugsarten since PROJ-91 (the previous b2b-branch via `awaiting_bank_confirmation` was removed; the workflow intent „prepare member for B2B" is now carried by the `prepare_b2b_documents` flag on the application). `imported` is a transient intermediate state and is rarely seen — it remains only if the auto-followup transition fails (the admin can then reset via `/reset-import`).
 
 `memberTariffWarning` (PROJ-27) is only present when the participant was created successfully but the follow-up call to set the member-level tariff failed. The application is still moved out of `approved` — meter tariffs are persisted; the admin needs to set the member tariff manually in the core.
 
@@ -773,14 +770,14 @@ tariff assignment, the admin pflegt es manuell im Core nach).
   `accountInfo.mandateReference` / `accountInfo.mandateDate`. Idempotent: an
   admin-overridden `mandate_reference` (e.g. external customer number) is
   preserved.
-- `status = imported` (transient), then **auto-transition** to either
-  `awaiting_bank_confirmation` (b2b) or `ready_for_activation` (non-b2b)
-  in a separate transaction (PROJ-46)
+- `status = imported` (transient), then **auto-transition** to `ready_for_activation`
+  in a separate transaction (PROJ-46; since PROJ-91 the same path for all einzugsarten)
 - write 1 or 2 entries in `status_log` (one for `→ imported`, one for the
   auto-followup)
 - **PROJ-46 Stage B + PROJ-47**: best-effort async fan-out — generates the
   Beitrittsbestätigungs-PDF (mit Mitgliedsnummer), sends it to the member
-  + EEG-Contact-Copy; for `einzugsart=b2b` adds a second attachment
+  + EEG-Contact-Copy; for `einzugsart=b2b` OR `einzugsart=core` AND
+  `prepare_b2b_documents=true` (PROJ-91) adds a second attachment
   (Firmenlastschrift-Mandat-PDF mit Mandatsreferenz=Mitgliedsnummer)
 
 ### Side effects on failure
@@ -907,12 +904,13 @@ manually.
 | `reason` | yes | 5–500 chars (after trimming) |
 
 ### Rules
-- Application must be in status `imported`, `awaiting_bank_confirmation`,
-  or `ready_for_activation` (PROJ-46 expansion). NOT `activated` —
-  active members must be deactivated in the Core first (otherwise 409).
-- The transitions `imported → approved`, `awaiting_bank_confirmation → approved`,
-  `ready_for_activation → approved` are **only** reachable via this
-  endpoint; the generic `POST /status` does not accept them.
+- Application must be in status `imported` or `ready_for_activation`
+  (PROJ-46 expansion; the previous `awaiting_bank_confirmation` branch was
+  removed by PROJ-91). NOT `activated` — active members must be deactivated
+  in the Core first (otherwise 409).
+- The transitions `imported → approved`, `ready_for_activation → approved`
+  are **only** reachable via this endpoint; the generic `POST /status`
+  does not accept them.
 - Tenant-Admin scope: must match the EEG of the application.
 
 ### Response 200
@@ -1686,7 +1684,7 @@ Revokes the API key. External integrations using this key will receive `401` imm
 
 ### GET `/api/admin/applications/{id}/export/excel`
 
-Generates and downloads an xlsx file for the given application in eegFaktura import format. Only available for applications in status `approved`, `imported`, `import_failed`, `awaiting_bank_confirmation`, `ready_for_activation`, or `activated`.
+Generates and downloads an xlsx file for the given application in eegFaktura import format. Only available for applications in status `approved`, `imported`, `import_failed`, `ready_for_activation`, or `activated`.
 
 **Side effect (PROJ-64, 2026-05-29):** sets `application.faktura_handover_at = NOW()` if currently NULL. The xlsx matches the eegFaktura import template (36 columns A-AJ) and is therefore considered an off-platform handover for billing purposes. Subsequent downloads do not update the timestamp. Persist failure is logged but does not abort the download — a later `/import` or re-download would catch up.
 
@@ -1713,7 +1711,7 @@ The file contains:
 
 ### GET `/api/admin/applications/{id}/approval-pdf`
 
-Generates and downloads the Beitrittsbestätigung (approval confirmation) as a PDF file for the given application. Available for applications in status `approved`, `imported`, `import_failed`, `awaiting_bank_confirmation`, `ready_for_activation`, or `activated`.
+Generates and downloads the Beitrittsbestätigung (approval confirmation) as a PDF file for the given application. Available for applications in status `approved`, `imported`, `import_failed`, `ready_for_activation`, or `activated`.
 
 ### Auth
 Keycloak JWT. Tenant-admin access is checked against the application's RC number.
@@ -1726,7 +1724,7 @@ Keycloak JWT. Tenant-admin access is checked against the application's RC number
 - `403 Forbidden` — tenant mismatch
 - `409 Conflict` — application not in downloadable status
 
-The PDF is identical to the one auto-attached to the member/EEG mails at import time (PROJ-46 Stage B). Up to PROJ-46 Stage B this PDF was emailed to the EEG on `→ approved`; that auto-send is gone and the PDF generation is now anchored to the import step (so the member number is available for the SEPA mandate reference). For B2B applicants the import mail additionally contains a separate Firmenlastschrift-Mandat-PDF with embedded Mandatsreferenz=Mitgliedsnummer (PROJ-47); that mandate PDF is currently **not** downloadable via this endpoint.
+The PDF is identical to the one auto-attached to the member/EEG mails at import time (PROJ-46 Stage B). Up to PROJ-46 Stage B this PDF was emailed to the EEG on `→ approved`; that auto-send is gone and the PDF generation is now anchored to the import step (so the member number is available for the SEPA mandate reference). For B2B applicants (`einzugsart=b2b`) and for CORE-applicants with `prepare_b2b_documents=true` (PROJ-91) the import mail additionally contains a separate Firmenlastschrift-Mandat-PDF with embedded Mandatsreferenz=Mitgliedsnummer (PROJ-47); that mandate PDF is currently **not** downloadable via this endpoint.
 
 Contents:
 - Header: title "Beitrittsbestätigung", EEG name, RC number, approval date, reference number
@@ -1977,8 +1975,7 @@ No body.
 ```
 
 Runs `ValidateConfig` then renders the latest 5 post-imported members (`imported`,
-`awaiting_bank_confirmation`, `ready_for_activation`, `activated`) through the column
-mapping. Falls back to the plugin's synthetic sample when the EEG has no imported members
+`ready_for_activation`, `activated`) through the column mapping. Falls back to the plugin's synthetic sample when the EEG has no imported members
 yet (`note` field populated).
 
 #### Response 200

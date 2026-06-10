@@ -20,14 +20,11 @@ stateDiagram-v2
     needs_info --> submitted: Mitglied ergänzt
     under_review --> rejected
 
-    imported --> awaiting_bank_confirmation: einzugsart=b2b
-    imported --> ready_for_activation: sonst (Auto-Skip)
-    awaiting_bank_confirmation --> ready_for_activation: Admin:<br/>Bank-Bestätigung
+    imported --> ready_for_activation: auto (alle Einzugsarten)
     ready_for_activation --> activated: Admin manuell ODER<br/>„Aktivierung im Core prüfen"
 
     approved --> activated: Skip-Import<br/>(manuell aktivieren)
 
-    awaiting_bank_confirmation --> approved: Import zurücksetzen
     ready_for_activation --> approved: Import zurücksetzen
     imported --> approved: Import zurücksetzen
 ```
@@ -39,7 +36,7 @@ stateDiagram-v2
 
 * `import_failed → approved`: nach Fehlerbehebung kann der Import erneut versucht werden.
 * `imported` ist **transient** — der Server transitioniert sofort weiter (siehe Diagramm oben). Wenn ein Antrag in `imported` „hängen" bleibt, ist der Auto-Branch fehlgeschlagen → über **Import zurücksetzen** lösen.
-* `imported / awaiting_bank_confirmation / ready_for_activation → approved`: über die Aktion **Import zurücksetzen** (siehe unten). NICHT aus `activated` — aktive Mitglieder müssen zuerst im Core deaktiviert werden.
+* `imported / ready_for_activation → approved`: über die Aktion **Import zurücksetzen** (siehe unten). NICHT aus `activated` — aktive Mitglieder müssen zuerst im Core deaktiviert werden.
 
 ## Status ändern
 
@@ -57,8 +54,7 @@ Klicke auf die gewünschte Aktion. Je nach aktuellem Status stehen unterschiedli
 | `needs_info` | — (wartet auf Ergänzung durch das Mitglied) |
 | `approved` | Import starten |
 | `import_failed` | Import erneut starten |
-| `imported` | Import zurücksetzen *(nur sichtbar wenn Auto-Branch fehlgeschlagen)* |
-| `awaiting_bank_confirmation` | **Bank-Bestätigung erhalten**, Zurück in Bearbeitung, Import zurücksetzen |
+| `imported` | Import zurücksetzen *(nur sichtbar wenn Auto-Transition fehlgeschlagen)* |
 | `ready_for_activation` | **Als aktiv markieren**, Zurück in Bearbeitung, Import zurücksetzen *(oder via Batch-Button „Aktivierung im Core prüfen" in der Liste)* |
 | `activated` | — (Endzustand, keine Aktionen möglich) |
 
@@ -147,16 +143,16 @@ In diesem Fall erscheint im Antrags-Detail ein **oranger Banner** mit zwei Recov
 
 Der Banner erscheint automatisch, sobald der Import-Versuch älter als 2 Minuten ist und nicht sauber abgeschlossen wurde — du musst nicht raten, ob „nochmal probieren" sicher ist.
 
-## Import zurücksetzen (`imported / awaiting_bank_confirmation / ready_for_activation → approved`)
+## Import zurücksetzen (`imported / ready_for_activation → approved`)
 
 ![Import zurücksetzen](images/admin-reset-import.png)
 
 Wenn ein bereits importierter Teilnehmer im eegFaktura-Core gelöscht wurde (z. B. weil das Mitglied seine Teilnahme widerrufen hat oder der Import fehlerhaft war), kann der Antrag in den Status `approved` zurückgesetzt werden, um einen Neu-Import zu ermöglichen.
 
-1. Öffne den Antrag (Status `imported`, `awaiting_bank_confirmation` oder `ready_for_activation`)
+1. Öffne den Antrag (Status `imported` oder `ready_for_activation`)
 2. Klicke auf **Import zurücksetzen**
 3. Gib eine Begründung an (Pflichtfeld, wird im Statusverlauf protokolliert)
-4. Der Antrag wechselt auf `approved`; die alte `target_participant_id`, die Mitgliedsnummer und alle Audit-Timestamps (`bank_confirmed_at`, `activated_at`) werden geleert und im Statusverlauf archiviert
+4. Der Antrag wechselt auf `approved`; die alte `target_participant_id`, die Mitgliedsnummer, Mandatsreferenz, Mandatsdatum und alle Audit-Timestamps werden geleert und im Statusverlauf archiviert
 
 > **Wichtig:** Diese Aktion kontaktiert den eegFaktura-Core *nicht*. Bevor du sie nutzt, musst du den Teilnehmer im Core manuell gelöscht haben.
 >
@@ -164,21 +160,15 @@ Wenn ein bereits importierter Teilnehmer im eegFaktura-Core gelöscht wurde (z. 
 
 ## Post-Import-Stati
 
-Nach erfolgreichem Import läuft der Antrag automatisch in einen der beiden Wartezustände, abhängig von der gewählten Einzugsart:
-
-### `awaiting_bank_confirmation` — nur bei B2B-SEPA-Firmenlastschrift
-
-Der Antrag landet hier, wenn `einzugsart=b2b` gesetzt ist. Das Mitglied hat per E-Mail das B2B-Firmenlastschrift-Mandat (mit eingedruckter Mandatsreferenz = Mitgliedsnummer) bekommen — und wurde aufgefordert, das Mandat seiner Hausbank vorzulegen. **Neuerdings** kommt mit dem Mandat eine schlanke Begleitmail („Anlage Mandat — Beitrittsbestätigung folgt") statt der vollen Beitrittsbestätigung; die volle Beitrittsbestätigungs-Mail mit PDF erhält das Mitglied erst, wenn der Antrag auf `activated` wechselt. Im Antrags-Detail erscheint eine prominente amber Hinweisbox „Warte auf Bank-Bestätigung".
+Nach erfolgreichem Import wechselt der Antrag automatisch auf `ready_for_activation` — unabhängig von der Einzugsart. Den früheren Zwischenstop „Warte auf Bank-Bestätigung" für B2B-Anträge gibt es nicht mehr; die spätere SEPA-B2B-Umstellung im eegFaktura-Core nach der Hausbank-Bestätigung passiert dort manuell und ohne Eingriff im Onboarding.
 
 > **Hinweis (seit 2026-05-18):** Beide SEPA-Mandate (Basislastschrift CORE und B2B-Firmenlastschrift) zeigen im Unterschriftsfeld jetzt das **Datum der Übermittlung** als vorbefülltes „Datum". Das Mitglied trägt nur noch Ort + Unterschrift ein. Das gleiche Datum wird im Antrags-Detail unter „Mandatsdatum" angezeigt und beim Faktura-Import als Mandate-Date mitgeführt.
 >
 > **Bugfix 2026-05-28:** bisher landeten Mandatsreferenz (= Mitgliedsnummer) und Mandatsdatum bei den at-import-Mandat-Flows (B2B-Firmenlastschrift und CORE mit Option „Mandat bei Import") nur lokal im Onboarding und im PDF, **nicht aber** im eegFaktura-Core. Admins mussten beide Werte nach jedem Import händisch im Core nachtragen. Jetzt setzt der Import beide Felder VOR dem Core-POST und sendet sie im `accountInfo`-Block mit. Bestandsanträge VOR dem Fix tragen die Werte weiterhin nur lokal — entweder per „Import zurücksetzen + neu importieren" überschreiben oder einmalig manuell im Core ergänzen.
 
-**Aktion**: sobald sich das Mitglied bei dir meldet, klicke auf **„Bank-Bestätigung erhalten"** — der Antrag wechselt auf `ready_for_activation`, der Timestamp `bank_confirmed_at` wird gesetzt.
-
 ### `ready_for_activation` — bereit zur Aktivierung in der EEG
 
-Der Antrag wird auf diesen Status gesetzt, sobald entweder (a) die Bank-Bestätigung erfolgt ist (B2B-Pfad) oder (b) automatisch direkt nach dem Import (alle anderen Einzugsarten). Das Mitglied ist jetzt im eegFaktura-Core angelegt und wartet darauf, vom Core-Team aktiviert zu werden.
+Das Mitglied ist im eegFaktura-Core angelegt und wartet darauf, vom Core-Team aktiviert zu werden.
 
 **Zwei Wege zur Aktivierung:**
 1. **Per Antrag manuell** — Klick auf **„Als aktiv markieren"** im Detail. Setzt den Status auf `activated` und stempelt `activated_at = NOW()`.

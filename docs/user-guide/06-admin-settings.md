@@ -159,25 +159,30 @@ Auch beim B2B-Audit-Pfad bekommt der EEG-Kontakt die Ablage-Kopie per E-Mail.
 
 > **Hinweis:** Wenn der Audit-Trail aktiv ist, aber für einen einzelnen Antrag noch keine IP-Adresse gespeichert wurde (Altanträge aus der Zeit vor der elektronischen Erfassung), fällt das PDF automatisch auf die klassische Unterschriftslinie zurück. Es kommt also nie zu einem fehlerhaften Audit-Block ohne Datenbasis.
 
-#### Firmenlastschrift im Faktura-Core
+#### Firmenlastschrift (B2B) und Vorbereitungs-Toggle
 
-Wenn ein Antrag mit **Firmenlastschrift (B2B)** importiert wird, legt das System ihn im eegFaktura-Core zunächst als **Basislastschrift (CORE)** an — nicht als B2B. Das ist kein Bug, sondern ein bewusster Sicherheits-Workflow.
+Für die B2B-Firmenlastschrift gibt es zwei Wege, die der Admin im Antrags-Bearbeiten-Dialog wählen kann.
 
-**Warum?** Die B2B-Firmenlastschrift verlangt nach SEPA-Regelwerk eine separate Mandatsvereinbarung zwischen dem Mitglied und dessen Hausbank. Diese Bank-Aktivierung dauert in der Praxis Tage bis Wochen. Ohne aktive B2B-Vereinbarung würde die erste B2B-Lastschrift von der Bank abgelehnt — mit unnötigen Mahnungs-Reflexen. Der CORE-Pfad überbrückt diese Klärungs-Phase ohne Risiko: CORE-Lastschriften sind sofort ziehbar, sobald das Mandat unterschrieben vorliegt.
+**Weg 1 — Einzugsart B2B direkt:**
 
-**Was passiert in der Aktivierungs-Mail?** Sobald der Antrag in den Status *aktiviert* übergeht, bekommt die EEG-Kontaktperson einen gelben Hinweis-Block in der Aktivierungs-Mail — sowohl im Auto-Modus als auch im Vorstands-Modus mit Beitrittserklärung:
+Im Bearbeiten-Dialog wählt der Admin *Einzugsart = Firmenlastschrift (B2B)*. Der Antrag geht beim Import direkt mit SEPA-B2B in den eegFaktura-Core. Die erste Lastschrift kann nur ausgeführt werden, sobald das Mitglied das B2B-Mandat bei seiner Hausbank registriert hat — ohne diese Bank-Registrierung lehnt die Bank die Lastschrift ab. Vorteil: kein nachträglicher Eingriff im Core nötig.
 
-> ⚠ **Hinweis B2B-SEPA-Mandat** — Der Antrag wurde im Member-Onboarding mit Einzugsart „Firmenlastschrift (B2B)" angelegt, aber zur Sicherheit im eegFaktura-Core zunächst als Basislastschrift (CORE) importiert. Bitte vereinbaren Sie die Firmenlastschrift-Aktivierung eigenständig mit der Hausbank des Mitglieds. Sobald die Bank die B2B-Aktivierung bestätigt hat, ändern Sie den SEPA-Typ im eegFaktura-Core manuell auf B2B.
+**Weg 2 — Einzugsart CORE + Vorbereitungs-Toggle (PROJ-91):**
 
-**Beispiel — Musterbetrieb GmbH:** Der Geschäftsführer reicht den Antrag mit Einzugsart B2B ein. Beim Import wird im Faktura-Core ein Eintrag mit SEPA-Typ CORE und der korrekten IBAN angelegt. Die EEG-Kontaktperson sieht in der Aktivierungs-Mail den Hinweis-Block und schickt der Musterbetrieb GmbH zwei Wochen später das B2B-Mandat zur Unterschrift. Sobald die Hausbank der Musterbetrieb GmbH die B2B-Aktivierung bestätigt hat, geht der EEG-Admin in den Faktura-Core und ändert dort den SEPA-Typ manuell von CORE auf B2B. Bis dahin laufen Abbuchungen problemlos als CORE-Lastschrift.
+Im Bearbeiten-Dialog wählt der Admin *Einzugsart = Basislastschrift (CORE)* und aktiviert zusätzlich den Schalter **„Mitglied für Umstellung auf B2B vorbereiten"** (nur sichtbar bei Einzugsart=CORE). Beim Import:
 
-**Was sich im Onboarding-Frontend nicht ändert:**
+- Im Faktura-Core wird der Eintrag mit SEPA-Typ CORE angelegt → Lastschriften können sofort starten, die Klärungs-Phase mit der Bank überbrückt der CORE-Schutz (CORE-Lastschriften sind 8 Wochen lang rückbuchbar).
+- Das Mitglied erhält **zwei PDFs** in der Mandat-Mail: das CORE-Mandat (zur Unterschrift und Rücksendung) und zusätzlich das B2B-Firmenlastschrift-Mandat (zum späteren Vorlegen bei der eigenen Bank).
+- Die EEG-Kontaktperson und der Vorstand bekommen einen gelben Hinweis-Block in der jeweiligen Mail.
 
-- Im Antrags-Detail bleibt die Einzugsart auf *Firmenlastschrift (B2B)* sichtbar — du siehst, was das Mitglied gewählt hat.
-- Der Antragsstatus läuft weiterhin über *„Auf Bank-Bestätigung warten"* (für B2B-Anträge), bis du als Admin auf *„Zur Aktivierung bereit"* umstellst.
-- Das B2B-Mandat-PDF wird wie bisher erzeugt und an die Hausbank-Vorlage übergeben.
+Sobald die Hausbank des Mitglieds die B2B-Registrierung bestätigt hat, geht der EEG-Admin in den Faktura-Core und stellt den SEPA-Typ dort manuell von CORE auf B2B um. Ab diesem Moment greift der B2B-Schutz (kein Rückbuchungsrecht).
 
-**Bestand:** Anträge, die vor dieser Änderung schon als B2B in den Core importiert wurden, bleiben unangetastet. Laufende B2B-Lastschriften mit aktivem Mandat dürfen nicht gestört werden.
+> ⚠ **Hinweis B2B-Vorbereitung in der Mail (Weg 2):**
+> *Für dieses Mitglied liegt eine B2B-Vorbereitung an. Das Konto ist im eegFaktura-Core als SEPA-CORE angelegt. Sobald die Hausbank des Mitglieds das B2B-Mandat bestätigt hat, stellen Sie den SEPA-Typ im Core manuell auf B2B um.*
+
+**Beispiel — Musterbetrieb GmbH (Weg 2):** Der Antrag wurde mit Einzugsart B2B eingereicht; der Admin entscheidet sich beim Bearbeiten für *Einzugsart=CORE + Vorbereitungs-Toggle* (um sofort abbuchen zu können). Beim Import landet im Faktura-Core ein Eintrag mit SEPA-Typ CORE. Die Musterbetrieb GmbH bekommt CORE-Mandat **und** B2B-Mandat in einer Mail. Drei Wochen später meldet die Hausbank der Musterbetrieb GmbH die B2B-Registrierung — der EEG-Admin wechselt den SEPA-Typ im Faktura-Core manuell auf B2B. Bis dahin liefen die Lastschriften als CORE-Lastschrift mit normaler 8-Wochen-Rückbuchungsfrist.
+
+**Bestand:** Anträge, die vor PROJ-91 mit Einzugsart B2B erstellt wurden, wurden bei der Migration auf *Einzugsart=CORE + Vorbereitungs-Toggle=an* umgestellt — sie verhalten sich jetzt wie Weg 2. Laufende B2B-Lastschriften mit aktivem Mandat im Core wurden nicht angetastet.
 
 ### SEPA-Feld für ausgewählte Mitgliedstypen auf optional setzen *(Alle Optionen)*
 

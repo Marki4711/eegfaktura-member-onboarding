@@ -91,9 +91,7 @@ stateDiagram-v2
     direction LR
     [*] --> imported: aus Phase 1
 
-    imported --> awaiting_bank_confirmation: einzugsart=b2b
-    imported --> ready_for_activation: sonst
-    awaiting_bank_confirmation --> ready_for_activation: Bank bestätigt
+    imported --> ready_for_activation: auto (für alle Einzugsarten)
     ready_for_activation --> activated: manuell ODER<br/>Batch-Aktivierung
 
     activated --> [*]: Endzustand
@@ -103,18 +101,16 @@ stateDiagram-v2
     end note
 ```
 
-Aus den Stati `imported`, `awaiting_bank_confirmation` und `ready_for_activation` ist über die Aktion **Import zurücksetzen** ein Rückweg nach `approved` möglich — siehe [Statusverwaltung](05-admin-status.md#import-zurucksetzen-imported-awaiting_bank_confirmation-ready_for_activation-approved). Aus `activated` gibt es keinen Reset; ein aktives Mitglied muss zuerst im eegFaktura-Core deaktiviert werden.
+Aus den Stati `imported` und `ready_for_activation` ist über die Aktion **Import zurücksetzen** ein Rückweg nach `approved` möglich — siehe [Statusverwaltung](05-admin-status.md#import-zurucksetzen-imported-ready_for_activation-approved). Aus `activated` gibt es keinen Reset; ein aktives Mitglied muss zuerst im eegFaktura-Core deaktiviert werden.
 
 Details zu den einzelnen Übergängen:
 
 * `submitted → email_confirmed`: nur wenn die EEG **E-Mail-Bestätigung erforderlich** aktiviert hat — Mitglied klickt den Bestätigungs-Link in der Willkommens-Mail.
 * `import_failed → approved`: nach Fehlerbehebung kann der Import erneut versucht werden.
-* `imported` ist **transient** (nur Millisekunden) — der Server transitioniert sofort weiter abhängig von `einzugsart=b2b`:
-  - **b2b:** `imported → awaiting_bank_confirmation` (Admin wartet auf Mitglied-Rückmeldung zur Hausbank-Pre-Notification, dann manuell weiter)
-  - **sonst:** `imported → ready_for_activation` (direkt nach Aktivierung im Core bereit)
+* `imported` ist **transient** (nur Millisekunden) — der Server transitioniert sofort weiter nach `ready_for_activation`, unabhängig von der Einzugsart. Wenn der Antrag für eine spätere B2B-Umstellung vorgesehen ist (Toggle „Mitglied für Umstellung auf B2B vorbereiten" oder Einzugsart=B2B), enthält die Mandat-Mail zusätzlich ein Firmenlastschrift-PDF — der spätere Wechsel auf SEPA-B2B passiert manuell im eegFaktura-Core nach der Bank-Bestätigung.
 * `ready_for_activation → activated`: Admin klickt manuell „Als aktiv markieren" ODER nutzt den Batch-Button „Aktivierung im Core prüfen" in der Antragsliste.
 * `activated` ist **strikter Endzustand**: keine Übergänge raus, kein Reset. Deaktivierung erfolgt direkt im Core.
-* `imported / awaiting_bank_confirmation / ready_for_activation → approved`: über die Aktion **Import zurücksetzen** in der Detailansicht. NICHT aus `activated`.
+* `imported / ready_for_activation → approved`: über die Aktion **Import zurücksetzen** in der Detailansicht. NICHT aus `activated`.
 
 | Status | Bedeutung |
 |--------|-----------|
@@ -127,6 +123,5 @@ Details zu den einzelnen Übergängen:
 | `rejected` | Antrag abgelehnt |
 | `imported` | Erfolgreich in eegFaktura importiert (transient, Auto-Routing direkt danach) |
 | `import_failed` | Import fehlgeschlagen, kann wiederholt werden |
-| `awaiting_bank_confirmation` | (B2B-SEPA) Mitglied muss sein B2B-Mandat bei der Hausbank hinterlegen, EEG-Admin wartet auf Bestätigung |
 | `ready_for_activation` | Bereit zur finalen Aktivierung in der EEG |
 | `activated` | Aktives Mitglied — Endzustand |

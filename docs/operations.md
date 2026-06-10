@@ -228,12 +228,13 @@ WHERE import_started_at IS NOT NULL
   AND status = 'approved';
 ```
 
-**PROJ-46 Stuck-Fall:** Wenn der Auto-Branch nach Import (auf
-`awaiting_bank_confirmation` oder `ready_for_activation`) scheitert,
-bleibt der Antrag im Status `imported` (sonst extrem kurzlebig). Symptom:
-SQL `WHERE status='imported'`. Recovery: Admin klickt „Import zurücksetzen"
-im Detail — die Reset-Logik (PROJ-30 + PROJ-46) räumt member_number +
-Audit-Timestamps. Danach kann der Admin re-importieren.
+**PROJ-46 Stuck-Fall:** Wenn die Auto-Transition nach Import auf
+`ready_for_activation` scheitert (seit PROJ-91 der einzige Auto-Pfad
+für alle Einzugsarten), bleibt der Antrag im Status `imported` (sonst
+extrem kurzlebig). Symptom: SQL `WHERE status='imported'`. Recovery:
+Admin klickt „Import zurücksetzen" im Detail — die Reset-Logik (PROJ-30
++ PROJ-46) räumt member_number + Audit-Timestamps. Danach kann der
+Admin re-importieren.
 
 ### Activation-Check-Button (PROJ-46 Stage D, erweitert in PROJ-53)
 

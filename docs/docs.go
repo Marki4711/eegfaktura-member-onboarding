@@ -763,6 +763,64 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/admin/applications/{id}/joining-declaration.pdf": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "On-demand Generierung der Beitrittserklärung mit Vorstands-Signaturblock. Sichtbar/erlaubt nur, wenn der Antrag im Status ` + "`" + `activated` + "`" + ` ist UND die zugehörige EEG den ` + "`" + `board_approval_workflow_enabled` + "`" + `-Toggle gesetzt hat. Tenant-Admin der RC oder Superuser.",
+                "produces": [
+                    "application/pdf"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Beitrittserklärung als PDF herunterladen (PROJ-76)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Application UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Antrag nicht im Status activated oder Toggle nicht aktiv",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/shared.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/applications/{id}/mark-activated": {
             "post": {
                 "security": [
@@ -2661,8 +2719,7 @@ const docTemplate = `{
                 "residentCity",
                 "residentStreet",
                 "residentStreetNumber",
-                "residentZip",
-                "sepaMandateAccepted"
+                "residentZip"
             ],
             "properties": {
                 "accountHolder": {
@@ -2696,6 +2753,7 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "iban": {
+                    "description": "PROJ-81 (2026-06-08): IBAN/AccountHolder bleiben Pflicht — eegFaktura-\nCore verlangt sie immer. Nur die SEPA-Einwilligungs-Checkbox wird\noptional (SepaMandateAccepted ohne ` + "`" + `required` + "`" + `-Tag, damit Validator\nfalse durchlaesst).",
                     "type": "string",
                     "maxLength": 50,
                     "minLength": 15
@@ -2765,6 +2823,11 @@ const docTemplate = `{
                 "sepaMandateAccepted": {
                     "type": "boolean"
                 },
+                "submitterIp": {
+                    "description": "PROJ-77 (2026-06-07): optionale End-User-IP fuer den SEPA-Audit-Trail.\nBei Server-zu-Server-Integration kennt nur der Integrator die End-User-\nIP — wir koennen sie nicht aus dem HTTP-Request herauslesen. Wenn das\nFeld fehlt oder leer ist, bleibt die DB-Spalte NULL und das B2B-PDF\nfaellt auf den klassischen Unterschriftsblock zurueck.",
+                    "type": "string",
+                    "maxLength": 45
+                },
                 "titel": {
                     "type": "string",
                     "maxLength": 50
@@ -2816,7 +2879,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "bankConfirmedAt": {
-                    "description": "PROJ-46: Audit-Timestamps für die Stati nach dem Import.\nBankConfirmedAt wird gesetzt beim Übergang awaiting_bank_confirmation →\nready_for_activation (Admin manuell). ActivatedAt beim Übergang\nready_for_activation → activated (Admin manuell oder Activation-Check).",
+                    "description": "PROJ-46: Audit-Timestamps für die Stati nach dem Import.\nBankConfirmedAt war ursprünglich Marker für den Übergang\nawaiting_bank_confirmation → ready_for_activation. PROJ-91 (2026-06-09)\nhat den Status entfernt; neuer Code schreibt das Feld nicht mehr.\nBleibt im Schema als historischer Beleg für Bestand (EC-12).\nActivatedAt: Übergang ready_for_activation → activated.",
                     "type": "string"
                 },
                 "bankName": {
@@ -2826,6 +2889,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "birthDate": {
+                    "type": "string"
+                },
+                "boardDeclarationSentAt": {
+                    "description": "PROJ-76 (2026-06-07): Zeitpunkt des Versands der Beitrittserklaerung\nan den EEG-Kontakt. NULL = noch nicht versandt. Greift nur, wenn die\nEEG ` + "`" + `board_approval_workflow_enabled=true` + "`" + ` hat. Wird beim ResetImport\nsynchron mit activation_notification_sent_at auf NULL gesetzt.",
                     "type": "string"
                 },
                 "companyName": {
@@ -2978,6 +3045,10 @@ const docTemplate = `{
                 "phone": {
                     "type": "string"
                 },
+                "prepareB2BDocuments": {
+                    "description": "PROJ-91 (2026-06-09): Wenn TRUE, wird beim Import zusätzlich zum\nCORE-Mandat das B2B-Mandat-PDF erzeugt und an die Mandate-Mail\nangehängt. Vorbereitung auf manuelle SEPA-Umstellung auf B2B im\nFaktura-Core nach Bank-Bestätigung. Nur sinnvoll bei\neinzugsart=core; Backend setzt das Feld defense-in-depth auf FALSE\nwenn einzugsart!='core'.",
+                    "type": "boolean"
+                },
                 "privacyAccepted": {
                     "type": "boolean"
                 },
@@ -3015,6 +3086,10 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "sepaMandateAcceptedAt": {
+                    "type": "string"
+                },
+                "sepaMandateAcceptedIp": {
+                    "description": "PROJ-77 (2026-06-07): IP zum Zeitpunkt der SEPA-Mandats-Akzeptanz.\nWird im B2B-PDF als Audit-Trail-Text gerendert (§ 76 (3) EIWOG).\nNULL bei Bestandsantraegen oder wenn realIP-Middleware keine IP liefert\n(Reverse-Proxy-Konfig). PDF-Renderer faellt auf den klassischen\nDatum/Unterschrift-Block zurueck, wenn dieses Feld leer ist.",
                     "type": "string"
                 },
                 "startedAt": {
@@ -3159,6 +3234,10 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 50
                 },
+                "prepareB2BDocuments": {
+                    "description": "PROJ-91 (2026-06-09): B2B-Vorbereitungs-Toggle. Nullable Pointer\ndamit Frontend das Field bei einzugsart != \"core\" weglassen kann;\nBackend setzt es defense-in-depth auf false (siehe\nAdminUpdateApplication-Handler).",
+                    "type": "boolean"
+                },
                 "registerNumber": {
                     "type": "string",
                     "maxLength": 50
@@ -3284,7 +3363,6 @@ const docTemplate = `{
                 "rejected",
                 "imported",
                 "import_failed",
-                "awaiting_bank_confirmation",
                 "ready_for_activation",
                 "activated"
             ],
@@ -3298,7 +3376,6 @@ const docTemplate = `{
                 "StatusRejected",
                 "StatusImported",
                 "StatusImportFailed",
-                "StatusAwaitingBankConfirmation",
                 "StatusReadyForActivation",
                 "StatusActivated"
             ]
@@ -3454,8 +3531,7 @@ const docTemplate = `{
                 "residentCity",
                 "residentStreet",
                 "residentStreetNumber",
-                "residentZip",
-                "sepaMandateAccepted"
+                "residentZip"
             ],
             "properties": {
                 "accountHolder": {
@@ -3534,6 +3610,7 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "iban": {
+                    "description": "PROJ-81 (2026-06-08): IBAN/AccountHolder bleiben Pflicht — eegFaktura-\nCore verlangt sie immer. Nur die SEPA-Einwilligungs-Checkbox wird\noptional: ` + "`" + `validate:\"required\"` + "`" + ` auf bool akzeptiert false nicht, also\nentfernen wir das gezielt fuer SepaMandateAccepted und lassen den\nService-Layer (IsSEPAOptional) die kontextabhaengige Pflichtigkeit\npruefen.",
                     "type": "string",
                     "maxLength": 50,
                     "minLength": 15
@@ -4219,6 +4296,13 @@ const docTemplate = `{
                     "description": "PROJ-37: only set when CooperativeSharesEnabled=true on the EEG.\nBoth inner values are then non-nil and \u003e 0.",
                     "type": "boolean"
                 },
+                "creditorId": {
+                    "type": "string"
+                },
+                "eegName": {
+                    "description": "PROJ-80 (2026-06-08): SEPAMandateEnabled entfaellt. Online-Zustimmung-\nCheckbox + CORE-PDF-Generierung sind Pflicht-Konstanten — kein Toggle\nmehr noetig im Public-Form-Config.\nPROJ-75 (2026-06-06): EEG-Name + Creditor-ID werden mitgesendet,\ndamit die Public-Form die SEPA-Einwilligungs-Checkbox mit dem\nEEG-spezifischen Text und der Creditor-ID rendern kann. Beide\nnullable: vor dem ersten PROJ-32-Sync kann der Eintrag im Onboarding\nnoch leer sein. Frontend zeigt dann eine Fallback-Variante.",
+                    "type": "string"
+                },
                 "fieldConfig": {
                     "type": "object",
                     "additionalProperties": {
@@ -4250,9 +4334,6 @@ const docTemplate = `{
                 },
                 "sepaMandateAtImport": {
                     "description": "SEPAMandateAtImport (PROJ-48) wird an die Public-Form weitergereicht,\ndamit der Hinweistext „Mandat kommt jetzt vs. nach Import\" korrekt\ngerendert werden kann. False = heutiges Verhalten (Mandat als Anhang\nin der Eingangsbestätigung); True = Mandat kommt erst beim Import\nmit Mitgliedsnummer als Mandatsreferenz.",
-                    "type": "boolean"
-                },
-                "sepaMandateEnabled": {
                     "type": "boolean"
                 },
                 "showCentralPolicy": {

@@ -79,7 +79,7 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 | PROJ-43 | Status-Change-Mails (Info-Anfrage, hard-fail) | gebündelt mit PROJ-41 |
 | PROJ-44 | Netzbetreiber-Vollmacht | Per-EEG opt-in |
 | PROJ-45 | Erzeugungsform + Batterie + typabh. Sichtbarkeit | PV/Wind/Hydro/Biomasse |
-| PROJ-46 | Stati für Import-Nachbereitung (Stage A–D) | awaiting_bank → ready → activated |
+| PROJ-46 | Stati für Import-Nachbereitung (Stage A–D) | ready_for_activation → activated *(PROJ-91 hat den Zwischenstop `awaiting_bank_confirmation` entfernt)* |
 | PROJ-47 | B2B-SEPA-Mandat mit Mandatsreferenz beim Import | Mitgliedsnummer als Mandatsreferenz |
 | PROJ-48 | SEPA-Default-Core + konfigurierbares Mandat-Timing | Submit- vs. Import-Time-Mandat |
 | PROJ-49 | Energie-Felder pro Zählpunkt + Einspeiselimit | Refactoring von app-level zu meter-level |
@@ -118,7 +118,7 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 | ~~PROJ-65~~ | ~~Vorstands-Signaturblock im Beitrittsbestätigungs-PDF~~ — Superseded durch PROJ-76 |
 | PROJ-67 | Basic-/Advanced-Modus für Einstellungen — reduzierte Sicht für kleine EEGs |
 | PROJ-69 | Reconciliation-basierter Billing-Backstop — Free-Rider-Detection via periodischem Core-Match (IBAN+E-Mail), setzt `faktura_handover_at` rückwirkend |
-| PROJ-70 | Stammdaten-Resync für aktivierte Anträge — On-Demand-Pull von Core-Werten pro Antrag, bei IBAN-/Kontoinhaber-Wechsel SEPA-Mandat-Invalidierung + Rückfall auf `awaiting_bank_confirmation` |
+| PROJ-70 | Stammdaten-Resync für aktivierte Anträge — On-Demand-Pull von Core-Werten pro Antrag, bei IBAN-/Kontoinhaber-Wechsel SEPA-Mandat-Invalidierung + Rückfall auf `ready_for_activation` *(PROJ-91 hat `awaiting_bank_confirmation` entfernt; Resync-Rückfall geht jetzt auf den verbleibenden Vor-Aktivierungs-Status)* |
 | PROJ-71 | EEG-Customer-Onboarding-Formular + AVV-PDF + Auto-Antwort-Mail — Self-Service-Anmeldung für zahlende EEG-Kunden (Phase A der Customer-Onboarding-Pipeline) |
 | PROJ-72 | Member-Onboarding-Cockpit — Owner-EEG-Übersicht aller EEGs mit Live-KPIs (Aktiv-Badge, Customer-Onboarding-State, Anträge-Pipeline) und Direkt-Links zu Anträgen & Einstellungen |
 | PROJ-73 | Cleanup: verwaisten EEG-Toggle `use_company_sepa_mandate` entfernt — Domain-Logik seit PROJ-48 funktionslos; Settings-UI aufgeräumt, Migration 000066 |
@@ -207,7 +207,7 @@ Pilot framing of the concrete value: **„a simple form mask that gets new membe
 - one application can contain multiple metering points
 - a metering point may inherit the member's primary address (default) or carry its own deviating address (PROJ-39)
 - only `approved` applications may be imported
-- after a successful import the application auto-routes via `imported` (transient) to either `awaiting_bank_confirmation` (b2b) or `ready_for_activation` (non-b2b) — PROJ-46
+- after a successful import the application auto-routes via `imported` (transient) directly to `ready_for_activation` for all einzugsarten — PROJ-46 + PROJ-91
 - `activated` is a strict end state — no transitions out, no reset; deactivation must happen in the eegFaktura core
 - tariff, role, and similar business details are completed later in eegFaktura
 
