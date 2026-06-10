@@ -10,6 +10,27 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Fix — PROJ-97: Aktions-Reihe im Antrags-Detail aufgeräumt *(2026-06-10)*
+
+Tester-Befund: deplazierter „Beitrittserklärung herunterladen"-Button
+im blauen Vorstands-Workflow-Hinweisblock direkt unter der bereits
+gefüllten Aktionsleiste. Sieben Aktionen flach in einer Reihe sind
+optisch überlastet.
+
+Refactor in drei Dropdowns + Top-Level-Buttons:
+
+- **Herunterladen ▾**: Excel, Beitrittsbestätigung, Beitrittserklärung
+  (letzteres nur bei `activated` + aktivem Vorstands-Workflow)
+- **Erneut senden ▾**: Bestätigungs-Mail (bzw. Bestätigungs-Link), SEPA-Mandat
+- **Top-Level**: Stammdaten abgleichen, Datenweiterleitung, Löschen,
+  Bearbeiten
+
+Der blaue „Vorstands-Genehmigungs-Workflow aktiv"-Hinweisblock fällt
+weg — das Verhalten ist in der User-Guide-Doku beschrieben
+(`06-admin-settings.md` + `04-admin-applications.md` Aktions-Tabelle).
+Stammdaten-Resync-Popover-Text auf den neuen Mandat-Pfad „Erneut
+senden → SEPA-Mandat" aktualisiert.
+
 ### Fix — PROJ-96: Du-Konsistenz in allen Mail-Pfaden *(2026-06-10)*
 
 Owner-Direktive: „überall Du". Tester-Befund TODO-4 aus dem Vorabend

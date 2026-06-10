@@ -1,6 +1,6 @@
 # PROJ-96: Du-Konsistenz in allen Mail-Pfaden
 
-## Status: Approved
+## Status: Deployed (2026-06-10)
 **Created:** 2026-06-10
 **Last Updated:** 2026-06-10
 **Typ:** Hotfix (Tester-Befund TODO-4)
@@ -103,8 +103,9 @@ Greppen über alle deutschen Sie-Formen (`Sie|Ihre|Ihr|Ihnen|Ihren|Ihres`):
 **Deploy-Bookkeeping 2026-06-10 (vormittags):**
 
 - Hotfix-Cycle: direkter Commit, kein eigener /architecture-Pfad
-- Helm-Bump folgt nach CI grün
-- Tag: `v1.25.1-PROJ-96`
+- Code-Commit: `3ed74be`
+- Helm-Bump-Commit: `958a1c9` (sha-3ed74be)
+- Tag: `v1.25.1-PROJ-96` gesetzt + gepusht
 
 **Tester-Verifikation:** B2B-Vorbereitungs-Mail an einen Test-Antrag,
 EEG-Customer-Onboarding-Approval-Flow, Vorstands-Modus für

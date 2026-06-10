@@ -216,7 +216,7 @@ Manche EEGs wollen die Beitrittsbestätigung nicht automatisch ans Mitglied vers
 
 **Vor der Aktivierung sicherstellen:** Wenn der Toggle aktiv ist, **muss** die EEG-Kontakt-Mail gepflegt sein. Fehlt sie, bricht der Aktivierungs-Übergang ab und der Antrag bleibt im vorherigen Status. Du siehst die Fehlermeldung direkt im Aktivierungs-Vorgang.
 
-**Beitrittserklärung im Nachhinein herunterladen:** Im Antrags-Detail erscheint nach erfolgreicher Aktivierung ein blauer Hinweisblock mit dem Datum des Versands plus einem Knopf „Beitrittserklärung herunterladen". Damit kannst du das PDF jederzeit neu erzeugen — z. B. wenn der Vorstand das Dokument verlegt hat.
+**Beitrittserklärung im Nachhinein herunterladen:** Im Antrags-Detail eines aktivierten Mitglieds findest du im Dropdown **Herunterladen** den Eintrag *Beitrittserklärung* (zusätzlich zu Excel + Beitrittsbestätigung). Damit kannst du das PDF jederzeit neu erzeugen — z. B. wenn der Vorstand das Dokument verlegt hat. Sichtbar nur, wenn die EEG den Vorstands-Genehmigungs-Workflow aktiv hat und der Antrag den Status *Aktiviert* erreicht hat.
 
 ### Genossenschaftsanteile *(Alle Optionen)*
 

@@ -77,6 +77,20 @@ Klicke auf eine Zeile in der Tabelle, um die **Detailansicht** des Antrags zu ö
 
 ![Antragsdetail unten](images/admin-application-detail-2.png)
 
+Die Aktionsleiste oben rechts gruppiert Aktionen in zwei Dropdowns plus einzelne Top-Level-Buttons. Sichtbarkeit hängt vom aktuellen Status ab:
+
+| Aktion | Dropdown / Top-Level | Wann verfügbar |
+|--------|---------------------|----------------|
+| **Excel** | Herunterladen | ab Status *Genehmigt* |
+| **Beitrittsbestätigung** | Herunterladen | ab Status *Genehmigt* |
+| **Beitrittserklärung** | Herunterladen | Status *Aktiviert* + Vorstands-Genehmigungs-Workflow der EEG aktiv |
+| **Bestätigungs-Mail** *(oder „Bestätigungs-Link" bei pendender E-Mail-Bestätigung)* | Erneut senden | jederzeit |
+| **SEPA-Mandat** | Erneut senden | Status *Aktiviert* |
+| **Stammdaten abgleichen** | Top-Level | Status *Aktiviert* (greift auf den Faktura-Core zu) |
+| **Datenweiterleitung** | Top-Level | jederzeit |
+| **Löschen** | Top-Level (destruktiv) | Status *Entwurf* oder *Abgelehnt* |
+| **Bearbeiten** | Top-Level (primär) | Status *Eingereicht* / *In Prüfung* / *Rückfrage* / *Genehmigt* / *Import fehlgeschlagen* |
+
 Die Detailansicht zeigt alle Angaben des Mitglieds:
 
 - **Statusaktionen** — verfügbare Aktionen je nach aktuellem Status
