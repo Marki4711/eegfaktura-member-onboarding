@@ -255,7 +255,7 @@ Wenn ein Mitglied über den falschen RC-Link der EEG A registriert hat, aber eig
 **Ablauf**:
 
 1. Klicke auf **EEG umzuordnen**
-2. Wähle die Ziel-EEG aus dem Dropdown (deine Tenants außer der aktuellen)
+2. Wähle die Ziel-EEG aus dem Dropdown (deine Tenants außer der aktuellen). Das Dropdown zeigt — sobald die Stammdaten synchronisiert wurden — die EEGs im Format `Kurzform • RC-Nummer` (z. B. `EEG-Test • RC0001`); EEGs ohne hinterlegte Kurzform erscheinen am Ende der Liste mit reiner RC-Nummer.
 3. Gib eine Begründung an (Pflichtfeld, mindestens 5 Zeichen)
 4. Bestätige mit **Umzuordnen**
 

@@ -21,7 +21,7 @@ Die Tabelle zeigt:
 - **Referenznummer** — eindeutige Kennung des Antrags
 - **Name** — Mitgliedsname oder Firmenname
 - **E-Mail** — Kontaktadresse des Mitglieds
-- **EEG** — RC-Nummer der zugehörigen EEG
+- **EEG** — Kurzform der zugehörigen EEG (z. B. `EEG-Test`). Bei Hover über die Zelle erscheint die vollständige Referenznummer als Tooltip. Sobald die Kurzform noch nicht aus eegFaktura synchronisiert wurde, zeigt die Spalte die reine Referenznummer als Fallback. Die Sortierung der Spalte erfolgt weiterhin nach der Referenznummer.
 - **Status** — aktueller Bearbeitungsstand
 - **Eingereicht am** — Datum und Uhrzeit der Einreichung (Anzeige in Europe/Vienna)
 
@@ -38,7 +38,7 @@ Die Mitgliedsnummer ist nicht in der Liste, sondern erst in der Detailansicht ei
 | **Status** | Nur Anträge mit einem bestimmten Status anzeigen (Entwurf, Eingereicht, E-Mail bestätigt, In Bearbeitung, Info benötigt, Genehmigt, Abgelehnt, Importiert, Import fehlgeschlagen, **Bereit zur Aktivierung**, **Aktiviert**) |
 | **Name** | Teilsuche über Vorname, Nachname und Firmenname (z. B. findet „Must" sowohl „Max Mustermann" als auch eine Firma „Musterbetrieb GmbH") |
 | **E-Mail** | Teilsuche in der E-Mail-Adresse |
-| **EEG** | Nur Anträge einer bestimmten EEG anzeigen (erscheint nur bei Admins mit mehreren EEGs) |
+| **EEG** | Nur Anträge einer bestimmten EEG anzeigen (erscheint nur bei Admins mit mehreren EEGs). Die Liste zeigt sobald die Stammdaten synchronisiert wurden das Format `Kurzform • RC-Nummer` (z. B. `EEG-Test • RC0001`). Sortierung alphabetisch nach Kurzform — EEGs ohne Kurzform landen am Ende. |
 | **Eingereicht ab / bis** | Zeitraum der Einreichung (Datumsbereich) |
 
 ## Massenaktionen

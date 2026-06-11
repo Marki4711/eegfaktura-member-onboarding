@@ -4,17 +4,13 @@
 
 ---
 
-## 2026-06-11 (spät)
+## 2026-06-11
 
 **EEG-Kurzform statt nackter Referenznummer**
 
 In allen drei Admin-Auswahllisten (EEG-Wechsel in den Einstellungen, EEG-Filter im Antragsbereich, Ziel-EEG-Auswahl beim Umordnen) sowie in der Spalte „EEG" der Antragsliste erscheint jetzt die in eegFaktura hinterlegte Kurzform der EEG (z. B. `EEG-Test`). In den Listboxen kombiniert mit der Referenznummer dahinter (Format `EEG-Test • RC0001`); in der Antragsliste nur die Kurzform, mit der Referenznummer als Tooltip beim Überfahren.
 
 Sortiert wird alphabetisch nach Kurzform — EEGs ohne Kurzform landen ans Listenende. Hat eine EEG in eegFaktura keine Kurzform hinterlegt, oder wurden die Stammdaten noch nicht synchronisiert, fällt die Anzeige automatisch auf die reine Referenznummer zurück. Der Sync läuft wie bisher manuell über den **Aktualisieren**-Knopf auf dem Stammdaten-Tab; eine Änderung der Kurzform in eegFaktura wird also erst nach dem nächsten Sync sichtbar.
-
----
-
-## 2026-06-11 (Abend)
 
 **Eigene Farben für die Online-Registrierung**
 
@@ -25,10 +21,6 @@ Eine Live-Vorschau zeigt direkt, wie die Mitglied-werden-Seite aussehen wird. Da
 Wechselst du zwischen den Tabs „Preset" und „Eigene Farben" hin und her, bleiben beide Einstellungen gespeichert. Du kannst also jederzeit zurück auf ein Preset und später wieder dein individuelles Theme aktivieren, ohne die Werte neu eingeben zu müssen.
 
 Wie immer ist der gesamte Editor nur in der Ansicht „Alle Optionen" sichtbar. Bestehende EEGs verändern sich nicht — sie bleiben so lange beim aktuellen Preset, bis im Editor aktiv ein individuelles Theme gespeichert wird.
-
----
-
-## 2026-06-11
 
 **Farben in der Online-Registrierung anpassbar**
 
@@ -49,7 +41,7 @@ Bestehende EEGs verändern sich nicht — sie behalten das Standard-Theme so lan
 
 ---
 
-## 2026-06-10 (spät)
+## 2026-06-10
 
 **Antrag ablehnen ohne Mail an den Beitrittswerber**
 
@@ -63,10 +55,6 @@ Bei „Aktivierung zurücksetzen" und „Auf Prüfung zurücksetzen" blieb der B
 
 Im Spalten-Picker steht in der Kategorie „Stammdaten" jetzt ein einzelnes Feld „Name", das je nach Mitgliedstyp den passenden Wert liefert: bei Unternehmen, Vereinen und Gemeinden den Firmenname, bei Privatpersonen und Landwirten den Vornamen und Nachnamen kombiniert. Wer beides braucht — also Firmenname und Personennamen in getrennten Spalten — fügt die bestehenden Spalten „Vorname", „Nachname" und „Firmenname" zusätzlich hinzu wie bisher.
 
----
-
-## 2026-06-10 (abends)
-
 **Mitglied-werden-Formular: Reihenfolge der Titel-Felder**
 
 Im „Persönliche Daten"-Block stehen Titel vor und Titel nach jetzt zusammen in einer Zeile ganz oben, darunter Vorname und Nachname. Vorher war Titel nach unter den Namen — die Reihenfolge ist jetzt logischer und auch im Admin-Edit-Dialog gleich.
@@ -78,10 +66,6 @@ Auf dem ausgedruckten PDF der Beitrittserklärung sitzt die Linie für Datum / O
 **Layout-Politur: IBAN und Kontowortlaut auf einer Linie**
 
 Im Bankverbindungs-Block des Public-Formulars saßen IBAN-Eingabefeld und Kontowortlaut-Eingabefeld minimal versetzt — der Hint-Popover beim Kontowortlaut-Label hat das verursacht. Beide Felder stehen jetzt pixelgenau auf gleicher Höhe.
-
----
-
-## 2026-06-10
 
 **Neue Statusaktion „Aktivierung zurücksetzen"**
 

@@ -10,7 +10,9 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
-### Feature — EEG-Kurzform in Admin-UI-Auswahllisten + Antragsliste (PROJ-101) *(2026-06-11 spät)*
+## 2026-06-11
+
+### Feature — EEG-Kurzform in Admin-UI-Auswahllisten + Antragsliste (PROJ-101)
 
 **Was sich ändert:** Die drei EEG-Auswahllisten (Settings-Switcher, Antrags-Filter, Reassign-Dialog-Ziel) zeigen ab jetzt das Format `Kurzform • RC-Nummer` statt nur der Referenznummer. Die Antragslisten-Spalte „EEG" zeigt nur die Kurzform mit der RC-Nummer als Tooltip.
 
@@ -20,7 +22,7 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 - **Frontend:** Neuer `formatEegLabel`-Helper + `EegDirectoryProvider`-React-Context im AdminLayout — einmaliger Fetch beim Mount, In-Memory-Cache, stillschweigender Fallback auf reine RC-Darstellung bei Fetch-Fehler. Vier Konsumenten migriert: Settings-Switcher, Filter-Panel, Reassign-Dialog, Antragslisten-Spalte.
 - **Out-of-Scope (Folge-PROJ wenn nachgefragt):** Excel-Export, Mail-Templates, Beitrittsbestätigungs-PDF. Die Langform (`eeg_name`) bleibt dort wie bisher. `last-used-rc`-Storage bleibt RC-basiert.
 
-### Feature — Individuell anpassbare Brand-Farben (PROJ-103) *(2026-06-11 Abend)*
+### Feature — Individuell anpassbare Brand-Farben (PROJ-103)
 
 Aufbau auf PROJ-102: zusätzlich zum Preset-Switch gibt es jetzt einen Custom-Theme-Modus mit 8 frei wählbaren HEX-Farben, optional Schriftart, Live-Vorschau und WCAG-AA-Hard-Gate.
 
@@ -32,7 +34,7 @@ Aufbau auf PROJ-102: zusätzlich zum Preset-Switch gibt es jetzt einen Custom-Th
 - **Configexport:** strikt-bei-Werten beim Theme (Reject bei JSON-Parse-Fail / invalid HEX / fehlendem v / WCAG-Fail), tolerant-bei-unbekannten-Keys. Brand-Mode wird tolerant auf `'preset'` defaultet bei unbekannten Werten.
 - **PROJ-67-Awareness-Banner:** triggert auch auf `brandMode='custom'` mit non-leerem Theme — Standard-Modus-Admins sehen einheitlich, wenn die Public-Page customised ist.
 
-### Feature — Farbgestaltung der Online-Registrierung (PROJ-102) *(2026-06-11)*
+### Feature — Farbgestaltung der Online-Registrierung (PROJ-102)
 
 Pro-EEG-Theme-Anpassung der Public-Registration-Page über vier vordefinierte Presets (`teal` / `leaf` / `sun` / `slatey`), plus Logo + EEG-Name-Einbindung im Header und Footer-Switch auf „Powered by eegFaktura" bei non-default Brand.
 
@@ -42,7 +44,9 @@ Pro-EEG-Theme-Anpassung der Public-Registration-Page über vier vordefinierte Pr
 - **Admin-Frontend:** Neuer `AdminBrandEditor` (Select + 2x2 Preview-Karten mit Inline-Style-Generator als Single-Source-of-Truth). Nur in PROJ-67-Modus „Alle Optionen" sichtbar. Auto-Save reiht sich in den PROJ-84-Hook ein. `isAdvancedEEGSettingsActive` triggert auf non-default Preset (Awareness-Banner-Integration).
 - **Security-Mitigation:** `GET /api/public/registration/{rc_number}` bekommt neue `PublicGetRegistrationRateLimitMiddleware` (60/min/IP) und `Cache-Control: public, max-age=60`, um die Bandbreiten-Amplifikation durch das jetzt ~20× größere Response (Logo inline) abzufangen.
 
-### Feature — Reject-Mail optional *(2026-06-10, spät)*
+## 2026-06-10
+
+### Feature — Reject-Mail optional
 
 Tester-Wunsch 2026-06-10: bei „Ablehnen" landete bisher zwangsweise
 eine Mail beim Antragsteller — bei offensichtlichem Junk oder einem
@@ -59,7 +63,7 @@ erweitert; bei `notifyMember == &false` wird `SendRejectedNotification`
 Bei „Info anfordern" (needs_info) bleibt die Mail Pflicht — ohne Mail
 hat dieser Status semantisch keinen Sinn.
 
-### Fix — PROJ-100 Reset-Validierung + neue Datenweiterleitungs-Spalte „Name" *(2026-06-10, spät)*
+### Fix — PROJ-100 Reset-Validierung + neue Datenweiterleitungs-Spalte „Name"
 
 Zwei Tester-Befunde unmittelbar nach dem v1.27.1-Push:
 
@@ -80,9 +84,9 @@ Zwei Tester-Befunde unmittelbar nach dem v1.27.1-Push:
   - private / farmer → Vorname + Nachname (sauber getrimmt,
     Single-Spaces, leere Teile werden ausgelassen)
 
-### Fix — Mitglied-werden-Formular und Beitrittserklärung-PDF *(2026-06-10, abends)*
+### Fix — Mitglied-werden-Formular und Beitrittserklärung-PDF
 
-Tester-Befunde 2026-06-10 spät:
+Tester-Befunde 2026-06-10:
 
 - **Reihenfolge der Titel-Felder im „Persönliche Daten"-Block:** Titel
   vor und Titel nach werden jetzt zusammen in der oberen Zeile angezeigt
@@ -100,8 +104,7 @@ Tester-Befunde 2026-06-10 spät:
   Beide Labels stehen jetzt im gleichen Layout-Wrapper, die Inputs
   liegen pixelgenau auf einer Linie.
 
-### Feature — PROJ-100: Status-Rollback für irrtümlich aktivierte Anträge *(2026-06-10)*
-
+### Feature — PROJ-100: Status-Rollback für irrtümlich aktivierte Anträge
 Owner-Befund 2026-06-10: ein Antrag konnte irrtümlich im Status
 `activated` landen (manueller PROJ-53-Klick oder PROJ-46-Activation-
 Check trotz fehlender Core-Aktivität) und war von dort nicht mehr
@@ -155,8 +158,7 @@ ohne Field-Cleanup öffnen.
 Helm-Wert-Änderungen** — beide Ziel-Stati existieren bereits in
 der CHECK-Constraint, status_log-Schema reicht.
 
-### Fix — PROJ-60: Spalten-Editor in Datenweiterleitung respektiert Dialog-Breite *(2026-06-10)*
-
+### Fix — PROJ-60: Spalten-Editor in Datenweiterleitung respektiert Dialog-Breite
 Tester-Befund 2026-06-10: beim Öffnen des „Bearbeiten"-Dialogs einer
 Datenweiterleitungs-Konfiguration waren die Spaltenbreiten für wenige
 Sekunden korrekt und wurden dann viel zu breit — Format- und
@@ -177,8 +179,7 @@ Fixes in `src/components/data-export/excel-editor.tsx`:
   #, Format und Aktionen → Inputs und Selects passen sich an die
   Zellenbreite an statt ihre Default-`min-width: 200px` zu erzwingen.
 
-### Feature — PROJ-99: Datenweiterleitung — neue Felder im Excel-Field-Picker *(2026-06-10)*
-
+### Feature — PROJ-99: Datenweiterleitung — neue Felder im Excel-Field-Picker
 Tester-Befund Dani Strasser 2026-06-10: vier Felder fehlten in der
 Spalten-Auswahl der Datenweiterleitung (Mandatsreferenz,
 Jahresverbrauch, PV-Leistung, Speicher).
@@ -200,8 +201,7 @@ bleibt die Excel-Zelle leer (kein „0"). Neue Kategorie „Zählpunkte
 (aggregiert)" trennt visuell vom bestehenden Zählpunkte-Bucket.
 Bestand-Configs bleiben gültig — keine Migration.
 
-### Refactor — PROJ-98: Anrede-Konditional je Mitgliedstyp *(2026-06-10)*
-
+### Refactor — PROJ-98: Anrede-Konditional je Mitgliedstyp
 Owner-Korrektur der „überall Du"-Direktive von PROJ-96. Tester-Befund:
 bei Unternehmen + Gemeinden ist der konsequente Du-Ton komisch.
 
@@ -221,15 +221,13 @@ umgestellt. PROJ-91-Banner-Helper Member-Variante bekommt zweiten
 Param `useFormal`. PROJ-96-Stellen für Customer-Onboarding und
 Vorstand zurückgerollt.
 
-### Fix — PROJ-97 Aktionsleisten-Plazierung *(2026-06-10)*
-
+### Fix — PROJ-97 Aktionsleisten-Plazierung
 Nach dem 3-Dropdown-Refactor sprangen die 4 verbliebenen Aktions-
 Buttons im flex-justify-between-Wrapper auf „Zurück zur Liste"-Höhe.
 Header-Block schliesst nach den Header-Zeilen; Aktionsleiste sitzt
 als eigene Zeile mit justify-end darunter.
 
-### Fix — PROJ-97: Aktions-Reihe im Antrags-Detail aufgeräumt *(2026-06-10)*
-
+### Fix — PROJ-97: Aktions-Reihe im Antrags-Detail aufgeräumt
 Tester-Befund: deplazierter „Beitrittserklärung herunterladen"-Button
 im blauen Vorstands-Workflow-Hinweisblock direkt unter der bereits
 gefüllten Aktionsleiste. Sieben Aktionen flach in einer Reihe sind
@@ -249,8 +247,7 @@ weg — das Verhalten ist in der User-Guide-Doku beschrieben
 Stammdaten-Resync-Popover-Text auf den neuen Mandat-Pfad „Erneut
 senden → SEPA-Mandat" aktualisiert.
 
-### Fix — PROJ-96: Du-Konsistenz in allen Mail-Pfaden *(2026-06-10)*
-
+### Fix — PROJ-96: Du-Konsistenz in allen Mail-Pfaden
 Owner-Direktive: „überall Du". Tester-Befund TODO-4 aus dem Vorabend
 war kein Owner-Klärungs-Fall, sondern ein konkreter Bug. Code-Audit
 fand vier Sie-Stellen — die acht Mitglieder-Templates blieben sauber:
@@ -269,8 +266,7 @@ fand vier Sie-Stellen — die acht Mitglieder-Templates blieben sauber:
 Finale Grep über `internal/mail/` + `internal/pdf/`: 0 Treffer für
 `\b(Sie|Ihre|Ihr|Ihnen|Ihren|Ihres)\b`.
 
-### Fix — PROJ-95: Tester-Bundle 2026-06-10 (Anlagenname-Wipe, Mandatsreferenz-Mail, Hallo-Whitespace) *(2026-06-10)*
-
+### Fix — PROJ-95: Tester-Bundle 2026-06-10 (Anlagenname-Wipe, Mandatsreferenz-Mail, Hallo-Whitespace)
 Drei Befunde aus dem Tester-Chat 2026-06-10 morgens nach dem
 PROJ-86–94-Deploy in einem Bundle.
 
@@ -306,7 +302,9 @@ PDF-Filenamen bleiben `sepa-mandat-{MemberNumber}.pdf` /
 `sepa-firmenlastschrift-mandat-{MemberNumber}.pdf` — File-Naming-
 Konvention bewusst stabil.
 
-### Fix — PROJ-94: Backfill `sepa_mandate_accepted_at` für Bestand *(2026-06-09)*
+## 2026-06-09
+
+### Fix — PROJ-94: Backfill `sepa_mandate_accepted_at` für Bestand
 
 Owner-Direktive 2026-06-09 (Abend): „Wäre es nicht sinnvoll, bei
 Verwendung von Audit-Trail ‚SEPA-Mandat akzeptiert am' durch den
@@ -322,8 +320,7 @@ Fix: Migration `000075` backfilled NULL-Werte mit
 `COALESCE(submitted_at, created_at)` — dem tatsächlichen Akzept-
 Zeitpunkt aus Member-Sicht. Idempotent.
 
-### Fix — PROJ-93: Diagnose-Log für „Anlagenname kommt nicht in Faktura an" *(2026-06-09)*
-
+### Fix — PROJ-93: Diagnose-Log für „Anlagenname kommt nicht in Faktura an"
 Tester-Befund 2026-06-09 (Dani Strasser, RC100387-2026-0007):
 „Bei der Firmenanmeldung hab ich auch wieder den Anlagennamen versucht
 — findet sich auch in ‚Deine Beitrittserklärung wurde eingereicht',
@@ -341,8 +338,7 @@ Tester-Reproduktion zeigt im Backend-Log, ob das Wire-Format korrekt
 ist (dann Core-Side-Bug) oder leer (dann Onboarding-Drift in PROJ-95
 adressieren). Kein PII im Log.
 
-### Fix — PROJ-92: ResetImportTx cleart mandate_reference + mandate_date *(2026-06-09)*
-
+### Fix — PROJ-92: ResetImportTx cleart mandate_reference + mandate_date
 Tester-Befund 2026-06-09 Abend: nach Import-Reset + Re-Import mit neuer
 Mitgliedsnummer zeigte das angehängte SEPA-PDF noch die alte Referenz vom
 ersten Import. Die Mail hatte schon die neue Mitgliedsnummer im Text —
@@ -363,8 +359,7 @@ Mandatsdatum sauber neu gesetzt.
 Keine Schema-Migration nötig. Eigenständig oder im Bundle mit PROJ-91
 über denselben `helm upgrade` deployable.
 
-### Feature — PROJ-91: B2B-Vorbereitungs-Toggle (ersetzt PROJ-79-Heimlich-Mapping + entfernt awaiting_bank_confirmation) *(2026-06-09)*
-
+### Feature — PROJ-91: B2B-Vorbereitungs-Toggle (ersetzt PROJ-79-Heimlich-Mapping + entfernt awaiting_bank_confirmation)
 Owner-Direktive 2026-06-09: das heutige b2b→CORE-Heimlich-Mapping (PROJ-79)
 und der Marker-Status `awaiting_bank_confirmation` werden durch einen
 expliziten Admin-Edit-Toggle „Mitglied für Umstellung auf B2B vorbereiten"
@@ -435,8 +430,7 @@ Memory-Lessons aus PROJ-90 respektiert: Migration 000074 ist nach erstem
 Apply auf irgendeinem Cluster IMMUTABLE. Änderungen kommen als neue
 Aufhol-Migration mit nächster Nummer.
 
-### Fix — PROJ-90: customer_onboarding_submission Schema-Drift-Aufholung *(2026-06-09)*
-
+### Fix — PROJ-90: customer_onboarding_submission Schema-Drift-Aufholung
 Tester-Befund 2026-06-09: PROJ-71-Plattform-Buchung über „Vertrag &
 Onboarding-Status" scheiterte mit „An internal error occurred". Pod-Log
 auf test zeigte `pq: column "avv_pdf" of relation
@@ -465,7 +459,9 @@ Nummer — niemals durch Re-Editieren der bestehenden Datei.
 Owner-Action: `helm upgrade` auf test (Migration-Job läuft), danach
 Prod-Schema-Check mit `\d` ob derselbe Drift vorliegt.
 
-### Fix — PROJ-89: B2B-Klassik-PDF Signatur-Layout an CORE angeglichen *(2026-06-08)*
+## 2026-06-08
+
+### Fix — PROJ-89: B2B-Klassik-PDF Signatur-Layout an CORE angeglichen
 
 Tester-Befund 2026-06-08: im B2B-Klassik-PDF saß der Signatur-Block
 visuell gequetscht — vorbefülltes Datum fast auf der Unterschrifts-
@@ -496,8 +492,7 @@ Pure Backend-PDF-Änderung: keine API/DB/Helm-Änderung.
 
 Spec: `features/PROJ-89-b2b-pdf-signature-layout.md`.
 
-### Fix — PROJ-88: Mail-Templates auf Audit-Trail-Variante umgestellt *(2026-06-08)*
-
+### Fix — PROJ-88: Mail-Templates auf Audit-Trail-Variante umgestellt
 PROJ-78 hat das PDF-Rendering auf den Audit-Trail-Block umgestellt
 (keine Unterschriftslinie mehr), aber die Mail-Templates wurden
 nicht mitgezogen — bei aktivem Audit-Toggle bekam das Mitglied
@@ -538,8 +533,7 @@ Pure Backend-Mail-Änderung: keine API/DB/Helm-Aenderung.
 
 Spec: `features/PROJ-88-mail-audit-trail-spiegel.md`.
 
-### Fix — PROJ-87: USt-Pflicht-Status in der Antrags-Detail-Ansicht sichtbar *(2026-06-08)*
-
+### Fix — PROJ-87: USt-Pflicht-Status in der Antrags-Detail-Ansicht sichtbar
 Tester-Feedback 2026-06-08: in der Antrags-Detail-Ansicht
 (`admin-application-detail.tsx`) war der USt-Pflicht-Status eines
 Antragstellers (Kleinunternehmer ja/nein) nicht direkt erkennbar.
@@ -562,8 +556,7 @@ Beide Pfade leiten aus demselben DB-Feld ab (PROJ-63-Direktive:
 
 Spec: `features/PROJ-87-vatliable-status-in-admin-detail.md`.
 
-### Fix — PROJ-86: isKnownStatus-Whitelist PROJ-46-Drift-Hotfix *(2026-06-08)*
-
+### Fix — PROJ-86: isKnownStatus-Whitelist PROJ-46-Drift-Hotfix
 `isKnownStatus()` in `internal/http/admin.go` listete nur 9 von 12
 Werten der `shared.ApplicationStatus`-Enumeration. Die drei
 PROJ-46-Status (`awaiting_bank_confirmation`, `ready_for_activation`,
@@ -601,8 +594,7 @@ Owner es priorisiert.
 
 Spec: `features/PROJ-86-isknownstatus-proj46-drift-hotfix.md`.
 
-### Feature — PROJ-84: EEG-Stammdaten-Editor auf Auto-Save mit Cross-Field-Gate *(2026-06-08)*
-
+### Feature — PROJ-84: EEG-Stammdaten-Editor auf Auto-Save mit Cross-Field-Gate
 Der `AdminEEGSettingsEditor` (Tab „Stammdaten & SEPA" unter
 `/admin/settings`) hatte als einziger Settings-Editor noch einen
 expliziten „Konfiguration speichern"-Button — weil drei
@@ -645,8 +637,7 @@ Pure Frontend-Änderung: keine API/DB/Migration/Helm-Änderung.
 
 Spec: `features/PROJ-84-eeg-settings-auto-save.md`.
 
-### Feature — PROJ-83: Letzte EEG-Auswahl im Admin-Settings persistieren *(2026-06-08)*
-
+### Feature — PROJ-83: Letzte EEG-Auswahl im Admin-Settings persistieren
 `/admin/settings` initialisierte `selectedRc` bisher immer auf
 `rcNumbers[0]`. Bei 10+ EEGs war das jedes Mal ein Mehrklick im
 Listbox-Auswahlmenü.
@@ -671,8 +662,7 @@ Tests: 9 neue Vitest-Cases (Verhalten + Sicherheits-Anker). Build clean.
 
 Spec: `features/PROJ-83-last-used-eeg-persistence.md`.
 
-### Fix — PROJ-82: Settings-Formular-Editor — UI-Staleness bei Tab-Wechsel *(2026-06-08)*
-
+### Fix — PROJ-82: Settings-Formular-Editor — UI-Staleness bei Tab-Wechsel
 `AdminFieldConfigEditor` persistierte Konfigurationsänderungen korrekt in
 der DB, aber der Parent-State `fieldConfig` in
 `src/app/admin/settings/page.tsx` wurde nicht aktualisiert. Bei Tab-Wechsel
@@ -693,8 +683,7 @@ Owner-Direktive 2026-06-08 (Variante B aus der Analyse).
 
 Spec: `features/PROJ-82-fieldconfig-editor-staleness-fix.md`.
 
-### Feature — PROJ-79: B2B-Import als CORE in eegFaktura-Core *(2026-06-08)*
-
+### Feature — PROJ-79: B2B-Import als CORE in eegFaktura-Core
 `mapEinzugsart` in `internal/importing/payload.go` mappt jetzt
 `einzugsart=b2b` auf `"CORE"` (statt `"B2B"`) im Core-API-Payload.
 Hintergrund: das SEPA-B2B-SDD-Rulebook verlangt eine separate
@@ -744,8 +733,7 @@ anonymisiertes Beispiel mit Musterbetrieb GmbH); Eintrag in
 Spec: `features/PROJ-79-b2b-import-as-core.md` (16 Owner-Entscheidungen
 aus /requirements + /grill-me).
 
-### Feature — PROJ-81: SEPA-Einwilligung optional pro Mitgliedstyp *(2026-06-08)*
-
+### Feature — PROJ-81: SEPA-Einwilligung optional pro Mitgliedstyp
 Per-EEG-Toggle „SEPA-Feld für ausgewählte Mitgliedstypen auf optional setzen" mit konfigurierbarer
 Mitgliedstyp-Whitelist. Wenn aktiv, ist die SEPA-Einwilligungs-Checkbox
 im Public-Form für die gelisteten Mitgliedstypen optional. Bei nicht
@@ -855,8 +843,7 @@ Backend rejected, Configexport-Importer filtert und loggt.
   abweichenden Abrechnungsweg, Bankdaten-Pflicht.
 - `docs/user-guide/changelog.md`: Eintrag 2026-06-08 (PROJ-frei).
 
-### Feature — PROJ-80: SEPA-Settings-Vereinfachung *(2026-06-08)*
-
+### Feature — PROJ-80: SEPA-Settings-Vereinfachung
 Der EEG-Toggle „SEPA-Mandat als Datei dem Antragsteller übermitteln"
 (`sepa_mandate_enabled`) ist entfernt. Das System erzeugt jetzt für jedes
 SEPA-Mitglied (`einzugsart != kein_sepa`) automatisch ein Mandat-PDF; die
@@ -947,7 +934,9 @@ Klassik-Pfad keine EEG-Kopie (Mitglied sendet Original zurück).
   - `ResolveSepaMandateType`-Tests ohne `SEPAMandateEnabled`; `_OnlineConsentOnly`-Test entfällt
   - `BuildActivationData`-Tests umgebaut; `_OnlineConsent_KeinMandateHint` entfällt
 
-### Feature — PROJ-78: Toggle „Elektronisches SEPA-Mandat" (B2B + CORE separat) *(2026-06-07)*
+## 2026-06-07
+
+### Feature — PROJ-78: Toggle „Elektronisches SEPA-Mandat" (B2B + CORE separat)
 
 Zwei unabhängige Per-EEG-Schalter steuern, ob das SEPA-Mandat-PDF den
 elektronischen Audit-Trail-Block (§ 76 (3) EIWOG 2010) oder den klassischen
@@ -1000,8 +989,7 @@ während CORE weiterhin physisch unterschrieben werden muss.
 - Audit-Render-Helper geteilt, klassischer Block inline pro Generator (Layout-Unterschiede CORE/B2B)
 - Service-Layer-Test als Tabelle, PDF-Tests als individuelle Funktionen mit klaren Failure-Lokationen
 
-### Feature — PROJ-77: B2B-Mandat-Audit-Block (§ 76 (3) EIWOG 2010) *(2026-06-07)*
-
+### Feature — PROJ-77: B2B-Mandat-Audit-Block (§ 76 (3) EIWOG 2010)
 Im SEPA-Firmenlastschrift-Mandat-PDF (`einzugsart=b2b`) ersetzt ein
 Audit-Trail-Text den klassischen Datum/Unterschrift-Block. Der Text
 dokumentiert die elektronische SEPA-Zustimmung als formfreie
@@ -1044,8 +1032,7 @@ bleibt vollständig unverändert — Audit-Block ist B2B-spezifisch.
 Tenant-Name, Wortlaut-Wechsel, Fallback, Core-Regression). Alle 12
 Pakete grün.
 
-### Feature — PROJ-76: Vorstands-Genehmigungs-Workflow für Beitrittserklärung *(2026-06-07)*
-
+### Feature — PROJ-76: Vorstands-Genehmigungs-Workflow für Beitrittserklärung
 Per-EEG-Toggle, der den Aktivierungs-Mail-Pfad umstellt. Hintergrund:
 manche EEGs wollen die Beitrittsbestätigung nicht automatisch ans Mitglied
 versenden, sondern durch den Vorstand formell genehmigen lassen
@@ -1087,7 +1074,9 @@ Dokument verlegt hat.
 PROJ-65 (Vorstands-Signaturblock im bestehenden PDF, Planned) wird
 durch PROJ-76 vollständig abgedeckt und ist auf **Superseded** gesetzt.
 
-### UX — PROJ-75: SEPA-Einwilligungs-Checkbox in der Bankverbindungs-Card *(2026-06-06)*
+## 2026-06-06
+
+### UX — PROJ-75: SEPA-Einwilligungs-Checkbox in der Bankverbindungs-Card
 
 Tester-Wunsch 2026-06-06: Die SEPA-Einwilligungs-Checkbox im öffentlichen
 Anmeldeformular saß bisher im allgemeinen Einwilligungsblock — weit weg
@@ -1105,8 +1094,7 @@ ausgeblendet, wenn die ID leer ist. Sichtbarkeits-Bedingung der Checkbox
 bleibt unverändert (`sepaMandateEnabled=false` = Online-Zustimmungs-
 Lösung).
 
-### Fix — PROJ-74: B2B-Mandate trotz `SEPAMandateEnabled=false` + Hart-Fail-Schutz *(2026-06-06)*
-
+### Fix — PROJ-74: B2B-Mandate trotz `SEPAMandateEnabled=false` + Hart-Fail-Schutz
 Aufgedeckt durch Tester-Befund 2026-06-06: bei `SEPAMandateEnabled=false`
 sperrte `buildSEPAMandateData` ALLE PDF-Generierungspfade — auch B2B.
 Das war für Core korrekt (Online-Zustimmung als Fallback), für B2B aber
@@ -1140,8 +1128,7 @@ bleibt es bei Skip+Warn (Online-Zustimmung als Fallback). Der Resync-Pfad
   `SEPAMandateEnabled=false`, sofern Pflichtfelder fehlen — mit
   Konjunktiv-Text „Falls Sie B2B-Anträge bearbeiten…".
 
-### Cleanup — PROJ-73: Verwaisten EEG-Toggle `use_company_sepa_mandate` entfernt *(2026-06-06)*
-
+### Cleanup — PROJ-73: Verwaisten EEG-Toggle `use_company_sepa_mandate` entfernt
 PROJ-14 hatte den Toggle eingeführt, um pro EEG zu entscheiden, ob
 Unternehmen/Vereine das B2B-Mandat-PDF statt des Core-Mandats erhalten.
 PROJ-48 ersetzte diese Auto-Mapping-Logik durch das per-Antrag-
@@ -1157,7 +1144,9 @@ PROJ-61 (Config-Export-Bundles) tolerieren das alte Feld weiterhin —
 es wird beim Decoder ignoriert. `PROJ-14`-Spec auf **Superseded**
 markiert mit Verweis auf das aktuelle `einzugsart`-Modell.
 
-### Feature — PROJ-64: Faktura-Handover-Billing-Trigger *(2026-05-29)*
+## 2026-05-29
+
+### Feature — PROJ-64: Faktura-Handover-Billing-Trigger
 
 Schließt die Lücke zwischen dem geplanten Quartals-Verrechnungs-Modell
 (zählt neu an eegFaktura übergebene Anträge) und dem Excel-Export, der
@@ -1206,8 +1195,7 @@ Frontend (`admin-application-detail.tsx`):
 
 Specs: `features/PROJ-64-faktura-handover-billing-trigger.md`.
 
-### Feature — `approved → rejected` Transition *(2026-05-29)*
-
+### Feature — `approved → rejected` Transition
 Tester-Wunsch: „Ein Mitglied das genehmigt wurde kann ich ja nicht löschen!
 Kann man es einbauen das wenn ein Import zurückgesetzt wurde die Option
 Ablehnen angeboten wird?" — Genau. Vorher hatte `adminTransitions` gar keinen
@@ -1230,7 +1218,9 @@ decken `approved → rejected` (erlaubt), `approved → approved` (verboten,
 keine versehentliche Self-Transition), `approved → imported` (bleibt dem
 dedizierten Import-Endpoint vorbehalten) und `rejected → *` (terminal) ab.
 
-### Fix — Import-Pfad: Mandatsreferenz + Mandatsdatum fehlten im Core *(2026-05-28)*
+## 2026-05-28
+
+### Fix — Import-Pfad: Mandatsreferenz + Mandatsdatum fehlten im Core
 
 Tester-Befund: „Sepa Daten muss man aber in EEGFaktura Händisch nachtragen. Is
 aber so gedacht oder?" Antwort: nein, war ein Bug. Bei den at-import-Mandat-
@@ -1274,8 +1264,7 @@ manuelles Eintragen im eegFaktura-Frontend.
 Fünf Regression-Guards in `payload_test.go::TestShouldDeriveMandateAtImport_*`
 decken alle Trigger-Kombinationen ab.
 
-### Fix — Admin-Edit: „Zusatzangaben"-Karte fehlte komplett *(2026-05-28)*
-
+### Fix — Admin-Edit: „Zusatzangaben"-Karte fehlte komplett
 Tester-Befund: „beim editieren in Admin kann man Zusatzdaten — Beitritts-
 Datum als Admin nicht bearbeiten?" Korrekt — und nicht nur das
 Beitrittsdatum: die gesamte Zusatzangaben-Karte (membership_start_date,
@@ -1320,8 +1309,7 @@ Bekannter pre-existing Gap (nicht in diesem Fix gelöst):
 Admin-Update setzen ihn. Wenn ein Member im `needs_info`-Status seine
 Anteilszahl ändern soll, müsste das auch dort nachgezogen werden.
 
-### Fix — Aktivierungs-Mail: Mandatsreferenz-Hinweis fälschlich bei Online-Zustimmung *(2026-05-28)*
-
+### Fix — Aktivierungs-Mail: Mandatsreferenz-Hinweis fälschlich bei Online-Zustimmung
 Tester-Befund: Nach Status „aktiv" bekam ein Mitglied die Beitritts-
 bestätigungs-Mail mit dem Hinweis-Block „SEPA-Lastschriftmandat —
 Mandatsreferenz: 395. Bitte ergänze diese auf dem Mandatsformular, das
@@ -1341,7 +1329,9 @@ versendet wurde, (d) jetzt eine Mitgliedsnummer als Referenz vergeben
 ist. Drei neue Regression-Guards in `service_test.go` decken die
 Online-Consent-, Papier-Mandat- und AtImport-Variante ab.
 
-### Fix — PROJ-61 Bundle-Import: UI-Refresh nach Apply *(2026-05-27)*
+## 2026-05-27
+
+### Fix — PROJ-61 Bundle-Import: UI-Refresh nach Apply
 
 Tester-Befund: ein Bundle-Import schrieb 30 fieldConfig-Einträge
 sauber in die DB (Backend-Log bestätigt: `input=30 inserted=30`),
@@ -1476,7 +1466,9 @@ einen gemeinsamen Helper. Drei Bugs an drei Tagen (Generation-Label,
 Resend-Mail-Felder, PDF-Status-Map) — alle aus dem gleichen Anti-
 Pattern „zwei Struct-Literale die in Sync bleiben sollten".
 
-### Fix — Stammdaten-Sync: EEG-Name aus `description` statt `name` *(2026-05-25)*
+## 2026-05-25
+
+### Fix — Stammdaten-Sync: EEG-Name aus `description` statt `name`
 
 Im Admin-Bereich „Stammdaten" zeigte das Feld **EEG-Name** den kurzen
 internen Handle aus dem Core (z.B. `EEG-TEST`) statt der
@@ -1497,8 +1489,7 @@ liegt in `eeg.description`.
 Bestandsdaten in `eeg_name` werden beim nächsten Klick auf „Aus
 eegFaktura aktualisieren" automatisch korrigiert.
 
-### Fix — Core-Import: Netzbetreiber pro Zählpunkt *(2026-05-25)*
-
+### Fix — Core-Import: Netzbetreiber pro Zählpunkt
 Im `POST /participant`-Payload an den eegFaktura-Core fehlten die
 Netzbetreiber-Felder pro Zählpunkt komplett. Im Core-UI hatten die
 Zählpunkte des importierten Mitglieds keine Operator-Zuordnung; das
@@ -1547,7 +1538,9 @@ Lesson learnt: der lokale Core-Mirror weicht vom deployten Core ab
 (siehe Memory `project_myeegfaktura_source.md`). Bei Wire-Feldern
 zählt eine echte Prod-Payload mehr als die Mirror-Struct-Tags.
 
-### PROJ-63 — Follow-up: Firmenbuchnummer-/UID-Label-Alignment *(2026-05-24)*
+## 2026-05-24
+
+### PROJ-63 — Follow-up: Firmenbuchnummer-/UID-Label-Alignment
 
 Owner-Beobachtung im Test-Deploy: die Firmenbuchnummer-Zelle saß ein
 paar Pixel über der UID-Zelle. Ursache war der `flex items-center gap-1`-
@@ -1559,8 +1552,7 @@ Icon-Slot), damit beide Grid-Cells strukturgleich rendern und pixelgenau
 alignen. Spec PROJ-63 um „Open Follow-ups" (Screenshots nachziehen)
 ergänzt.
 
-### PROJ-63 — USt-Pflicht-Checkbox bei Unternehmen + Verein *(2026-05-24)*
-
+### PROJ-63 — USt-Pflicht-Checkbox bei Unternehmen + Verein
 Frontend-only Refactor als saubere Lösung für den PROJ-62-Follow-up:
 „leere UID = Kleinunternehmer" ist mehrdeutig, weil auch Firmen mit
 UID Kleinunternehmer sein können. Statt einer DB-Spalte gating eine
@@ -1586,8 +1578,7 @@ UI-Checkbox das UID-Eingabefeld:
 
 `tsc --noEmit` und `go build ./...` grün.
 
-### PROJ-62 — Follow-up: USt-Hints aus Mitgliedstyp-Dropdown entfernt *(2026-05-24)*
-
+### PROJ-62 — Follow-up: USt-Hints aus Mitgliedstyp-Dropdown entfernt
 Owner-Feedback: USt-Sätze in der Auswahlbox sind irreführend, da
 Kleinunternehmerregelung und UID-Vorhandensein orthogonal sind (auch
 Firmen mit UID können Kleinunternehmer sein). Die tatsächliche USt-
@@ -1605,8 +1596,7 @@ geklärt.
 - **`docs/user-guide/changelog.md`**: Eintrag „USt.-Hinweise im Dropdown
   vereinheitlicht" auf „… entfernt" reformuliert.
 
-### PROJ-62 — Frontend: sole_proprietor entfernt *(2026-05-24)*
-
+### PROJ-62 — Frontend: sole_proprietor entfernt
 Build-Failure-driven Refactor analog zum Backend, gesteuert über
 `tsc --noEmit`. 5 Frontend-Touchpoints aus AC-FE6:
 
@@ -1643,8 +1633,7 @@ Build-Failure-driven Refactor analog zum Backend, gesteuert über
 
 `npm run build` läuft sauber durch. `tsc --noEmit` ohne Fehler.
 
-### PROJ-62 — Backend: Mitgliedstypen Kleinunternehmer + Unternehmen zusammenführen *(2026-05-24)*
-
+### PROJ-62 — Backend: Mitgliedstypen Kleinunternehmer + Unternehmen zusammenführen
 `sole_proprietor` (PROJ-28) wird mit `company` verschmolzen. UID-Nummer
 wird optional — leer impliziert Kleinunternehmerregelung
 (§ 6 Abs 1 Z 27 UStG). Frontend folgt im nächsten Commit.
@@ -1689,8 +1678,7 @@ wird optional — leer impliziert Kleinunternehmerregelung
 Alle Go-Tests grün. Frontend-Refactor (5 Komponenten + 1 Type) folgt
 im nächsten Commit via /frontend-Skill.
 
-### PROJ-61 — Security-Review-Findings gefixt *(2026-05-24)*
-
+### PROJ-61 — Security-Review-Findings gefixt
 Fünf Findings aus dem /security-review umgesetzt; PROJ-61 ist jetzt
 deploy-ready ohne offene Sub-Tickets aus dem Review.
 
@@ -1715,8 +1703,7 @@ deploy-ready ohne offene Sub-Tickets aus dem Review.
 3 neue Unit-Tests (LegalDocumentTitleTooLong/AtLimitOK,
 DataExportConfigNameTooLong).
 
-### PROJ-61 — Bug-Fixes nach QA-Run *(2026-05-24)*
-
+### PROJ-61 — Bug-Fixes nach QA-Run
 Drei Bugs aus dem /qa-Run gefixt; PROJ-61 ist jetzt Production-Ready.
 
 - **Bug #1 (High, AC-I10)**: Field-Catalog-Drift blockte mit 400 statt
@@ -1759,8 +1746,7 @@ Tests: 8 neue Unit-Tests in `importer_validate_test.go`:
 Side-Effect-Import des Excel-Plugins im Test-File, damit Plugin-Registry
 für DriftFilter-Tests gefüllt ist.
 
-### PROJ-61 — Konfigurations-Export & -Import pro EEG (Frontend) *(2026-05-24)*
-
+### PROJ-61 — Konfigurations-Export & -Import pro EEG (Frontend)
 5 React-Komponenten unter `src/components/config-import-export/` +
 neuer Tab „Import / Export" in `/admin/settings`. Frontend nutzt die
 3 Backend-Endpoints unter `/api/admin/config/*`.
@@ -1802,8 +1788,7 @@ das etablierte UX-Pattern ist und keine parallele Route nötig wird).
 
 `npm run build` läuft sauber durch.
 
-### PROJ-61 — Konfigurations-Export & -Import pro EEG (Backend) *(2026-05-24)*
-
+### PROJ-61 — Konfigurations-Export & -Import pro EEG (Backend)
 Neues Feature: Tenant-Admin kann die Konfig einer EEG als versionierte
 JSON-Datei exportieren und auf eine andere EEG (für die er auch
 Admin-Rechte hat) importieren. Vier Sub-Typen: EEG-Einstellungen,
@@ -1867,8 +1852,7 @@ mit Diff-Preview und Cross-Section-Atomarität.
 - Frontend-UI unter `/admin/settings/import-export`
 - E2E-Roundtrip-Tests (Export → Upload → Preview → Apply)
 
-### PROJ-60 — EEG-Stammdaten als exportierbare Spalten *(2026-05-24)*
-
+### PROJ-60 — EEG-Stammdaten als exportierbare Spalten
 Eigentümer-Anforderung: Mitglieder-Backup-Liste außerhalb des Systems
 braucht EEG-Stammdaten (Name, Adresse, Creditor-ID, …) als Spalten —
 diese leben auf `registration_entrypoint` und waren bisher in PROJ-60
@@ -1893,8 +1877,7 @@ nicht exportierbar.
 - 3 neue Go-Unit-Tests in `internal/dataexport/excel/plugin_test.go`
   (Happy-Path, nil-Entrypoint, NULL-Optionalfelder).
 
-### Welle 11 — Severity-Drift + Tot-Code in metrics *(2026-05-24)*
-
+### Welle 11 — Severity-Drift + Tot-Code in metrics
 Sub-Tickets **3d + 3e** aus AUDIT-TODO. Reine Cleanup-Welle.
 
 - `internal/metrics/metrics.go`: `statusClassFromString()` (toter Helper
@@ -1915,8 +1898,7 @@ Sub-Tickets **3d + 3e** aus AUDIT-TODO. Reine Cleanup-Welle.
 selbst „nicht ohne EXPLAIN-Daten"; verschärft §4c (Write-Amplification
 auf der 14-Index-Tabelle). Wandert in §4a-Folge (Operator-Action).
 
-### Welle 10 — E2E-Auth-Fixture (Header-basierte Test-Claims) *(2026-05-24)*
-
+### Welle 10 — E2E-Auth-Fixture (Header-basierte Test-Claims)
 Sub-Ticket **5h** aus AUDIT-TODO. Schaltet authenticated-Pfade in
 CI-Tests frei, ohne dass Keycloak in CI laufen muss.
 
@@ -1944,8 +1926,7 @@ CI-Tests frei, ohne dass Keycloak in CI laufen muss.
 - **PROJ-17** AC-BE1 und AC-BE5: `test.skip(CI)` entfernt — die Tests
   prüfen jetzt korrekt 401 ohne Header.
 
-### Welle 9 — Playwright in CI + `skipIfBackendDown`-Konsolidierung *(2026-05-24)*
-
+### Welle 9 — Playwright in CI + `skipIfBackendDown`-Konsolidierung
 Sub-Ticket **5a + 5i** aus AUDIT-TODO (Audit-Marathon-Restschuld).
 
 - `.github/workflows/ci.yml`: neuer `e2e`-Job mit Postgres-17-Service,
@@ -1980,7 +1961,9 @@ Sub-Ticket **5a + 5i** aus AUDIT-TODO (Audit-Marathon-Restschuld).
   5j (`networkidle` → `waitForResponse`),
   Nightly-Multi-Browser-Workflow.
 
-### PROJ-60 — Datenweiterleitung an externe Systeme (async Plugin-Framework + Excel/CSV-Plugin) *(2026-05-23)*
+## 2026-05-23
+
+### PROJ-60 — Datenweiterleitung an externe Systeme (async Plugin-Framework + Excel/CSV-Plugin)
 
 Komplett neues asynchrones Framework für die Weitergabe importierter
 Mitglieder an externe Systeme. V1 ships das Excel/CSV-Export-Plugin;
@@ -2090,7 +2073,9 @@ Bewusst aufgeschoben in `docs/AUDIT-TODO.md` 4a–4c:
 - 4b: `idx_application_submitted_at` ggf. durch composite `(rc_number, submitted_at DESC)` ersetzen, falls EXPLAIN das nahelegt
 - 4c: Write-Amplification auf `application` (14+ Indizes) im Auge behalten
 
-### PROJ-57 v3 — Ansprechperson ohne Master-Switch, drei Felder einzeln steuerbar *(2026-05-21)*
+## 2026-05-21
+
+### PROJ-57 v3 — Ansprechperson ohne Master-Switch, drei Felder einzeln steuerbar
 
 Vereinfachung des Konfigurations-Modells: der separate
 `contact_person`-Master-Switch entfällt. Stattdessen werden alle drei
@@ -2117,8 +2102,7 @@ Hinweis für bestehende Konfiguration: alte EEGs mit `contact_person`-
 Eintrag in der DB werden vom System ignoriert. Sie müssen die drei
 Subfelder neu konfigurieren, um das Feature wieder zu aktivieren.
 
-### PROJ-58 — Abweichende Rechnungs-E-Mail für Org-Mitgliedstypen *(2026-05-21)*
-
+### PROJ-58 — Abweichende Rechnungs-E-Mail für Org-Mitgliedstypen
 Bei Unternehmen, Vereinen und Gemeinden kann jetzt eine separate
 E-Mail-Adresse für den Rechnungsversand angegeben werden. Per
 Checkbox in der Bankverbindungs-Sektion aktivierbar.
@@ -2141,8 +2125,7 @@ Checkbox in der Bankverbindungs-Sektion aktivierbar.
 Vorbereitung für das künftige eigene Rechnungsmodul. Versand-Logik
 folgt mit dem Billing-Modul, kein automatischer Mail-Versand jetzt.
 
-### PROJ-57 v2 — feiner steuerbare Ansprechperson-Pflichtigkeit *(2026-05-21)*
-
+### PROJ-57 v2 — feiner steuerbare Ansprechperson-Pflichtigkeit
 Erweiterung der Ansprechperson-Logik aus PROJ-57: Email und Telefon
 können seit dieser Version pro EEG einzeln auf `hidden | optional |
 required` gestellt werden. Name bleibt fix Pflicht wenn Toggle aktiv
@@ -2161,8 +2144,7 @@ required` gestellt werden. Name bleibt fix Pflicht wenn Toggle aktiv
 - Admin-Edit-Form sieht weiterhin alle drei Felder durchgehend
   (Admin-Korrektur-Pfad nicht eingeschränkt; Backend cleart bei hidden)
 
-### PROJ-57 — Ansprechperson für Org-Mitgliedstypen *(2026-05-21)*
-
+### PROJ-57 — Ansprechperson für Org-Mitgliedstypen
 Optionale Ansprechperson für Unternehmen, Vereine und Gemeinden. Toggle-
 Checkbox aktiviert drei zusätzliche Felder (Name, E-Mail, Telefon), die
 in PDF, Submission-Mail und Admin-UI durchlaufen.
@@ -2189,8 +2171,7 @@ Eckdaten:
   Org-Liste — schützt gegen forged Clients.
 - **Excel-Export** (PROJ-17) wurde bewusst NICHT erweitert.
 
-### PROJ-56 — Netzbetreiber-Info-Seite im Beitrittsbestätigungs-PDF *(2026-05-21)*
-
+### PROJ-56 — Netzbetreiber-Info-Seite im Beitrittsbestätigungs-PDF
 Zusätzliche PDF-Seite mit allen Daten, die die EEG-Verwaltung für die
 Netzbetreiber-Korrespondenz braucht. Wird konditional gerendert: nur
 wenn das Mitglied die Netzbetreiber-Vollmacht aktiv erteilt hat
@@ -2241,7 +2222,9 @@ Eckdaten:
   gerendert wird. Selbe Falle für consumption-only-Felder
   (`persons_in_household`, `heat_pump`, …) zusätzlich gefixt.
 
-### PROJ-54 — Repo-Split: privates Hauptrepo + öffentlicher Mirror *(2026-05-20)*
+## 2026-05-20
+
+### PROJ-54 — Repo-Split: privates Hauptrepo + öffentlicher Mirror
 
 Aktive Entwicklung läuft ab sofort im privaten Repo
 `Marki4711/eegfaktura-member-onboarding-private`; der öffentliche Repo
@@ -2267,8 +2250,7 @@ Sensible Bereiche (Pricing, Verträge, DPIA, Pen-Test-Reports,
 Anbieter-Setups, eigenes Rechnungsmodul) landen ab sofort unter
 `private/` und werden nicht öffentlich gespiegelt.
 
-### Optionales UID-Feld für Verein im Public-Form *(2026-05-20)*
-
+### Optionales UID-Feld für Verein im Public-Form
 Mitgliedstyp `association` zeigt im öffentlichen Registrierungsformular jetzt
 zusätzlich zur (Pflicht-) Vereinsnummer ein **optionales UID-Nummer-Feld** —
 analog zur bereits vorhandenen Umsetzung bei `municipality` (Gemeinde).
@@ -2278,7 +2260,9 @@ das Feld bereits für `association` (kein Nullen in `clearMemberTypeFields`,
 kein Required-Check); reines Frontend-Rendering-Gap geschlossen
 (`src/components/registration-form.tsx`).
 
-### Teilnahmefaktor pro EEG konfigurierbar *(2026-05-19)*
+## 2026-05-19
+
+### Teilnahmefaktor pro EEG konfigurierbar
 
 Das Feld `participation_factor` (Teilnahmefaktor in %) ist jetzt über die
 PROJ-8-Field-Config pro EEG ein-/ausblendbar:
@@ -2301,8 +2285,7 @@ PROJ-8-Field-Config pro EEG ein-/ausblendbar:
 Docs: `docs/user-guide/06-admin-settings.md` Abschnitt „Spezielle
 konfigurierbare Felder" um den neuen Toggle ergänzt.
 
-### PROJ-53 — Aktivierungs-Modus pro EEG + Beitrittsbestätigung erst bei `activated` + manueller `approved → activated`-Skip *(2026-05-19)*
-
+### PROJ-53 — Aktivierungs-Modus pro EEG + Beitrittsbestätigung erst bei `activated` + manueller `approved → activated`-Skip
 Drei zusammenhängende Änderungen am Activation-/Mail-Lifecycle:
 
 **1. Beitrittsbestätigung wandert von `imported` nach `activated`**
@@ -2373,7 +2356,9 @@ zwischen HTTP-Layer und DB-CHECK).
 `docs/api-spec.md` (neues Endpoint, Activation-Modus-Tabelle, EDA-Mapping,
 `activationMode` in EEG-Settings-Beispielen).
 
-### Docs — Audit aller `docs/` und `docs/user-guide/` *(2026-05-18)*
+## 2026-05-18
+
+### Docs — Audit aller `docs/` und `docs/user-guide/`
 
 Vollständiger Durchgang aller Top-Level-Dokumente und der User-Guide nach
 heute deployed Features. Befunde und Fixes:
@@ -2421,8 +2406,7 @@ heute deployed Features. Befunde und Fixes:
   Prefix-Block), `register-form-metering-points.png` (neues Layout +
   Prefix-Lock).
 
-### Reviews — Code-Review + Security-Review *(2026-05-18)*
-
+### Reviews — Code-Review + Security-Review
 Nach dem Docs-Audit zusätzlich:
 
 - **Code-Review**: Cross-Check aller Mail-Templates, PDF-Generatoren und
@@ -2443,7 +2427,9 @@ Nach dem Docs-Audit zusätzlich:
   `app.MandateDate` ist eine reine Tagesinformation (keine PII-Eskalation).
   Bestehende Snyk-Scans + govulncheck weiter grün.
 
-### Geändert — Zählpunkt-Mask auf offizielle Gruppierung 2-6-5-20 *(2026-05-17)*
+## 2026-05-17
+
+### Geändert — Zählpunkt-Mask auf offizielle Gruppierung 2-6-5-20
 
 Recherche zur E-Control / MeteringCode-Spec ergab, dass die offizielle
 vierteilige Struktur der Zählpunktbezeichnung in Österreich
@@ -2457,8 +2443,7 @@ auf Validierung oder gespeicherte Daten (33 Stellen unverändert).
 Vorbereitung für PROJ-52 (konfigurierbarer Prefix pro Richtung + Auto-Pad
 + alphanumerischer letzter Block — Spec angelegt, Implementierung folgt).
 
-### Geändert — Speichersteuerung-Frage + Batterie-Gruppierung (PROJ-49 follow-up) *(2026-05-17)*
-
+### Geändert — Speichersteuerung-Frage + Batterie-Gruppierung (PROJ-49 follow-up)
 Neue Mitglied-Frage „Speichersteuerung im Sinne der EEG vorstellbar?" auf
 PV-Erzeuger-Zählpunkten. Gleichzeitig UI-Refactoring: die bisher einzeln
 sichtbaren Speicher-Felder werden hinter einer Master-Checkbox gruppiert.
@@ -2494,8 +2479,7 @@ sichtbaren Speicher-Felder werden hinter einer Master-Checkbox gruppiert.
 **Mail-Templates:** `FormatGenerationLine` rendert die Antwort wenn gesetzt
 als zusätzliches Segment, z. B. `…, Speichersteuerung im Sinne der EEG: Ja`.
 
-### Geändert — Energie-Felder pro Zählpunkt (PROJ-49) *(2026-05-17)*
-
+### Geändert — Energie-Felder pro Zählpunkt (PROJ-49)
 Refactoring: 4 Energie-Felder wandern von `application` auf `metering_point`,
 1 neues Feld kommt dazu.
 
@@ -2534,8 +2518,7 @@ Manche Netzanschlüsse sind leistungstechnisch beschränkt (z. B. „nur 70 % de
 - `registration-form.tsx`: 4 Application-Level-Felder + zugehörige Defaults/Validation/Payload entfernt; per-MP-Payload um die neuen Felder erweitert.
 - `admin-eeg-settings-editor.tsx`: Felder wandern automatisch in die „Zählpunkt-Felder"-Sektion (via `CONFIGURABLE_FIELDS.meteringPoint`).
 
-### Geändert — Register-Dialog + Admin-Settings: Audit-Fixes *(2026-05-17)*
-
+### Geändert — Register-Dialog + Admin-Settings: Audit-Fixes
 Vollständiger Inhalts-Audit analog zum Mail-Template-Audit. 51 Findings
 in drei Wellen abgearbeitet.
 
@@ -2597,8 +2580,7 @@ in drei Wellen abgearbeitet.
 
 Backend + Tests grün.
 
-### Geändert — Mail-Templates: Audit-Fixes + Orphan-Cleanup *(2026-05-17)*
-
+### Geändert — Mail-Templates: Audit-Fixes + Orphan-Cleanup
 Vollständiger Inhalts-Audit aller 8 Mail-Templates + Behebung der
 gefundenen Inkonsistenzen.
 
@@ -2651,8 +2633,7 @@ gefundenen Inkonsistenzen.
 - Alle Member-Templates beginnen einheitlich mit
   „Sehr geehrte/r {Vorname} {Nachname}".
 
-### Neu — PROJ-48: SEPA-Default-Core + konfigurierbares Mandat-Timing + B2B-Hinweis *(2026-05-17)*
-
+### Neu — PROJ-48: SEPA-Default-Core + konfigurierbares Mandat-Timing + B2B-Hinweis
 Drei zusammenhängende Änderungen am SEPA-Workflow:
 
 1. **Default-Einzugsart immer `core`.** Die Auto-Logik „Firmenlastschrift
@@ -2691,8 +2672,7 @@ Digital-Signatur-Diskussion: `docs/open-questions.md` OQ-6 (neu).
 - OQ-6 in `docs/open-questions.md` ergänzt: vollständige Behandlung der
   Architektur-Implikationen einer digitalen Mandat-Signatur
 
-### Neu — PROJ-47: B2B-SEPA-Firmenlastschrift-Mandat mit Mandatsreferenz beim Import *(2026-05-17)*
-
+### Neu — PROJ-47: B2B-SEPA-Firmenlastschrift-Mandat mit Mandatsreferenz beim Import
 Schließt die in PROJ-46 erkannte Lücke: ein B2B-Antragsteller bekam
 zwar bei Submission ein Firmenlastschrift-PDF, aber ohne die später
 vergebene Mitgliedsnummer als Mandatsreferenz — die B2B-Bank verlangt
@@ -2721,8 +2701,7 @@ weiterreichen kann.
 - Best-Effort bei B2B-PDF-Fehlern (Log + ohne 2. Anhang weiter); die
   Hauptmail mit Beitrittsbestätigung geht in jedem Fall raus.
 
-### Neu — PROJ-46 Stage D: Activation-Check via Core *(2026-05-17)*
-
+### Neu — PROJ-46 Stage D: Activation-Check via Core
 Admin-getriggerter Batch-Check ersetzt das ursprünglich geplante Cron-
 Polling (User-Entscheidung B). Button „Aktivierung im Core prüfen" in
 der Antrags-Übersicht (`/admin/applications`) ruft einen neuen Endpoint
@@ -2746,8 +2725,7 @@ den eegFaktura-Core abgleicht und ACTIVE-Mitglieder automatisch auf
   Ergebnis (`X von Y auf Aktiviert gesetzt`), refresht danach die Liste.
   Bei 0 Treffern oder Fehlern entsprechende Info/Warning-Toasts.
 
-### Neu — PROJ-46 Stage C: Admin-UI für Post-Import-Stati *(2026-05-17)*
-
+### Neu — PROJ-46 Stage C: Admin-UI für Post-Import-Stati
 - `ApplicationStatus`-Typ um drei neue Werte erweitert
   (`awaiting_bank_confirmation`, `ready_for_activation`, `activated`)
 - `AdminStatusBadge`: neue Farben — Amber für „Warte auf Bank-Bestätigung",
@@ -2765,8 +2743,7 @@ den eegFaktura-Core abgleicht und ACTIVE-Mitglieder automatisch auf
   `activated`-Anträge nicht resetbar sind und dass Mitgliedsnummer +
   Bank-Bestätigung mitgelöscht werden
 
-### Neu — PROJ-46 Stage B: PDF-Timing + Member-Mails nach Import + Aktivierung *(2026-05-17)*
-
+### Neu — PROJ-46 Stage B: PDF-Timing + Member-Mails nach Import + Aktivierung
 PDF-Generierung wandert von `→ approved` zum Import-Zeitpunkt (wenn die
 Mitgliedsnummer steht — Voraussetzung für die B2B-SEPA-Mandatsreferenz):
 
@@ -2797,8 +2774,7 @@ Mitgliedsnummer steht — Voraussetzung für die B2B-SEPA-Mandatsreferenz):
 - Prometheus-Counter neu: `eeg_imported`, `member_imported`,
   `member_activated` (success/failed-Labels wie bei bestehenden Mails).
 
-### Neu — PROJ-46 Stage A: Stati für Import-Nachbereitung *(2026-05-17)*
-
+### Neu — PROJ-46 Stage A: Stati für Import-Nachbereitung
 Erste Stage: DB + Backend-Übergänge + Reset-Erweiterung. Mails (Stage B),
 Admin-UI (Stage C) und Activation-Check-Button (Stage D) folgen separat.
 
@@ -2824,8 +2800,7 @@ Admin-UI (Stage C) und Activation-Check-Button (Stage D) folgen separat.
 - CLAUDE.md Status-Sektion aktualisiert (3 neue Stati + 7 neue
   Transition-Einträge dokumentiert).
 
-### Neu — PROJ-45: Erzeugungsform + Batterie + typabhängige Sichtbarkeit *(2026-05-17)*
-
+### Neu — PROJ-45: Erzeugungsform + Batterie + typabhängige Sichtbarkeit
 Drei zusammenhängende Erweiterungen rund um Erzeugungs-Zählpunkte:
 
 1. **Erzeugungsform pro PRODUCTION-Zählpunkt** — neues Pflichtfeld
@@ -2864,8 +2839,7 @@ Job automatisch beim nächsten Deploy.
 - `validateConfigurableRequiredFields` neue Signatur mit `mps`-Parameter
   für typabhängiges Gating; Unit-Tests passen `nil` (kein Gating).
 
-### Neu — PROJ-44: Netzbetreiber-Vollmacht (per-EEG konfigurierbar) *(2026-05-17)*
-
+### Neu — PROJ-44: Netzbetreiber-Vollmacht (per-EEG konfigurierbar)
 Manche Netzbetreiber (z.B. Netz OÖ) verlangen eine separate Vollmacht
 des Mitglieds, damit die EEG in dessen Namen mit dem Netzbetreiber
 verhandeln darf. Die Vollmacht ist nicht Teil der EEG-Mitgliedschafts­
@@ -2890,8 +2864,7 @@ konfigurierbares Feld (PROJ-8-Pattern, Default `hidden`).
 - Excel-Export: bewusst **nicht** befüllt — eegFaktura-Importer­spalten­
   struktur kennt das Feld nicht, Audit-Trail liegt in DB + PDF + Mail
 
-### Geändert — Node-Runtime auf Node 22 LTS gebumpt + automatischer EOL-Check *(2026-05-17)*
-
+### Geändert — Node-Runtime auf Node 22 LTS gebumpt + automatischer EOL-Check
 Node 20 ist seit 30. April 2026 End-of-Life — keine neuen Security-Patches
 mehr. Aktualisiert auf Node 22 LTS (Support bis April 2027), minimaler
 Versions-Sprung mit geringstem Regressions-Risiko.
@@ -2909,8 +2882,7 @@ Versions-Sprung mit geringstem Regressions-Risiko.
 - Nach jedem Upgrade muss der `cycle`-Eintrag im EOL-Workflow auf die
   neue Major-Version nachgezogen werden (siehe Inline-Kommentar)
 
-### Neu — PROJ-40: EEG-Umzuordnung eines Antrags im Review *(2026-05-17)*
-
+### Neu — PROJ-40: EEG-Umzuordnung eines Antrags im Review
 Wenn ein Mitglied über den falschen RC-Link der EEG A registriert hat,
 aber eigentlich zur EEG B gehört, kann der Admin den Antrag direkt
 umordnen — ohne Re-Submit durch das Mitglied.
@@ -2933,8 +2905,7 @@ umordnen — ohne Re-Submit durch das Mitglied.
 - **Out-of-Scope (V1):** Bulk-Reassign, Member-Mail, Re-Validierung von
   Cooperative-Shares / Field-Config / Email-Confirmation-Setting
 
-### Neu — PROJ-42: E-Fahrzeug-Detailerfassung *(2026-05-17)*
-
+### Neu — PROJ-42: E-Fahrzeug-Detailerfassung
 Das bestehende `electric_vehicle`-Ja/Nein wird ergänzt um zwei optionale
 Detail-Felder, die für die EEG-Lastprofil-Optimierung relevant sind:
 
@@ -2955,8 +2926,7 @@ Mail (Member + EEG), Approval-PDF, Excel-Export, Admin-Detail werden
 
 Migration: `db/migrations/000038_ev_details.up.sql`.
 
-### Geändert — PROJ-41 + PROJ-43: Mail-Versand jetzt hard-fail *(2026-05-17)*
-
+### Geändert — PROJ-41 + PROJ-43: Mail-Versand jetzt hard-fail
 Der initiale Best-Effort-Goroutine-Versand wurde umgestellt auf:
 
 - **Synchron + pre-commit**: rejected/needs_info-Mail wird gerendert und
@@ -2968,8 +2938,7 @@ Der initiale Best-Effort-Goroutine-Versand wurde umgestellt auf:
 - Submission-Mails bleiben unverändert (public-facing, würde Antrags-Submit
   blocken)
 
-### Neu — PROJ-41 + PROJ-43: Status-Change-Mails an Mitglied *(2026-05-17)*
-
+### Neu — PROJ-41 + PROJ-43: Status-Change-Mails an Mitglied
 Bisher erfuhr der Beitrittswerber nichts, wenn der EEG-Admin den Antrag
 ablehnte oder Rückfragen stellte — der Antrag stand einfach still. Jetzt
 löst jeder Wechsel auf `rejected` (PROJ-41) bzw. `needs_info` (PROJ-43)
@@ -2986,8 +2955,7 @@ automatisch eine E-Mail an `application.email` aus.
   `mail_sent_total{kind="member_rejection|member_needs_info"}`
 - Out of scope: BulkChangeStatus löst (vorerst) keine Mails aus
 
-### Neu — PROJ-39: Titel-Nach + Bankname im Public-Form + abweichende Adresse je Zählpunkt *(2026-05-17)*
-
+### Neu — PROJ-39: Titel-Nach + Bankname im Public-Form + abweichende Adresse je Zählpunkt
 Drei unabhängige Erweiterungen am öffentlichen Antragsformular.
 
 - **„Titel nach"** als zusätzliches optionales Personenfeld (z.B. BSc, MSc, MBA). Bestehende `titel`-Spalte bleibt erhalten und repräsentiert implizit „Titel vor". Migration 000037 fügt `application.titel_nach` hinzu. Sichtbar in Mail, PDF und Excel-Export
@@ -2996,8 +2964,7 @@ Drei unabhängige Erweiterungen am öffentlichen Antragsformular.
 - Mail (Member + EEG), Approval-PDF, Excel-Export, Admin-Detail-View berücksichtigen alle drei neuen Felder
 - CLAUDE.md + docs/architecture.md aktualisiert: alte „all metering points use the same address as the member"-Klausel entfernt
 
-### Behoben — Reset-Import: Mitgliedsnummer wird gelöscht *(2026-05-17)*
-
+### Behoben — Reset-Import: Mitgliedsnummer wird gelöscht
 Beim Zurücksetzen eines Imports (`imported → approved`) blieb bisher die
 Mitgliedsnummer am Antrag stehen, obwohl die zugehörige Participant-Zeile
 in eegFaktura nicht mehr existiert. Resultat: stale Anzeige im Admin-Detail
@@ -3012,14 +2979,15 @@ würde wieder vorgeschlagen).
 - **Doku**: `docs/api-spec.md` 6.5.3 ergänzt um die zusätzliche Spalte +
   erweiterten Log-Reason
 
-### Behoben — PROJ-31 Constraint-Lücke + Helm-Fix *(2026-05-16)*
+## 2026-05-16
+
+### Behoben — PROJ-31 Constraint-Lücke + Helm-Fix
 
 - **DB**: Migration 000036 ergänzt `email_confirmed` im `application_status_check`-CHECK-Constraint. Davor lief jeder `confirm-email`-POST in einen Postgres-23514-Fehler → HTTP 500 „An internal error occurred". Ursache: PROJ-31 hatte die Status-Konstante + Transition-Map gepflegt, die DB-Constraint aber nie angepasst (Tests liefen gegen Go-Fake-Store, nicht gegen echtes Postgres)
 - **Helm**: Backend-Deployment bekommt `PUBLIC_BASE_URL` aus `frontend.nextauthUrl` (single source of truth für die öffentliche App-URL). Vorher war die Env-Var im Chart gar nicht definiert → der PROJ-31-Confirm-Link wurde nie generiert (silent fallback auf Legacy-Flow ohne Bestätigungs-Block in der Mail)
 - **Doku**: `docs/architecture.md` dokumentiert das Status-Set als 3-place-Invariant (Code-Konstanten + adminTransitions-Map + DB-CHECK-Constraint)
 
-### Neu — PROJ-38: Status-Modell-Hygiene & Audit-Fixes *(2026-05-16)*
-
+### Neu — PROJ-38: Status-Modell-Hygiene & Audit-Fixes
 Code-Audit nach der PROJ-31-Constraint-Regression. Drei Findings umgesetzt, zwei als False-Positive verworfen.
 
 - **`UpdateStatusAdminTx`** mit guarded `WHERE status = $expected_from` — bei 0 betroffenen Rows kommt `ErrConflict` (HTTP 409). Damit ist der admin-seitige Status-Schreibpfad auf dem gleichen Schutz-Niveau wie alle anderen `Mark*Tx`-Methoden. Vergisst ein Caller die Transition-Map oder mutiert ein paralleler Prozess parallel den Status, schlägt die UPDATE jetzt sauber fehl statt still durchzulaufen
@@ -3027,7 +2995,9 @@ Code-Audit nach der PROJ-31-Constraint-Regression. Drei Findings umgesetzt, zwei
 - **`ResetImport`** dokumentiert, warum der PROJ-31-Confirmation-Gate hier intentional fehlt (Antrag bereits einmal vetted via `approved → imported`)
 - Out of scope für separate Specs: Submit-Mail-Retry, Auto-Reject-Doppel-Metrik bei parallelen Pods
 
-### Neu — PROJ-37: Genossenschaftsanteile *(2026-05-15)*
+## 2026-05-15
+
+### Neu — PROJ-37: Genossenschaftsanteile
 
 EEG-Admins können pro EEG aktivieren, ob Mitglieder bei der Registrierung Genossenschaftsanteile zeichnen müssen. Die Pflichtanzahl und der Wert je Anteil sind per EEG konfigurierbar; das Formular zeigt eine Live-Berechnung des Gesamtbetrags, die Beitrittsbestätigung weist die Anteile als eigene Sektion aus.
 
@@ -3040,8 +3010,7 @@ EEG-Admins können pro EEG aktivieren, ob Mitglieder bei der Registrierung Genos
 - **Nicht in Excel-Export, nicht in Core-Payload** — rein im Onboarding (eegFaktura hat keine Spalte dafür)
 - **Bekannte V1-Lücke**: Admin-Edit-Form kennt das Feld noch nicht. Korrektur über needs_info-Flow möglich; Direkt-Edit folgt in V1.1 falls häufig benötigt
 
-### Neu — PROJ-36: Optionale Rechtsdokumente als Info-Dokumente *(2026-05-15)*
-
+### Neu — PROJ-36: Optionale Rechtsdokumente als Info-Dokumente
 Beta-Feedback: optionale Checkboxen waren verwirrend (Mitglieder wussten nicht, ob ihr fehlendes Häkchen rechtlich relevant ist). Der Toggle pro Rechtsdokument ist jetzt binär — **Pflicht-Zustimmung** oder **Nur zur Information**.
 
 - **DB**: Migration 000034 fügt `document_consent.consent_type` (`explicit` | `informational`) hinzu, Default `explicit` für Bestandsdaten
@@ -3050,7 +3019,9 @@ Beta-Feedback: optionale Checkboxen waren verwirrend (Mitglieder wussten nicht, 
 - **Admin-Detail + Beitrittsbestätigungs-PDF**: zwei separate Blöcke „Zugestimmte Dokumente · Zugestimmt am …" / „Zur Kenntnis genommene Dokumente · Kenntnis genommen am …"
 - **Admin-Settings**: Toggle-Label kontextsensitiv („Mitglied muss zustimmen" / „Nur zur Information"), erklärender Hilfetext darunter, Listen-Badge sagt „Pflicht-Zustimmung" bzw. „Nur zur Information"
 
-### Neu — PROJ-35: Per-EEG-Referenznummern *(2026-05-14)*
+## 2026-05-14
+
+### Neu — PROJ-35: Per-EEG-Referenznummern
 
 Antrags-Referenznummer im Format **`<RC>-<Jahr>-<NNNN>`** (z.B. `RC105720-2026-0001`) statt der bisherigen globalen `MO-YYYY-NNNNNN`-Sequenz. Counter resettet pro EEG und pro Jahr.
 
@@ -3058,8 +3029,7 @@ Antrags-Referenznummer im Format **`<RC>-<Jahr>-<NNNN>`** (z.B. `RC105720-2026-0
 - Bestehende Anträge behalten ihre alten Refs (Links in bereits verschickten Mails bleiben gültig)
 - 4-stelliger Counter reicht für 9 999 Anträge/EEG/Jahr — Overflow gibt sprechenden Fehler statt Format zu erweitern
 
-### Neu — PROJ-34: Robuste Import-Recovery *(2026-05-14)*
-
+### Neu — PROJ-34: Robuste Import-Recovery
 Behebt den „stuck-in-flight"-Fehlerklasse, die heute im Test-Cluster sichtbar wurde (Antrag bleibt nach DB-UNIQUE-Verletzung dauerhaft in `approved + in-flight`-Zustand).
 
 - **Orphan-Fallback**: Wenn das Bookkeeping nach erfolgreichem Core-Insert fehlschlägt (UNIQUE-Index aus Migration 28 etc.), wechselt der Antrag in einer zweiten Transaktion auf `import_failed` mit `target_participant_id` und sprechender Fehlermeldung. Der bestehende Reset-Import-Flow (PROJ-30) wird damit zur Recovery-Route.
@@ -3082,8 +3052,7 @@ EEG-Logo aus eegfaktura-billing-Service ziehen und in die Beitrittsbestätigung 
 - **Admin-UI**: Logo-Vorschau als 9tes Synced-Field in der Stammdaten-Card; Object-URL über `fetchEEGLogoBlob` (Bearer-Header), Cache-Bust via `eegLogoSyncedAt`-Timestamp
 - **Neuer Endpoint**: `GET /api/admin/settings/eeg/logo?rc_number=…` liefert die Bytes mit korrektem `Content-Type` + 5-Min-Private-Cache
 
-### Neu — PROJ-32: EEG-Stammdaten-Sync aus Core *(2026-05-14)*
-
+### Neu — PROJ-32: EEG-Stammdaten-Sync aus Core
 Acht EEG-Stammdaten-Felder (Gemeinschafts-ID, Name, vier Adressfelder, Creditor-ID, Kontakt-E-Mail) werden direkt aus eegFaktura gespiegelt und sind im Onboarding **schreibgeschützt**.
 
 - **GraphQL-Endpoint**: `POST {base}/api/query` mit `query { eeg }` (scalar `Eeg` — kein Selection-Set, returnt vollständiges JSON)
@@ -3093,8 +3062,7 @@ Acht EEG-Stammdaten-Felder (Gemeinschafts-ID, Name, vier Adressfelder, Creditor-
 - **UI**: Drift-Banner (grün/orange/grau) mit per-Feld-Diff; „Aus eegFaktura aktualisieren"-Button verwendet das Admin-JWT
 - **Performance-Fix nebenbei**: `ListParticipants`-Body-Cap von 1 MiB auf 4 MiB hochgezogen (verhindert silent Truncation bei großen EEGs)
 
-### Neu — PROJ-31: E-Mail-Adresse-Bestätigung (Anti-Abuse) *(2026-05-14)*
-
+### Neu — PROJ-31: E-Mail-Adresse-Bestätigung (Anti-Abuse)
 Pro EEG aktivierbar: Mitglieder müssen den Link in der Bestätigungs-Mail klicken, bevor der Antrag in den Admin-Review-Zustand wechselt.
 
 - **Status-Modell**: neuer `email_confirmed`-Zustand zwischen `submitted` und `under_review`
@@ -3103,8 +3071,7 @@ Pro EEG aktivierbar: Mitglieder müssen den Link in der Bestätigungs-Mail klick
 - **Resend-Endpoint** für die Admin-Detail-Page; **30-Tage-Auto-Reject** via Background-Job
 - **Admin-Guards**: `/status`-Endpoint refuses `submitted → under_review|needs_info|approved` mit 409 solange die Bestätigung aussteht — `submitted → rejected` bleibt als Anti-Spam-Override verfügbar
 
-### Geändert — sonstige UX/Stabilität *(2026-05-15)*
-
+### Geändert — sonstige UX/Stabilität
 - **B2B-Toggle-Label**: „Firmenlastschrift (B2B) für Unternehmen und **Vereine** verwenden" (zuvor „Verbände" — die Antrags-Auswahl kennt nur `Verein`)
 - **Admin-Conflict-Messages**: Server-spezifische 409-Meldungen werden statt eines generischen „Aktion nicht mehr gültig"-Texts angezeigt (z.B. „E-Mail-Adresse des Bewerbers ist noch nicht bestätigt …")
 - **Core-HTTP-400-Hint**: Opake `core returned HTTP 400: {}` wird auf eine handlungsorientierte Meldung übersetzt („Wahrscheinlichste Ursache: einer der Zählpunkte ist im Core bereits einem aktiven Teilnehmer zugeordnet")

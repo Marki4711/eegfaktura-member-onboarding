@@ -99,7 +99,8 @@ Neun Werte werden direkt aus eegFaktura übernommen und sind in der Onboarding-O
 | Feld | Verwendung im Onboarding |
 |---|---|
 | **Gemeinschafts-ID** | Excel-Export (Spalte B), eegFaktura-Import |
-| **EEG-Name** | Antrags-PDF, Willkommens- und Bestätigungs-Mail, SEPA-Mandat |
+| **EEG-Name** | Antrags-PDF, Willkommens- und Bestätigungs-Mail, SEPA-Mandat (Langform aus eegFaktura) |
+| **EEG-Kurzform** | Anzeigewert in den drei EEG-Auswahllisten (Stammdaten-Wechsler, Antrags-Filter, Ziel-EEG beim Umordnen) und in der Spalte „EEG" der Antragsliste. Wird beim Sync aus dem in eegFaktura hinterlegten Kurznamen übernommen (z. B. `EEG-Test`); leere Werte werden als „nicht gesetzt" behandelt und führen zum Fallback auf die Referenznummer. |
 | **Straße, Hausnummer, PLZ, Ort** | SEPA-Mandat, Adressblock im Anschreiben |
 | **Creditor-ID** | SEPA-Mandat (Pflichtfeld für gültige Lastschrift) |
 | **Kontakt-E-Mail** | Empfänger-Adresse für die Admin-Benachrichtigung bei jedem neuen Antrag |
