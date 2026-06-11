@@ -665,6 +665,30 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Erscheinungsbild der Online-Registrierung (Alle Optionen)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tab-preset" class="md-nav__link">
+    <span class="md-ellipsis">
+      Tab „Preset"
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tab-eigene-farben" class="md-nav__link">
+    <span class="md-ellipsis">
+      Tab „Eigene Farben"
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
       </ul>
@@ -1206,7 +1230,13 @@ Wenn du einen Antrag bereits per Import-Button verarbeitet hast und die Mitglied
 <blockquote>
 <p>Diese Sektion ist nur in <strong>Alle Optionen</strong> sichtbar.</p>
 </blockquote>
-<p>Die öffentliche Mitglied-werden-Seite (<code>/register/&lt;RC-Nummer&gt;</code>) lässt sich pro EEG farblich an die eigene Marke anpassen. Zur Auswahl stehen vier vordefinierte Farbwelten — eine eigene HEX-Farbe ist bewusst nicht vorgesehen, damit Kontraste und Lesbarkeit zuverlässig stimmen.</p>
+<p>Die öffentliche Mitglied-werden-Seite (<code>/register/&lt;RC-Nummer&gt;</code>) lässt sich pro EEG farblich an die eigene Marke anpassen. Der Editor hat zwei Modi mit eigenen Tabs:</p>
+<ul>
+<li><strong>Preset</strong> — vier vordefinierte Farbwelten, durchgetestet und WCAG-konform</li>
+<li><strong>Eigene Farben</strong> — freie HEX-Farbwahl plus optional Schriftart, mit Live-Vorschau und Kontrast-Check</li>
+</ul>
+<p>Der Modus wird oben am Editor umgeschaltet. Die Einstellungen beider Modi bleiben gespeichert — wechselst du z. B. von „Eigene Farben" zurück auf „Preset" und speicherst, bleibt das individuelle Theme in der Datenbank erhalten und ist beim erneuten Wechsel auf „Eigene Farben" wieder da.</p>
+<h4 id="tab-preset">Tab „Preset"<a class="headerlink" href="#tab-preset" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
 <tr>
@@ -1247,6 +1277,59 @@ Wenn du einen Antrag bereits per Import-Button verarbeitet hast und die Mitglied
 <li>Der Admin-Bereich (<code>/admin/…</code>) bleibt einheitlich türkis.</li>
 <li>E-Mail-Templates sind heute nicht gebrandet.</li>
 </ul>
+<h4 id="tab-eigene-farben">Tab „Eigene Farben"<a class="headerlink" href="#tab-eigene-farben" title="Permanent link">&para;</a></h4>
+<p>Reicht dir keines der Presets, wechselst du auf den Tab „Eigene Farben". Hier kannst du jede Farbe einzeln über einen Color-Picker oder per HEX-Eingabe festlegen. Acht editierbare Felder:</p>
+<table>
+<thead>
+<tr>
+<th>Feld</th>
+<th>Wirkt auf</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Hauptfarbe</strong></td>
+<td>Button-Hintergrund, Akzent-Strich im Kopf</td>
+</tr>
+<tr>
+<td><strong>Text auf Hauptfarbe</strong></td>
+<td>Schrift auf Buttons</td>
+</tr>
+<tr>
+<td><strong>Akzent</strong></td>
+<td>Highlights, Hover-Zustände</td>
+</tr>
+<tr>
+<td><strong>Text auf Akzent</strong></td>
+<td>Schrift auf Akzent-Flächen</td>
+</tr>
+<tr>
+<td><strong>Hintergrund</strong></td>
+<td>Seiten-Hintergrund</td>
+</tr>
+<tr>
+<td><strong>Text</strong></td>
+<td>Standard-Textfarbe</td>
+</tr>
+<tr>
+<td><strong>Karten-Hintergrund</strong></td>
+<td>Formularkarten und Boxen</td>
+</tr>
+<tr>
+<td><strong>Text auf Karten</strong></td>
+<td>Schrift in Formularen</td>
+</tr>
+</tbody>
+</table>
+<p>Plus eine Auswahl für die <strong>Schriftart</strong>: Sans-Serif (Standard Inter), Serif (Georgia), Monospace (SF Mono) oder System-UI (native Schrift des Endgeräts). Felder, die du nicht anpasst, werden vom oben gewählten Preset übernommen — weitere neun abgeleitete Werte (z. B. Rahmen, Focus-Ring, gedämpfte Töne) berechnet das System automatisch aus deinen acht Farben.</p>
+<p><strong>Live-Vorschau</strong> unter den Pickern zeigt sofort, wie die Mitglied-werden-Seite aussehen wird. Daneben prüft ein <strong>Kontrast-Panel</strong> die drei kritischen WCAG-AA-Paare:</p>
+<ul>
+<li>Hauptfarbe gegen Text auf Hauptfarbe</li>
+<li>Akzent gegen Text auf Akzent</li>
+<li>Text gegen Hintergrund</li>
+</ul>
+<p>Liegt ein Paar unter dem Mindest-Verhältnis 4,5:1, blockiert ein Sicherheitsfilter das Speichern — die Mitglied-werden-Seite würde sonst Texte zeigen, die schwer oder gar nicht lesbar sind. Du siehst direkt im Panel welches Paar Probleme macht und welches Kontrast-Verhältnis aktuell erreicht wird.</p>
+<p><strong>Beispiel:</strong> Muster-EEG wechselt auf den Tab „Eigene Farben", lädt zunächst das Preset „Leaf" als Basis (links oben), nimmt für <strong>Hauptfarbe</strong> ein dunkles Markengrün <code>#1c3a28</code> und für <strong>Text auf Hauptfarbe</strong> Weiß <code>#ffffff</code> — das Kontrast-Panel zeigt 12,4:1 ✓. Background-Felder bleiben vom Preset. Speichern, fertig — die Mitglied-werden-Seite zeigt jetzt grüne Buttons auf dem grünen Hintergrund der Leaf-Welt.</p>
 <p>Klicke auf <strong>Speichern</strong>, um alle Änderungen in diesem Abschnitt zu übernehmen.</p>
 <hr />
 <h2 id="einleitungstext">Einleitungstext<a class="headerlink" href="#einleitungstext" title="Permanent link">&para;</a></h2>
