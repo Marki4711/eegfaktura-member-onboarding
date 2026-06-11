@@ -669,18 +669,54 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#tab-preset" class="md-nav__link">
+  <a href="#vorlage-wahlen" class="md-nav__link">
     <span class="md-ellipsis">
-      Tab „Preset"
+      Vorlage wählen
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#tab-eigene-farben" class="md-nav__link">
+  <a href="#acht-farbfelder-schriftart" class="md-nav__link">
     <span class="md-ellipsis">
-      Tab „Eigene Farben"
+      Acht Farbfelder + Schriftart
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#live-vorschau-und-kontrast-check" class="md-nav__link">
+    <span class="md-ellipsis">
+      Live-Vorschau und Kontrast-Check
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#header-und-footer" class="md-nav__link">
+    <span class="md-ellipsis">
+      Header und Footer
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#wo-wirkt-das-branding-nicht" class="md-nav__link">
+    <span class="md-ellipsis">
+      Wo wirkt das Branding nicht?
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#beispiel" class="md-nav__link">
+    <span class="md-ellipsis">
+      Beispiel
     </span>
   </a>
   
@@ -1236,55 +1272,38 @@ Wenn du einen Antrag bereits per Import-Button verarbeitet hast und die Mitglied
 <blockquote>
 <p>Diese Sektion ist nur in <strong>Alle Optionen</strong> sichtbar.</p>
 </blockquote>
-<p>Die öffentliche Mitglied-werden-Seite (<code>/register/&lt;RC-Nummer&gt;</code>) lässt sich pro EEG farblich an die eigene Marke anpassen. Der Editor hat zwei Modi mit eigenen Tabs:</p>
-<ul>
-<li><strong>Preset</strong> — vier vordefinierte Farbwelten, durchgetestet und WCAG-konform</li>
-<li><strong>Eigene Farben</strong> — freie HEX-Farbwahl plus optional Schriftart, mit Live-Vorschau und Kontrast-Check</li>
-</ul>
-<p>Der Modus wird oben am Editor umgeschaltet. Die Einstellungen beider Modi bleiben gespeichert — wechselst du z. B. von „Eigene Farben" zurück auf „Preset" und speicherst, bleibt das individuelle Theme in der Datenbank erhalten und ist beim erneuten Wechsel auf „Eigene Farben" wieder da.</p>
-<h4 id="tab-preset">Tab „Preset"<a class="headerlink" href="#tab-preset" title="Permanent link">&para;</a></h4>
+<p>Die öffentliche Mitglied-werden-Seite (<code>/register/&lt;RC-Nummer&gt;</code>) lässt sich pro EEG farblich an die eigene Marke anpassen. Der Editor liefert eine <strong>Vorlagen-Listbox</strong> mit 16 vorgefertigten Farb-Kombinationen als schnellen Einstieg und acht einzelne <strong>Color-Picker</strong>, mit denen du das Ergebnis punktgenau anpassen kannst.</p>
+<h4 id="vorlage-wahlen">Vorlage wählen<a class="headerlink" href="#vorlage-wahlen" title="Permanent link">&para;</a></h4>
+<p>Die Listbox am oberen Rand des Editors enthält 16 Vorlagen. Ein Klick lädt komplettes Farbschema und Schriftart in die Felder darunter — überschreibt also bisherige Einstellungen. Eigene Anpassungen, die du danach machst, bleiben erhalten.</p>
 <table>
 <thead>
 <tr>
-<th>Preset</th>
-<th>Wirkung</th>
+<th>Set</th>
+<th>Vorlagen</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>Teal (Standard)</strong></td>
-<td>Heutige dunkel-türkise Optik. Default für alle EEGs.</td>
+<td><strong>Energie &amp; Klima</strong></td>
+<td>Sonne, Waldgrün, Ozean, Sonnenuntergang, Gletscher, Erde</td>
 </tr>
 <tr>
-<td><strong>Leaf (Grün)</strong></td>
-<td>Dunkles Waldgrün mit hellem Grünton als Akzent.</td>
+<td><strong>Corporate</strong></td>
+<td>Anthrazit, Stahlblau, Bordeaux</td>
 </tr>
 <tr>
-<td><strong>Sun (Orange)</strong></td>
-<td>Warmes Anthrazit mit Sonnen-Orange-Akzent.</td>
+<td><strong>Modern &amp; Frisch</strong></td>
+<td>Minze, Lavendel, Koralle</td>
 </tr>
 <tr>
-<td><strong>Slatey (Neutral)</strong></td>
-<td>Neutrales Anthrazit-Grau mit hellblauem Akzent.</td>
+<td><strong>Dark-Mode-Klassiker</strong></td>
+<td>Teal (Standard), Leaf, Sun, Slatey</td>
 </tr>
 </tbody>
 </table>
-<p>Vier kleine Vorschau-Karten direkt unter dem Auswahl-Feld zeigen, wie das jeweilige Schema aussieht — inklusive einer Beispiel-Schaltfläche und einer Beispiel-Karte in den Preset-Farben. Die aktuelle Auswahl bekommt einen Ring um die Karte.</p>
-<p>Wenn ein anderer als „Teal" gewählt ist, wirken zusätzlich:</p>
-<ul>
-<li><strong>EEG-Logo</strong>: das aus eegFaktura synchronisierte Logo wird oben links im Kopf der Mitglied-werden-Seite eingebunden — neben dem EEG-Namen aus der Stammdaten-Synchronisation. Ohne Logo bleibt das Standard-Blitz-Icon.</li>
-<li><strong>EEG-Name</strong>: ersetzt im Kopf den Schriftzug „eegFaktura". Wenn der Name noch nicht synchronisiert ist, bleibt der Standard-Schriftzug.</li>
-<li><strong>Footer</strong>: wechselt dezent auf „Powered by eegFaktura", damit klar bleibt, wer den Service technisch betreibt.</li>
-</ul>
-<p><strong>Beispiel:</strong> die Muster-EEG schaltet im Editor auf „Leaf", synchronisiert ihr Logo aus eegFaktura, und sieht beim nächsten Aufruf der Mitglied-werden-Seite einen grünen Kopf mit Muster-EEG-Logo und Namen statt der eegFaktura-Standard-Optik.</p>
-<p><strong>Wo wirkt das Branding nicht?</strong></p>
-<ul>
-<li>Die separate E-Mail-Bestätigungs-Seite (<code>/confirm-email</code>) zeigt weiter das Standard-Theme — sie erreicht das Mitglied über einen Link mit Token statt über eine RC-Nummer und kennt deshalb die EEG nicht.</li>
-<li>Der Admin-Bereich (<code>/admin/…</code>) bleibt einheitlich türkis.</li>
-<li>E-Mail-Templates sind heute nicht gebrandet.</li>
-</ul>
-<h4 id="tab-eigene-farben">Tab „Eigene Farben"<a class="headerlink" href="#tab-eigene-farben" title="Permanent link">&para;</a></h4>
-<p>Reicht dir keines der Presets, wechselst du auf den Tab „Eigene Farben". Hier kannst du jede Farbe einzeln über einen Color-Picker oder per HEX-Eingabe festlegen. Acht editierbare Felder:</p>
+<p>Die Dark-Mode-Klassiker sind die bisherigen vier Presets — sie sind als Vorlage weiterhin verfügbar, der frühere getrennte „Preset"-Tab ist entfallen.</p>
+<p>Alle Vorlagen sind auf WCAG-AA-konformen Kontrast in den drei kritischen Paaren (Hauptfarbe / Text-auf-Hauptfarbe, Akzent / Text-auf-Akzent, Text / Hintergrund) konstruiert.</p>
+<h4 id="acht-farbfelder-schriftart">Acht Farbfelder + Schriftart<a class="headerlink" href="#acht-farbfelder-schriftart" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
 <tr>
@@ -1327,16 +1346,31 @@ Wenn du einen Antrag bereits per Import-Button verarbeitet hast und die Mitglied
 </tr>
 </tbody>
 </table>
-<p>Plus eine Auswahl für die <strong>Schriftart</strong>: Sans-Serif (Standard Inter), Serif (Georgia), Monospace (SF Mono) oder System-UI (native Schrift des Endgeräts). Felder, die du nicht anpasst, werden vom oben gewählten Preset übernommen — weitere neun abgeleitete Werte (z. B. Rahmen, Focus-Ring, gedämpfte Töne) berechnet das System automatisch aus deinen acht Farben.</p>
-<p><strong>Live-Vorschau</strong> unter den Pickern zeigt sofort, wie die Mitglied-werden-Seite aussehen wird. Daneben prüft ein <strong>Kontrast-Panel</strong> die drei kritischen WCAG-AA-Paare:</p>
+<p>Jedes Feld lässt sich entweder über den Color-Picker (Klick auf das farbige Vorschau-Quadrat) oder per direkter HEX-Eingabe ändern. Weitere neun abgeleitete Werte (Rahmen, Focus-Ring, gedämpfte Töne) berechnet das System automatisch aus deinen acht Farben.</p>
+<p>Die <strong>Schriftart</strong>-Auswahl steht direkt darunter: Sans-Serif (Standard Inter), Serif (Georgia), Monospace (SF Mono) oder System-UI (native Schrift des Endgeräts).</p>
+<h4 id="live-vorschau-und-kontrast-check">Live-Vorschau und Kontrast-Check<a class="headerlink" href="#live-vorschau-und-kontrast-check" title="Permanent link">&para;</a></h4>
+<p>Eine <strong>Live-Vorschau</strong> unterhalb der Felder zeigt sofort, wie die Mitglied-werden-Seite aussehen wird, sobald du eine Farbe änderst. Daneben prüft ein <strong>Kontrast-Panel</strong> die drei kritischen WCAG-AA-Paare:</p>
 <ul>
 <li>Hauptfarbe gegen Text auf Hauptfarbe</li>
 <li>Akzent gegen Text auf Akzent</li>
 <li>Text gegen Hintergrund</li>
 </ul>
-<p>Liegt ein Paar unter dem Mindest-Verhältnis 4,5:1, blockiert ein Sicherheitsfilter das Speichern — die Mitglied-werden-Seite würde sonst Texte zeigen, die schwer oder gar nicht lesbar sind. Du siehst direkt im Panel welches Paar Probleme macht und welches Kontrast-Verhältnis aktuell erreicht wird.</p>
-<p><strong>Beispiel:</strong> Muster-EEG wechselt auf den Tab „Eigene Farben", lädt zunächst das Preset „Leaf" als Basis (links oben), nimmt für <strong>Hauptfarbe</strong> ein dunkles Markengrün <code>#1c3a28</code> und für <strong>Text auf Hauptfarbe</strong> Weiß <code>#ffffff</code> — das Kontrast-Panel zeigt 12,4:1 ✓. Background-Felder bleiben vom Preset. Speichern, fertig — die Mitglied-werden-Seite zeigt jetzt grüne Buttons auf dem grünen Hintergrund der Leaf-Welt.</p>
-<p>Klicke auf <strong>Speichern</strong>, um alle Änderungen in diesem Abschnitt zu übernehmen.</p>
+<p>Liegt ein Paar unter dem Mindest-Verhältnis 4,5:1, blockiert ein Sicherheitsfilter das Speichern — die Mitglied-werden-Seite würde sonst Texte zeigen, die schwer oder gar nicht lesbar sind. Du siehst direkt im Panel, welches Paar Probleme macht und welches Kontrast-Verhältnis aktuell erreicht wird. Die Live-Vorschau rendert weiter, damit du sehen kannst, was du gerade kombinierst.</p>
+<h4 id="header-und-footer">Header und Footer<a class="headerlink" href="#header-und-footer" title="Permanent link">&para;</a></h4>
+<p>Zusätzlich zu den Farben werden auf der Mitglied-werden-Seite eingebunden:</p>
+<ul>
+<li><strong>EEG-Logo</strong>: das aus eegFaktura synchronisierte Logo erscheint oben links im Kopf — neben dem EEG-Namen aus der Stammdaten-Synchronisation. Ohne Logo bleibt das Standard-Blitz-Icon.</li>
+<li><strong>EEG-Name</strong>: ersetzt im Kopf den Schriftzug „eegFaktura".</li>
+<li><strong>Footer</strong>: zeigt dezent „Powered by eegFaktura", sobald die EEG ein eigenes Branding gesetzt hat.</li>
+</ul>
+<h4 id="wo-wirkt-das-branding-nicht">Wo wirkt das Branding nicht?<a class="headerlink" href="#wo-wirkt-das-branding-nicht" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Die separate E-Mail-Bestätigungs-Seite (<code>/confirm-email</code>) zeigt weiter das Standard-Theme — sie erreicht das Mitglied über einen Link mit Token statt über eine RC-Nummer und kennt deshalb die EEG nicht.</li>
+<li>Der Admin-Bereich (<code>/admin/…</code>) bleibt einheitlich türkis.</li>
+<li>E-Mail-Templates sind heute nicht gebrandet.</li>
+</ul>
+<h4 id="beispiel">Beispiel<a class="headerlink" href="#beispiel" title="Permanent link">&para;</a></h4>
+<p>Muster-EEG öffnet den Editor, wählt aus der Vorlagen-Listbox <strong>Waldgrün</strong>. Alle acht Felder + Schriftart werden gefüllt; Vorschau zeigt sofort die grüne Optik. Muster-EEG passt nur die <strong>Hauptfarbe</strong> auf ein dunkleres Markengrün <code>#1c3a28</code> an, „Text auf Hauptfarbe" wechselt automatisch dazu auf Weiß <code>#ffffff</code> — Kontrast-Panel meldet 12,4:1 ✓. Alle Änderungen werden automatisch gespeichert. Nach einem Reload der Mitglied-werden-Seite ist das neue Branding live.</p>
 <hr />
 <h2 id="einleitungstext">Einleitungstext<a class="headerlink" href="#einleitungstext" title="Permanent link">&para;</a></h2>
 <p><img alt="Einleitungstext" src="../images/admin-settings-intro.png" /></p>
