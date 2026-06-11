@@ -6,6 +6,10 @@ Die Einstellungsseite ist über **Einstellungen** im Admin-Bereich erreichbar. S
 
 Wenn dein Account für mehrere EEGs zuständig ist, erscheint oben rechts ein Auswahlfeld. Alle Einstellungen beziehen sich auf die gewählte EEG.
 
+Die Liste zeigt — sobald die EEG-Stammdaten mindestens einmal über den **Aktualisieren**-Knopf in dieser Karte synchronisiert wurden — die Kurzform der EEG aus eegFaktura zusammen mit der Referenznummer im Format `Kurzform • RC-Nummer` (Beispiel: `EEG-Test • RC0001`). EEGs, für die noch keine Kurzform in eegFaktura hinterlegt ist, erscheinen am Ende der Liste mit reiner Referenznummer.
+
+Dasselbe Format findest du auch im **Antrags-Filterpanel** (Filter „EEG") und im **Reassign-Dialog** (Ziel-EEG beim Umordnen eines Antrags). In der Antragsliste selbst zeigt die Spalte „EEG" nur die Kurzform, mit der Referenznummer als Tooltip beim Überfahren.
+
 ## Einfache Ansicht oder Alle Optionen
 
 Direkt neben der EEG-Auswahl gibt es einen Umschalter **Einfache Ansicht / Alle Optionen**. Die Wahl wird pro EEG gespeichert.

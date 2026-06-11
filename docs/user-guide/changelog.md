@@ -4,6 +4,16 @@
 
 ---
 
+## 2026-06-11 (spät)
+
+**EEG-Kurzform statt nackter Referenznummer**
+
+In allen drei Admin-Auswahllisten (EEG-Wechsel in den Einstellungen, EEG-Filter im Antragsbereich, Ziel-EEG-Auswahl beim Umordnen) sowie in der Spalte „EEG" der Antragsliste erscheint jetzt die in eegFaktura hinterlegte Kurzform der EEG (z. B. `EEG-Test`). In den Listboxen kombiniert mit der Referenznummer dahinter (Format `EEG-Test • RC0001`); in der Antragsliste nur die Kurzform, mit der Referenznummer als Tooltip beim Überfahren.
+
+Sortiert wird alphabetisch nach Kurzform — EEGs ohne Kurzform landen ans Listenende. Hat eine EEG in eegFaktura keine Kurzform hinterlegt, oder wurden die Stammdaten noch nicht synchronisiert, fällt die Anzeige automatisch auf die reine Referenznummer zurück. Der Sync läuft wie bisher manuell über den **Aktualisieren**-Knopf auf dem Stammdaten-Tab; eine Änderung der Kurzform in eegFaktura wird also erst nach dem nächsten Sync sichtbar.
+
+---
+
 ## 2026-06-11 (Abend)
 
 **Eigene Farben für die Online-Registrierung**

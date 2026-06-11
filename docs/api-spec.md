@@ -838,6 +838,42 @@ set. The full upstream payload contains more pricing fields (`participantFee`,
 `baseFee`, `freeKWh`, `meteringPointFee`, ...); only the subset above is
 exposed to the frontend.
 
+### GET `/api/admin/registration-entrypoints`
+
+PROJ-101 (2026-06-11). Liefert ein schlankes Verzeichnis der EEGs, das
+der Caller sehen darf — Tenant-Admin filtert auf den eigenen Tenant-Claim,
+Superuser sieht alle. Wird vom Admin-Layout beim Mount einmal geladen
+und über einen React-Context an die drei EEG-Auswahllisten (Settings-
+Switcher, Antrags-Filter-Panel, Reassign-Dialog) sowie die Antragslisten-
+Spalte „EEG" verteilt.
+
+Bewusst PII-frei (kein IBAN, kein CreditorID, keine Adress-Felder).
+
+Sortierung im Backend: alphabetisch nach `eegShortName` (NULL ans Ende),
+Sekundär-Sort nach `rcNumber`.
+
+#### Response 200
+```json
+{
+  "entrypoints": [
+    {
+      "rcNumber": "RC0001",
+      "eegShortName": "EEG-Test",
+      "eegName": "Testenergiegemeinschaft EEG 1234"
+    },
+    {
+      "rcNumber": "RC0002",
+      "eegName": "Musterenergiegemeinschaft EEG"
+    }
+  ]
+}
+```
+
+- `eegShortName` und `eegName` sind optional (`omitempty`); NULL-Werte
+  in der DB werden weggelassen statt als `null` gesendet.
+- Bei leerem Verzeichnis (Tenant ohne RCs, Fetch-Fehler) fallen die
+  Listboxen auf reine RC-Darstellung zurück.
+
 ### Failure responses
 - `400` rcNumber missing
 - `403` tenant mismatch

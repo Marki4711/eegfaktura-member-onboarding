@@ -64,7 +64,8 @@ Fields:
 
 **Core-mastered fields (PROJ-32 — synced from eegFaktura, read-only in the admin UI):**
 - `eeg_id` — Gemeinschafts-ID; used as the Excel-Export Spalte B value and for the eegFaktura import. Source: GraphQL `eeg.communityId`.
-- `eeg_name` — official name of the energy community. Source: `eeg.description` (descriptive long name, e.g. "Testenergiegemeinschaft EEG 1234"). Note: the core's `eeg.name` is a short internal handle equivalent to `rcNumber` (e.g. "EEG-TEST") and is not used here.
+- `eeg_name` — official name of the energy community. Source: `eeg.description` (descriptive long name, e.g. "Testenergiegemeinschaft EEG 1234").
+- `eeg_short_name` *(PROJ-101, Migration 000078)* — nullable TEXT, EEG-Kurzform aus dem Core (Source: `eeg.name`, eine eigenständige Kurzform die der EEG-Verwalter im Core pflegt — NICHT identisch mit `rcNumber`; frühere Annahme war falsch). NULL bis zum ersten Sync; Whitespace-only-Werte werden beim Sync auf NULL normalisiert. Wird in den drei Admin-UI-Auswahllisten (Settings-Switcher, Antrags-Filter-Panel, Reassign-Dialog) und in der Antragslisten-Spalte „EEG" angezeigt; PDF/Mail/Excel-Export nutzen weiter die Langform.
 - `eeg_street`, `eeg_street_number`, `eeg_zip`, `eeg_city` — EEG address. Source: `eeg.address.{street, streetNumber, zip, city}`.
 - `creditor_id` — SEPA creditor ID (max 35 chars). Source: `eeg.accountInfo.creditorId`.
 - `contact_email` — EEG notification recipient (admin-Benachrichtigung bei neuem Antrag). Source: `eeg.contact.email`.

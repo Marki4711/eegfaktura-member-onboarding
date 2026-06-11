@@ -1,6 +1,6 @@
 # PROJ-101: EEG-Kurzform in den Auswahllisten
 
-## Status: Architected (eingefroren nach Grilling 2026-06-11)
+## Status: Deployed (2026-06-11 spät, v1.31.0-PROJ-101)
 **Created:** 2026-06-11
 **Last Updated:** 2026-06-11
 **Typ:** UX-Verbesserung (Tester-Wunsch) + Schema-Erweiterung (PROJ-32-Folge)
@@ -48,7 +48,9 @@ kommt als Folge-PROJ, sobald der Owner ihn priorisiert.
 **Festgenagelt im Grilling 2026-06-11:**
 
 1. **Schema-Erweiterung:** neue Spalte `eeg_short_name TEXT NULL` auf
-   `member_onboarding.registration_entrypoint`. Migration `000075_*`.
+   `member_onboarding.registration_entrypoint`. Migration `000078_*`
+   (Migrations 000075–000077 wurden zwischen Spec-Schreiben und
+   Implementations-Start für PROJ-91/-102/-103 verbraucht).
 2. **Core-Sync (PROJ-32-Erweiterung):** Feld `name` aus dem GraphQL-
    Response `data.eeg.name` ins DTO `EEGMasterData` aufnehmen. Beim
    Sync wird `name` mit `strings.TrimSpace` normalisiert; leerer
@@ -60,11 +62,16 @@ kommt als Folge-PROJ, sobald der Owner ihn priorisiert.
    alle. Liest aus `member_onboarding.registration_entrypoint`.
    Keine PII (kein IBAN, kein CreditorID).
 4. **Frontend:** zentraler Fetch + React-Context, der den Endpoint
-   beim AdminLayout-Mount einmal lädt. Drei Listboxen konsumieren
-   den Context:
+   beim AdminLayout-Mount einmal lädt. Drei Listboxen + Antrags-
+   tabelle konsumieren den Context:
    - **Settings-EEG-Switcher** (`src/app/admin/settings/page.tsx:314-323`)
    - **Antrags-Filter-Panel** (`src/components/admin-filter-panel.tsx:135-145`)
    - **Reassign-Dialog Ziel-EEG** (`src/components/admin-status-actions.tsx:639-648`)
+   - **Antragsliste-Spalte „EEG"**
+     (`src/components/admin-application-table.tsx:210`) — Display nur
+     Kurzform, Fallback RC bei NULL, Tooltip mit voller RC bei Hover.
+     Sort bleibt `rcNumber` (Backend-Sort-Verhalten unverändert).
+     Scope-Erweiterung Owner-Entscheidung 2026-06-11 Abend.
 5. **Display-Format:** `Kurzform • RC-Nummer` einzeilig. Beispiel:
    `EEG-Test • RC0001`. Bei NULL-Kurzform nur die RC-Nummer (kein
    Bullet, kein Hinweis-Text). Helper `formatEegLabel(rcNumber, shortName)`.
@@ -134,6 +141,12 @@ kommt als Folge-PROJ, sobald der Owner ihn priorisiert.
 - [ ] **AC-13** Bei NULL-Kurzform für alle EEGs (z. B. vor erstem
   Sync) fallen alle drei Listboxen auf reine RC-Darstellung zurück
   — kein Bruch.
+- [ ] **AC-13a** Antragsliste-Spalte „EEG"
+  (`src/components/admin-application-table.tsx:210`) rendert
+  Kurzform statt RC-Nummer; bei NULL-Kurzform Fallback auf die
+  RC-Nummer. Tooltip auf der Cell zeigt die vollständige RC-Nummer
+  (`title`-Attribut). Sortier-Spalte bleibt `rcNumber` (Backend-
+  Sort unverändert, keine API-Änderung).
 
 ### Tests + Doku
 
@@ -176,9 +189,10 @@ kommt als Folge-PROJ, sobald der Owner ihn priorisiert.
 
 ## Out of Scope
 
-- **Wechsel von RC-Nummer auf Kurzform in Berichten und Listen**
-  (Antrags-Liste, Excel-Export, Mail-Templates): Owner-Direktive
-  „denkbar" — eigene Folge-PROJ.
+- **Wechsel von RC-Nummer auf Kurzform in weiteren Berichten und
+  Listen** (Excel-Export, Mail-Templates): Owner-Direktive
+  „denkbar" — eigene Folge-PROJ. *Antragsliste-Spalte ist jetzt
+  IN-Scope (siehe Punkt 4 + AC-13a).*
 - Editierbares Kurzform-Feld im Onboarding-Admin-UI (Kurzform bleibt
   Read-Only-Mirror aus dem Core, analog `eeg_name`).
 - Kurzform im PDF (AVV, SEPA, Beitrittsbestätigung): heute steht dort
@@ -266,3 +280,184 @@ ALTER TABLE member_onboarding.registration_entrypoint
 9. **last-used-rc** → bleibt RC-basiert; `Alle EEGs`-Eintrag bleibt
    erster Eintrag im Filter-Panel.
 10. **Berichte/Listen-Wechsel** → Out-of-Scope; eigene Folge-PROJ.
+11. **Antragsliste-Spalte „EEG"** (Scope-Erweiterung 2026-06-11 spät) →
+    nur Kurzform, Fallback RC bei NULL, Tooltip mit voller RC bei Hover;
+    Sort bleibt by rcNumber.
+
+## QA Test Results
+
+**QA-Engineer:** AI Engineer (Code-Audit + Test-Re-Run + Security-Smoke)
+**Date:** 2026-06-11 spät
+**Scope:** PROJ-101 Backend (Migration 000078 + Sync-Erweiterung + Endpoint
++ Repo + Handler) und Frontend (Helper + Provider + 4 Konsumenten).
+
+### Test-Baseline
+
+- `go test ./...` — alle Pakete grün, +3 neue Test-Files
+  (`admin_nil_if_blank_test.go`, `entrypoint_summary_test.go`,
+  `eeg_master_data_test.go`)
+- `go build ./...` — clean
+- `npx vitest run` — **162/162 grün** (6 neu in `eeg-label.test.ts`)
+- `npx tsc --noEmit` — clean
+- `NEXT_PUBLIC_TEST_AUTH_MODE= npm run build` — clean
+
+### Acceptance Criteria
+
+Alle 17 ACs + AC-13a (Antragsliste) durch Code-Audit + Test-Re-Run
+verifiziert PASS. Volles Mapping:
+
+| AC | Pfad | Status |
+|---|---|---|
+| AC-1 | `db/migrations/000078_*` (up+down) | PASS |
+| AC-2 | `shared.RegistrationEntrypoint.EEGShortName` | PASS |
+| AC-3 | `coreclient.EEGMasterData.Name` + Kommentar 25–31 korrigiert | PASS |
+| AC-4 | `nilIfBlank(core.Name)` in SyncEEGSettingsFromCore | PASS |
+| AC-5 | `RegistrationEntrypointRepository.ListEntrypoints` + SQL-Sort | PASS |
+| AC-6 | `AdminHandler.ListRegistrationEntrypoints` (Tenant-Filter + Superuser-Bypass + PII-frei) | PASS |
+| AC-7 | `formatEegLabel` + Unit-Tests (6 Cases) | PASS |
+| AC-8 | `EegDirectoryProvider` + `useEegDirectory` mit Cancel + Fallback | PASS |
+| AC-9 | AdminLayout mountet Provider | PASS |
+| AC-10 | Settings-Switcher (sortiert nach Directory) | PASS |
+| AC-11 | Antrags-Filter-Panel (`Alle EEGs` bleibt erster Eintrag) | PASS |
+| AC-12 | Reassign-Dialog Ziel-EEG | PASS |
+| AC-13 | NULL-Kurzform → reine RC-Darstellung | PASS |
+| AC-13a | Antragsliste-Spalte „EEG" mit Tooltip | PASS |
+| AC-14 | Backend-Tests (nilIfBlank, EntrypointSummary, EEGMasterData) | PASS |
+| AC-15 | Frontend-Tests (formatEegLabel) | PASS |
+| AC-16 | Builds + Tests clean | PASS |
+| AC-17 | Doku (domain-model + api-spec + user-guide + changelog) | PASS |
+
+### Edge Cases
+
+| EC | Verifikation | Status |
+|---|---|---|
+| EC-1 | Bestand-EEG ohne Sync → `eeg_short_name IS NULL` → `formatEegLabel(rc, undefined) = rc` | PASS |
+| EC-2 | Core liefert `""` oder whitespace → `nilIfBlank` mapped auf NULL | PASS |
+| EC-3 | Zwei EEGs gleiche Kurzform → `Kurzform • RC` disambiguiert visuell, SQL-Sort sekundär by `rc_number` | PASS |
+| EC-4 | Admin ändert Core-Kurzform → erst nach manuellem PROJ-32-Sync sichtbar (by design) | PASS |
+| EC-5 | Endpoint 401/403/500/Netzwerk → `useEegDirectory` catch → leere `entries` → Listboxen rendern reine RC | PASS |
+| EC-6 | Superuser ohne Tenant-Claim → `claims.IsSuperuser() == true` → `rcFilter = nil` → ListEntrypoints liefert alle | PASS |
+
+### Security Smoke
+
+| Bereich | Befund |
+|---|---|
+| Auth/AuthZ | Endpoint hinter `KeycloakAuthMiddleware`; Tenant-Filter via `claims.Tenant`; Superuser-Bypass identisch zu Bestand-Mustern (`BulkChangeStatus`, `DeleteDraftApplications`) |
+| Input-Validation | GET-Endpoint ohne Path-/Query-Param und ohne Body — keine Input-Surface |
+| SQL-Injection | `pq.StringArray($1)` für rcNumbers-Filter, sonst Konstanten | 
+| XSS | Display via React-Text, kein `dangerouslySetInnerHTML` |
+| PII-Leak | `EntrypointSummary` nur 3 Felder (`rcNumber`, `eegShortName?`, `eegName?`); Test `TestEntrypointSummary_JSONShape` blockt PII-Drift |
+| Logging | Keine neuen Logs, keine PII |
+| Length-Limits | Keine User-Inputs, keine Limits nötig |
+
+### Regression
+
+- PROJ-32-Sync: `SyncFromCore`-Update enthält jetzt 14 Parameter (vorher
+  13). Bestand-Felder unverändert, neuer Param `$3 = eeg_short_name`.
+  Migration sicher non-blocking (`ALTER TABLE ADD COLUMN ... NULL`).
+- Drift-Banner: zusätzliche Zeile „EEG-Kurzform" mit normalisiertem
+  Vergleich. Bestand-EEGs ohne Sync zeigen lokal NULL und Core leer → kein
+  Phantom-Diff.
+- PROJ-102/-103 Brand-Felder: SELECT-Reihenfolge in `GetByRCNumber`
+  unverändert für brand_preset/brand_theme/brand_mode (neuer Spalten-Insert
+  vor `eeg_street`).
+- PROJ-67 Awareness-Banner: keine Berührung (PROJ-101 trigger-frei).
+- PROJ-84 Auto-Save Settings: keine Berührung; `last-used-rc` bleibt
+  RC-basiert.
+
+### Findings
+
+Keine Critical/High/Medium/Low-Findings. **0 Findings.**
+
+Info-Notes (keine Action):
+- Cache-Strategie ist Forever-In-Memory: bei Core-Kurzform-Änderung muss
+  Admin nach PROJ-32-Sync zusätzlich die Page neu laden (kein Live-Push).
+  Konsistent mit Bestand-PROJ-32-Pattern. Owner-Direktive.
+
+### Verdict
+
+**APPROVED — Production-Ready: YES.**
+
+## Security Review
+
+**Reviewer:** Security Engineer (AI), Code-Audit + Threat-Model + Scans
+**Date:** 2026-06-11 spät
+**Scope:** Migration 000078, neuer Admin-Endpoint
+`GET /api/admin/registration-entrypoints`, PROJ-32-Sync-Erweiterung,
+React-Provider/Hook im AdminLayout.
+
+### Threat Model Summary
+
+Worst-case bei kompromittierter Tenant-Isolation: ein Tenant-Admin
+liest die EEG-Kurzform fremder EEGs (Vertraulichkeit von Branding-Daten;
+kein PII). Worst-case bei kompromittiertem Sync: invaliding-display
+EEG-Kurzform in der Admin-UI (kein Mutations-Pfad zu Bestand-Daten).
+
+### Findings
+
+| Severity | Datei | Funktion | Risiko | Exploit | Fix | Confidence |
+|---|---|---|---|---|---|---|
+| HIGH | `internal/http/admin.go` | `ListRegistrationEntrypoints` | Tenant-Admin ohne / mit nil Tenant-Claim umgeht den Filter | Direkter API-Call mit JWT (Tenant-Admin-Rolle, leerer/fehlender Tenant-Claim) liefert ALLE EEGs statt 0. `[]string(claims.Tenant)` produziert nil-Slice, Repo-Vertrag interpretiert nil als Superuser-Bypass. | **FIXED inline:** expliziter `if claims.IsSuperuser() {...} else { tenant := []string(claims.Tenant); if tenant == nil { tenant = []string{} } ...}` — Tenant-Admin ohne RCs bekommt jetzt sauber 0 EEGs. | High |
+
+### Out-of-Scope Pre-Existing-Findings (NICHT durch PROJ-101 verursacht)
+
+- **HIGH KSV-0014** (`helm/.../postgres.yaml:46-100`): postgres-Container
+  sollte `securityContext.readOnlyRootFilesystem: true` setzen. Stand
+  unverändert seit Helm-Deep-Audit Welle 4 (`2b67366`). PROJ-101 fasst
+  Helm gar nicht an (`git diff main helm/` ist leer). Folge-PROJ-würdig.
+
+### CI-Befund (Folge-PROJ-würdig)
+
+Die `.github/workflows/security-scan.yml`-Trivy-IaC läuft ohne
+`--helm-set` für die `required`-Pflicht-Secrets
+(postgresPassword/dbPassword/keycloakClientSecret/nextauthSecret).
+Konsequenz: Trivy scheitert am Helm-Templating, übergibt 0 files an den
+Misconfig-Scanner und der GitHub Security-Tab bleibt leer. Lokal mit
+`--helm-set secrets.postgresPassword=dummy,...` reproduziert: 23 Tests
+auf postgres.yaml + KSV-0014 HIGH (siehe oben). Empfehlung: CI-Workflow
+um die vier Dummy-Werte ergänzen, damit der echte Scan im Security-Tab
+landet.
+
+### Scan Results
+
+| Scanner | Ergebnis |
+|---|---|
+| `govulncheck ./...` | 0 callable Vulnerabilities |
+| `gosec -severity medium -confidence medium ./internal/...` | 0 Issues |
+| `npm audit --audit-level=high` | 0 high (4 moderate Bestand) |
+| `trivy config helm/ --helm-set ...` | 22/23 Tests grün, **1 HIGH Pre-Existing** (KSV-0014) |
+
+### Verdict
+
+**APPROVED** — PROJ-101 selbst ist nach inline-Fix sauber. Das einzige
+HIGH-Finding war ein Tenant-Isolation-Bug im neuen Endpoint und wurde
+sofort gefixt. KSV-0014 + CI-Trivy-No-Op sind Pre-Existing und werden
+als separate Folge-Items dokumentiert.
+
+## Deployment
+
+**Tag:** `v1.31.0-PROJ-101`
+**Date:** 2026-06-11 spät
+**Pre-Deploy-Status:**
+- QA APPROVED (alle 18 ACs + 6 ECs PASS, 0 Findings nach Tenant-Iso-Fix)
+- Security-Review APPROVED (1 HIGH inline FIXED, 1 Pre-Existing HIGH out-of-scope)
+- `go build ./...` clean
+- `go test ./...` alle Pakete grün
+- `npx tsc --noEmit` clean
+- `npx vitest run` 162/162 grün
+- `NEXT_PUBLIC_TEST_AUTH_MODE= npm run build` clean
+- `govulncheck` 0 callable
+- `gosec` 0 Issues
+- `npm audit --audit-level=high` 0 high
+- `trivy config helm/ --helm-set ...` 0 new findings
+
+**Changes:**
+- 1 new DB-Migration (`000078_registration_entrypoint_short_name` —
+  non-blocking ADD COLUMN nullable, läuft via migrate-Job)
+- 6 modified Backend files (models, coreclient, repo, admin handler,
+  router, drift-banner)
+- 7 modified/new Frontend files (api, helper + tests, context, layout,
+  3 listboxes + 1 table)
+- 5 modified Doc files
+
+**Helm:** keine Wert-Änderungen, keine neuen ENV-Variablen.

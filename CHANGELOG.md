@@ -10,6 +10,16 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Feature — EEG-Kurzform in Admin-UI-Auswahllisten + Antragsliste (PROJ-101) *(2026-06-11 spät)*
+
+**Was sich ändert:** Die drei EEG-Auswahllisten (Settings-Switcher, Antrags-Filter, Reassign-Dialog-Ziel) zeigen ab jetzt das Format `Kurzform • RC-Nummer` statt nur der Referenznummer. Die Antragslisten-Spalte „EEG" zeigt nur die Kurzform mit der RC-Nummer als Tooltip.
+
+- **Schema:** Migration `000078_registration_entrypoint_short_name` führt `eeg_short_name TEXT NULL` ein. Default NULL — Bestand-EEGs zeigen reine RC-Nummer bis zum nächsten Sync.
+- **Core-Sync:** `coreclient.EEGMasterData.Name *string` parst das Core-Feld `eeg.name` (eigenständige Kurzform — frühere Annahme „identisch mit rcNumber" war falsch; Code-Kommentar korrigiert). PROJ-32-Sync normalisiert Whitespace-only-Werte über `nilIfBlank` zu NULL. Drift-Banner vergleicht gegen normalisierte Form.
+- **Endpoint:** `GET /api/admin/registration-entrypoints` liefert `{rcNumber, eegShortName?, eegName?}[]` — Tenant-Admin filter auf Session-Tenant, Superuser sieht alle. Sort per SQL `ORDER BY eeg_short_name NULLS LAST, rc_number`. Bewusst PII-frei (kein IBAN, kein CreditorID, keine Adresse).
+- **Frontend:** Neuer `formatEegLabel`-Helper + `EegDirectoryProvider`-React-Context im AdminLayout — einmaliger Fetch beim Mount, In-Memory-Cache, stillschweigender Fallback auf reine RC-Darstellung bei Fetch-Fehler. Vier Konsumenten migriert: Settings-Switcher, Filter-Panel, Reassign-Dialog, Antragslisten-Spalte.
+- **Out-of-Scope (Folge-PROJ wenn nachgefragt):** Excel-Export, Mail-Templates, Beitrittsbestätigungs-PDF. Die Langform (`eeg_name`) bleibt dort wie bisher. `last-used-rc`-Storage bleibt RC-basiert.
+
 ### Feature — Individuell anpassbare Brand-Farben (PROJ-103) *(2026-06-11 Abend)*
 
 Aufbau auf PROJ-102: zusätzlich zum Preset-Switch gibt es jetzt einen Custom-Theme-Modus mit 8 frei wählbaren HEX-Farben, optional Schriftart, Live-Vorschau und WCAG-AA-Hard-Gate.
