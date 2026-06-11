@@ -295,41 +295,24 @@ Falls eine Bestätigungs-Mail im Spam-Ordner landet: in der Antragsdetail-Seite 
 
 > Diese Sektion ist nur in **Alle Optionen** sichtbar.
 
-Die öffentliche Mitglied-werden-Seite (`/register/<RC-Nummer>`) lässt sich pro EEG farblich an die eigene Marke anpassen. Der Editor hat zwei Modi mit eigenen Tabs:
+Die öffentliche Mitglied-werden-Seite (`/register/<RC-Nummer>`) lässt sich pro EEG farblich an die eigene Marke anpassen. Der Editor liefert eine **Vorlagen-Listbox** mit 16 vorgefertigten Farb-Kombinationen als schnellen Einstieg und acht einzelne **Color-Picker**, mit denen du das Ergebnis punktgenau anpassen kannst.
 
-- **Preset** — vier vordefinierte Farbwelten, durchgetestet und WCAG-konform
-- **Eigene Farben** — freie HEX-Farbwahl plus optional Schriftart, mit Live-Vorschau und Kontrast-Check
+#### Vorlage wählen
 
-Der Modus wird oben am Editor umgeschaltet. Die Einstellungen beider Modi bleiben gespeichert — wechselst du z. B. von „Eigene Farben" zurück auf „Preset" und speicherst, bleibt das individuelle Theme in der Datenbank erhalten und ist beim erneuten Wechsel auf „Eigene Farben" wieder da.
+Die Listbox am oberen Rand des Editors enthält 16 Vorlagen. Ein Klick lädt komplettes Farbschema und Schriftart in die Felder darunter — überschreibt also bisherige Einstellungen. Eigene Anpassungen, die du danach machst, bleiben erhalten.
 
-#### Tab „Preset"
-
-| Preset | Wirkung |
+| Set | Vorlagen |
 |---|---|
-| **Teal (Standard)** | Heutige dunkel-türkise Optik. Default für alle EEGs. |
-| **Leaf (Grün)** | Dunkles Waldgrün mit hellem Grünton als Akzent. |
-| **Sun (Orange)** | Warmes Anthrazit mit Sonnen-Orange-Akzent. |
-| **Slatey (Neutral)** | Neutrales Anthrazit-Grau mit hellblauem Akzent. |
+| **Energie & Klima** | Sonne, Waldgrün, Ozean, Sonnenuntergang, Gletscher, Erde |
+| **Corporate** | Anthrazit, Stahlblau, Bordeaux |
+| **Modern & Frisch** | Minze, Lavendel, Koralle |
+| **Dark-Mode-Klassiker** | Teal (Standard), Leaf, Sun, Slatey |
 
-Vier kleine Vorschau-Karten direkt unter dem Auswahl-Feld zeigen, wie das jeweilige Schema aussieht — inklusive einer Beispiel-Schaltfläche und einer Beispiel-Karte in den Preset-Farben. Die aktuelle Auswahl bekommt einen Ring um die Karte.
+Die Dark-Mode-Klassiker sind die bisherigen vier Presets — sie sind als Vorlage weiterhin verfügbar, der frühere getrennte „Preset"-Tab ist entfallen.
 
-Wenn ein anderer als „Teal" gewählt ist, wirken zusätzlich:
+Alle Vorlagen sind auf WCAG-AA-konformen Kontrast in den drei kritischen Paaren (Hauptfarbe / Text-auf-Hauptfarbe, Akzent / Text-auf-Akzent, Text / Hintergrund) konstruiert.
 
-- **EEG-Logo**: das aus eegFaktura synchronisierte Logo wird oben links im Kopf der Mitglied-werden-Seite eingebunden — neben dem EEG-Namen aus der Stammdaten-Synchronisation. Ohne Logo bleibt das Standard-Blitz-Icon.
-- **EEG-Name**: ersetzt im Kopf den Schriftzug „eegFaktura". Wenn der Name noch nicht synchronisiert ist, bleibt der Standard-Schriftzug.
-- **Footer**: wechselt dezent auf „Powered by eegFaktura", damit klar bleibt, wer den Service technisch betreibt.
-
-**Beispiel:** die Muster-EEG schaltet im Editor auf „Leaf", synchronisiert ihr Logo aus eegFaktura, und sieht beim nächsten Aufruf der Mitglied-werden-Seite einen grünen Kopf mit Muster-EEG-Logo und Namen statt der eegFaktura-Standard-Optik.
-
-**Wo wirkt das Branding nicht?**
-
-- Die separate E-Mail-Bestätigungs-Seite (`/confirm-email`) zeigt weiter das Standard-Theme — sie erreicht das Mitglied über einen Link mit Token statt über eine RC-Nummer und kennt deshalb die EEG nicht.
-- Der Admin-Bereich (`/admin/…`) bleibt einheitlich türkis.
-- E-Mail-Templates sind heute nicht gebrandet.
-
-#### Tab „Eigene Farben"
-
-Reicht dir keines der Presets, wechselst du auf den Tab „Eigene Farben". Hier kannst du jede Farbe einzeln über einen Color-Picker oder per HEX-Eingabe festlegen. Acht editierbare Felder:
+#### Acht Farbfelder + Schriftart
 
 | Feld | Wirkt auf |
 |---|---|
@@ -342,19 +325,37 @@ Reicht dir keines der Presets, wechselst du auf den Tab „Eigene Farben". Hier 
 | **Karten-Hintergrund** | Formularkarten und Boxen |
 | **Text auf Karten** | Schrift in Formularen |
 
-Plus eine Auswahl für die **Schriftart**: Sans-Serif (Standard Inter), Serif (Georgia), Monospace (SF Mono) oder System-UI (native Schrift des Endgeräts). Felder, die du nicht anpasst, werden vom oben gewählten Preset übernommen — weitere neun abgeleitete Werte (z. B. Rahmen, Focus-Ring, gedämpfte Töne) berechnet das System automatisch aus deinen acht Farben.
+Jedes Feld lässt sich entweder über den Color-Picker (Klick auf das farbige Vorschau-Quadrat) oder per direkter HEX-Eingabe ändern. Weitere neun abgeleitete Werte (Rahmen, Focus-Ring, gedämpfte Töne) berechnet das System automatisch aus deinen acht Farben.
 
-**Live-Vorschau** unter den Pickern zeigt sofort, wie die Mitglied-werden-Seite aussehen wird. Daneben prüft ein **Kontrast-Panel** die drei kritischen WCAG-AA-Paare:
+Die **Schriftart**-Auswahl steht direkt darunter: Sans-Serif (Standard Inter), Serif (Georgia), Monospace (SF Mono) oder System-UI (native Schrift des Endgeräts).
+
+#### Live-Vorschau und Kontrast-Check
+
+Eine **Live-Vorschau** unterhalb der Felder zeigt sofort, wie die Mitglied-werden-Seite aussehen wird, sobald du eine Farbe änderst. Daneben prüft ein **Kontrast-Panel** die drei kritischen WCAG-AA-Paare:
 
 - Hauptfarbe gegen Text auf Hauptfarbe
 - Akzent gegen Text auf Akzent
 - Text gegen Hintergrund
 
-Liegt ein Paar unter dem Mindest-Verhältnis 4,5:1, blockiert ein Sicherheitsfilter das Speichern — die Mitglied-werden-Seite würde sonst Texte zeigen, die schwer oder gar nicht lesbar sind. Du siehst direkt im Panel welches Paar Probleme macht und welches Kontrast-Verhältnis aktuell erreicht wird.
+Liegt ein Paar unter dem Mindest-Verhältnis 4,5:1, blockiert ein Sicherheitsfilter das Speichern — die Mitglied-werden-Seite würde sonst Texte zeigen, die schwer oder gar nicht lesbar sind. Du siehst direkt im Panel, welches Paar Probleme macht und welches Kontrast-Verhältnis aktuell erreicht wird. Die Live-Vorschau rendert weiter, damit du sehen kannst, was du gerade kombinierst.
 
-**Beispiel:** Muster-EEG wechselt auf den Tab „Eigene Farben", lädt zunächst das Preset „Leaf" als Basis (links oben), nimmt für **Hauptfarbe** ein dunkles Markengrün `#1c3a28` und für **Text auf Hauptfarbe** Weiß `#ffffff` — das Kontrast-Panel zeigt 12,4:1 ✓. Background-Felder bleiben vom Preset. Speichern, fertig — die Mitglied-werden-Seite zeigt jetzt grüne Buttons auf dem grünen Hintergrund der Leaf-Welt.
+#### Header und Footer
 
-Klicke auf **Speichern**, um alle Änderungen in diesem Abschnitt zu übernehmen.
+Zusätzlich zu den Farben werden auf der Mitglied-werden-Seite eingebunden:
+
+- **EEG-Logo**: das aus eegFaktura synchronisierte Logo erscheint oben links im Kopf — neben dem EEG-Namen aus der Stammdaten-Synchronisation. Ohne Logo bleibt das Standard-Blitz-Icon.
+- **EEG-Name**: ersetzt im Kopf den Schriftzug „eegFaktura".
+- **Footer**: zeigt dezent „Powered by eegFaktura", sobald die EEG ein eigenes Branding gesetzt hat.
+
+#### Wo wirkt das Branding nicht?
+
+- Die separate E-Mail-Bestätigungs-Seite (`/confirm-email`) zeigt weiter das Standard-Theme — sie erreicht das Mitglied über einen Link mit Token statt über eine RC-Nummer und kennt deshalb die EEG nicht.
+- Der Admin-Bereich (`/admin/…`) bleibt einheitlich türkis.
+- E-Mail-Templates sind heute nicht gebrandet.
+
+#### Beispiel
+
+Muster-EEG öffnet den Editor, wählt aus der Vorlagen-Listbox **Waldgrün**. Alle acht Felder + Schriftart werden gefüllt; Vorschau zeigt sofort die grüne Optik. Muster-EEG passt nur die **Hauptfarbe** auf ein dunkleres Markengrün `#1c3a28` an, „Text auf Hauptfarbe" wechselt automatisch dazu auf Weiß `#ffffff` — Kontrast-Panel meldet 12,4:1 ✓. Alle Änderungen werden automatisch gespeichert. Nach einem Reload der Mitglied-werden-Seite ist das neue Branding live.
 
 ---
 

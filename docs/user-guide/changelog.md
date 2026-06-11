@@ -6,38 +6,29 @@
 
 ## 2026-06-11
 
-**EEG-Kurzform statt nackter Referenznummer**
+**EEG-Logo größer und rechts im Anmeldeformular-Kopf**
 
-In allen drei Admin-Auswahllisten (EEG-Wechsel in den Einstellungen, EEG-Filter im Antragsbereich, Ziel-EEG-Auswahl beim Umordnen) sowie in der Spalte „EEG" der Antragsliste erscheint jetzt die in eegFaktura hinterlegte Kurzform der EEG (z. B. `EEG-Test`). In den Listboxen kombiniert mit der Referenznummer dahinter (Format `EEG-Test • RC0001`); in der Antragsliste nur die Kurzform, mit der Referenznummer als Tooltip beim Überfahren.
+Auf der öffentlichen Mitglied-werden-Seite (`/register/<RC-Nummer>`) ist das EEG-Logo bisher klein (40 × 40 Pixel) links neben dem Schriftzug platziert gewesen — auf dem dunklen Header wirkte es verloren. Es sitzt jetzt prominent rechts ausgerückt und ist 64 × 64 Pixel groß. Der EEG-Name und „Mitglieder-Onboarding"-Untertitel bleiben links. EEGs ohne hinterlegtes Logo zeigen weiterhin das Standard-Blitz-Icon links beim Schriftzug.
+
+**EEG-Kurzform in Listboxen und Antragsliste**
+
+In allen drei Admin-Auswahllisten (EEG-Wechsel in den Einstellungen, EEG-Filter im Antragsbereich, Ziel-EEG-Auswahl beim Umordnen) sowie in der Spalte „EEG" der Antragsliste erscheint jetzt die in eegFaktura hinterlegte Kurzform der EEG (z. B. `EEG-Test`). In den Listboxen kombiniert mit der Referenznummer dahinter (Format `EEG-Test • RC0001`); in der Antragsliste nur die Kurzform, mit der Referenznummer als Tooltip beim Überfahren. In der Stammdaten-Card erscheint die Kurzform zusätzlich als eigene Read-Only-Zeile neben dem langen EEG-Namen.
 
 Sortiert wird alphabetisch nach Kurzform — EEGs ohne Kurzform landen ans Listenende. Hat eine EEG in eegFaktura keine Kurzform hinterlegt, oder wurden die Stammdaten noch nicht synchronisiert, fällt die Anzeige automatisch auf die reine Referenznummer zurück. Der Sync läuft wie bisher manuell über den **Aktualisieren**-Knopf auf dem Stammdaten-Tab; eine Änderung der Kurzform in eegFaktura wird also erst nach dem nächsten Sync sichtbar.
 
-**Eigene Farben für die Online-Registrierung**
+**Erscheinungsbild der Online-Registrierung anpassbar**
 
-Der Brand-Editor auf dem Stammdaten-Tab bekommt einen zweiten Modus: neben den vier vordefinierten Presets gibt es jetzt einen Tab „Eigene Farben". Hier wählst du jede der acht Brand-Farben einzeln per Color-Picker oder HEX-Eingabe und optional eine Schriftart (Sans-Serif, Serif, Monospace oder System-UI). Felder, die du nicht anpasst, kommen vom oben gewählten Preset.
+Die öffentliche Mitglied-werden-Seite lässt sich jetzt pro EEG farblich an die eigene Marke anpassen. Auf dem Stammdaten-Tab (Modus „Alle Optionen") gibt es einen neuen Block „Erscheinungsbild der Online-Registrierung" mit drei Werkzeugen:
 
-Eine Live-Vorschau zeigt direkt, wie die Mitglied-werden-Seite aussehen wird. Daneben sitzt ein Kontrast-Panel: für die drei kritischen WCAG-AA-Paare (Hauptfarbe/Text, Akzent/Text, Hintergrund/Text) prüft das System sofort, ob der Kontrast mindestens 4,5:1 erreicht. Liegt ein Paar darunter, blockiert ein Sicherheitsfilter das Speichern — sonst hätten Mitglieder Texte vor sich, die schwer oder gar nicht lesbar sind.
+- Eine **Vorlagen-Listbox** mit **16 vorgefertigten Farb-Kombinationen** als Startwert: sechs energie- und klimathematische (Sonne, Waldgrün, Ozean, Sonnenuntergang, Gletscher, Erde), drei klassisch-corporate (Anthrazit, Stahlblau, Bordeaux), drei modern-frische (Minze, Lavendel, Koralle) und die vier bisherigen Dark-Mode-Klassiker (Teal-Standard, Leaf, Sun, Slatey). Ein Klick lädt komplettes Farbschema + Schriftart in die Felder.
+- **Acht einzelne Color-Picker** (Hauptfarbe, Text auf Hauptfarbe, Akzent, Text auf Akzent, Hintergrund, Text, Karten-Hintergrund, Text auf Karten) — entweder über die Picker-Quadrate oder per direkter HEX-Eingabe.
+- Eine **Schriftart-Auswahl**: Sans-Serif (Inter), Serif (Georgia), Monospace (SF Mono) oder System-UI.
 
-Wechselst du zwischen den Tabs „Preset" und „Eigene Farben" hin und her, bleiben beide Einstellungen gespeichert. Du kannst also jederzeit zurück auf ein Preset und später wieder dein individuelles Theme aktivieren, ohne die Werte neu eingeben zu müssen.
+Eine **Live-Vorschau** unter den Pickern aktualisiert sich sofort beim Tippen. Ein **Kontrast-Panel** prüft die drei kritischen WCAG-AA-Paare (Hauptfarbe vs Text, Akzent vs Text, Text vs Hintergrund). Liegt ein Paar unter dem Mindest-Verhältnis 4,5:1, blockiert ein Sicherheitsfilter das Speichern — die Mitglied-werden-Seite würde sonst Texte zeigen, die schwer oder gar nicht lesbar sind. Die Vorschau rendert weiter, damit du auch im Fail-Zustand siehst, was du gerade kombinierst.
 
-Wie immer ist der gesamte Editor nur in der Ansicht „Alle Optionen" sichtbar. Bestehende EEGs verändern sich nicht — sie bleiben so lange beim aktuellen Preset, bis im Editor aktiv ein individuelles Theme gespeichert wird.
+Zusätzlich werden auf der Mitglied-werden-Seite das **EEG-Logo** (aus eegFaktura synchronisiert) und der **EEG-Name** im Kopf eingebunden, der Footer zeigt dezent „Powered by eegFaktura". Wo das Branding bewusst nicht wirkt: die E-Mail-Bestätigungs-Seite (`/confirm-email`), der Admin-Bereich und die E-Mail-Templates.
 
-**Farben in der Online-Registrierung anpassbar**
-
-Die öffentliche Mitglieder-werden-Seite lässt sich jetzt pro EEG farblich anpassen. In den Einstellungen (Modus „Alle Optionen") gibt es unten auf dem Stammdaten-Tab einen neuen Block „Erscheinungsbild der Online-Registrierung". Zur Auswahl stehen vier vordefinierte Farbwelten:
-
-- **Teal (Standard)** — die heutige dunkel-türkise Optik
-- **Leaf (Grün)** — dunkles Waldgrün
-- **Sun (Orange)** — warmes Anthrazit mit Sonnen-Orange-Akzent
-- **Slatey (Neutral)** — neutrales Anthrazit-Grau
-
-Vier kleine Vorschau-Karten zeigen, wie das jeweilige Schema aussieht. Bei Auswahl eines anderen als des Standards wird zusätzlich das EEG-Logo (falls aus eegFaktura synchronisiert) im Kopf der Mitglied-werden-Seite eingebunden — links neben dem EEG-Namen aus der Stammdaten-Synchronisation. Der Footer wechselt dezent auf „Powered by eegFaktura", damit klar bleibt, wer den Service betreibt.
-
-Beispiel: die fiktive Muster-EEG schaltet auf „Leaf", synchronisiert ihr Logo aus eegFaktura — Mitglieder, die später den Registrierungslink öffnen, sehen den Kopf in Grün mit dem Muster-EEG-Logo und Namen, statt der eegFaktura-Standard-Optik.
-
-Der Editor ist bewusst nur in „Alle Optionen" sichtbar, damit neue EEGs sich erst um die Stammdaten kümmern können, bevor sie die Optik verändern. Wenn die Farbauswahl einmal vom Standard abweicht, schlägt der Awareness-Banner in der „Einfachen Ansicht" an und führt zum richtigen Toggle.
-
-Bestehende EEGs verändern sich nicht — sie behalten das Standard-Theme so lange, bis im Editor aktiv ein anderes Preset gewählt wird.
+Bestehende EEGs verändern sich nicht — sie behalten das Standard-Theme so lange, bis im Editor aktiv eine Vorlage gewählt oder eine Farbe gesetzt wird.
 
 ---
 

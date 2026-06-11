@@ -12,6 +12,43 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## 2026-06-11
 
+### UX — Public-Header: EEG-Logo größer und rechts (PROJ-102-Folge)
+
+Tester-Feedback 2026-06-11 spät: „das eeg logo beim anmeldeformular ist sehr klein und links aussen. es soll größer und rechts ein."
+
+- `src/components/public-header.tsx`: Layout von `flex items-center gap-3`
+  (Logo links, Schriftzug rechts) auf `flex items-center justify-between gap-3`
+  (Schriftzug links, Logo rechts ausgerückt). Logo-Größe von `h-10 w-10`
+  (40 × 40 Pixel) auf `h-16 w-16` (64 × 64). Fallback-Blitz-SVG bleibt
+  links beim Schriftzug, weil er ohne Logo nur generische
+  eegFaktura-Brand-Identität trägt.
+
+### Feature — Theme-Vorlagen-Listbox + Preset-Tab raus (PROJ-103-Folge)
+
+Owner-Direktive 2026-06-11 spät (zwei Schritte):
+
+1. Neuer `BRAND_THEME_TEMPLATES`-Konstante mit 16 Einträgen — 6 Energie-/Klima-Themen, 3 Corporate, 3 Modern, 4 Dark-Mode-Klassiker (1:1-HEX-Konvertierung der bestehenden `brand_preset`-HSL-Tripel). Alle Vorlagen auf WCAG-AA-Pflicht-Paare designed. Neue Listbox „Vorlage" im Custom-Editor lädt komplette 8-Farben + Schriftart in den Theme-State.
+2. AdminBrandEditor rendert nur noch BrandCustomEditor (keine Tabs); Preset-Tab + BrandPresetPreviewCard entfallen. `brand_preset` + `brand_mode` bleiben als Render-Fallback bei NULL-Theme. Sobald der Admin etwas am Theme ändert, wird `brand_mode` automatisch auf `'custom'` geflippt. `onPresetChange`-Prop entfernt.
+
+### Fix — Brand-Custom-Live-Vorschau zeigte keine Custom-Farben (PROJ-103)
+
+`previewStyle`-Werte waren bereits als `hsl(...)`-Strings serialisiert, der `LivePreview`-Konsument wickelte sie aber nochmal in `hsl(${...})` ein → ergab `hsl(hsl(...))` = invalides CSS → Browser ignorierte es → Vorschau fiel auf Bestand-Theme-Farben zurück. Fix: direkter Zugriff auf den fertigen hsl-String via `lookup`-Cast statt doppeltem Wrap.
+
+### Feature — Button „Werte aus Preset übernehmen" (PROJ-103-Folge)
+
+Tester-Wunsch 2026-06-11 spät — schnellerer Einstieg ohne 8 leere Felder.
+Outline-Button im Custom-Editor kopiert die 8 HEX-Werte des oben gewählten Presets in den Theme-State. Schriftart bleibt unangetastet. (Mit dem späteren Schritt „16 Theme-Vorlagen" wurde dieser Button durch die umfassendere Vorlagen-Listbox abgelöst — der Button-Code ist zusammen mit dem Preset-Tab entfernt worden.)
+
+### Fix — NULL-brand_theme crash beim Settings-Load nach helm upgrade (PROJ-103)
+
+Stack-Trace: `sql: Scan error on column index 36, name "brand_theme": unsupported Scan, storing driver.Value type <nil> into type *json.RawMessage`.
+
+Wurzel: Migration 000077 hat `brand_theme JSONB NULL` ohne Default eingeführt; Bestand-EEGs haben damit NULL. Go's `database/sql` kann nicht direkt von SQL-NULL in `*json.RawMessage` scannen. Fix: `sql.NullString` als Scan-Zwischentyp + Konvertierung zu `json.RawMessage` nach erfolgreichem Scan.
+
+### Feature — EEG-Kurzform in Stammdaten-Card sichtbar (PROJ-101-Folge)
+
+Die PROJ-101-Kurzform tauchte bisher nur im Drift-Banner und in den drei Listboxen + Antragslisten-Spalte auf, nicht aber als sichtbare Read-Only-Zeile in der Stammdaten-Card. Backend-Response (`/api/admin/settings/eeg`) um `eegShortName` erweitert, Frontend-Type angepasst, neue SyncedField „EEG-Kurzform" zwischen „EEG-Name" und „Kontakt-E-Mail" eingefügt.
+
 ### Feature — EEG-Kurzform in Admin-UI-Auswahllisten + Antragsliste (PROJ-101)
 
 **Was sich ändert:** Die drei EEG-Auswahllisten (Settings-Switcher, Antrags-Filter, Reassign-Dialog-Ziel) zeigen ab jetzt das Format `Kurzform • RC-Nummer` statt nur der Referenznummer. Die Antragslisten-Spalte „EEG" zeigt nur die Kurzform mit der RC-Nummer als Tooltip.
