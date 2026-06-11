@@ -303,11 +303,11 @@ Die Listbox am oberen Rand des Editors enthält 22 Vorlagen aus drei etablierten
 
 | Set | Vorlagen |
 |---|---|
-| **Material Design 3** (Google) | Purple, Red, Yellow, Green, Cyan, Blue — jeweils in Hell und Dunkel |
+| **shadcn/ui** | Red, Orange, Yellow, Green, Blue, Violet — jeweils in Hell und Dunkel |
 | **IBM Carbon** | Blue, Teal, Magenta — jeweils in Hell und Dunkel |
 | **Dark-Mode-Klassiker** | Teal (Standard), Leaf, Sun, Slatey |
 
-Die Dark-Mode-Klassiker sind die bisherigen vier Presets — sie sind als Vorlage weiterhin verfügbar, der frühere getrennte „Preset"-Tab ist entfallen.
+Die shadcn-Themes sind auf das Card-auf-Background-Layout dieses Formulars zugeschnitten — anders als z. B. Material 3, das mit Elevation/Schatten arbeitet, trennt shadcn die Card-Schicht durch einen leicht verschobenen Hintergrund-Ton sichtbar vom Body. Die Dark-Mode-Klassiker sind die bisherigen vier Presets — sie sind als Vorlage weiterhin verfügbar, der frühere getrennte „Preset"-Tab ist entfallen.
 
 Alle 22 Vorlagen sind auf WCAG-AA-konformen Kontrast in den drei kritischen Paaren (Hauptfarbe / Text-auf-Hauptfarbe, Akzent / Text-auf-Akzent, Text / Hintergrund) konstruiert und werden bei jedem Build automatisch gegen den Kontrast-Validator gegengeprüft.
 

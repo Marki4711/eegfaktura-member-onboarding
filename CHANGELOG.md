@@ -25,14 +25,14 @@ Tester-Feedback 2026-06-11 spät: „das eeg logo beim anmeldeformular ist sehr 
 
 ### Feature — Theme-Vorlagen aus etablierten Design-Systemen (PROJ-103-Folge)
 
-Auf Tester-Frage „gibt es offizielle Farb-Kombinationen die allgemein empfohlen werden?" haben wir die ursprünglich selbst-konstruierten 12 Vorlagen durch zwei etablierte Design-Systeme ersetzt:
+Auf Tester-Frage „gibt es offizielle Farb-Kombinationen die allgemein empfohlen werden?" wurden die selbst-konstruierten 12 Vorlagen durch zwei etablierte Design-Systeme ersetzt:
 
-- **Material Design 3 Baseline** (Google) — 6 Source-Hues (Purple, Red, Yellow, Green, Cyan, Blue) jeweils in Light + Dark Variante mit HCT-basierten Tonal-Palettes. Garantierte WCAG-AA-Kontraste per Material-Konstruktion.
+- **shadcn/ui** (https://ui.shadcn.com/themes) — 6 Source-Hues (Red, Orange, Yellow, Green, Blue, Violet) jeweils in Light + Dark Variante. Tailwind-700er-Tone als primary (Light) bzw. 400er-Tone (Dark). Card vs Background bewusst getrennt (`#fafafa` Light, `#171717` Dark), damit die Card-Schicht im Onboarding-Layout sichtbar bleibt — anders als das ursprünglich versuchte **Material Design 3 Baseline**, das mit Elevation/Schatten arbeitet und in unserem Render-Pfad zu flacher Layer-Trennung führte (Tester-Befund: „warum sind die material design vorlagen teilweise überhaupt nicht passend für das mitglieder formular"). Material 3 wurde ersatzlos entfernt.
 - **IBM Carbon Design System** — 3 Brand-Hues (Blue=IBM-Brand, Teal, Magenta) jeweils Light + Dark. Carbon-Tokens via 60er-Tone (Light) bzw. 30/40er-Tone (Dark) auf Gray 100.
 
 Plus die 4 bisherigen Dark-Mode-Klassiker (Teal/Leaf/Sun/Slatey) → 22 Vorlagen insgesamt.
 
-**Drift-Wache:** neuer Vitest-Test `brand-theme-templates.test.ts` jagt jede Vorlage durch `wcag-contrast` und failt bei jedem der drei Pflicht-Paare unter 4,5:1. 66 Test-Fälle (22 × 3). Künftige Vorlagen-Änderungen failen am CI, nicht am Tester (gelernt aus Stahlblau-Fall).
+**Drift-Wache:** Vitest-Test `brand-theme-templates.test.ts` jagt jede Vorlage durch `wcag-contrast` und failt bei jedem der drei Pflicht-Paare unter 4,5:1. 66 Test-Fälle (22 × 3). Künftige Vorlagen-Änderungen failen am CI, nicht am Tester (gelernt aus Stahlblau-Fall).
 
 ### Feature — Theme-Vorlagen-Listbox + Preset-Tab raus (PROJ-103-Folge)
 
