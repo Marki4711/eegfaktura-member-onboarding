@@ -329,6 +329,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#2026-06-11-spat" class="md-nav__link">
+    <span class="md-ellipsis">
+      2026-06-11 (spät)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#2026-06-11-abend" class="md-nav__link">
     <span class="md-ellipsis">
       2026-06-11 (Abend)
@@ -755,6 +764,11 @@
 
 <h1 id="was-ist-neu">Was ist neu?<a class="headerlink" href="#was-ist-neu" title="Permanent link">&para;</a></h1>
 <p>Übersicht der Änderungen der letzten Tage, die für <strong>EEG-Admins</strong> und <strong>Mitglieder</strong> spürbar sind. Technische Details, Bug-Fixes ohne UI-Auswirkung und Infrastruktur-Themen sind hier bewusst weggelassen — die finden sich in der Commit-Historie.</p>
+<hr />
+<h2 id="2026-06-11-spat">2026-06-11 (spät)<a class="headerlink" href="#2026-06-11-spat" title="Permanent link">&para;</a></h2>
+<p><strong>EEG-Kurzform statt nackter Referenznummer</strong></p>
+<p>In allen drei Admin-Auswahllisten (EEG-Wechsel in den Einstellungen, EEG-Filter im Antragsbereich, Ziel-EEG-Auswahl beim Umordnen) sowie in der Spalte „EEG" der Antragsliste erscheint jetzt die in eegFaktura hinterlegte Kurzform der EEG (z. B. <code>EEG-Test</code>). In den Listboxen kombiniert mit der Referenznummer dahinter (Format <code>EEG-Test • RC0001</code>); in der Antragsliste nur die Kurzform, mit der Referenznummer als Tooltip beim Überfahren.</p>
+<p>Sortiert wird alphabetisch nach Kurzform — EEGs ohne Kurzform landen ans Listenende. Hat eine EEG in eegFaktura keine Kurzform hinterlegt, oder wurden die Stammdaten noch nicht synchronisiert, fällt die Anzeige automatisch auf die reine Referenznummer zurück. Der Sync läuft wie bisher manuell über den <strong>Aktualisieren</strong>-Knopf auf dem Stammdaten-Tab; eine Änderung der Kurzform in eegFaktura wird also erst nach dem nächsten Sync sichtbar.</p>
 <hr />
 <h2 id="2026-06-11-abend">2026-06-11 (Abend)<a class="headerlink" href="#2026-06-11-abend" title="Permanent link">&para;</a></h2>
 <p><strong>Eigene Farben für die Online-Registrierung</strong></p>
