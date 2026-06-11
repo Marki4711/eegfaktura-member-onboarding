@@ -299,18 +299,17 @@ Die öffentliche Mitglied-werden-Seite (`/register/<RC-Nummer>`) lässt sich pro
 
 #### Vorlage wählen
 
-Die Listbox am oberen Rand des Editors enthält 16 Vorlagen. Ein Klick lädt komplettes Farbschema und Schriftart in die Felder darunter — überschreibt also bisherige Einstellungen. Eigene Anpassungen, die du danach machst, bleiben erhalten.
+Die Listbox am oberen Rand des Editors enthält 22 Vorlagen aus drei etablierten Design-Systemen. Ein Klick lädt komplettes Farbschema und Schriftart in die Felder darunter — überschreibt also bisherige Einstellungen. Eigene Anpassungen, die du danach machst, bleiben erhalten.
 
 | Set | Vorlagen |
 |---|---|
-| **Energie & Klima** | Sonne, Waldgrün, Ozean, Sonnenuntergang, Gletscher, Erde |
-| **Corporate** | Anthrazit, Stahlblau, Bordeaux |
-| **Modern & Frisch** | Minze, Lavendel, Koralle |
+| **Material Design 3** (Google) | Purple, Red, Yellow, Green, Cyan, Blue — jeweils in Hell und Dunkel |
+| **IBM Carbon** | Blue, Teal, Magenta — jeweils in Hell und Dunkel |
 | **Dark-Mode-Klassiker** | Teal (Standard), Leaf, Sun, Slatey |
 
 Die Dark-Mode-Klassiker sind die bisherigen vier Presets — sie sind als Vorlage weiterhin verfügbar, der frühere getrennte „Preset"-Tab ist entfallen.
 
-Alle Vorlagen sind auf WCAG-AA-konformen Kontrast in den drei kritischen Paaren (Hauptfarbe / Text-auf-Hauptfarbe, Akzent / Text-auf-Akzent, Text / Hintergrund) konstruiert.
+Alle 22 Vorlagen sind auf WCAG-AA-konformen Kontrast in den drei kritischen Paaren (Hauptfarbe / Text-auf-Hauptfarbe, Akzent / Text-auf-Akzent, Text / Hintergrund) konstruiert und werden bei jedem Build automatisch gegen den Kontrast-Validator gegengeprüft.
 
 #### Acht Farbfelder + Schriftart
 

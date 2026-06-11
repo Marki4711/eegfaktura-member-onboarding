@@ -23,6 +23,17 @@ Tester-Feedback 2026-06-11 spät: „das eeg logo beim anmeldeformular ist sehr 
   links beim Schriftzug, weil er ohne Logo nur generische
   eegFaktura-Brand-Identität trägt.
 
+### Feature — Theme-Vorlagen aus etablierten Design-Systemen (PROJ-103-Folge)
+
+Auf Tester-Frage „gibt es offizielle Farb-Kombinationen die allgemein empfohlen werden?" haben wir die ursprünglich selbst-konstruierten 12 Vorlagen durch zwei etablierte Design-Systeme ersetzt:
+
+- **Material Design 3 Baseline** (Google) — 6 Source-Hues (Purple, Red, Yellow, Green, Cyan, Blue) jeweils in Light + Dark Variante mit HCT-basierten Tonal-Palettes. Garantierte WCAG-AA-Kontraste per Material-Konstruktion.
+- **IBM Carbon Design System** — 3 Brand-Hues (Blue=IBM-Brand, Teal, Magenta) jeweils Light + Dark. Carbon-Tokens via 60er-Tone (Light) bzw. 30/40er-Tone (Dark) auf Gray 100.
+
+Plus die 4 bisherigen Dark-Mode-Klassiker (Teal/Leaf/Sun/Slatey) → 22 Vorlagen insgesamt.
+
+**Drift-Wache:** neuer Vitest-Test `brand-theme-templates.test.ts` jagt jede Vorlage durch `wcag-contrast` und failt bei jedem der drei Pflicht-Paare unter 4,5:1. 66 Test-Fälle (22 × 3). Künftige Vorlagen-Änderungen failen am CI, nicht am Tester (gelernt aus Stahlblau-Fall).
+
 ### Feature — Theme-Vorlagen-Listbox + Preset-Tab raus (PROJ-103-Folge)
 
 Owner-Direktive 2026-06-11 spät (zwei Schritte):

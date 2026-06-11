@@ -20,7 +20,7 @@ Sortiert wird alphabetisch nach Kurzform — EEGs ohne Kurzform landen ans Liste
 
 Die öffentliche Mitglied-werden-Seite lässt sich jetzt pro EEG farblich an die eigene Marke anpassen. Auf dem Stammdaten-Tab (Modus „Alle Optionen") gibt es einen neuen Block „Erscheinungsbild der Online-Registrierung" mit drei Werkzeugen:
 
-- Eine **Vorlagen-Listbox** mit **16 vorgefertigten Farb-Kombinationen** als Startwert: sechs energie- und klimathematische (Sonne, Waldgrün, Ozean, Sonnenuntergang, Gletscher, Erde), drei klassisch-corporate (Anthrazit, Stahlblau, Bordeaux), drei modern-frische (Minze, Lavendel, Koralle) und die vier bisherigen Dark-Mode-Klassiker (Teal-Standard, Leaf, Sun, Slatey). Ein Klick lädt komplettes Farbschema + Schriftart in die Felder.
+- Eine **Vorlagen-Listbox** mit **22 vorgefertigten Farb-Kombinationen** als Startwert aus drei etablierten Design-Systemen: zwölf **Material Design 3**-Themes (Purple/Red/Yellow/Green/Cyan/Blue jeweils Hell + Dunkel), sechs **IBM Carbon**-Themes (Blue/Teal/Magenta jeweils Hell + Dunkel) und die vier bisherigen **Dark-Mode-Klassiker** (Teal-Standard, Leaf, Sun, Slatey). Ein Klick lädt komplettes Farbschema + Schriftart in die Felder.
 - **Acht einzelne Color-Picker** (Hauptfarbe, Text auf Hauptfarbe, Akzent, Text auf Akzent, Hintergrund, Text, Karten-Hintergrund, Text auf Karten) — entweder über die Picker-Quadrate oder per direkter HEX-Eingabe.
 - Eine **Schriftart-Auswahl**: Sans-Serif (Inter), Serif (Georgia), Monospace (SF Mono) oder System-UI.
 
