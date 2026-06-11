@@ -668,7 +668,7 @@
 - <strong>Referenznummer</strong> — eindeutige Kennung des Antrags
 - <strong>Name</strong> — Mitgliedsname oder Firmenname
 - <strong>E-Mail</strong> — Kontaktadresse des Mitglieds
-- <strong>EEG</strong> — RC-Nummer der zugehörigen EEG
+- <strong>EEG</strong> — Kurzform der zugehörigen EEG (z. B. <code>EEG-Test</code>). Bei Hover über die Zelle erscheint die vollständige Referenznummer als Tooltip. Sobald die Kurzform noch nicht aus eegFaktura synchronisiert wurde, zeigt die Spalte die reine Referenznummer als Fallback. Die Sortierung der Spalte erfolgt weiterhin nach der Referenznummer.
 - <strong>Status</strong> — aktueller Bearbeitungsstand
 - <strong>Eingereicht am</strong> — Datum und Uhrzeit der Einreichung (Anzeige in Europe/Vienna)</p>
 <p>Die Mitgliedsnummer ist nicht in der Liste, sondern erst in der Detailansicht eines Antrags sichtbar (sie wird erst beim Import vergeben und kann alphanumerisch sein, z. B. <code>A005</code>).</p>
@@ -697,7 +697,7 @@
 </tr>
 <tr>
 <td><strong>EEG</strong></td>
-<td>Nur Anträge einer bestimmten EEG anzeigen (erscheint nur bei Admins mit mehreren EEGs)</td>
+<td>Nur Anträge einer bestimmten EEG anzeigen (erscheint nur bei Admins mit mehreren EEGs). Die Liste zeigt sobald die Stammdaten synchronisiert wurden das Format <code>Kurzform • RC-Nummer</code> (z. B. <code>EEG-Test • RC0001</code>). Sortierung alphabetisch nach Kurzform — EEGs ohne Kurzform landen am Ende.</td>
 </tr>
 <tr>
 <td><strong>Eingereicht ab / bis</strong></td>
