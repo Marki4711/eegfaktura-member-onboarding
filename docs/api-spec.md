@@ -151,6 +151,10 @@ No direct access to eegFaktura core tables takes place.
 
 `brandPreset` (PROJ-102): theme identifier for the public-page rendering. One of `teal` | `leaf` | `sun` | `slatey`, or absent/null = default theme (`teal`). The frontend maps the identifier to a hardcoded HSL-variable set and injects it as a `:root` style block at SSR time. Admins choose the preset in the Settings page (visible only in "Alle Optionen"-Modus).
 
+`brandMode` (PROJ-103): one of `preset` | `custom`. Decides which render path the public page uses. `preset` (default — preserves PROJ-102 behaviour) renders the preset; `custom` AND `brandTheme != null` renders the custom theme on top of the preset (selective HEX override). Always present in the response (DB column is NOT NULL).
+
+`brandTheme` (PROJ-103): only present when `brandMode = 'custom'` AND a custom theme is configured. JSON object with mandatory `v: 1` schema tag, optional 8 HEX color keys (`primary`, `primaryFg`, `accent`, `accentFg`, `background`, `foreground`, `card`, `cardFg` — all `#RRGGBB`) and optional `fontFamily` from a 4-entry whitelist (`sans-serif` / `serif` / `monospace` / `system-ui`). Backend validator (`ValidateBrandTheme`) is strict by value (WCAG-AA contrast hard-gate on the three mandatory pairs primary/primaryFg, accent/accentFg, foreground/background) and tolerant by unknown keys (dropped + warn-log; forward-compat to v2 schema). Frontend renders via HEX→HSL parallel helper (`src/lib/hsl.ts`, matched 1:1 to backend `internal/shared/hsl.go` via a shared test vector). Missing color fields fall back to the preset value; the 9 secondary CSS variables (`border`/`ring`/`popover` etc.) are deterministically derived from the 8 primary fields.
+
 `eegName` (PROJ-32/-102) and `logoDataUri` (PROJ-33/-102): the long-form EEG name and the EEG logo as a Base64-inline data-URI. Both are populated when the corresponding Core-Sync has run. Logo is shipped inline (no second endpoint, no extra HTTP round-trip) and capped at 256 KB raw / ~342 KB Base64 by the PROJ-33 sync layer. Worst-case response size with logo is ~400 KB.
 
 ### Rate-Limit + Cache (PROJ-102)

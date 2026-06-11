@@ -4,6 +4,20 @@
 
 ---
 
+## 2026-06-11 (Abend)
+
+**Eigene Farben für die Online-Registrierung**
+
+Der Brand-Editor auf dem Stammdaten-Tab bekommt einen zweiten Modus: neben den vier vordefinierten Presets gibt es jetzt einen Tab „Eigene Farben". Hier wählst du jede der acht Brand-Farben einzeln per Color-Picker oder HEX-Eingabe und optional eine Schriftart (Sans-Serif, Serif, Monospace oder System-UI). Felder, die du nicht anpasst, kommen vom oben gewählten Preset.
+
+Eine Live-Vorschau zeigt direkt, wie die Mitglied-werden-Seite aussehen wird. Daneben sitzt ein Kontrast-Panel: für die drei kritischen WCAG-AA-Paare (Hauptfarbe/Text, Akzent/Text, Hintergrund/Text) prüft das System sofort, ob der Kontrast mindestens 4,5:1 erreicht. Liegt ein Paar darunter, blockiert ein Sicherheitsfilter das Speichern — sonst hätten Mitglieder Texte vor sich, die schwer oder gar nicht lesbar sind.
+
+Wechselst du zwischen den Tabs „Preset" und „Eigene Farben" hin und her, bleiben beide Einstellungen gespeichert. Du kannst also jederzeit zurück auf ein Preset und später wieder dein individuelles Theme aktivieren, ohne die Werte neu eingeben zu müssen.
+
+Wie immer ist der gesamte Editor nur in der Ansicht „Alle Optionen" sichtbar. Bestehende EEGs verändern sich nicht — sie bleiben so lange beim aktuellen Preset, bis im Editor aktiv ein individuelles Theme gespeichert wird.
+
+---
+
 ## 2026-06-11
 
 **Farben in der Online-Registrierung anpassbar**

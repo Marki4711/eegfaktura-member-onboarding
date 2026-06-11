@@ -10,6 +10,18 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Feature — Individuell anpassbare Brand-Farben (PROJ-103) *(2026-06-11 Abend)*
+
+Aufbau auf PROJ-102: zusätzlich zum Preset-Switch gibt es jetzt einen Custom-Theme-Modus mit 8 frei wählbaren HEX-Farben, optional Schriftart, Live-Vorschau und WCAG-AA-Hard-Gate.
+
+- **Schema:** Migration `000077_registration_entrypoint_brand_theme_and_mode` führt `brand_theme JSONB NULL` + `brand_mode TEXT NOT NULL DEFAULT 'preset' CHECK IN ('preset','custom')` ein. **Bewusste Ausnahme von der „No-JSON"-Regel** in CLAUDE.md + `.claude/rules/backend.md` für `brand_theme` — reine Präsentations-Konfiguration, nie für Joins/Filter/Reporting. Default `'preset'` bricht kein Bestand-Verhalten.
+- **Validator** (`internal/shared/brand_theme.go`): strikt-bei-Werten / tolerant-bei-Keys. Pflicht-Versions-Tag `v:1`, 6-stelliges HEX-Format, Font-Whitelist (4 System-Stacks), WCAG-AA-Hard-Gate (4,5:1) für 3 Pflicht-Paare. Unbekannte Top-Level-Keys werden gedroppt (Forward-Compat). Eigene Luminance/Contrast-Math (~30 Zeilen, kein externes Modul).
+- **HSL-Mathematik:** parallel implementiert in Go (`internal/shared/hsl.go`) und TypeScript (`src/lib/hsl.ts`) — gemeinsamer Test-Vektor mit 10 HEX-Werten in beiden Test-Suiten als Drift-Wache.
+- **Public-Frontend:** `mergeCustomTheme` als Single-Source-of-Truth für SSR + Live-Vorschau. Render-Schichtung globals.css → Preset → Custom-Theme (selektive Überschreibung + 9 deterministisch abgeleitete CSS-Variablen). Defense-in-Depth: `hexToHsl` wirft bei invalid → Fallback auf Preset-Wert.
+- **Admin-Editor:** `AdminBrandEditor` komplett umgebaut auf shadcn-Tabs (Preset + Eigene Farben). Neuer `BrandCustomEditor` mit `react-colorful` Color-Picker (~3 KB gz), Font-Select, Live-Vorschau-Karte, WCAG-Panel mit `wcag-contrast` (~1 KB). Auto-Save blockt PUT nur wenn Brand-Felder geändert UND WCAG-Fail (keine Sperre für andere EEG-Settings).
+- **Configexport:** strikt-bei-Werten beim Theme (Reject bei JSON-Parse-Fail / invalid HEX / fehlendem v / WCAG-Fail), tolerant-bei-unbekannten-Keys. Brand-Mode wird tolerant auf `'preset'` defaultet bei unbekannten Werten.
+- **PROJ-67-Awareness-Banner:** triggert auch auf `brandMode='custom'` mit non-leerem Theme — Standard-Modus-Admins sehen einheitlich, wenn die Public-Page customised ist.
+
 ### Feature — Farbgestaltung der Online-Registrierung (PROJ-102) *(2026-06-11)*
 
 Pro-EEG-Theme-Anpassung der Public-Registration-Page über vier vordefinierte Presets (`teal` / `leaf` / `sun` / `slatey`), plus Logo + EEG-Name-Einbindung im Header und Footer-Switch auf „Powered by eegFaktura" bei non-default Brand.

@@ -180,6 +180,8 @@ Tables:
 
 No JSON fields are used in the database.
 
+**Ausnahme (PROJ-103, 2026-06-11):** `registration_entrypoint.brand_theme JSONB` hält die individuelle Theme-Konfiguration der Public-Registration-Page (HEX-Farben, Font, Border-Radius). Begründung: reine Präsentations-Konfiguration, nie Ziel von Joins/Filter/Reporting; bei jeder neuen Theme-Eigenschaft eine separate Migration wäre Bürokratie ohne Schutz-Nutzen. Die Ausnahme gilt **ausschließlich** für `brand_theme` — alle anderen neuen Felder bleiben Spalten.
+
 ## Important Business Rules
 
 - One application contains exactly one member.
