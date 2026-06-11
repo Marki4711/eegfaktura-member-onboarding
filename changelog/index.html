@@ -329,6 +329,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#2026-06-11" class="md-nav__link">
+    <span class="md-ellipsis">
+      2026-06-11
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#2026-06-10-spat" class="md-nav__link">
     <span class="md-ellipsis">
       2026-06-10 (spät)
@@ -737,6 +746,20 @@
 
 <h1 id="was-ist-neu">Was ist neu?<a class="headerlink" href="#was-ist-neu" title="Permanent link">&para;</a></h1>
 <p>Übersicht der Änderungen der letzten Tage, die für <strong>EEG-Admins</strong> und <strong>Mitglieder</strong> spürbar sind. Technische Details, Bug-Fixes ohne UI-Auswirkung und Infrastruktur-Themen sind hier bewusst weggelassen — die finden sich in der Commit-Historie.</p>
+<hr />
+<h2 id="2026-06-11">2026-06-11<a class="headerlink" href="#2026-06-11" title="Permanent link">&para;</a></h2>
+<p><strong>Farben in der Online-Registrierung anpassbar</strong></p>
+<p>Die öffentliche Mitglieder-werden-Seite lässt sich jetzt pro EEG farblich anpassen. In den Einstellungen (Modus „Alle Optionen") gibt es unten auf dem Stammdaten-Tab einen neuen Block „Erscheinungsbild der Online-Registrierung". Zur Auswahl stehen vier vordefinierte Farbwelten:</p>
+<ul>
+<li><strong>Teal (Standard)</strong> — die heutige dunkel-türkise Optik</li>
+<li><strong>Leaf (Grün)</strong> — dunkles Waldgrün</li>
+<li><strong>Sun (Orange)</strong> — warmes Anthrazit mit Sonnen-Orange-Akzent</li>
+<li><strong>Slatey (Neutral)</strong> — neutrales Anthrazit-Grau</li>
+</ul>
+<p>Vier kleine Vorschau-Karten zeigen, wie das jeweilige Schema aussieht. Bei Auswahl eines anderen als des Standards wird zusätzlich das EEG-Logo (falls aus eegFaktura synchronisiert) im Kopf der Mitglied-werden-Seite eingebunden — links neben dem EEG-Namen aus der Stammdaten-Synchronisation. Der Footer wechselt dezent auf „Powered by eegFaktura", damit klar bleibt, wer den Service betreibt.</p>
+<p>Beispiel: die fiktive Muster-EEG schaltet auf „Leaf", synchronisiert ihr Logo aus eegFaktura — Mitglieder, die später den Registrierungslink öffnen, sehen den Kopf in Grün mit dem Muster-EEG-Logo und Namen, statt der eegFaktura-Standard-Optik.</p>
+<p>Der Editor ist bewusst nur in „Alle Optionen" sichtbar, damit neue EEGs sich erst um die Stammdaten kümmern können, bevor sie die Optik verändern. Wenn die Farbauswahl einmal vom Standard abweicht, schlägt der Awareness-Banner in der „Einfachen Ansicht" an und führt zum richtigen Toggle.</p>
+<p>Bestehende EEGs verändern sich nicht — sie behalten das Standard-Theme so lange, bis im Editor aktiv ein anderes Preset gewählt wird.</p>
 <hr />
 <h2 id="2026-06-10-spat">2026-06-10 (spät)<a class="headerlink" href="#2026-06-10-spat" title="Permanent link">&para;</a></h2>
 <p><strong>Antrag ablehnen ohne Mail an den Beitrittswerber</strong></p>

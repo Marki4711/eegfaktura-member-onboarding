@@ -658,6 +658,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#erscheinungsbild-der-online-registrierung-alle-optionen" class="md-nav__link">
+    <span class="md-ellipsis">
+      Erscheinungsbild der Online-Registrierung (Alle Optionen)
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1193,6 +1202,51 @@ Wenn du einen Antrag bereits per Import-Button verarbeitet hast und die Mitglied
 </ul>
 <p>Empfehlung: aktivieren, wenn du regelmäßig Müll-Anträge oder Tippfehler bei der E-Mail-Adresse erlebst. Vor dem ersten Lauf prüfen, dass die SMTP-Konfiguration stabil ist — sonst können Mitglieder nicht klicken.</p>
 <p>Falls eine Bestätigungs-Mail im Spam-Ordner landet: in der Antragsdetail-Seite über <strong>„Bestätigungs-Link erneut senden"</strong> kann der Link erneut versendet werden (mit neuem Token; alter Link wird ungültig). Anträge, die 30 Tage lang nicht bestätigt werden, werden automatisch abgelehnt.</p>
+<h3 id="erscheinungsbild-der-online-registrierung-alle-optionen">Erscheinungsbild der Online-Registrierung <em>(Alle Optionen)</em><a class="headerlink" href="#erscheinungsbild-der-online-registrierung-alle-optionen" title="Permanent link">&para;</a></h3>
+<blockquote>
+<p>Diese Sektion ist nur in <strong>Alle Optionen</strong> sichtbar.</p>
+</blockquote>
+<p>Die öffentliche Mitglied-werden-Seite (<code>/register/&lt;RC-Nummer&gt;</code>) lässt sich pro EEG farblich an die eigene Marke anpassen. Zur Auswahl stehen vier vordefinierte Farbwelten — eine eigene HEX-Farbe ist bewusst nicht vorgesehen, damit Kontraste und Lesbarkeit zuverlässig stimmen.</p>
+<table>
+<thead>
+<tr>
+<th>Preset</th>
+<th>Wirkung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Teal (Standard)</strong></td>
+<td>Heutige dunkel-türkise Optik. Default für alle EEGs.</td>
+</tr>
+<tr>
+<td><strong>Leaf (Grün)</strong></td>
+<td>Dunkles Waldgrün mit hellem Grünton als Akzent.</td>
+</tr>
+<tr>
+<td><strong>Sun (Orange)</strong></td>
+<td>Warmes Anthrazit mit Sonnen-Orange-Akzent.</td>
+</tr>
+<tr>
+<td><strong>Slatey (Neutral)</strong></td>
+<td>Neutrales Anthrazit-Grau mit hellblauem Akzent.</td>
+</tr>
+</tbody>
+</table>
+<p>Vier kleine Vorschau-Karten direkt unter dem Auswahl-Feld zeigen, wie das jeweilige Schema aussieht — inklusive einer Beispiel-Schaltfläche und einer Beispiel-Karte in den Preset-Farben. Die aktuelle Auswahl bekommt einen Ring um die Karte.</p>
+<p>Wenn ein anderer als „Teal" gewählt ist, wirken zusätzlich:</p>
+<ul>
+<li><strong>EEG-Logo</strong>: das aus eegFaktura synchronisierte Logo wird oben links im Kopf der Mitglied-werden-Seite eingebunden — neben dem EEG-Namen aus der Stammdaten-Synchronisation. Ohne Logo bleibt das Standard-Blitz-Icon.</li>
+<li><strong>EEG-Name</strong>: ersetzt im Kopf den Schriftzug „eegFaktura". Wenn der Name noch nicht synchronisiert ist, bleibt der Standard-Schriftzug.</li>
+<li><strong>Footer</strong>: wechselt dezent auf „Powered by eegFaktura", damit klar bleibt, wer den Service technisch betreibt.</li>
+</ul>
+<p><strong>Beispiel:</strong> die Muster-EEG schaltet im Editor auf „Leaf", synchronisiert ihr Logo aus eegFaktura, und sieht beim nächsten Aufruf der Mitglied-werden-Seite einen grünen Kopf mit Muster-EEG-Logo und Namen statt der eegFaktura-Standard-Optik.</p>
+<p><strong>Wo wirkt das Branding nicht?</strong></p>
+<ul>
+<li>Die separate E-Mail-Bestätigungs-Seite (<code>/confirm-email</code>) zeigt weiter das Standard-Theme — sie erreicht das Mitglied über einen Link mit Token statt über eine RC-Nummer und kennt deshalb die EEG nicht.</li>
+<li>Der Admin-Bereich (<code>/admin/…</code>) bleibt einheitlich türkis.</li>
+<li>E-Mail-Templates sind heute nicht gebrandet.</li>
+</ul>
 <p>Klicke auf <strong>Speichern</strong>, um alle Änderungen in diesem Abschnitt zu übernehmen.</p>
 <hr />
 <h2 id="einleitungstext">Einleitungstext<a class="headerlink" href="#einleitungstext" title="Permanent link">&para;</a></h2>
