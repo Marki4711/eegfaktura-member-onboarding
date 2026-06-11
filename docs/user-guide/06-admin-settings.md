@@ -286,6 +286,35 @@ Empfehlung: aktivieren, wenn du regelmäßig Müll-Anträge oder Tippfehler bei 
 
 Falls eine Bestätigungs-Mail im Spam-Ordner landet: in der Antragsdetail-Seite über **„Bestätigungs-Link erneut senden"** kann der Link erneut versendet werden (mit neuem Token; alter Link wird ungültig). Anträge, die 30 Tage lang nicht bestätigt werden, werden automatisch abgelehnt.
 
+### Erscheinungsbild der Online-Registrierung *(Alle Optionen)*
+
+> Diese Sektion ist nur in **Alle Optionen** sichtbar.
+
+Die öffentliche Mitglied-werden-Seite (`/register/<RC-Nummer>`) lässt sich pro EEG farblich an die eigene Marke anpassen. Zur Auswahl stehen vier vordefinierte Farbwelten — eine eigene HEX-Farbe ist bewusst nicht vorgesehen, damit Kontraste und Lesbarkeit zuverlässig stimmen.
+
+| Preset | Wirkung |
+|---|---|
+| **Teal (Standard)** | Heutige dunkel-türkise Optik. Default für alle EEGs. |
+| **Leaf (Grün)** | Dunkles Waldgrün mit hellem Grünton als Akzent. |
+| **Sun (Orange)** | Warmes Anthrazit mit Sonnen-Orange-Akzent. |
+| **Slatey (Neutral)** | Neutrales Anthrazit-Grau mit hellblauem Akzent. |
+
+Vier kleine Vorschau-Karten direkt unter dem Auswahl-Feld zeigen, wie das jeweilige Schema aussieht — inklusive einer Beispiel-Schaltfläche und einer Beispiel-Karte in den Preset-Farben. Die aktuelle Auswahl bekommt einen Ring um die Karte.
+
+Wenn ein anderer als „Teal" gewählt ist, wirken zusätzlich:
+
+- **EEG-Logo**: das aus eegFaktura synchronisierte Logo wird oben links im Kopf der Mitglied-werden-Seite eingebunden — neben dem EEG-Namen aus der Stammdaten-Synchronisation. Ohne Logo bleibt das Standard-Blitz-Icon.
+- **EEG-Name**: ersetzt im Kopf den Schriftzug „eegFaktura". Wenn der Name noch nicht synchronisiert ist, bleibt der Standard-Schriftzug.
+- **Footer**: wechselt dezent auf „Powered by eegFaktura", damit klar bleibt, wer den Service technisch betreibt.
+
+**Beispiel:** die Muster-EEG schaltet im Editor auf „Leaf", synchronisiert ihr Logo aus eegFaktura, und sieht beim nächsten Aufruf der Mitglied-werden-Seite einen grünen Kopf mit Muster-EEG-Logo und Namen statt der eegFaktura-Standard-Optik.
+
+**Wo wirkt das Branding nicht?**
+
+- Die separate E-Mail-Bestätigungs-Seite (`/confirm-email`) zeigt weiter das Standard-Theme — sie erreicht das Mitglied über einen Link mit Token statt über eine RC-Nummer und kennt deshalb die EEG nicht.
+- Der Admin-Bereich (`/admin/…`) bleibt einheitlich türkis.
+- E-Mail-Templates sind heute nicht gebrandet.
+
 Klicke auf **Speichern**, um alle Änderungen in diesem Abschnitt zu übernehmen.
 
 ---

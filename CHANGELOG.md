@@ -10,6 +10,33 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Feature — Farbgestaltung der Online-Registrierung (PROJ-102) *(2026-06-11)*
+
+Pro-EEG-Theme-Anpassung der Public-Registration-Page über vier vordefinierte Presets (`teal` / `leaf` / `sun` / `slatey`), plus Logo + EEG-Name-Einbindung im Header und Footer-Switch auf „Powered by eegFaktura" bei non-default Brand.
+
+- **Schema:** Migration `000076_registration_entrypoint_brand_preset` führt `brand_preset TEXT NULL CHECK (… IN (…))` ein. Kein Backfill — Bestand bleibt NULL = Default-Theme.
+- **Backend:** `RegistrationConfig`-Response (Public-Endpoint) um `brandPreset` + `logoDataUri` (Base64-inline, ~400 KB Worst-Case) + `eegName` erweitert. `SaveEEGSettings`-Handler nimmt `brandPreset` mit `Patch-Semantik` entgegen (nil = nicht touchen, leer → NULL, valid → setzen, sonst 400). Neue Validator-Konstante `IsValidBrandPreset`.
+- **Public-Frontend:** Neues Modul `src/lib/brand-presets.ts` mit 4 vollständigen HSL-Variablen-Sets, `normalizeBrandPreset`-Bouncer und `presetStyleBlock`-SSR-Generator. Neue `PublicPageShell` injiziert den Preset-Block via `<style dangerouslySetInnerHTML>`, `PublicHeader` wechselt zwischen Logo/EEG-Name und Bestand-Brand.
+- **Admin-Frontend:** Neuer `AdminBrandEditor` (Select + 2x2 Preview-Karten mit Inline-Style-Generator als Single-Source-of-Truth). Nur in PROJ-67-Modus „Alle Optionen" sichtbar. Auto-Save reiht sich in den PROJ-84-Hook ein. `isAdvancedEEGSettingsActive` triggert auf non-default Preset (Awareness-Banner-Integration).
+- **Security-Mitigation:** `GET /api/public/registration/{rc_number}` bekommt neue `PublicGetRegistrationRateLimitMiddleware` (60/min/IP) und `Cache-Control: public, max-age=60`, um die Bandbreiten-Amplifikation durch das jetzt ~20× größere Response (Logo inline) abzufangen.
+
+### Feature — Reject-Mail optional *(2026-06-10, spät)*
+
+Tester-Wunsch 2026-06-10: bei „Ablehnen" landete bisher zwangsweise
+eine Mail beim Antragsteller — bei offensichtlichem Junk oder einem
+telefonisch zurückgezogenen Antrag unerwünscht. Der „Antrag ablehnen"-
+Dialog zeigt jetzt eine Checkbox „Ablehnung per E-Mail an den
+Beitrittswerber übermitteln" (Default: aktiv, identisch zum bisherigen
+Verhalten). Bei deaktivierter Box wird die Mail unterdrückt — die
+Begründung landet trotzdem im Statusverlauf, der Status springt
+normal auf „Abgelehnt".
+
+Backend: `ChangeStatusRequest` um optionales `notifyMember *bool`
+erweitert; bei `notifyMember == &false` wird `SendRejectedNotification`
+übersprungen. Bulk-Reject behält das Legacy-Verhalten (immer Mail).
+Bei „Info anfordern" (needs_info) bleibt die Mail Pflicht — ohne Mail
+hat dieser Status semantisch keinen Sinn.
+
 ### Fix — PROJ-100 Reset-Validierung + neue Datenweiterleitungs-Spalte „Name" *(2026-06-10, spät)*
 
 Zwei Tester-Befunde unmittelbar nach dem v1.27.1-Push:

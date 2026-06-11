@@ -126,7 +126,10 @@ No direct access to eegFaktura core tables takes place.
   ],
   "cooperativeSharesEnabled": true,
   "cooperativeRequiredShares": 1,
-  "cooperativeShareAmountCents": 10000
+  "cooperativeShareAmountCents": 10000,
+  "brandPreset": "leaf",
+  "eegName": "Muster-EEG",
+  "logoDataUri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA…"
 }
 ```
 
@@ -146,9 +149,17 @@ No direct access to eegFaktura core tables takes place.
 
 `cooperativeSharesEnabled` (PROJ-37): when `true`, the public form renders a "Genossenschaftsanteile" block. `cooperativeRequiredShares` (positive integer) is then the minimum the member must subscribe; `cooperativeShareAmountCents` (positive integer) is the price per share in cents. The total is computed client-side as `count × cooperativeShareAmountCents`. When `cooperativeSharesEnabled` is `false`, the two value fields are omitted from the response and the form skips the block.
 
+`brandPreset` (PROJ-102): theme identifier for the public-page rendering. One of `teal` | `leaf` | `sun` | `slatey`, or absent/null = default theme (`teal`). The frontend maps the identifier to a hardcoded HSL-variable set and injects it as a `:root` style block at SSR time. Admins choose the preset in the Settings page (visible only in "Alle Optionen"-Modus).
+
+`eegName` (PROJ-32/-102) and `logoDataUri` (PROJ-33/-102): the long-form EEG name and the EEG logo as a Base64-inline data-URI. Both are populated when the corresponding Core-Sync has run. Logo is shipped inline (no second endpoint, no extra HTTP round-trip) and capped at 256 KB raw / ~342 KB Base64 by the PROJ-33 sync layer. Worst-case response size with logo is ~400 KB.
+
+### Rate-Limit + Cache (PROJ-102)
+The GET endpoint is rate-limited at **60 requests / minute / IP** (separate bucket from `POST /applications` and `POST /applications/confirm-email`) to mitigate bandwidth-amplification via repeated logo reads. Responses include `Cache-Control: public, max-age=60` so a reverse-proxy / CDN can serve cached responses for tab-switches and form-reload navigation without round-tripping to the backend.
+
 ### Errors
 - `404` if `rc_number` is not found in `registration_entrypoint`
 - `410` if `registration_entrypoint.is_active = false`
+- `429` if the per-IP rate limit (60/min) is exceeded
 
 ---
 

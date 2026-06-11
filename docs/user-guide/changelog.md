@@ -4,7 +4,32 @@
 
 ---
 
+## 2026-06-11
+
+**Farben in der Online-Registrierung anpassbar**
+
+Die öffentliche Mitglieder-werden-Seite lässt sich jetzt pro EEG farblich anpassen. In den Einstellungen (Modus „Alle Optionen") gibt es unten auf dem Stammdaten-Tab einen neuen Block „Erscheinungsbild der Online-Registrierung". Zur Auswahl stehen vier vordefinierte Farbwelten:
+
+- **Teal (Standard)** — die heutige dunkel-türkise Optik
+- **Leaf (Grün)** — dunkles Waldgrün
+- **Sun (Orange)** — warmes Anthrazit mit Sonnen-Orange-Akzent
+- **Slatey (Neutral)** — neutrales Anthrazit-Grau
+
+Vier kleine Vorschau-Karten zeigen, wie das jeweilige Schema aussieht. Bei Auswahl eines anderen als des Standards wird zusätzlich das EEG-Logo (falls aus eegFaktura synchronisiert) im Kopf der Mitglied-werden-Seite eingebunden — links neben dem EEG-Namen aus der Stammdaten-Synchronisation. Der Footer wechselt dezent auf „Powered by eegFaktura", damit klar bleibt, wer den Service betreibt.
+
+Beispiel: die fiktive Muster-EEG schaltet auf „Leaf", synchronisiert ihr Logo aus eegFaktura — Mitglieder, die später den Registrierungslink öffnen, sehen den Kopf in Grün mit dem Muster-EEG-Logo und Namen, statt der eegFaktura-Standard-Optik.
+
+Der Editor ist bewusst nur in „Alle Optionen" sichtbar, damit neue EEGs sich erst um die Stammdaten kümmern können, bevor sie die Optik verändern. Wenn die Farbauswahl einmal vom Standard abweicht, schlägt der Awareness-Banner in der „Einfachen Ansicht" an und führt zum richtigen Toggle.
+
+Bestehende EEGs verändern sich nicht — sie behalten das Standard-Theme so lange, bis im Editor aktiv ein anderes Preset gewählt wird.
+
+---
+
 ## 2026-06-10 (spät)
+
+**Antrag ablehnen ohne Mail an den Beitrittswerber**
+
+Im „Antrag ablehnen"-Dialog gibt es jetzt eine Checkbox „Ablehnung per E-Mail an den Beitrittswerber übermitteln". Sie ist standardmäßig aktiv — das übliche Verhalten bleibt also gleich. Wenn ihr sie deaktiviert, wird die Ablehnungs-Mail nicht versendet (z. B. bei offensichtlichem Spam oder wenn das Mitglied telefonisch zurückgezogen hat). Die Begründung landet trotzdem im Statusverlauf, der Status springt normal auf „Abgelehnt". Bei „Info anfordern" gibt es bewusst keine Opt-out — ohne Mail an das Mitglied verliert dieser Status seinen Sinn.
 
 **Reset-Dialoge: bessere Begründungs-Validierung**
 
