@@ -329,6 +329,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#2026-06-12" class="md-nav__link">
+    <span class="md-ellipsis">
+      2026-06-12
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#2026-06-11" class="md-nav__link">
     <span class="md-ellipsis">
       2026-06-11
@@ -728,6 +737,18 @@
 
 <h1 id="was-ist-neu">Was ist neu?<a class="headerlink" href="#was-ist-neu" title="Permanent link">&para;</a></h1>
 <p>Übersicht der Änderungen der letzten Tage, die für <strong>EEG-Admins</strong> und <strong>Mitglieder</strong> spürbar sind. Technische Details, Bug-Fixes ohne UI-Auswirkung und Infrastruktur-Themen sind hier bewusst weggelassen — die finden sich in der Commit-Historie.</p>
+<hr />
+<h2 id="2026-06-12">2026-06-12<a class="headerlink" href="#2026-06-12" title="Permanent link">&para;</a></h2>
+<p><strong>Neuer Tab „Rechnungen" in den Einstellungen</strong></p>
+<p>In jeder EEG-Settings-Ansicht gibt es jetzt einen neuen Tab <strong>„Rechnungen"</strong>, in dem du die quartalsweisen Abrechnungs-Rechnungen für die Plattform-Nutzung siehst — Quartal, Status, Brutto-Betrag, Versand- und Bezahldatum, Rechnungsnummer.</p>
+<p>Die Liste ist read-only. Solange die Plattform-Abrechnung in der Test-/Pilotphase läuft, bleiben alle Rechnungen auf Status <code>Preview</code> — du kannst die zukünftige Quartals-Abrechnung also vorher prüfen, ohne dass Geld fließt.</p>
+<p><strong>Trial-Phase: 30 Tage ab erster Mitglieder-Aktivierung</strong></p>
+<p>Sobald in deiner EEG das erste Mitglied vollständig aktiviert ist, läuft eine 30-tägige Trial-Phase. In dieser Zeit wird zwar gezählt, aber kein Brutto-Betrag berechnet — der Quartals-Eintrag erscheint mit Status <code>Preview</code> und Marker <code>trial_period</code>.</p>
+<p><strong>Edition Standard / Pro im erweiterten Modus</strong></p>
+<p>Im erweiterten Modus findest du in den Stammdaten-Einstellungen einen Switch zwischen den Editionen Standard und Pro. Wichtig: <strong>bestehende Aktivierungen behalten ihren ursprünglichen Tarif</strong>, auch wenn du switchst. Nur neue Mitglieder-Aktivierungen ab dem Switch-Zeitpunkt tragen die neue Edition. Pro → Standard ist nur möglich, wenn keine Pro-only-Features mehr aktiv sind (Datenweiterleitung, eigener Brand-Theme, …). Der Dialog zeigt dir die Sperren mit Direktlinks.</p>
+<p><strong>SEPA-Mandate-Aktivierung beim Produktiv-Start</strong></p>
+<p>Sobald die Plattform-Abrechnung für deine EEG live geschaltet wird, kommt einmalig eine EUR 0,01-Test-Lastschrift von Mollie Payments B.V. auf dein EEG-Konto. Das ist die SEPA-Mandate-Validierung und <strong>kein Fehler</strong> — die Lastschrift wird wieder gutgeschrieben. Danach werden die regulären Quartals-Rechnungen automatisch eingezogen.</p>
+<p>Eine ausführliche Beschreibung findest du im User-Guide unter „Einstellungen → Tab Rechnungen".</p>
 <hr />
 <h2 id="2026-06-11">2026-06-11<a class="headerlink" href="#2026-06-11" title="Permanent link">&para;</a></h2>
 <p><strong>EEG-Logo größer und rechts im Anmeldeformular-Kopf</strong></p>

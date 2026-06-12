@@ -924,6 +924,66 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#tab-rechnungen" class="md-nav__link">
+    <span class="md-ellipsis">
+      Tab "Rechnungen"
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tab "Rechnungen"">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#was-du-hier-siehst" class="md-nav__link">
+    <span class="md-ellipsis">
+      Was du hier siehst
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#was-du-tun-kannst" class="md-nav__link">
+    <span class="md-ellipsis">
+      Was du tun kannst
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#was-im-hintergrund-passiert" class="md-nav__link">
+    <span class="md-ellipsis">
+      Was im Hintergrund passiert
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#edition-switch-im-erweiterten-modus" class="md-nav__link">
+    <span class="md-ellipsis">
+      Edition-Switch (im erweiterten Modus)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fragen" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fragen?
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1641,6 +1701,67 @@ Wenn du einen Antrag bereits per Import-Button verarbeitet hast und die Mitglied
 <blockquote>
 <p><strong>Tipp:</strong> Apply läuft mit einer <code>pg_advisory_xact_lock</code> — parallele Konfig-Änderungen über mehrere Browser-Tabs werden serialisiert, niemand überschreibt sich gegenseitig.</p>
 </blockquote>
+<hr />
+<h2 id="tab-rechnungen">Tab "Rechnungen"<a class="headerlink" href="#tab-rechnungen" title="Permanent link">&para;</a></h2>
+<p>In jeder EEG-Settings-Ansicht findest du seit dem Plattform-Abrechnungs-Update einen Tab <strong>„Rechnungen"</strong>. Hier siehst du als EEG-Admin die quartalsweisen Abrechnungs-Rechnungen, die der Plattform-Betreiber an deine EEG ausgestellt hat.</p>
+<h3 id="was-du-hier-siehst">Was du hier siehst<a class="headerlink" href="#was-du-hier-siehst" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Spalte</th>
+<th>Bedeutung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Quartal</strong></td>
+<td>Z. B. Q1/2026 — das abgerechnete Kalenderquartal</td>
+</tr>
+<tr>
+<td><strong>Status</strong></td>
+<td><code>Preview</code> (Testbetrieb, noch nicht zahlungspflichtig), <code>Versandt</code>, <code>Bezahlt</code>, <code>Überfällig</code>, <code>Storniert</code> oder <code>Gutschrift</code></td>
+</tr>
+<tr>
+<td><strong>Brutto</strong></td>
+<td>Endbetrag inkl. USt für dieses Quartal</td>
+</tr>
+<tr>
+<td><strong>Versandt</strong></td>
+<td>Wann die Rechnung an dich ging</td>
+</tr>
+<tr>
+<td><strong>Bezahlt</strong></td>
+<td>Wann der Plattform-Betreiber die Zahlung über Mollie B.V. erhalten hat</td>
+</tr>
+<tr>
+<td><strong>Rechnungs-Nr.</strong></td>
+<td>Externe Rechnungsnummer aus FreeFinance</td>
+</tr>
+</tbody>
+</table>
+<h3 id="was-du-tun-kannst">Was du tun kannst<a class="headerlink" href="#was-du-tun-kannst" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Lesen</strong>: die Liste ist read-only. Status-Änderungen, Gutschriften und PDF-Versand laufen über den Plattform-Betreiber.</li>
+<li><strong>PDF-Download</strong> kommt in einer späteren Iteration. Heute landet die Rechnung direkt per Mail bei dir.</li>
+<li><strong>Empty-State</strong>: wenn noch keine Rechnungen erzeugt wurden (Trial-Phase, keine Aktivierungen, oder Preview-Modus), siehst du „Noch keine Rechnungen erzeugt".</li>
+</ul>
+<h3 id="was-im-hintergrund-passiert">Was im Hintergrund passiert<a class="headerlink" href="#was-im-hintergrund-passiert" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Trial-Phase</strong>: ab der ersten Mitglieder-Aktivierung in deiner EEG läuft eine 30-tägige Trial-Phase. In dieser Zeit wird zwar gezählt, aber keine echte Rechnung erstellt — der Status bleibt auf <code>Preview</code>.</li>
+<li><strong>Quartalsabschluss</strong>: am 1. des Monats nach Quartalsende (1. Jan / 1. Apr / 1. Jul / 1. Okt) prüft ein automatischer Job alle aktivierten Mitglieder im abgeschlossenen Quartal und erzeugt eine Rechnung pro Edition (Standard / Pro).</li>
+<li><strong>Live-Schalter</strong>: solange die Plattform-Abrechnung <strong>nicht</strong> live geschaltet ist (Test-/Pilotphase), bleiben alle Rechnungen auf <code>Preview</code> — du kannst sie also vorher prüfen.</li>
+<li><strong>SEPA-Lastschrift via Mollie</strong>: sobald die Plattform-Abrechnung live geschaltet wird, kommt einmalig eine <strong>EUR 0,01-Test-Lastschrift</strong> von <strong>Mollie Payments B.V.</strong> auf dein EEG-Konto. Das ist die SEPA-Mandate-Aktivierung und kein Fehler — die Lastschrift wird wieder gutgeschrieben. Danach werden die regulären Quartals-Rechnungen automatisch eingezogen.</li>
+<li><strong>Bei Zahlungsproblemen</strong>: wenn eine Rechnung 14 Tage nach Versand offen ist, wird sie auf <code>Überfällig</code> gesetzt. Sechs nicht-kritische Funktionen (Datenweiterleitung, Reconciliation, Excel-Export usw.) gehen automatisch in einen Cool-Down — die Public-Mitglieder-Onboarding-Form bleibt <strong>immer</strong> offen. Sobald du bezahlt hast, wird der Cool-Down automatisch aufgehoben.</li>
+</ol>
+<h3 id="edition-switch-im-erweiterten-modus">Edition-Switch (im erweiterten Modus)<a class="headerlink" href="#edition-switch-im-erweiterten-modus" title="Permanent link">&para;</a></h3>
+<p>Im erweiterten Modus findest du in den Stammdaten-Einstellungen einen Switch zwischen den Editionen <strong>Standard</strong> und <strong>Pro</strong>. Wichtig zu wissen:</p>
+<ul>
+<li><strong>Snapshot-Pattern</strong>: bestehende Aktivierungen behalten ihren ursprünglichen Tarif, auch wenn du switchst. Nur <strong>neue</strong> Mitglieder-Aktivierungen ab dem Switch-Zeitpunkt tragen die neue Edition. So kannst du jederzeit problemlos wechseln, ohne dass alte Buchungen rückwirkend teurer werden.</li>
+<li><strong>Pro → Standard Downgrade-Block</strong>: ein Downgrade ist nur möglich, wenn keine Pro-only-Features mehr aktiv sind (Externe API-Key, Datenweiterleitung, Reconciliation-Backstop, Vorstands-Workflow, SEPA-Mandat-Audit, eigenes Brand-Theme). Der Dialog zeigt dir die Liste der aktiven Sperren mit Direktlinks zum jeweiligen Setting.</li>
+<li><strong>Wirkungs-Zeitpunkt</strong>: der Switch wirkt <strong>sofort</strong>. Du musst keine zusätzlichen Schritte machen — die nächste Mitglieder-Aktivierung in deiner EEG wird mit der neuen Edition versiegelt.</li>
+</ul>
+<h3 id="fragen">Fragen?<a class="headerlink" href="#fragen" title="Permanent link">&para;</a></h3>
+<p>Bei Rückfragen zur Plattform-Abrechnung wende dich an den Plattform-Betreiber. Die E-Mail-Adresse findest du am Ende jeder Rechnungs-E-Mail.</p>
 
 
 
