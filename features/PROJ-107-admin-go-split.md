@@ -1,6 +1,49 @@
 # PROJ-107: God-File-Refactor `internal/http/admin.go` (Phase 2 / Welle 3)
 
-## Status: Planned
+## Status: In Progress (Sub-Welle 107a abgeschlossen)
+
+## Implementation 107a 2026-06-13 — Solo-Cluster
+
+Erste Sub-Welle des God-File-Refactors. Vier isolierte Handler-Cluster mit
+geringstem Risiko-Profil (kein gemeinsamer Subrouter-State, keine
+Cross-Domain-Service-Calls).
+
+**admin.go: 3316 → 2771 Zeilen (−16 %).**
+
+### Extrahierte Files
+
+| File | Methoden | LOC | Tenant-Iso |
+|---|---|---|---|
+| `admin_external_keys.go` | GetAPIKeyStatus, GenerateAPIKey, RevokeAPIKey | 127 | 3× `containsRC` |
+| `admin_legal_documents.go` | List/Create/Update/Delete/Reorder | 229 | 5× `containsRC` (3 RC-basiert, 2 ID-Lookup) |
+| `admin_attachments.go` | ExportApplicationExcel, DownloadApprovalPDF, DownloadJoiningDeclarationPDF | 197 | 3× `checkTenantAccess` |
+| `admin_members.go` | SuggestNextMemberNumber | 73 | 1× `checkTenantAccess` |
+
+**12/12 Handler-Tenant-Checks unveraendert.**
+
+### AC-4: `tenant.go` Konsolidierung
+
+- `internal/http/tenant.go` (29 Z): Single-Source-Helper `containsRC` mit
+  Doku-Header zum nil-Slice-Verhalten (Memory `feedback_tenant_filter_nil_vs_empty`)
+- `internal/http/tenant_test.go`: 8 Test-Vektoren incl. nil-Slice-Bypass-Sicherung,
+  Case-Sensitivity, Prefix-Match-Verbot, Empty-String-Edge-Cases
+
+### Verifikation 107a
+
+- `go build ./...` clean
+- `go test ./...` alle Pakete gruen
+- `govulncheck ./...` 0 callable
+- `gosec -severity medium ./internal/http/...` 0 Issues
+- Tenant-Iso-Audit: alle 12 verschobenen Handler haben den `containsRC` bzw
+  `checkTenantAccess`-Call vor jedem Repo-Aufruf
+
+### Pending Sub-Wellen
+
+- **107b** (Settings-Cluster): settings + settings_save_tx — eigenes /security-review
+- **107c** (Applications-Cluster): applications + applications_recovery + attachments —
+  Hochsensible Status-Transitions, eigenes /security-review
+- **107d** (Audit-Cluster + admin.go-Slimming + Konsistenz-Sweep): finales /security-review
+
 
 Dritte und schwerste Welle des God-File-Refactors. **3316 Zeilen + 77 exportierte Funktionen.** Enthält Tenant-Iso-Logik, Auth-Middleware-Aufrufe, viele Subrouter-Pfade. Risiko: HÖCHSTE.
 
