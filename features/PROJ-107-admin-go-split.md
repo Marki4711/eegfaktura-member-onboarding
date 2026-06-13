@@ -1,6 +1,6 @@
 # PROJ-107: God-File-Refactor `internal/http/admin.go` (Phase 2 / Welle 3)
 
-## Status: In Progress (Sub-Wellen 107a + 107b + 107c abgeschlossen)
+## Status: In Review (alle 4 Sub-Wellen abgeschlossen)
 
 ## Implementation 107a 2026-06-13 — Solo-Cluster
 
@@ -92,13 +92,75 @@ Anker im Code: `checkTenantAccess` + `containsRC` + Service-`allowed*`-Filter).
 - `gosec -severity medium ./internal/http/...` 0 Issues (35 Files, 7780 LOC gesamt)
 - `govulncheck ./...` 0 callable
 
-### Pending Sub-Welle
+## Implementation 107d 2026-06-13 — Cleanup + admin.go-Slimming
 
-- **107d** (Cleanup + admin.go-Slimming + Konsistenz-Sweep): admin.go reduziert
-  auf den Constructor-Hub + ListRegistrationEntrypoints/SyncEntrypoints +
-  Reconciliation/Resync/SendMandateRenewal-Trio + Helpers (parseID/writeJSON/
-  writeError/handleServiceError/intQueryParam/validationMessage/isKnownStatus).
-  Letzte Welle wird auf <500 Z drueckenden Verteilen + finalem /security-review.
+Letzte Sub-Welle. Reconciliation/Resync/Mandate-Renewal-Trio + Entrypoint-
+Endpoints + alle Shared-Helpers in eigene Files extrahiert. admin.go ist
+jetzt rein Constructor-Hub mit Tenant-Iso + Customer-Contract-Enforcement.
+
+**admin.go: 661 → 281 Zeilen (kumuliert seit Start −92 %, 3316 → 281).**
+
+### Extrahierte Files
+
+| File | Methoden | LOC |
+|---|---|---|
+| `admin_reconciliation.go` | RunReconciliation (PROJ-69) + RunResyncFromCore + SendMandateRenewal (PROJ-70) | 245 |
+| `admin_entrypoints.go` | ListRegistrationEntrypoints (PROJ-101) + SyncEntrypoints | 86 |
+| `admin_helpers.go` | parseID + writeJSON + writeError + writeValidationError + handleServiceError + intQueryParam + isKnownStatus + validationMessage | 118 |
+
+### Was bleibt in admin.go (281 Z)
+
+- `AdminHandler`-Struct + `NewAdminHandler`-Constructor (Wiring der 4 Repos +
+  ImportService + Mailer + Validator)
+- `eegMasterDataCache`-Struct mit TTL-Logic (PROJ-32-Cache)
+- `SetCustomerContractChecker` + `enforceCustomerContractByID` + `enforceCustomerContract` (PROJ-71)
+- `SetReconciliationService` + `SetReconciliationEnabled` + `SetCoreAuthMode`-Setter
+- `coreBearerToken`-Helper (Bearer-Extraktion)
+- `parseRCAndCheck` (RC-from-Query + Tenant-Check)
+- `checkTenantAccess` (ID-Lookup + RC-Tenant-Check)
+
+Das sind die Cross-Cutting-Konstrukte, die ALLE anderen Files brauchen
+(Constructor, Auth-Helpers, Customer-Contract-Gate). Sinnvoll, sie zentral
+zu halten — kein weiterer Split-Effort.
+
+### Verifikation 107d
+
+- `go build ./...` clean
+- `go test ./...` alle Pakete gruen
+- `gosec -severity medium ./internal/http/...` 0 Issues (38 Files, 7849 LOC gesamt)
+- `govulncheck ./...` 0 callable
+
+## End-Stand PROJ-107
+
+| | Vor | Nach | Δ |
+|---|---|---|---|
+| `internal/http/admin.go` | 3316 Z | **281 Z** | **−92 %** |
+| Domain-Files | 1 monolithisch | 15 fokussierte Files | — |
+| Tenant-Iso-Konsolidierung | verstreut | `tenant.go` Single-Source | + |
+
+15 neue Files unter `internal/http/`:
+1. `admin_external_keys.go` (PROJ-13)
+2. `admin_legal_documents.go` (PROJ-9/36)
+3. `admin_attachments.go` (Excel + PDF Downloads)
+4. `admin_members.go` (PROJ-27)
+5. `admin_settings_field_config.go` (PROJ-8/15/68)
+6. `admin_settings_intro.go` (PROJ-11)
+7. `admin_settings_view_mode.go` (PROJ-67)
+8. `admin_settings_core_sync.go` (PROJ-32/33)
+9. `admin_settings_eeg.go` (Brand + SEPA + Cooperative)
+10. `admin_applications.go` (Core-CRUD)
+11. `admin_applications_bulk_delete.go` (PROJ-25)
+12. `admin_applications_email.go` (PROJ-31)
+13. `admin_applications_import.go` (PROJ-27/46)
+14. `admin_applications_reassign.go` (PROJ-40)
+15. `admin_applications_recovery.go` (PROJ-30/34/53/100)
+16. `admin_reconciliation.go` (PROJ-69/70)
+17. `admin_entrypoints.go` (PROJ-101)
+18. `admin_helpers.go` (Shared helpers + isKnownStatus)
+19. `tenant.go` + `tenant_test.go` (PROJ-107a AC-4)
+
+Status: **In Review** — pending finales /security-review fuer alle 4 Sub-
+Wellen + Deploy.
 
 
 Dritte und schwerste Welle des God-File-Refactors. **3316 Zeilen + 77 exportierte Funktionen.** Enthält Tenant-Iso-Logik, Auth-Middleware-Aufrufe, viele Subrouter-Pfade. Risiko: HÖCHSTE.
