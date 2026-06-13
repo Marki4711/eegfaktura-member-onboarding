@@ -12,6 +12,18 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## 2026-06-13
 
+### Owner-Cockpit (PROJ-72)
+
+Phase 1B der vor-Prod-Roadmap implementiert: Superuser-Übersicht aller EEGs unter `/admin/cockpit`. Neue Seite zeigt für jede EEG den Aktivitätsstand, Customer-Onboarding-State (PROJ-71), Anträge-Pipeline (offen vs. erledigt) und Direkt-Links zu Anträgen und Einstellungen. Default-Sortierung nach letzter Aktivität (`MAX(application.updated_at)`), alternativ nach offenen Anträgen oder RC-alphabetisch. Volltextsuche RC/Name läuft clientseitig.
+
+Zwei-Pfade-Auth: Bestand-Superuser-Role und neue Email-Allowlist `COCKPIT_ALLOWED_EMAILS` (Owner-Direktive 2026-06-06 — Keycloak-Realm-Roles können nicht jederzeit angepasst werden). Allowlist gilt ausschließlich für den Cockpit-Endpoint; andere Owner-only-Endpoints (Customer-Onboarding-Approve, Owner-BackOffice) bleiben strikt an `IsSuperuser()`. Vergleich case-insensitive, getrimmt, leere Allowlist heißt Bestand-Verhalten (nur Superuser).
+
+Aggregations-Query als Single-Roundtrip mit zwei CTEs: `DISTINCT ON` für den jüngsten Customer-Onboarding-Status pro RC + `COUNT FILTER` für offen-/erledigt-Counter pro Anwendungs-Status. Status-Klassifizierung gemäß Spec + PROJ-91-Update (kein `awaiting_bank_confirmation` mehr). Performance-Anforderung <300 ms p95 bei 500 EEGs + 5000 Anträgen.
+
+Frontend nutzt shadcn-Table + shadcn-Select + shadcn-Badge, kein Placeholder auf der Suche (Memory `feedback_no_placeholders`). Nav-Link wird per Probe-Endpoint `/api/admin/owner-cockpit/me` conditional gerendert — Tenant-Admins ohne Berechtigung sehen den Link nicht.
+
+15 neue Backend-Tests verifizieren die Sicherheits-Matrix (Superuser-immer-allowed, Email-Match mit Trim+Case, leere Email/Allowlist) und die Allowlist-Normalisierung (CSV-Parser mit Whitespace, Trailing-Komma, leeren Segmenten). 238/238 Frontend-Tests grün, `tsc --noEmit` clean, `govulncheck` und `gosec -severity medium` 0 Issues.
+
 ### PROJ-108b FreeFinance-Welle-5b Folge-Wellen (Phase F + G + K)
 
 Direkt nach PROJ-108-Deploy implementiert. PROJ-108 hatte die FreeFinance-API-Inkompatibilitäten gefixt und OIDC eingeführt; die Idempotenz- und Operational-Visibility-Phasen waren deferred und kommen jetzt:

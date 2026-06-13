@@ -1,8 +1,69 @@
 # PROJ-72: Member-Onboarding-Cockpit (Owner-EEG-Übersicht)
 
-## Status: Planned
+## Status: In Review (Implementation 2026-06-13)
 **Created:** 2026-06-06
-**Last Updated:** 2026-06-06
+**Last Updated:** 2026-06-13 (Backend + Frontend + Helm in einem Rutsch)
+
+## Implementation-Notes 2026-06-13
+
+In einem Rutsch implementiert ohne separates `/architecture` und `/grill-me` — die Spec hat 2026-06-06 bereits alle Owner-Entscheidungen festgenagelt (Tabellen-Spalten, Sortierung, Allowlist-Mechanismus, Performance-Anforderung, Edge-Cases).
+
+### Was geändert wurde
+
+**Backend:**
+- `internal/http/auth_middleware.go`: `KeycloakClaims` um `Email`-Feld erweitert. Neue Methoden `IsCockpitAllowed(allowlist []string) bool` (Superuser ODER Allowlist-Match) und `CockpitAuthPath(allowlist) string` (`"superuser_role"` | `"cockpit_allowlist"` | `"none"` — engere Berechtigung gewinnt im Log).
+- `internal/http/admin_cockpit.go` NEU: `AdminCockpitHandler` mit zwei Endpoints:
+  - `GET /api/admin/owner-cockpit/me` — Cockpit-Eligibility-Probe für Frontend-Nav-Link. Liefert `{eligible: bool, authPath: string}`. Für jeden authentifizierten Admin erreichbar.
+  - `GET /api/admin/owner-cockpit/eegs` — Aggregations-Liste. 403 wenn nicht Cockpit-berechtigt. Audit-Log mit `subject` + `email_domain` + `path` + `eeg_count` + `authPath` (KEINE PII via Email).
+- Single-Roundtrip Aggregations-Query mit zwei CTEs (`latest_cos` per `DISTINCT ON`, `app_agg` mit `COUNT() FILTER` für offen/erledigt + `MAX(updated_at)` als Last-Activity). LEFT JOINs gegen `registration_entrypoint`. Default-Sortierung im SQL: `last_activity_at DESC NULLS LAST, rc_number ASC`.
+- Status-Klassifizierung (Spec + Edge-Cases): offen = `submitted` + `under_review` + `needs_info` + `email_confirmed` + `import_failed`; erledigt = `approved` + `imported` + `ready_for_activation` + `activated`; ungezählt = `draft` + `rejected`. PROJ-91 hat `awaiting_bank_confirmation` entfernt — nicht in Liste.
+- `internal/config/config.go`: neue `CockpitConfig` mit `AllowedEmails []string`. Helper `parseEmailAllowlist` normalisiert CSV-Liste (case-insensitive, getrimmt, leere Einträge verworfen). Env-Var `COCKPIT_ALLOWED_EMAILS`.
+- `cmd/server/main.go`: `adminCockpitHandler` konstruiert, Routes unter `/owner-cockpit/me` + `/owner-cockpit/eegs` im bestehenden `/admin`-Subrouter (Auth-Middleware greift).
+
+**Frontend:**
+- `src/lib/api.ts`: Neue Types `CockpitEEG` + `CockpitMe`, Funktionen `getCockpitMe(token)` + `listCockpitEEGs(token)`.
+- `src/app/admin/cockpit/page.tsx` NEU: Server-Component lädt EEGs über Backend-Fetch, rendert `CockpitTable`. 403-Hinweis bei fehlender Berechtigung.
+- `src/components/cockpit/cockpit-table.tsx` NEU: Client-Komponente mit Volltextsuche (clientseitig, kein Label-Placeholder pro `feedback_no_placeholders`), 3 Sortier-Modi via shadcn-Select (Letzte Aktivität / Meiste offene Anträge / RC-alphabetisch), shadcn-Table mit 7 Spalten (RC monospace, EEG-Name, Aktiv-Badge, Onboarding-State-Badge, Offen-Counter tabular-nums, Erledigt-Counter, Aktions-Buttons "Anträge"/"Einstellungen"). Empty-States für „keine EEGs" und „keine Treffer".
+- `src/components/cockpit-nav-link.tsx` NEU: Client-Komponente nutzt `useSession()` + `getCockpitMe()` für Conditional-Render des Nav-Links.
+- `src/app/admin/layout.tsx`: `<CockpitNavLink />` zwischen "Einstellungen" und Badge-Zeile.
+
+**Helm:**
+- `values.yaml`: neues Feld `backend.cockpitAllowedEmails` (leerer Default).
+- `templates/backend.yaml`: Env-Var `COCKPIT_ALLOWED_EMAILS` durchgereicht.
+- `values-env.yaml.example`: Beispiel mit `eegfaktura@vfeeg.org` + zweiter Adresse.
+
+**Tests:**
+- `internal/http/admin_cockpit_test.go` NEU: 9 Tests für `IsCockpitAllowed` (Superuser-immer-allowed, exakter Match, case-insensitive, Trim, leeres Email, leere Allowlist) + `CockpitAuthPath` (Superuser gewinnt, Allowlist-only, none) + `emailDomainAuditSafe`.
+- `internal/config/config_cockpit_test.go` NEU: 6 Tests für `parseEmailAllowlist` (leer, single, normalisierung, multiple mit Whitespace+Case, Trailing-Komma, leere Segmente).
+- Frontend-Vitest-Suite: 238/238 weiterhin grün, keine Regressionen.
+
+### AC-Erfüllungs-Map
+
+| AC-Block | Status | Anmerkung |
+|---|---|---|
+| Sichtbarkeit & Zugriff (10 ACs) | ✅ | Allowlist + Superuser-Pfad, andere Owner-only-Endpoints unangetastet, Nav-Link Conditional |
+| Tabellen-Spalten (7 ACs) | ✅ | RC + EEG-Name + Aktiv + Onboarding-Badge + Counter + 2 Action-Buttons |
+| Sortierung (3 ACs) | ✅ | 3 Modi via shadcn-Select, Default `last_activity` |
+| Volltextsuche (4 ACs) | ✅ | Clientseitig, kein Placeholder (Label "Suche"), Substring-Match RC+EEG-Name |
+| Daten-Aktualität (3 ACs) | ✅ | Single-Roundtrip-Query, kein Caching, Retry-fallback im UI |
+| Empty State (2 ACs) | ✅ | Zwei klar getrennte Hinweise |
+| Audit / Logging (1 AC) | ✅ | slog mit subject + email_domain + path + eeg_count + authPath |
+
+Performance-Anforderung (<300 ms p95 bei 500 EEGs + 5000 Applications) ist im SQL eingebaut: Single-Roundtrip mit CTEs + zwei LEFT JOINs. Indexe auf `customer_onboarding_submission.rc_number` + `application.rc_number` + `application.status` existieren bereits aus Bestand. Tatsächlicher Bench-Test pending bis Live-Daten.
+
+### Memory-Regeln aktiv
+
+- `feedback_no_placeholders` — Suchfeld nutzt `<Label>` statt Placeholder
+- `feedback_anonymized_examples` — Beispiel-Adresse in `values-env.yaml.example` ist `eegfaktura@vfeeg.org`
+- `feedback_helm_values_split` — `values.yaml` + `values-env.yaml.example` synchron erweitert
+- `feedback_admin_field_full_chain` — neuer ENV/Config-Wert + Service-Wiring + Helm in einem Commit
+- `feedback_no_proj_refs_in_user_doc` — kein User-Guide-Touch nötig (Cockpit ist Owner-Tool)
+
+### TODOs / Folge-Wellen
+
+- **User-Guide-Sektion** "Cockpit" (Owner-internal): Folge-Welle wenn Owner reale Screenshots produzieren möchte.
+- **Performance-Bench** mit 500 EEGs + 5000 Anträgen: erst sinnvoll wenn Prod-Daten verfügbar.
+- **Virtualisierung der Tabelle** bei >500 EEGs: aktuell DOM-Rendering aller Zeilen — Spec verlangt Optimierung erst nach Messung.
 
 ## Hintergrund
 
