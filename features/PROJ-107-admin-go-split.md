@@ -1,6 +1,6 @@
 # PROJ-107: God-File-Refactor `internal/http/admin.go` (Phase 2 / Welle 3)
 
-## Status: In Progress (Sub-Wellen 107a + 107b abgeschlossen)
+## Status: In Progress (Sub-Wellen 107a + 107b + 107c abgeschlossen)
 
 ## Implementation 107a 2026-06-13 — Solo-Cluster
 
@@ -63,11 +63,42 @@ unveraendert (PROJ-37, PROJ-80, PROJ-81, PROJ-103 Validatoren).
 - `go test ./...` alle Pakete gruen
 - `gosec -severity medium ./internal/http/...` 0 Issues
 
-### Pending Sub-Wellen
+## Implementation 107c 2026-06-13 — Applications-Cluster
 
-- **107c** (Applications-Cluster): applications + applications_recovery + attachments —
-  Hochsensible Status-Transitions (PROJ-100-Recovery-Pfade), eigenes /security-review
-- **107d** (Audit-Cluster + admin.go-Slimming + Konsistenz-Sweep): finales /security-review
+Dritte und schwerste Sub-Welle. Alle 18 Application-Handler in 6 Files
+extrahiert — incl. PROJ-100-Recovery-Pfade, PROJ-46/53 Activation-Marker,
+PROJ-40 EEG-Reassign, PROJ-34 Orphan-Recovery, PROJ-27 Tariff-Selection.
+
+**admin.go: 1928 → 661 Zeilen (kumuliert −80 % seit Start; allein 107c: −66 %).**
+
+### Extrahierte Files
+
+| File | Methoden | LOC | Tenant-Iso |
+|---|---|---|---|
+| `admin_applications.go` | List + Detail + Update + ChangeStatus + UpdateAdminNote | 335 | 6× Mix aus `claims.Tenant`-Scope + `checkTenantAccess` + post-fetch `containsRC` |
+| `admin_applications_bulk_delete.go` | BulkAction + DeleteApplication + DeleteDraftApplications | 207 | 4× (Service-`allowedRCNumbers`-Filter + explicit `containsRC` bei DeleteDrafts) |
+| `admin_applications_email.go` | ResendMemberConfirmation + ResendEmailConfirmation | 70 | 3× `checkTenantAccess` |
+| `admin_applications_import.go` | ImportApplication + CheckActivation + dispatchActivationMail + ListTariffs | 347 | 4× (`checkTenantAccess` + Service-`allowedTenants` + ListTariffs `containsRC`) |
+| `admin_applications_reassign.go` | ReassignEEG (PROJ-40) | 81 | 2× (Source via `checkTenantAccess` + Target via `allowedRCNumbers`) |
+| `admin_applications_recovery.go` | ResetImport + ResetActivation + ResetToReview + MarkImportedManually + MarkActivated + ClearImportLock | 355 | 7× `checkTenantAccess` (alle Reset/Mark-Pfade) |
+
+**18/18 Application-Handler-Tenant-Checks unveraendert** (insgesamt 26 Tenant-
+Anker im Code: `checkTenantAccess` + `containsRC` + Service-`allowed*`-Filter).
+
+### Verifikation 107c
+
+- `go build ./...` clean
+- `go test ./...` alle Pakete gruen
+- `gosec -severity medium ./internal/http/...` 0 Issues (35 Files, 7780 LOC gesamt)
+- `govulncheck ./...` 0 callable
+
+### Pending Sub-Welle
+
+- **107d** (Cleanup + admin.go-Slimming + Konsistenz-Sweep): admin.go reduziert
+  auf den Constructor-Hub + ListRegistrationEntrypoints/SyncEntrypoints +
+  Reconciliation/Resync/SendMandateRenewal-Trio + Helpers (parseID/writeJSON/
+  writeError/handleServiceError/intQueryParam/validationMessage/isKnownStatus).
+  Letzte Welle wird auf <500 Z drueckenden Verteilen + finalem /security-review.
 
 
 Dritte und schwerste Welle des God-File-Refactors. **3316 Zeilen + 77 exportierte Funktionen.** Enthält Tenant-Iso-Logik, Auth-Middleware-Aufrufe, viele Subrouter-Pfade. Risiko: HÖCHSTE.
