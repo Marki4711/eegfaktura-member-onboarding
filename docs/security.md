@@ -142,7 +142,7 @@ Wenn ein Finding als False Positive eingestuft wird:
 Folgende Bereiche erfordern bei Änderungen dediziertes `/security-review`:
 
 - `internal/http/auth.go` — JWT-Parsing, `IsSuperuser()`
-- `internal/http/admin.go` — Tenant-Zugriffskontrolle
+- `internal/http/admin.go` + `internal/http/admin_*.go` + `internal/http/tenant.go` — Tenant-Zugriffskontrolle. Seit PROJ-107 (2026-06-13) ist `admin.go` als reiner Constructor-Hub auf 281 Zeilen reduziert; die 48 Public-Handler leben in 17 Domain-Files (`admin_external_keys.go`, `admin_legal_documents.go`, `admin_attachments.go`, `admin_members.go`, `admin_settings_*.go`, `admin_applications*.go`, `admin_reconciliation.go`, `admin_entrypoints.go`, `admin_helpers.go`). `containsRC` ist Single-Source in `tenant.go` mit `tenant_test.go` (8 Vektoren inkl. nil-Slice-Bypass-Sicherung). Cross-Cutting (`parseRCAndCheck`, `checkTenantAccess`, `enforceCustomerContract*`) bleibt in `admin.go`.
 - `internal/http/middleware.go` — Rate Limiting, Security Headers
 - `internal/application/` — Status-Transitionen, Import-Logik, Post-Import-Übergänge (PROJ-46), Reset-Import-Erweiterung, SEPA-Mandat-Timing-Branch (PROJ-48), Zählpunkt-Prefix-Match-Validation beim Submit (PROJ-52: `validateMeteringPointPrefixMatch` — pro-Richtung HasPrefix-Check gegen `registration_entrypoint.metering_point_prefix_*`; defense-in-depth zur Frontend-Mask), manueller `approved → activated`-Skip (PROJ-53: `MarkActivatedSkipImport` mit Status-Vor­bedingungs-Check + Mitgliedsnummer-Pflicht + Local-Uniqueness-Check)
 - `internal/application/email_confirmation.go` — Token-Erzeugung und -Hashing (PROJ-31)

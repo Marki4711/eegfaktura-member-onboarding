@@ -12,7 +12,43 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## 2026-06-13
 
-### God-File-Refactor `src/lib/api.ts` Welle 1C — AC-2 voll erfüllt (PROJ-105)
+### God-File-Refactor `internal/http/admin.go` komplett (PROJ-107)
+
+Dritte und schwerste der drei God-Files aus Phase 2 ist in vier Sub-Wellen komplett refactored. **admin.go: 3316 → 281 Zeilen (−92 %)**. 18 neue fokussierte Domain-Files unter `internal/http/` + `tenant.go`-Konsolidierung.
+
+- **107a (Solo-Cluster)**: `admin_external_keys.go` (PROJ-13 API-Key-Mgmt), `admin_legal_documents.go` (Legal-Docs CRUD + Reorder), `admin_attachments.go` (Excel + Beitrittsbestätigungs-PDF + Beitrittserklärungs-PDF Downloads), `admin_members.go` (PROJ-27 Next-Member-Number-Sync). Plus `tenant.go` (29 Zeilen) Single-Source-Helper für `containsRC` mit Doku-Header zur nil-Slice-Falle (Memory `feedback_tenant_filter_nil_vs_empty`) + `tenant_test.go` mit 8 Test-Vektoren inkl. nil-Slice-Bypass-Sicherung.
+- **107b (Settings-Cluster)**: 5 Files für die 11 EEG-Settings-Handler — `admin_settings_field_config.go` (PROJ-8/15/68), `admin_settings_intro.go` (PROJ-11 mit bluemonday-Sanitize), `admin_settings_view_mode.go` (PROJ-67 Standard/Advanced), `admin_settings_core_sync.go` (PROJ-32/33 Compare + Sync + GetEEGLogo + buildEEGSettingsComparison-Helper), `admin_settings_eeg.go` (390 Zeilen Get/SaveEEGSettings mit allen Cross-Field-Validatoren für PROJ-37 Genossenschaftsanteile, PROJ-80 SEPA-CORE-Audit-Coupling, PROJ-81 SEPA-Wahl-Whitelist, PROJ-103 Brand-Theme-Validator).
+- **107c (Applications-Cluster)**: 6 Files für die 18 Application-Handler inkl. hochsensible Recovery-Pfade — `admin_applications.go` (Core-CRUD mit DSGVO pii-read-Audit-Log), `admin_applications_bulk_delete.go` (PROJ-25 Bulk + Delete mit expliziter Superuser-vs-Tenant-Admin-Logic), `admin_applications_email.go` (PROJ-31 Resend-Confirmation), `admin_applications_import.go` (PROJ-46 ImportApplication + CheckActivation + dispatchActivationMail für PROJ-76 Auto-vs-Vorstand + PROJ-27 ListTariffs), `admin_applications_reassign.go` (PROJ-40 mit Source+Target-Doppel-Tenant-Check), `admin_applications_recovery.go` (PROJ-30/-34/-46/-53/-100 Reset-Pfade).
+- **107d (Cleanup + Slimming)**: `admin_reconciliation.go` (PROJ-69/70 mit PII-Hardening 300-Char-Truncation), `admin_entrypoints.go` (PROJ-101 mit explizitem nil-vs-empty-Slice-Mapping gegen horizontal-privilege-escalation), `admin_helpers.go` (parseID + writeJSON + writeError + writeValidationError + handleServiceError + intQueryParam + isKnownStatus + validationMessage).
+
+`admin.go` (281 Zeilen) ist jetzt purer Constructor-Hub mit Cross-Cutting: `AdminHandler`-Struct + Constructor, `eegMasterDataCache` mit TTL (PROJ-32), `enforceCustomerContractByID`/`enforceCustomerContract` (PROJ-71 Soft-Suspend), `parseRCAndCheck`/`checkTenantAccess` (Auth-Helpers), `coreBearerToken` (Bearer-Extraktion), die Setter für Reconciliation-Service und Core-Auth-Mode.
+
+`/security-review` 2026-06-13 **APPROVED** mit 0 Findings: Verifikations-Matrix bestätigt 48/48 Public-Handler in 17 Files behalten ihren Tenant-Iso-Anker (89 Anker total), Routing-Wiring (52 `cmd/server/main.go`-Bindings) unverändert, PII-Hardening + DSGVO-Audit-Logs + bluemonday-Sanitize + Status-Whitelist + Input-Validation alle unverändert nach File-Split. Keine Doppel-Method-Definitionen, keine neuen Public-Exports. `go build`, `go test ./...`, `govulncheck` (0 callable), `gosec -severity medium ./internal/http/...` (0 Issues, 38 Files / 7849 LOC) alle clean.
+
+Damit ist Phase 2 (God-Files-Refactor) inhaltlich abgeschlossen: PROJ-105 (api.ts) + PROJ-106 (registration-form.tsx) + PROJ-107 (admin.go). Drei God-Files mit Reduktionen von −97,8 % / −78 % / −92 %.
+
+### God-File-Refactor `src/components/registration-form.tsx` (PROJ-106)
+
+Zweite der drei God-Files aus Phase 2 ist refactored. **registration-form.tsx: 2080 → 456 Zeilen (−78 %)**. AC-2 (Root <500 Zeilen) erfüllt.
+
+Welle 2A — Logic-Module unter `src/lib/registration-form/`:
+- `schema.ts` (344 Zeilen) — Zod-Schemas (`meteringPointSchema` mit PROJ-39 abweichende-Adresse-Validierung + PROJ-49 Energie-Felder pro Zählpunkt + PROJ-45 generationType + `baseSchema` für alle App-Level-Felder) + `RegistrationFormValues`-Type + `buildFormSchema`-Cross-Field-Validator (PROJ-37/56/57/58/80/81 alle erhalten).
+- `defaults.ts` (54 Zeilen) — pure `buildDefaultValues(config)`-Function.
+- `payload.ts` (99 Zeilen) — pure `buildCreatePayload(values, config, fieldState, turnstileToken)`-Function für den `POST /api/public/applications`-Body.
+- `options.ts` (18 Zeilen) — `MEMBER_TYPE_OPTIONS` + `PRIVACY_VERSION` + `TURNSTILE_SITE_KEY`.
+
+Welle 2B — sieben Card-Sektion-Komponenten unter `src/components/registration-form/`, alle via `useFormContext()` aus dem Parent-`<Form>`-Provider (keine Prop-Drilling-Schicht für `form.control`):
+- `member-type-section.tsx` (143 Zeilen) — Mitgliedstyp-Auswahl mit Info-Popover-Erklärung.
+- `member-data-section.tsx` (409 Zeilen) — Persönliche- vs. Organisations-Daten mit PROJ-63 USt-Pflicht-Toggle + PROJ-57 Ansprechperson + Email/Telefon.
+- `address-section.tsx` (92 Zeilen) — Rechnungsadresse.
+- `cooperative-shares-section.tsx` (98 Zeilen) — PROJ-37 Genossenschaftsanteile mit Gesamtbetrags-Anzeige.
+- `bank-section.tsx` (231 Zeilen) — IBAN + Kontowortlaut + SEPA-Einwilligungs-Checkbox (PROJ-75/80/81) + PROJ-58 Abweichende-Rechnungs-E-Mail.
+- `extra-fields-section.tsx` (240 Zeilen) — konfigurierbare Felder (Beitrittsdatum, PV, E-Auto mit PROJ-42 EV-Details, Wärmepumpe, Warmwasser) + parseBoolSelect/boolSelectValue-Helper.
+- `consent-section.tsx` (257 Zeilen) — Datenschutz + Pflicht-Dokumente + PROJ-44 Netzbetreiber-Vollmacht + PROJ-56 Netzbetreiber-Info-Felder + Info-Dokumente.
+
+Keine Verhaltens-Änderung — 1:1 visuell + funktional. Tests grün: `tsc --noEmit` clean, 238/238 Vitest grün, Production-`NEXT_PUBLIC_TEST_AUTH_MODE= npm run build` clean.
+
+
 
 Welle 1C schließt den api.ts-Refactor ab: die drei größten verbleibenden Blöcke wurden in dedizierte Module extrahiert. **api.ts: 1295 → 53 Zeilen (von ursprünglich 2442 → −97,8 % gesamt)**. AC-2 (api.ts <50 Zeilen) damit voll erfüllt (53 Zeilen mit Header-Kommentar).
 

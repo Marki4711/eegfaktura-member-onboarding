@@ -1,6 +1,17 @@
 # PROJ-107: God-File-Refactor `internal/http/admin.go` (Phase 2 / Welle 3)
 
-## Status: In Review (alle 4 Sub-Wellen abgeschlossen)
+## Status: Deployed
+
+## Deployment 2026-06-13
+
+- **Tag:** `v1.39.0-PROJ-107`
+- **Image:** `marki4711/eegfaktura-member-onboarding-{backend,frontend}:sha-094b31e`
+- **Helm:** image-tags via auto-bump-commit `d0740eb` aktualisiert
+- **Owner-Action:** `helm upgrade eegfaktura-member-onboarding ./helm/member-onboarding -f helm/member-onboarding/values-env.yaml -f helm/member-onboarding/values-secret.yaml`
+- **DB-Migrationen:** keine
+- **Env-Vars:** keine neuen
+- **Verhaltens-Wechsel:** keine (pure File-Split-Refactor)
+
 
 ## Implementation 107a 2026-06-13 — Solo-Cluster
 
@@ -159,8 +170,110 @@ zu halten — kein weiterer Split-Effort.
 18. `admin_helpers.go` (Shared helpers + isKnownStatus)
 19. `tenant.go` + `tenant_test.go` (PROJ-107a AC-4)
 
-Status: **In Review** — pending finales /security-review fuer alle 4 Sub-
-Wellen + Deploy.
+Status: **Approved** — pending Deploy.
+
+## Security Review 2026-06-13
+
+**Reviewer:** Security Engineer (AI), reviewing alle 4 Sub-Wellen kombiniert
+**Scope:** 18 neue Files unter `internal/http/` + `admin.go`-Slimming auf 281 Z
++ `tenant.go`/`tenant_test.go`-Konsolidierung.
+
+### Threat-Model-Summary
+
+Pure File-Split, kein Verhaltens-Wechsel. Hauptrisiko: **Tenant-Iso-Verlust
+durch Split-Drift** — ein Handler verliert beim Verschieben den
+`containsRC` / `checkTenantAccess`-Aufruf. Sekundaerrisiko: **Subrouter-
+Middleware-Drift** im main.go-Routing-Wiring.
+
+### Verifikations-Matrix
+
+**Auth / Authz** (alle Handler haben mindestens einen Tenant-Iso-Anker):
+
+| File | Handler | Tenant-Iso-Anker |
+|---|---|---|
+| `admin_external_keys.go` | 3 | 4 (`containsRC` + `IsSuperuser`) |
+| `admin_legal_documents.go` | 5 | 5 (`containsRC` per RC + per ID-Lookup) |
+| `admin_attachments.go` | 3 | 4 (`checkTenantAccess`) |
+| `admin_members.go` | 1 | 2 (`checkTenantAccess`) |
+| `admin_settings_field_config.go` | 2 | 4 (`parseRCAndCheck`) |
+| `admin_settings_intro.go` | 2 | 3 (`parseRCAndCheck`) |
+| `admin_settings_view_mode.go` | 2 | 3 (`parseRCAndCheck`) |
+| `admin_settings_core_sync.go` | 3 | 4 (`parseRCAndCheck` + Bearer-Forward) |
+| `admin_settings_eeg.go` | 2 | 3 (`parseRCAndCheck` + Cross-Field-Validator) |
+| `admin_applications.go` | 5 | 7 (Mix Filter / `checkTenantAccess` / `containsRC`) |
+| `admin_applications_bulk_delete.go` | 3 | 11 (Service-`allowedRCNumbers` + explicit `containsRC`) |
+| `admin_applications_email.go` | 2 | 3 (`checkTenantAccess`) |
+| `admin_applications_import.go` | 3 | 13 (`checkTenantAccess` + `allowedTenants` + `containsRC`) |
+| `admin_applications_reassign.go` | 1 | 8 (Source `checkTenantAccess` + Target `allowedRCNumbers`) |
+| `admin_applications_recovery.go` | 6 | 7 (`checkTenantAccess`) |
+| `admin_reconciliation.go` | 3 | 6 (`parseRCAndCheck` + `checkTenantAccess`) |
+| `admin_entrypoints.go` | 2 | 2 (`IsSuperuser`-Branch + explizites nil→empty-Slice-Mapping) |
+
+**48 Public-Handler / 89 Tenant-Iso-Anker — alle Verifizierungen bestanden.**
+
+**Cross-Cutting in admin.go (unverschoben)**:
+- `parseRCAndCheck` (RC-from-Query + `claims.IsSuperuser() || containsRC`)
+- `checkTenantAccess` (ID-Lookup + RC-Tenant-Check)
+- `enforceCustomerContractByID` / `enforceCustomerContract` (PROJ-71 Soft-Suspend)
+- `coreBearerToken` (Bearer-Token-Extraktion)
+
+**Konsolidierung in `tenant.go`**: `containsRC`-Helper Single-Source mit
+8-Vektor-Test inkl. nil-Slice-Bypass-Sicherung (Memory `feedback_tenant_filter_nil_vs_empty`).
+
+### Routing-Wiring-Verifikation
+
+`cmd/server/main.go`: 52 Methoden-Bindings auf `adminHandler.*` unveraendert.
+Stichprobe verifiziert: ListTariffs, GenerateAPIKey, ResetActivation,
+ResetToReview, ReassignEEG, ListRegistrationEntrypoints, RunReconciliation,
+MarkActivated, ClearImportLock, DownloadJoiningDeclarationPDF.
+
+### Sonstige Sicherheits-Pruefungen
+
+- **Input-Validation**: alle `json.Decode` mit Fehler-Pfad, alle UUID
+  via `uuid.Parse` mit 400-Behandlung, Reason-Felder mit `validate:"min=10"`
+  unveraendert
+- **PII-Hardening**: `RunReconciliation` + `RunResyncFromCore` + `SendMandateRenewal`
+  truncieren `err.Error()` auf 300 Zeichen + strippen Newlines vor slog — unverändert
+- **bluemonday-Sanitize**: `SaveIntroText` und `UpdateApplication` (AdminNote)
+  unveraendert
+- **DSGVO-Audit-Log**: `GetApplicationDetail`-Handler schreibt weiterhin
+  `pii-read`-Audit (logfields.Classification = ClassPIIRead) — extrahiert
+  ohne Veraenderung
+- **Status-Whitelist**: `isKnownStatus` in `admin_helpers.go` mit identischer
+  Liste; Drift-Wache-Test (`admin_known_status_test.go`) gruen
+- **Doppel-Method-Check**: kein Method-Name doppelt definiert
+- **Sichtbarkeits-Check**: keine neuen Public-Exports ueber das hinaus, was
+  Bestand schon hatte; `containsRC`, `intQueryParam`, `isKnownStatus`,
+  `validationMessage`, `nilIfBlank`, `nilIfAccount` etc. bleiben
+  package-private (lowercase)
+
+### Scan-Ergebnisse
+
+```
+govulncheck ./...                                0 callable (Bestand)
+gosec -severity medium ./internal/http/...       0 Issues (38 Files, 7849 LOC)
+go test ./...                                    alle Pakete gruen
+go build ./...                                   clean
+```
+
+### Findings
+
+| Severity | File | Function/Area | Risk | Exploit Scenario | Recommended Fix | Confidence |
+|---|---|---|---|---|---|---|
+| — | — | — | — | — | — | — |
+
+**Keine Critical / High / Medium / Low Findings.** Pure File-Split mit
+sichtbarem 1:1-Code-Match zur Vorlage. Tenant-Iso-Anker, PII-Hardening,
+Audit-Logs, Input-Validation, Status-Whitelist alle unveraendert.
+
+### Verdikt: APPROVED
+
+Rationale: Pure mechanischer Refactor ohne Verhaltens-Wechsel. 48/48
+Public-Handler in 17 Files behalten ihren Tenant-Iso-Anker. Cross-Cutting
+in `admin.go` zentralisiert. Routing-Wiring unveraendert. Alle automatisierten
+Scans clean. `tenant_test.go` haertet die nil-Slice-Falle ab.
+
+Next: Deploy.
 
 
 Dritte und schwerste Welle des God-File-Refactors. **3316 Zeilen + 77 exportierte Funktionen.** Enthält Tenant-Iso-Logik, Auth-Middleware-Aufrufe, viele Subrouter-Pfade. Risiko: HÖCHSTE.

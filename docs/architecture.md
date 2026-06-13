@@ -73,6 +73,63 @@ Responsibilities:
 - internal core call
 - logging of the import result
 
+#### Admin-Handler-Struktur (Stand 2026-06-13, nach PROJ-107)
+
+`internal/http/admin.go` ist seit PROJ-107 reiner Constructor-Hub (281 Zeilen) mit Cross-Cutting:
+- `AdminHandler`-Struct + `NewAdminHandler`-Constructor
+- `eegMasterDataCache` mit TTL (PROJ-32)
+- `enforceCustomerContractByID` / `enforceCustomerContract` (PROJ-71 Soft-Suspend)
+- `parseRCAndCheck` / `checkTenantAccess` / `coreBearerToken` (Auth-Helpers)
+- Setter für Reconciliation-Service und Core-Auth-Mode
+
+Die 48 Public-Handler liegen in 17 Domain-Files (alle Methoden auf demselben `*AdminHandler`-Receiver):
+
+| File | Domäne |
+|---|---|
+| `tenant.go` (+ `tenant_test.go`) | `containsRC` Single-Source mit nil-Slice-Bypass-Sicherung |
+| `admin_external_keys.go` | PROJ-13 API-Key-Mgmt |
+| `admin_legal_documents.go` | Legal-Docs CRUD + Reorder |
+| `admin_attachments.go` | Excel + Beitrittsbestätigung + Beitrittserklärung PDF |
+| `admin_members.go` | PROJ-27 SuggestNextMemberNumber |
+| `admin_settings_field_config.go` | PROJ-8/15/68 Field-Config |
+| `admin_settings_intro.go` | PROJ-11 IntroText (bluemonday-sanitized) |
+| `admin_settings_view_mode.go` | PROJ-67 Standard/Advanced |
+| `admin_settings_core_sync.go` | PROJ-32/33 Compare + Sync + GetEEGLogo |
+| `admin_settings_eeg.go` | Get/SaveEEGSettings + Cross-Field-Validators |
+| `admin_applications.go` | List + Detail + Update + Status + AdminNote |
+| `admin_applications_bulk_delete.go` | PROJ-25 Bulk + Delete |
+| `admin_applications_email.go` | PROJ-31 Resend-Confirmation |
+| `admin_applications_import.go` | PROJ-46 Import + CheckActivation + Tariffs |
+| `admin_applications_reassign.go` | PROJ-40 ReassignEEG |
+| `admin_applications_recovery.go` | PROJ-30/-34/-46/-53/-100 Reset-Pfade |
+| `admin_reconciliation.go` | PROJ-69/70 mit PII-Hardening |
+| `admin_entrypoints.go` | PROJ-101 ListRegistrationEntrypoints + Sync |
+| `admin_helpers.go` | parseID + writeJSON + isKnownStatus + intQueryParam |
+
+Tenant-Iso-Pflicht-Pattern (gilt für alle Handler):
+```go
+claims := ClaimsFromContext(r.Context())
+if claims != nil && !claims.IsSuperuser() && !containsRC(claims.Tenant, rcNumber) {
+    h.writeError(w, shared.NewErrorResponse(shared.ErrForbidden))
+    return
+}
+```
+
+#### Public-Form-Struktur (Stand 2026-06-13, nach PROJ-106)
+
+`src/components/registration-form.tsx` (456 Zeilen Root) ist seit PROJ-106 reiner Orchestrator: lädt `useForm()` mit `zodResolver(buildFormSchema(...))`, rendert `<Form>` (shadcn-FormProvider) als Container für sieben Sektion-Komponenten unter `src/components/registration-form/`. Sub-Komponenten nutzen `useFormContext<RegistrationFormValues>()` (kein Prop-Drilling für `form.control`).
+
+Pure Logik unter `src/lib/registration-form/`:
+- `schema.ts` (344 Zeilen): Zod-Schemas + `RegistrationFormValues`-Type + `buildFormSchema(...).superRefine(...)` mit Cross-Field-Validators für PROJ-37/44/56/57/58/62/63/80/81
+- `defaults.ts`: pure `buildDefaultValues(config)`
+- `payload.ts`: pure `buildCreatePayload(values, config, fieldState, turnstileToken)` für den `POST /api/public/applications`-Body
+- `options.ts`: `MEMBER_TYPE_OPTIONS` + `PRIVACY_VERSION` + `TURNSTILE_SITE_KEY`
+
+#### Frontend-API-Client-Struktur (Stand 2026-06-13, nach PROJ-105)
+
+`src/lib/api.ts` (53 Zeilen) ist seit PROJ-105 reines Barrel-Re-Export-Modul. Die ~120 Aufrufer-Files importieren weiterhin via `import { foo } from "@/lib/api"`. Die echten Implementierungen liegen in 15 Domain-Modulen unter `src/lib/api/`:
+`_internal`, `_form-types`, `_admin-types`, `public`, `applications`, `attachments`, `settings`, `reconciliation`, `resync`, `legal-docs`, `bulk`, `billing` (PROJ-104), `cockpit` (PROJ-72), `data-export` (PROJ-60), `configexport` (PROJ-61).
+
 ### 3.4 Persistence
 Persistence uses the same PostgreSQL database as eegFaktura, but in a dedicated schema:
 
