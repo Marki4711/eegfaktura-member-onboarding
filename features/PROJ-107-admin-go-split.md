@@ -1,6 +1,6 @@
 # PROJ-107: God-File-Refactor `internal/http/admin.go` (Phase 2 / Welle 3)
 
-## Status: In Progress (Sub-Welle 107a abgeschlossen)
+## Status: In Progress (Sub-Wellen 107a + 107b abgeschlossen)
 
 ## Implementation 107a 2026-06-13 — Solo-Cluster
 
@@ -37,11 +37,36 @@ Cross-Domain-Service-Calls).
 - Tenant-Iso-Audit: alle 12 verschobenen Handler haben den `containsRC` bzw
   `checkTenantAccess`-Call vor jedem Repo-Aufruf
 
+## Implementation 107b 2026-06-13 — Settings-Cluster
+
+Zweite Sub-Welle. Alle 11 EEG-Settings-Handler in 5 fokussierten Files
+extrahiert. Die Cross-Field-Validation der grossen `SaveEEGSettings` bleibt
+unveraendert (PROJ-37, PROJ-80, PROJ-81, PROJ-103 Validatoren).
+
+**admin.go: 2771 → 1928 Zeilen (kumuliert −42 % seit Start; allein 107b: −30 %).**
+
+### Extrahierte Files
+
+| File | Methoden | LOC | Tenant-Iso |
+|---|---|---|---|
+| `admin_settings_field_config.go` | GetFieldConfig, SaveFieldConfig | 72 | 2× `parseRCAndCheck` |
+| `admin_settings_intro.go` | GetIntroText, SaveIntroText | 67 | 2× `parseRCAndCheck` (+ bluemonday-HTML-Sanitize bei Save) |
+| `admin_settings_view_mode.go` | GetSettingsViewMode, SaveSettingsViewMode | 68 | 2× `parseRCAndCheck` |
+| `admin_settings_core_sync.go` | CompareEEGSettingsWithCore, SyncEEGSettingsFromCore, GetEEGLogo (+ buildEEGSettingsComparison + nilIfBlank/nilIfAccount-Helpers) | 344 | 3× `parseRCAndCheck` (+ Bearer-Token-Forward) |
+| `admin_settings_eeg.go` | GetEEGSettings, SaveEEGSettings | 390 | 2× `parseRCAndCheck` + 3 Cross-Field-Validatoren |
+
+**11/11 Settings-Handler-Tenant-Checks unveraendert** (alle via `parseRCAndCheck`).
+
+### Verifikation 107b
+
+- `go build ./...` clean
+- `go test ./...` alle Pakete gruen
+- `gosec -severity medium ./internal/http/...` 0 Issues
+
 ### Pending Sub-Wellen
 
-- **107b** (Settings-Cluster): settings + settings_save_tx — eigenes /security-review
 - **107c** (Applications-Cluster): applications + applications_recovery + attachments —
-  Hochsensible Status-Transitions, eigenes /security-review
+  Hochsensible Status-Transitions (PROJ-100-Recovery-Pfade), eigenes /security-review
 - **107d** (Audit-Cluster + admin.go-Slimming + Konsistenz-Sweep): finales /security-review
 
 
