@@ -1,6 +1,54 @@
 # PROJ-106: God-File-Refactor `src/components/registration-form.tsx` (Phase 2 / Welle 2)
 
-## Status: Planned
+## Status: In Review
+
+## Implementation 2026-06-13
+
+Welle 2A + 2B abgeschlossen, registration-form.tsx **2080 → 456 Zeilen
+(−78 %)**. AC-2 (<500 Zeilen) erfuellt.
+
+### Welle 2A — Logic-Module unter `src/lib/registration-form/`
+
+- `schema.ts` (344 Z): `meteringPointSchema` + `baseSchema` + `buildFormSchema` +
+  `RegistrationFormValues`-Type
+- `defaults.ts` (54 Z): `buildDefaultValues(config)` — pure Function
+- `payload.ts` (99 Z): `buildCreatePayload(values, config, fieldState, turnstileToken)`
+- `options.ts` (18 Z): `MEMBER_TYPE_OPTIONS`, `PRIVACY_VERSION`, `TURNSTILE_SITE_KEY`
+
+### Welle 2B — Card-Sektionen unter `src/components/registration-form/`
+
+Sieben Sektion-Komponenten, alle via `useFormContext()` aus dem Parent
+`<Form>`-Provider — keine Prop-Drilling-Schicht fuer `form.control`:
+
+- `member-type-section.tsx` (143 Z)
+- `member-data-section.tsx` (409 Z) — Persoenliche- vs Org-Daten + USt-Toggle + Ansprechperson
+- `address-section.tsx` (92 Z)
+- `cooperative-shares-section.tsx` (98 Z)
+- `bank-section.tsx` (231 Z)
+- `extra-fields-section.tsx` (240 Z) — incl. `parseBoolSelect`/`boolSelectValue`-Helper
+- `consent-section.tsx` (257 Z)
+
+### Welle 2C — Visuelle Drift-Verifikation
+
+- AC-7 (Playwright-E2E): Bestand-Tests in `tests/` decken den Public-Form-Pfad ab
+- AC-8 (Screenshot-Generator): braucht laufendes Backend (Memory
+  `reference_screenshot_generator_backend_dep`), **deferred auf test-Env-Verifikation
+  nach Deploy** — strukturelle Equivalenz aller sieben Sektionen 1:1 zur Vorlage
+- AC-9/AC-10 (Brand-Theme + manueller Smoke): pending /qa-Welle
+
+### Acceptance-Map
+
+- AC-1 ✅ Sub-Komponenten in `src/components/registration-form/<section>-section.tsx`
+- AC-2 ✅ Root <500 Zeilen (456)
+- AC-3 ✅ Logic-Helper in `src/lib/registration-form/`
+- AC-4 ✅ `npx tsc --noEmit` clean
+- AC-5 ✅ `NEXT_PUBLIC_TEST_AUTH_MODE= npm run build` clean
+- AC-6 ✅ `npx vitest run` 238/238 gruen
+- AC-7/8/9/10 ⏳ pending /qa
+
+### Status
+
+Code-Refactor fertig + tsc+vitest+build clean. /qa folgt vor Deploy.
 
 Zweite Welle des God-File-Refactors. Nach PROJ-105 (api.ts), weil registration-form.tsx Types aus dem neuen `src/lib/api/`-Tree konsumiert. Mittleres Risiko-Profil.
 
