@@ -12,6 +12,20 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## 2026-06-13
 
+### PROJ-108b FreeFinance-Welle-5b Folge-Wellen (Phase F + G + K)
+
+Direkt nach PROJ-108-Deploy implementiert. PROJ-108 hatte die FreeFinance-API-Inkompatibilitäten gefixt und OIDC eingeführt; die Idempotenz- und Operational-Visibility-Phasen waren deferred und kommen jetzt:
+
+- **Phase F — Pre-Lookup-Pattern:** `scheduler.processEEG` macht jetzt vor jedem Vendor-Pfad einen DB-Lookup via `invoiceRepo.ListByPeriod(period.ID)`. Wenn die Periode schon eine non-credit-note Invoice hat, wird mit Audit-Outcome `skip_already_processed` und neuem `QuarterlyResult.SkippedAlreadyProcessed`-Counter übersprungen. Schützt gegen Doppel-Rechnung bei Cron-Re-Run (Pod-Restart, Manual-Trigger parallel) auch ohne den von FreeFinance ignorierten `Idempotency-Key`-Header. Crash-Window zwischen FreeFinance-POST und unserem DB-Insert bleibt offen und wird in PROJ-108c durch einen Reconciliation-Job geschlossen.
+
+- **Phase K — Cron-Result-Audit + Owner-Alert-Mail:** Drei neue Audit-Kinds (`cron_completed`, `billing_giveup`, `billing_retry_attempt`) mit Whitelist-Drift-Schutz-Test. `RunQuarterly` schreibt am Ende immer einen `cron_completed`-Audit-Eintrag mit kompletter Lauf-Statistik (processed/sent/preview/draft/skipped_trial/skipped_no_active/skipped_carryover/skipped_already_processed/errors). Wenn `Errors > 0` triggert der Scheduler eine async Owner-Mail via neuem `billingCronAlertAdapter` (Pattern identisch zum Bestand-`billingChargebackAdapter`). Neues HTML-Template `billing_cron_alert.html` enthält Direktlink zum `/admin/billing` Audit-Log, damit der Owner pro errored EEG den konkreten Fehlergrund nachschauen kann.
+
+- **Phase G — Pre-Flight-Skeleton:** `PreFlightResult` um `FreefinanceMandantRefsValid bool` erweitert. V1 setzt den Wert pauschal auf `true` (optimistisch — der Helm-Guard erzwingt `freefinanceLayoutSetupId` wenn `globalLiveMode=true`). Das eigentliche Pingen von FreeFinance (`GET /clients/{id}/inv/layout_setups/{id}`) mit 5min-TTL-Cache ist als TODO im Code dokumentiert und kommt in PROJ-108c, sobald der Owner mit dem frisch zurückgesetzten Mandanten Live-Tests fahren kann. UI-Wiring im `/admin/billing`-Frontend ist eigene Folge-Welle.
+
+- **Deferred zu PROJ-108c:** TX1→HTTP→TX2-Refactor des Vendor-Pfads (Reconciliation-Job statt nur DB-Pre-Lookup), Daily-Sync-`import_failed`-Retry-Pass mit 7-Versuche-Counter via `AuditKindBillingRetryAttempt`, Real-Ping in PreFlight, UI-Wiring für die neuen Felder.
+
+Tests grün (Mail-Render + Audit-Kind-Whitelist + Bestand-Suite); `govulncheck` 0 Issues, `gosec -severity medium` 0 Issues. Default `BILLING_GLOBAL_LIVE_MODE=false` bleibt — Tester-Phase ungetriggert.
+
 ### FreeFinance-Client-Rewrite (PROJ-108, Welle-5b nach AC-27b-Live-Befunden)
 
 Welle 2 von PROJ-104 hatte den FreeFinance-Client gegen Web-Doku-Annahmen mit camelCase-DTOs gebaut. Die AC-27b-Live-Verifikation im FreeFinance-Trial-Mandanten hat 7 substanzielle Inkompatibilitäten + 1 Hauptbefund (`Idempotency-Key` wird ignoriert) offengelegt. PROJ-108 baut `internal/freefinance/` komplett gegen die echte API neu:
