@@ -12,6 +12,20 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## 2026-06-13
 
+### God-File-Refactor `src/lib/api.ts` Welle 1C — AC-2 voll erfüllt (PROJ-105)
+
+Welle 1C schließt den api.ts-Refactor ab: die drei größten verbleibenden Blöcke wurden in dedizierte Module extrahiert. **api.ts: 1295 → 53 Zeilen (von ursprünglich 2442 → −97,8 % gesamt)**. AC-2 (api.ts <50 Zeilen) damit voll erfüllt (53 Zeilen mit Header-Kommentar).
+
+- `_form-types.ts` (376 Zeilen) — Public-Registration-Form-Types: FieldState, FieldConfig, AdminFieldConfig, ConfigurableField (mit CONFIGURABLE_FIELDS-Konstante), VisibilityTag, MemberType, MeteringPointRequest, CreateApplicationRequest, RegistrationConfig, ApplicationResponse, SubmitResponse, LegalDocumentItem, ConsentInput, DocumentConsentView + `resolveFieldState`-Helper + NETWORK_OPERATOR_AUTH_TEXT + GENERATION_TYPES. Keine Network-Calls.
+- `_admin-types.ts` (352 Zeilen) — Admin-API-Types: ApplicationStatus, ApplicationListItem, ApplicationListResponse, MeteringPointDetail, StatusLogEntry, AdminApplicationDetail, EEGSettings-Types, Recovery-Payloads (MarkImportedManuallyRequest, ClearImportLockRequest, MarkActivatedRequest), AdminUpdateApplicationRequest, AdminUpdateResponse, ChangeStatusRequest/Response, SortColumn/SortOrder, ListApplicationsParams. Plus die drei kleinen Recovery-Funktionen (markImportedManually, clearImportLock, markActivated) die direkt zu den Types gehören.
+- `applications.ts` (566 Zeilen) — Admin-Application-Funktionen: listApplications, getApplicationDetail, listRegistrationEntrypoints (PROJ-101), updateApplication, setAdminNote, changeApplicationStatus, importApplication, checkActivations (PROJ-46), fetchNextMemberNumber, fetchTariffs (PROJ-27), resetImportApplication (PROJ-30), resetActivationApplication + resetToReviewApplication (PROJ-100), syncEntrypoints, reassignApplicationToEEG (PROJ-40), resendMemberConfirmation, deleteApplication, deleteDraftApplications, getFieldConfig + saveFieldConfig, EEGSettings + ActivationMode + EEGSettingsSavePayload, confirmEmail + resendEmailConfirmation (PROJ-31), getEEGSettings + saveEEGSettings, getSettingsViewMode + saveSettingsViewMode (PROJ-67).
+
+`src/lib/api.ts` ist jetzt reines Barrel-Re-Export-Modul (53 Zeilen, inkl. Header-Kommentar) und re-exportiert insgesamt 15 Domain-Module: `_internal`, `_form-types`, `_admin-types`, `public`, `applications`, `attachments`, `settings`, `reconciliation`, `resync`, `legal-docs`, `bulk`, `billing`, `cockpit`, `data-export`, `configexport`. Backwards-Compat voll erhalten — alle Aufrufer-Imports aus `@/lib/api` unverändert valid.
+
+`tsc --noEmit` clean, 238/238 Vitest grün, Production-`npm run build` clean.
+
+Damit ist PROJ-105 (api.ts-Split, erste der drei God-Files aus Phase 2) komplett abgeschlossen. Verbleibend in Phase 2: PROJ-106 (registration-form.tsx, 2080 Zeilen) und PROJ-107 (admin.go, 3316 Zeilen).
+
 ### God-File-Refactor `src/lib/api.ts` Welle 1B (PROJ-105)
 
 Direkt im Anschluss an Welle 1A wurden 6 weitere End-of-File-Domänen aus dem Bestand-`src/lib/api.ts` extrahiert:

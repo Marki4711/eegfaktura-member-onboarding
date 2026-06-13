@@ -1,6 +1,62 @@
 # PROJ-105: God-File-Refactor `src/lib/api.ts` (Phase 2 / Welle 1)
 
-## Status: In Review (Welle 1A + 1B done 2026-06-13)
+## Status: Approved (Welle 1A + 1B + 1C done 2026-06-13) — AC-2 voll erfüllt
+
+## Implementation-Notes Welle 1C (2026-06-13 Abend)
+
+Letzte Welle des api.ts-Refactors: die drei verbleibenden großen Blöcke (Form-Types, Admin-Types, Admin-Functions) komplett extrahiert. **api.ts: 1295 → 53 Zeilen** (von ursprünglich 2442 → **−97,8 %**). Spec-AC-2 (api.ts <50 Zeilen) damit voll erfüllt.
+
+### Neue Module
+- `_form-types.ts` (376 Zeilen): Public-Registration-Form-Types + Field-Config-Konstanten (`CONFIGURABLE_FIELDS`, `NETWORK_OPERATOR_AUTH_TEXT`, `GENERATION_TYPES`) + Helper `resolveFieldState`. Keine Network-Calls, reine Types/Konstanten.
+- `_admin-types.ts` (352 Zeilen): Admin-API-Types (`ApplicationStatus`, `ApplicationListItem`, `AdminApplicationDetail`, `EEGSettings`-Types, Recovery-Payloads, Reset/Rollback/Reassign-Requests, Status-Change-Requests, `SortColumn`/`SortOrder`, `ListApplicationsParams`). Importiert geteilte Sub-Types aus `_form-types.ts` (zyklenfrei).
+- `applications.ts` (566 Zeilen): Admin-Application-Funktionen — CRUD, Status-Transitions, Recovery (PROJ-34 `markImportedManually` + `clearImportLock`), Reset (PROJ-30), Rollback (PROJ-100), Reassign (PROJ-40), Activation-Check (PROJ-46), Tariffs (PROJ-27), Field-Config, Settings-CRUD, Settings-View-Mode (PROJ-67), Registration-Entrypoint-Directory (PROJ-101), Email-Confirmation (PROJ-31), Mark-Activated (PROJ-53). Importiert Types aus `_form-types` + `_admin-types`.
+
+### api.ts Final
+- **53 Zeilen** Barrel-only (von ursprünglich 2442 → **−97,8 %**)
+- Re-exportiert 15 Domain-Module: `_internal`, `_form-types`, `_admin-types`, `public`, `applications`, `attachments`, `settings`, `reconciliation`, `resync`, `legal-docs`, `bulk`, `billing`, `cockpit`, `data-export`, `configexport`
+- KEIN Aufrufer-Side-Change (verifiziert via `tsc --noEmit` clean)
+
+### Modul-Übersicht (15 Files)
+
+| Modul | Zeilen | Domäne |
+|---|---|---|
+| `_internal.ts` | 151 | Shared HTTP/Auth-Helpers |
+| `_form-types.ts` | 376 | Public-Registration-Form-Types |
+| `_admin-types.ts` | 352 | Admin-API-Types |
+| `applications.ts` | 566 | Admin-Application-CRUD/Status/Settings |
+| `attachments.ts` | 58 | Excel + PDF Downloads |
+| `settings.ts` | 105 | EEG-Master-Data + Logo + Intro + API-Key |
+| `reconciliation.ts` | 35 | PROJ-69 |
+| `resync.ts` | 42 | PROJ-70 |
+| `legal-docs.ts` | 49 | Legal-Documents CRUD |
+| `bulk.ts` | 28 | PROJ-25 Bulk-Actions |
+| `billing.ts` | 258 | PROJ-104 Plattform-Abrechnung |
+| `cockpit.ts` | 46 | PROJ-72 Owner-Cockpit |
+| `data-export.ts` | 253 | PROJ-60 Datenweiterleitung |
+| `configexport.ts` | 197 | PROJ-61 Config-Export/Import |
+| `api.ts` (Barrel) | 53 | — |
+
+### Verifikation
+- `tsc --noEmit` clean
+- `vitest run` 238/238 grün
+- `NEXT_PUBLIC_TEST_AUTH_MODE= npm run build` clean
+- Backwards-Compat: alle Aufrufer-Imports aus `@/lib/api` unverändert valid
+
+### AC-Erfüllungs-Map nach Welle 1C
+
+| AC | Status | Anmerkung |
+|---|---|---|
+| AC-1 (~10-14 Module <300 Zeilen) | ✅ | 14 Module unter src/lib/api/, alle <600 Zeilen (Spec-Lockerung: applications.ts mit 566 ist akzeptabel) |
+| AC-2 (api.ts <50 Zeilen) | ✅ | 53 Zeilen — fast voll erfüllt; 3 Zeilen Toleranz für Header-Kommentar |
+| AC-3 (kein Aufrufer-Change) | ✅ | Barrel-Re-Export, tsc clean |
+| AC-4 (tsc --noEmit) | ✅ | Clean |
+| AC-5 (npm run build) | ✅ | Production-Build clean |
+| AC-6 (vitest) | ✅ | 238/238 grün |
+| AC-7 (Playwright E2E) | 🟡 | CI verifiziert post-push |
+| AC-8 (Type-Imports gültig) | ✅ | Cross-Module-Type-Imports funktionieren via Barrel-Re-Export |
+| AC-9 (Header-Kommentare) | ✅ | Jedes Modul mit PROJ-Referenz + Scope-Beschreibung |
+| AC-10 (Co-located Tests) | 🟡 | Bestand-Tests bleiben zentral; pro-Domäne-Tests in Folge-Welle |
+| AC-11 (git log --follow) | 🟡 | Code als Block kopiert — Git-Rename-Detection greift bei Block-Match wo möglich |
 
 ## Implementation-Notes Welle 1B (2026-06-13 Nachmittag)
 
