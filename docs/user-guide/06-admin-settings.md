@@ -609,3 +609,46 @@ Dateiname enthält RC-Nummer und Zeitstempel — manuelle Versionierung in Git o
 4. **Apply** schreibt die Änderungen atomar (pro Sektion eine Transaktion). Apply ist **nicht** automatisch reversibel — daher der Hinweis oben, vorher die aktuelle Konfig zu exportieren.
 
 > **Tipp:** Apply läuft mit einer `pg_advisory_xact_lock` — parallele Konfig-Änderungen über mehrere Browser-Tabs werden serialisiert, niemand überschreibt sich gegenseitig.
+
+---
+
+## Tab "Rechnungen"
+
+In jeder EEG-Settings-Ansicht findest du seit dem Plattform-Abrechnungs-Update einen Tab **„Rechnungen"**. Hier siehst du als EEG-Admin die quartalsweisen Abrechnungs-Rechnungen, die der Plattform-Betreiber an deine EEG ausgestellt hat.
+
+### Was du hier siehst
+
+| Spalte | Bedeutung |
+|---|---|
+| **Quartal** | Z. B. Q1/2026 — das abgerechnete Kalenderquartal |
+| **Status** | `Preview` (Testbetrieb, noch nicht zahlungspflichtig), `Versandt`, `Bezahlt`, `Überfällig`, `Storniert` oder `Gutschrift` |
+| **Brutto** | Endbetrag inkl. USt für dieses Quartal |
+| **Versandt** | Wann die Rechnung an dich ging |
+| **Bezahlt** | Wann der Plattform-Betreiber die Zahlung über Mollie B.V. erhalten hat |
+| **Rechnungs-Nr.** | Externe Rechnungsnummer aus FreeFinance |
+
+### Was du tun kannst
+
+- **Lesen**: die Liste ist read-only. Status-Änderungen, Gutschriften und PDF-Versand laufen über den Plattform-Betreiber.
+- **PDF-Download** kommt in einer späteren Iteration. Heute landet die Rechnung direkt per Mail bei dir.
+- **Empty-State**: wenn noch keine Rechnungen erzeugt wurden (Trial-Phase, keine Aktivierungen, oder Preview-Modus), siehst du „Noch keine Rechnungen erzeugt".
+
+### Was im Hintergrund passiert
+
+1. **Trial-Phase**: ab der ersten Mitglieder-Aktivierung in deiner EEG läuft eine 30-tägige Trial-Phase. In dieser Zeit wird zwar gezählt, aber keine echte Rechnung erstellt — der Status bleibt auf `Preview`.
+2. **Quartalsabschluss**: am 1. des Monats nach Quartalsende (1. Jan / 1. Apr / 1. Jul / 1. Okt) prüft ein automatischer Job alle aktivierten Mitglieder im abgeschlossenen Quartal und erzeugt eine Rechnung pro Edition (Standard / Pro).
+3. **Live-Schalter**: solange die Plattform-Abrechnung **nicht** live geschaltet ist (Test-/Pilotphase), bleiben alle Rechnungen auf `Preview` — du kannst sie also vorher prüfen.
+4. **SEPA-Lastschrift via Mollie**: sobald die Plattform-Abrechnung live geschaltet wird, kommt einmalig eine **EUR 0,01-Test-Lastschrift** von **Mollie Payments B.V.** auf dein EEG-Konto. Das ist die SEPA-Mandate-Aktivierung und kein Fehler — die Lastschrift wird wieder gutgeschrieben. Danach werden die regulären Quartals-Rechnungen automatisch eingezogen.
+5. **Bei Zahlungsproblemen**: wenn eine Rechnung 14 Tage nach Versand offen ist, wird sie auf `Überfällig` gesetzt. Sechs nicht-kritische Funktionen (Datenweiterleitung, Reconciliation, Excel-Export usw.) gehen automatisch in einen Cool-Down — die Public-Mitglieder-Onboarding-Form bleibt **immer** offen. Sobald du bezahlt hast, wird der Cool-Down automatisch aufgehoben.
+
+### Edition-Switch (im erweiterten Modus)
+
+Im erweiterten Modus findest du in den Stammdaten-Einstellungen einen Switch zwischen den Editionen **Standard** und **Pro**. Wichtig zu wissen:
+
+- **Snapshot-Pattern**: bestehende Aktivierungen behalten ihren ursprünglichen Tarif, auch wenn du switchst. Nur **neue** Mitglieder-Aktivierungen ab dem Switch-Zeitpunkt tragen die neue Edition. So kannst du jederzeit problemlos wechseln, ohne dass alte Buchungen rückwirkend teurer werden.
+- **Pro → Standard Downgrade-Block**: ein Downgrade ist nur möglich, wenn keine Pro-only-Features mehr aktiv sind (Externe API-Key, Datenweiterleitung, Reconciliation-Backstop, Vorstands-Workflow, SEPA-Mandat-Audit, eigenes Brand-Theme). Der Dialog zeigt dir die Liste der aktiven Sperren mit Direktlinks zum jeweiligen Setting.
+- **Wirkungs-Zeitpunkt**: der Switch wirkt **sofort**. Du musst keine zusätzlichen Schritte machen — die nächste Mitglieder-Aktivierung in deiner EEG wird mit der neuen Edition versiegelt.
+
+### Fragen?
+
+Bei Rückfragen zur Plattform-Abrechnung wende dich an den Plattform-Betreiber. Die E-Mail-Adresse findest du am Ende jeder Rechnungs-E-Mail.

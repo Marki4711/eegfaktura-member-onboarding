@@ -650,3 +650,72 @@ The set of allowed status values is enforced in **three places** (Go constants i
 - A metering point may inherit the member's primary address (default) or carry its own deviating address (PROJ-39 — see Section 3.3 above). All four `address_*` columns are either NULL together or all set together; the all-or-nothing rule is enforced server-side.
 - Tariffs, roles, and account information are only maintained after import into eegFaktura.
 - Only applications in status `approved` may be imported.
+
+## 6. PROJ-104 Platform Billing (Welle 1+2+3+4)
+
+Four new tables and seven new columns implement the platform-billing domain. Pricing strategy and concrete EUR values live in the DB (`pricing_plan`), not in code or AGB.
+
+### 6.1 New tables
+
+#### `pricing_plan` (Welle 1, Migration 000079)
+
+Versioned pricing per edition. Snapshot pattern: every `billing_period` references the row valid at quarter start.
+
+- `id UUID PK`, `edition TEXT` (`'standard'`/`'pro'`), `eur_per_active_member_per_quarter NUMERIC(10,2)` (≥ 0), `vat_percent NUMERIC(5,2)` (default 20)
+- `gueltig_ab DATE NOT NULL`, `gueltig_bis DATE NULL` (NULL = open)
+- **EXCLUDE-Constraint via `btree_gist`** — prevents two open rows of the same edition (Grilling R-1).
+
+#### `billing_period` (Welle 1, Migration 000080)
+
+Quarterly snapshot per EEG.
+
+- `id`, `rc_number FK ON DELETE CASCADE`, `year`, `quarter SMALLINT` (1–4)
+- `count_standard`, `count_pro` (grouped by `application.edition_at_activation`)
+- `pricing_plan_standard_id NULL`, `pricing_plan_pro_id NULL`
+- `total_net_eur`, `vat_eur`, `total_gross_eur NUMERIC(10,2)`
+- `carryover_from_period_id NULL FK self` (Mindestbetrag-Logik), `note TEXT NULL` (`'trial_period' | 'no_activity' | 'carryover' | 'below_minimum'`)
+- **UNIQUE(rc_number, year, quarter)** — Idempotenz-Schutz gegen Cron-Doppelläufe.
+
+#### `billing_invoice` (Welle 1+3, Migrations 000081 + 000086)
+
+- `id`, `billing_period_id FK ON DELETE CASCADE`
+- `status TEXT` (`'draft' | 'preview' | 'sent' | 'paid' | 'overdue' | 'cancelled' | 'credit_note'`)
+- `freefinance_invoice_id`, `mollie_payment_id`, `invoice_number_external TEXT NULL`
+- `preview_pdf_bytes BYTEA NULL` (max 256 KB, service-enforced)
+- `sent_at`, `paid_at TIMESTAMPTZ NULL`
+- `cancels_invoice_id NULL FK self` — Gutschrift-Verkettung (GoBD-konform, Migration 000086).
+
+#### `billing_audit_log` (Welle 1, Migration 000087)
+
+- `id`, `occurred_at TIMESTAMPTZ`, `kind TEXT` (Whitelist in `internal/shared/billing_audit_kinds.go`)
+- `rc_number FK ON DELETE SET NULL`
+- `actor_kind TEXT` (`'owner' | 'eeg_admin' | 'system' | 'webhook'`)
+- `actor_subject TEXT NULL`, `payload JSONB NULL`
+- `payload JSONB` ist **bewusste 2. JSONB-Ausnahme** (1. war `brand_theme` PROJ-103). Event-Payload ist heterogen über ~13 Kinds; pro-Typ-Tabelle wäre Bürokratie ohne Schutz-Nutzen. Payload ist nie Ziel von Joins/Filter.
+
+### 6.2 Column extensions
+
+`registration_entrypoint`:
+- `trial_started_at TIMESTAMPTZ NULL` (Welle 1, Mig 000082) — gesetzt vom Service-Hook beim ersten `application.activated_at`. NULL für Bestand-EEGs; Pricing-Service nutzt virtuelle 30-Tage-Grace ab `cfg.Billing.DeployedAt`.
+- `eeg_edition TEXT NOT NULL DEFAULT 'standard'` (Mig 000083) — driven `settings_view_mode` (Grilling R-6).
+- `billing_live BOOLEAN NOT NULL DEFAULT FALSE` (Mig 000085) — Pro-EEG-Live-Schalter.
+- `mollie_mandate_active BOOLEAN NOT NULL DEFAULT FALSE` (Mig 000085) — TRUE nach EUR 0,01-First-Payment-`paid`. Bei Chargeback (Welle 3 Webhook) wieder FALSE.
+- `freefinance_customer_id TEXT NULL` (Welle 2, Mig 000088) — persistiert beim ersten Live-Versand.
+- `mollie_customer_id TEXT NULL` (Welle 2, Mig 000088) — persistiert beim Mandate-Setup.
+
+`application`:
+- `edition_at_activation TEXT NULL` (Welle 1, Mig 000084) — Snapshot beim `activated`-Transition. Bestand-Aktivierungen wurden inline auf `'standard'` gebackfillt (Grilling R-2). Pricing-Service zählt nach Snapshot, nicht nach Live-Edition. ResetActivationTx (PROJ-100) cleart das Feld.
+
+### 6.3 Edition-Snapshot-Mechanik
+
+`application.edition_at_activation` ist der zentrale Anti-Abuse-Mechanismus: EEG kann frei zwischen Standard/Pro wechseln, bestehende Aktivierungen behalten ihren Tarif. Pricing-Service zählt per-Edition-Snapshot. Kein technisches Switch-Limit nötig.
+
+### 6.4 Live-Bedingung
+
+Echter Vendor-Call nur, wenn **alle drei** wahr:
+
+1. `cfg.Billing.GlobalLiveMode = true` (Helm-Notbremse)
+2. `registration_entrypoint.billing_live = TRUE` (Pro-EEG-Schalter, Owner-Aktion in `/admin/billing`)
+3. `registration_entrypoint.mollie_mandate_active = TRUE` (nach erfolgreichem EUR 0,01-Mandate-Setup)
+
+Im Preview-Modus läuft alles andere voll (Pricing-Calc, Edition-Snapshot, Trial) — nur externe API-Calls bleiben Mocks.

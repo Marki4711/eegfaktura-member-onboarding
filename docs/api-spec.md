@@ -2752,3 +2752,125 @@ für die suspendierte RC.
 
 Der Contract-Checker ist fail-open: bei DB-Lookup-Fehler wird der Endpoint
 durchgelassen (Verfügbarkeit > Strenge), Fehler wird geloggt.
+
+---
+
+## PROJ-104 Platform Billing API (Welle 1+2+3+4)
+
+Alle Owner-Endpoints unter `/api/admin/billing/*` sind **Superuser-only**
+(per-Handler `requireSuperuser`-Check). EEG-Admin sieht eine eigene Read-
+Only-Liste unter `/api/admin/eeg/{rc}/invoices` (Tenant-scoped via
+`containsRC`).
+
+### Owner-Endpoints
+
+#### Pricing-Pläne
+
+`GET /api/admin/billing/pricing-plans` → `{ plans: [BillingPricingPlan] }`
+
+`POST /api/admin/billing/pricing-plans`
+Body: `{ edition: "standard"|"pro", eurPerActiveMemberPerQuarter: number,
+vatPercent: number, gueltigAb: "YYYY-MM-DD" }`
+Response: `{ id: string }` + Audit-Log-Eintrag `pricing_plan_versioned`.
+
+#### EEGs
+
+`GET /api/admin/billing/eegs` → `{ eegs: [BillingEEGState] }` mit RC,
+EEG-Name, Edition, BillingLive, MollieMandateActive, TrialStartedAt,
+Vendor-Customer-IDs.
+
+`GET /api/admin/billing/eegs/{rc}/pre-flight` → Pre-Flight-Check für
+Owner-UI vor Live-Toggle. Liefert `HasZeroPricing`, `CurrentEurPerMember`,
+`MandateActive`, `BillingLive`, Vendor-Customer-Status.
+
+`POST /api/admin/billing/eegs/{rc}/billing-live`
+Body: `{ live: boolean, acceptZeroPricing?: boolean }`
+- Wenn `live=true` und `HasZeroPricing=true`: 400 ohne `acceptZeroPricing: true`
+- Wenn `live=true`: **sync hard-fail** auf `SendBillingMandateSetup`-Mail
+  an EEG-Vorstand (Memory `feedback_mail_hard_fail`). Anschließend
+  `SetBillingLive` + Mandate-Setup-Trigger (Mollie EUR 0,01-First-Payment).
+- Response: `{ billingLive, mollieMandateActive?, mandateSetupPaymentId? }`
+- Audit-Log: `billing_live_flipped`
+
+`POST /api/admin/billing/eegs/{rc}/edition`
+Body: `{ edition: "standard"|"pro" }`
+Owner-Override-Pfad. Synct `settings_view_mode` (Pro→advanced, Standard→standard).
+Audit-Log: `edition_switched`.
+
+`POST /api/admin/billing/eegs/{rc}/trigger`
+Manual-Trigger für das letzte abgeschlossene Quartal (R-16). Idempotent
+via `UNIQUE(rc_number, year, quarter)`. Audit-Log: `manual_trigger`.
+
+#### Rechnungen
+
+`GET /api/admin/billing/invoices` → `{ invoices: [BillingInvoice] }`
+(MVP: `ListOpenForSync`)
+
+`GET /api/admin/billing/invoices/{id}` → `BillingInvoice` Detail.
+
+`POST /api/admin/billing/invoices/{id}/credit-note`
+Body: `{ reason: string }` (Pflicht, min. 10 Zeichen UI-seitig, jeglicher
+nicht-leere String backend-seitig)
+- Original-Status muss `sent | paid | overdue` sein
+- Schreibt neue Zeile mit `status='credit_note'` + `cancels_invoice_id=originalID`
+- Audit-Log: `credit_note_issued`
+
+#### Audit-Log
+
+`GET /api/admin/billing/audit-log?kind=…&rc=…&limit=…`
+→ `{ events: [BillingAuditEvent] }`
+
+### EEG-Admin-Endpoint
+
+`GET /api/admin/eeg/{rc}/invoices` → `{ invoices: [EEGInvoiceItem] }`
+Tenant-scoped Read-Only (`containsRC`-Check). Liefert Quartal, Status,
+Brutto, Versanddatum, Bezahltdatum, Rechnungsnummer.
+
+### Webhook
+
+`POST /api/webhooks/mollie` (public, IP-Allowlist + Defense-in-Depth)
+- Body: form-encoded `id=tr_xxx` (Mollie-Convention)
+- Handler ruft `mollie.GetPayment(id)` (Authentizitätscheck — Grilling R-17)
+- Status `paid` → `billing_invoice.MarkPaid` + ggf. PROJ-71-Reactivation
+- Status `failed | canceled | expired` → `status='cancelled'`
+- Status `charged_back` → `mollie_mandate_active=false` + Owner-Alert-Mail
+- Unknown `tr_xxx` → **200 OK** + Audit-Log `unknown_payment_webhook`
+  (Mollie würde sonst retry-storm machen)
+- Source-IP nicht in Allowlist → 403
+- Aktivierung: nur wenn `cfg.Billing.MollieWebhookURL` gesetzt ist
+
+### Cron-Subcommands
+
+- `./server billing-quarterly` — letztes abgeschlossenes Quartal pro
+  aktivem EEG abrechnen. K8s-CronJob Schedule `"0 4 1 1,4,7,10 *"`,
+  `concurrencyPolicy: Forbid`, `startingDeadlineSeconds: 14400` (4h Toleranz).
+- `./server billing-daily` — kombiniert Status-Sync (Mollie-GET für offene
+  Rechnungen, Webhook-Backstop) und Overdue-Check (`sent_at` > 14 Tage +
+  PROJ-71 Soft-Suspend via `ReasonPaymentFailed`). K8s-CronJob Schedule
+  `"0 5 * * *"`.
+
+### Audit-Log-Kinds
+
+| Kind | Wann |
+|---|---|
+| `edition_switched` | EEG-Admin oder Owner ändert `eeg_edition` |
+| `billing_live_flipped` | Owner toggelt `billing_live` (Welle 4a) |
+| `pricing_plan_versioned` | Owner legt neue `pricing_plan`-Zeile an |
+| `credit_note_issued` | Owner erzeugt Gutschrift |
+| `manual_trigger` | Owner triggert Quartals-Abrechnung manuell |
+| `trial_started` | Service setzt `trial_started_at` beim ersten `activated_at` |
+| `virtual_trial_grace_applied` | Pricing-Service nutzt `cfg.DeployedAt` als Anker (Bestand-EEG ohne `trial_started_at`) |
+| `unknown_payment_webhook` | Mollie-Webhook mit `tr_xxx` nicht in unserer DB |
+| `mollie_chargeback` | Chargeback-Event → Mandate deaktiviert |
+| `scheduler_run` | Quartals-Cron hat eine EEG bearbeitet (Outcome: sent/preview/draft/skip) |
+| `overdue_marked` | Daily-Cron hat `sent` auf `overdue` geschoben + PROJ-71-Suspend ausgelöst |
+| `payment_received` | Daily-Sync oder Webhook hat `paid` verarbeitet |
+| `mandate_activated` | EUR 0,01-First-Payment ist `paid` → `mollie_mandate_active=true` |
+
+### Owner-Mails (Welle 4a)
+
+- `billing_mandate_setup` — sync vor Toggle-Flip, hard-fail wenn Mail
+  scheitert → `billing_live` bleibt unverändert.
+- `billing_chargeback_owner_alert` — best-effort async vom Webhook-Handler
+  über `Scheduler.SetChargebackMailer`.
+- `billing_credit_note` — best-effort async nach Gutschrift-Erzeugung.

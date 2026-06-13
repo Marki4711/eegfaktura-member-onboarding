@@ -10,6 +10,26 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+## 2026-06-12
+
+### Plattform-Abrechnung (PROJ-104, Wellen 1–5)
+
+**Daten-Modell (Welle 1):** 4 neue Tabellen (`pricing_plan`, `billing_period`, `billing_invoice`, `billing_audit_log`) + 6 Spalten-Erweiterungen auf `registration_entrypoint` + 1 Spalte auf `application`. `pricing_plan` mit harter EXCLUDE-Constraint via `btree_gist`; `billing_period` mit UNIQUE-Idempotenz; `billing_audit_log.payload` als 2. JSONB-Ausnahme. Bestand-Aktivierungen inline auf Edition `'standard'` gebackfillt. Migrations 000079–000087.
+
+**Pricing-Service (Welle 1):** Quarter-Math, Edition-Snapshot-basierter Aktivierungs-Counter, 30-Tage-Trial mit virtuellem Grace-Anker für Bestand-EEGs, Mindestbetrag-Carryover (€10/Quartal). Service-Hooks setzen `edition_at_activation` + `trial_started_at` beim ersten `activated_at`.
+
+**Vendor-Clients (Welle 2):** `internal/freefinance/` (Bearer-Auth, Idempotency-Key, 3-fach-Retry) + `internal/mollie/` (sequenceType=first/recurring, EUR 0,01-Helper) jeweils mit Live- und MockClient. `IsLive` als Effektiv-Check (Global ∧ Pro-EEG). Migration 000088 für Vendor-Customer-IDs.
+
+**Scheduler + Webhook (Welle 3):** Quarterly-Cron, Daily-Status-Sync (Webhook-Backstop), Daily-Overdue-Check mit PROJ-71-Cool-Down-Integration via `ReasonPaymentFailed`. `POST /api/webhooks/mollie` mit IP-Allowlist + Defense-in-Depth Mollie-GET-Lookup. K8s-CronJobs `billing-quarterly` (`"0 4 1 1,4,7,10 *"` + 4h Deadline) und `billing-daily` (`"0 5 * * *"`).
+
+**Backend-UI (Welle 4a):** 11 Owner-Endpoints `/api/admin/billing/*` (Pricing CRUD, EEG-Tabelle, Pre-Flight, Live-Toggle, Edition-Override, Manual-Trigger, Invoice-Liste, Gutschrift, Audit-Log). EEG-Admin Read-Only `GET /api/admin/eeg/{rc}/invoices`. Drei Owner-Mails (Mandate-Setup sync-hard-fail, Chargeback-Alert async, Credit-Note-Notification).
+
+**Frontend (Welle 4b):** `/admin/billing` mit 4 Tabs, Pre-Flight-Dialog mit €0-Bestätigung, Gutschrift-Dialog mit 10-Zeichen-Pflicht-Grund, Edition-Switch-Dialog mit 6-Pro-Feature-Downgrade-Block. EEG-Settings-Tab „Rechnungen".
+
+**Doku + AGB (Welle 5):** Domain-Model + API-Spec + Architecture erweitert; User-Guide-Sektion „Rechnungen" mit Trial-/Live-/Cool-Down-Erklärung; AGB-Datei mit Owner-Cutover-Reminder-Kommentar.
+
+**Live-Bedingung (drei Faktoren):** echte Vendor-Calls fließen nur, wenn `cfg.Billing.GlobalLiveMode=true` UND `registration_entrypoint.billing_live=TRUE` UND `mollie_mandate_active=TRUE`. Sonst Preview-Modus mit Mock-Vendor-Calls — `billing_invoice.status='preview'` zeigt erwartete Rechnungen ohne Geld-Bewegung.
+
 ## 2026-06-11
 
 ### UX — Public-Header: EEG-Logo größer und rechts (PROJ-102-Folge)

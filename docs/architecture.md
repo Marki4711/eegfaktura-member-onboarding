@@ -314,3 +314,112 @@ The architecture consists of:
 - Go backend as the business logic core
 - PostgreSQL schema `member_onboarding`
 - internal service call to the eegFaktura core for productive transfer
+
+---
+
+## PROJ-104 Platform Billing Stack
+
+The platform-billing domain is a parallel concern next to the member-
+onboarding pipeline. It tracks per-EEG plan editions, counts activated
+members per quarter, issues invoices via FreeFinance Plus, collects
+SEPA-DD payments via Mollie B.V., and integrates back into the PROJ-71
+cool-down for mahnwesen.
+
+### Component map
+
+```
+Owner UI /admin/billing            EEG-Admin Settings Tab „Rechnungen"
+     |                                          |
+     v                                          v
+HTTP layer
+   /api/admin/billing/*     (Superuser-only, Welle 4a)
+   /api/admin/eeg/{rc}/...  (Tenant-Admin Read-Only)
+   /api/webhooks/mollie     (public, IP-Allowlist + GET-Lookup)
+     |
+     v
+internal/billing/
+   PricingService       — Quarter-Math, Virtual-Trial-Grace,
+                          Edition-Snapshot-Counter, Carryover
+   SchedulerService     — Quarterly cron, Daily-Status-Sync,
+                          Daily-Overdue-Check, ManualTrigger,
+                          Webhook-Glue
+   CoolDownService      — PROJ-71 EventLog bridge
+   MandateSetupService  — EUR 0,01-First-Payment trigger
+   CheckLiveActivation  — Pre-Flight (Pricing + Mandate + Live)
+   IsLive               — globalLive AND eeg.billing_live
+     |                                          |
+     v                                          v
+internal/freefinance (Live + Mock)    internal/mollie (Live + Mock)
+   FreeFinance Plus REST                  Mollie Payments v2
+   /api/2.0/clients/{ClientID}/inv         /v2/customers, /v2/payments
+                                           + Webhook tr_xxx → /api/webhooks/mollie
+
+K8s CronJobs:
+   billing-quarterly   "0 4 1 1,4,7,10 *"   concurrencyPolicy Forbid + 14400s deadline
+   billing-daily       "0 5 * * *"           Sync + Overdue-Check sequenziell
+
+Postgres member_onboarding:
+   pricing_plan        (versioned, btree_gist EXCLUDE)
+   billing_period      (quarterly snapshot, UNIQUE)
+   billing_invoice     (status lifecycle, credit-note FK)
+   billing_audit_log   (JSONB payload, kind whitelist)
+   registration_entrypoint  (+7 cols)
+   application              (+1 col: edition_at_activation)
+```
+
+### Data flow per quarter
+
+1. **CronJob `billing-quarterly` fires** at 04:00 UTC on 1. Jan/Apr/Jul/Okt.
+   Subcommand `./server billing-quarterly` bootstraps only the
+   SchedulerService (no HTTP server).
+2. **Per active EEG** (`is_active=TRUE`): `PricingService.CalculateQuarter`
+   counts activations per `edition_at_activation`, applies Trial-Grace,
+   writes a `billing_period` row.
+3. **Live-Check** (`globalLiveMode AND eeg.billing_live AND mollie_mandate_active`):
+   - true → FreeFinance.CreateInvoice (with `Idempotency-Key`) →
+     FinalizeInvoice → Mollie.CreateRecurringPayment → `status='sent'`
+   - false → MockClients produce deterministic IDs, `status='preview'`
+4. **Daily cron** sweeps:
+   - **Status-Sync** Webhook-Backstop: GET-polls Mollie for all open
+     invoices, handles `paid/failed/charged_back` if webhook was lost.
+   - **Overdue-Check**: marks `sent` invoices with `sent_at > 14 days`
+     as `overdue` + triggers PROJ-71 `suspended` event with
+     `reason_code='payment_failed'`.
+5. **Webhook path**: Mollie posts `id=tr_xxx`, our handler verifies via
+   `Mollie.GetPayment` (Defense in Depth — Grilling R-17), then
+   `Scheduler.ProcessWebhookPayment` runs the same `applyMollieStatus`
+   as the daily sync. `paid` of a `sequenceType=first` payment flips
+   `mollie_mandate_active=TRUE` + writes a `mandate_activated` event.
+
+### Cool-Down integration (Welle 3 + PROJ-71)
+
+`CoolDownService.OnInvoiceOverdue` writes a PROJ-71 `suspended` event
+per `payment_failed` reason. `OnInvoicePaid` re-enables only when
+`CountOpenOverdueForRC == 0` (Grilling R-18). Multi-reason-code-Pflicht
+(R-19) ist V1-akzeptabel als single-reason — Owner kann manuell
+zurücksuspendieren.
+
+### Anti-abuse design (Edition-Snapshot)
+
+`application.edition_at_activation` ist das zentrale Anti-Abuse-Pattern
+(Spec #15). Beim `activated`-Transition versiegeln Service-Hooks
+(`admin_service.ChangeStatus`, `MarkActivatedSkipImport`) die aktuelle
+`eeg_edition` auf der Application. Pricing-Service zählt nach Snapshot,
+nicht nach Live-Edition. EEG kann frei zwischen Standard und Pro
+wechseln, ohne den Preis zu spielen.
+
+### Live-mode safety
+
+Drei-Faktor-Schalter (Spec #7, #14, AC-15):
+
+1. `cfg.Billing.GlobalLiveMode` — Helm-Notbremse, Default `false`.
+2. `registration_entrypoint.billing_live` — Pro-EEG Owner-Aktion via
+   `/admin/billing`. Pre-Flight blockt EUR 0-Pricing ohne
+   `acceptZeroPricing=true`.
+3. `registration_entrypoint.mollie_mandate_active` — TRUE erst nach
+   EUR 0,01-First-Payment-`paid`. Davor erzeugt der Scheduler
+   `status='draft'`-Invoices, die im Folge-Cron erneut versucht werden.
+
+Nur wenn alle drei TRUE sind, nutzt der Scheduler die Live-Clients.
+Andernfalls Mocks → `billing_invoice.status='preview'`, kein Geld
+fließt — Owner kann erwartete Rechnungen risikolos prüfen.

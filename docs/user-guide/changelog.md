@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-06-12
+
+**Neuer Tab „Rechnungen" in den Einstellungen**
+
+In jeder EEG-Settings-Ansicht gibt es jetzt einen neuen Tab **„Rechnungen"**, in dem du die quartalsweisen Abrechnungs-Rechnungen für die Plattform-Nutzung siehst — Quartal, Status, Brutto-Betrag, Versand- und Bezahldatum, Rechnungsnummer.
+
+Die Liste ist read-only. Solange die Plattform-Abrechnung in der Test-/Pilotphase läuft, bleiben alle Rechnungen auf Status `Preview` — du kannst die zukünftige Quartals-Abrechnung also vorher prüfen, ohne dass Geld fließt.
+
+**Trial-Phase: 30 Tage ab erster Mitglieder-Aktivierung**
+
+Sobald in deiner EEG das erste Mitglied vollständig aktiviert ist, läuft eine 30-tägige Trial-Phase. In dieser Zeit wird zwar gezählt, aber kein Brutto-Betrag berechnet — der Quartals-Eintrag erscheint mit Status `Preview` und Marker `trial_period`.
+
+**Edition Standard / Pro im erweiterten Modus**
+
+Im erweiterten Modus findest du in den Stammdaten-Einstellungen einen Switch zwischen den Editionen Standard und Pro. Wichtig: **bestehende Aktivierungen behalten ihren ursprünglichen Tarif**, auch wenn du switchst. Nur neue Mitglieder-Aktivierungen ab dem Switch-Zeitpunkt tragen die neue Edition. Pro → Standard ist nur möglich, wenn keine Pro-only-Features mehr aktiv sind (Datenweiterleitung, eigener Brand-Theme, …). Der Dialog zeigt dir die Sperren mit Direktlinks.
+
+**SEPA-Mandate-Aktivierung beim Produktiv-Start**
+
+Sobald die Plattform-Abrechnung für deine EEG live geschaltet wird, kommt einmalig eine EUR 0,01-Test-Lastschrift von Mollie Payments B.V. auf dein EEG-Konto. Das ist die SEPA-Mandate-Validierung und **kein Fehler** — die Lastschrift wird wieder gutgeschrieben. Danach werden die regulären Quartals-Rechnungen automatisch eingezogen.
+
+Eine ausführliche Beschreibung findest du im User-Guide unter „Einstellungen → Tab Rechnungen".
+
+---
+
 ## 2026-06-11
 
 **EEG-Logo größer und rechts im Anmeldeformular-Kopf**
