@@ -12,6 +12,21 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## 2026-06-13
 
+### God-File-Refactor `src/lib/api.ts` Welle 1A (PROJ-105)
+
+Phase 2 des vor-Prod-Refactors gestartet. Erste Welle extrahiert die fünf sauberen End-of-File-Domänen aus dem monolithischen `src/lib/api.ts` (2442 Zeilen, 178 Exports) in dedizierte Module unter `src/lib/api/`:
+
+- `_internal.ts` — Shared HTTP-/Auth-Helpers (API_URL, adminAuthHeaders, ApiError, ApiResponseError, request, adminRequest, 401-Cooldown-Logic).
+- `public.ts` — Public-Registration-3-Functions ohne Auth.
+- `billing.ts` — Plattform-Abrechnung (PROJ-104): 9 Types + 12 Functions, ~252 Zeilen.
+- `cockpit.ts` — Owner-Cockpit (PROJ-72): 2 Types + 2 Functions, ~50 Zeilen.
+- `data-export.ts` — Datenweiterleitung (PROJ-60): 11 Types + 12 Functions + `triggerBrowserDownload`-Helper, ~250 Zeilen.
+- `configexport.ts` — Konfigurations-Export/Import (PROJ-61): 13 Types + 3 Functions, ~205 Zeilen.
+
+`src/lib/api.ts` schrumpft von **2442 → 1568 Zeilen (−874 / −36 %)** und re-exportiert alle Module per Barrel, sodass die ~120 Aufrufer-Files unverändert weiterlaufen. Kein API-Vertrags-Change, kein Aufrufer-Side-Change. `tsc --noEmit` clean, 238/238 Vitest grün, Production-`npm run build` clean.
+
+Verbleibende Domänen in `src/lib/api.ts` (Admin-Applications, Settings, Recovery, Activation, Reconciliation, Resync, Stammdaten-Sync, Board-Approval, Legal-Documents, Bulk-Actions, Tariffs) sind komplexer verwoben und kommen in **PROJ-105b** (Welle 1B) als eigene Welle. AC-2 ("api.ts <50 Zeilen") wird mit Welle 1A nicht erfüllt — bewusst aufgeteilt um Big-Bang-Risiko zu vermeiden.
+
 ### Owner-Cockpit (PROJ-72)
 
 Phase 1B der vor-Prod-Roadmap implementiert: Superuser-Übersicht aller EEGs unter `/admin/cockpit`. Neue Seite zeigt für jede EEG den Aktivitätsstand, Customer-Onboarding-State (PROJ-71), Anträge-Pipeline (offen vs. erledigt) und Direkt-Links zu Anträgen und Einstellungen. Default-Sortierung nach letzter Aktivität (`MAX(application.updated_at)`), alternativ nach offenen Anträgen oder RC-alphabetisch. Volltextsuche RC/Name läuft clientseitig.

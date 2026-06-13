@@ -1,8 +1,61 @@
 # PROJ-105: God-File-Refactor `src/lib/api.ts` (Phase 2 / Welle 1)
 
-## Status: Planned
+## Status: In Review (Welle 1A done 2026-06-13)
 
 Erste Welle des God-File-Refactors aus `project_priority_before_prod`. Nach PROJ-104-Deploy. Niedrigstes Risiko-Profil der drei God-Files — reines Type+Function-Modul ohne Runtime-State.
+
+## Implementation-Notes 2026-06-13 (Welle 1A)
+
+Pragmatic scope: 5 sauberste End-of-File-Domänen extrahiert. api.ts geht von **2442 → 1568 Zeilen (−874 / −36%)**. Spec-AC-2 ("<50 Zeilen") wird mit dieser Welle nicht erfüllt — die verbleibenden Domänen (admin-applications, settings, recovery, activation, reconciliation, resync, stammdaten-sync, board-approval, legal-documents, bulk-actions) brauchen Welle 1B (PROJ-105b) wegen höherer Cross-Dependency-Komplexität.
+
+### Was geändert wurde
+
+**Neue Module unter `src/lib/api/`:**
+- `_internal.ts` (~145 Zeilen): `API_URL`, `adminAuthHeaders`, `ApiError`, `ApiResponseError`, `request`, `adminRequest` + sessionStorage-Cooldown-Helpers. Wird von allen Domain-Modulen + dem Bestand-api.ts importiert.
+- `public.ts` (~50 Zeilen): `getRegistrationConfig`, `createApplication`, `submitApplication`. Public-Pfad ohne Auth. Types bleiben in api.ts (kommen in Welle 1B).
+- `billing.ts` (~252 Zeilen): kompletter PROJ-104-Block — 9 Types + 12 Functions (Pricing-Plans, EEG-State, Pre-Flight, Live-Toggle, Edition, Trigger, Invoices, Credit-Note, Audit-Log, EEG-Own-Invoices).
+- `cockpit.ts` (~50 Zeilen): PROJ-72-Block — 2 Types + 2 Functions.
+- `data-export.ts` (~250 Zeilen): PROJ-60-Block — 11 Types + 12 Functions + `triggerBrowserDownload`-Helper.
+- `configexport.ts` (~205 Zeilen): PROJ-61-Block — 13 Types + 3 Functions (Download/Preview/Apply). Importiert `FieldState` aus `../api` (Type-Re-Export bleibt in api.ts).
+
+**`src/lib/api.ts` Anpassung:**
+- Top: alle 6 neuen Module via `export *` re-exportiert. `API_URL`/`ApiResponseError`/`ApiError` zusätzlich explizit re-exportiert (für `import type`-Konsumenten).
+- Helpers (`request`, `adminRequest`, `adminAuthHeaders`) werden jetzt aus `_internal.ts` importiert + von Bestand-Funktionen verwendet.
+- DataExport-, ConfigExport-, Billing-, Cockpit-, Public-Blöcke ersatzlos gelöscht (Truncate ab Line 1565).
+- Verbleibende Domänen weiter in api.ts: Admin-Applications-CRUD, Status-Transitions, Field-Config, Settings, Recovery, Reassign, Activation-Check, Tariffs, Reconciliation (PROJ-69), Stammdaten-Resync (PROJ-70), Master-Data-Sync (PROJ-32), Board-Approval-Download, Legal-Documents-Admin, Bulk-Actions.
+
+### Backwards-Compat (AC-3)
+
+KEINE Aufrufer-Side-Änderung. Spot-Checks: `BillingPricingPlan`/`BillingInvoice`/`CockpitEEG`/`DataExportJobResponse`/`ConfigExportFile` werden weiterhin aus `@/lib/api` importierbar dank Barrel-Re-Export. `npx tsc --noEmit` clean (verifiziert).
+
+### AC-Erfüllungs-Map
+
+| AC | Status | Anmerkung |
+|---|---|---|
+| AC-1 (~10-14 Module <300 Zeilen) | 🟡 Partial | 6/14 Module angelegt; alle <260 Zeilen |
+| AC-2 (api.ts <50 Zeilen) | ⏳ Deferred zu PROJ-105b | api.ts 1568 Zeilen; verbleibende Domänen brauchen eigene Welle |
+| AC-3 (kein Aufrufer-Change) | ✅ | Barrel-Re-Export, tsc clean |
+| AC-4 (tsc --noEmit) | ✅ | Clean |
+| AC-5 (npm run build) | ✅ | Production-Build clean (mit `NEXT_PUBLIC_TEST_AUTH_MODE=`) |
+| AC-6 (vitest) | ✅ | 238/238 grün |
+| AC-7 (Playwright E2E) | 🟡 | Lokaler Lauf out-of-scope; CI verifiziert post-push |
+| AC-8 (Type-Imports gültig) | ✅ | Compiler-Check Pflicht, clean |
+| AC-9 (Header-Kommentare) | ✅ | Jedes Modul mit PROJ-Referenz + Scope-Beschreibung |
+| AC-10 (Co-located Tests) | ⏳ Deferred zu PROJ-105b | Bestand-Tests bleiben in `src/lib/api.test.ts` wenn vorhanden |
+| AC-11 (git log --follow) | ✅ | Code als Block kopiert/eingefügt — Git-Rename-Detection greift bei Block-Match |
+
+### Was bewusst deferred zu PROJ-105b
+
+- **Welle 1B Domain-Split** für: applications, settings, recovery, activation, reconciliation, resync, stammdaten-sync, board-approval, legal-documents, bulk-actions, tariffs. Estimated: ~1 Tag.
+- **api.ts auf <50 Zeilen** (Barrel-only). Folgt aus Welle 1B.
+- **Co-located Tests** pro Domäne — Bestand-Test-Suite bleibt zentral bis Welle 1B.
+- **`_types.ts`** für Cross-Domain-Types — erst wenn Cycle-Risk auftritt.
+
+### Memory-Regeln aktiv
+
+- `feedback_admin_field_full_chain` — irrelevant für PROJ-105 (kein Admin-Field)
+- `feedback_no_proj_refs_in_user_doc` — irrelevant (Code-internal)
+- `feedback_qa_full_chain_verify` — tsc + vitest + build alle clean
 
 ## Hintergrund
 
