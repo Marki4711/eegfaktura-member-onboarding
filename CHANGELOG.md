@@ -10,6 +10,41 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+## 2026-06-13
+
+### FreeFinance-Client-Rewrite (PROJ-108, Welle-5b nach AC-27b-Live-Befunden)
+
+Welle 2 von PROJ-104 hatte den FreeFinance-Client gegen Web-Doku-Annahmen mit camelCase-DTOs gebaut. Die AC-27b-Live-Verifikation im FreeFinance-Trial-Mandanten hat 7 substanzielle Inkompatibilitäten + 1 Hauptbefund (`Idempotency-Key` wird ignoriert) offengelegt. PROJ-108 baut `internal/freefinance/` komplett gegen die echte API neu:
+
+- **snake_case-DTOs** durchgängig: neue `CustomerCreationDtoV2`, `InvoiceCreationDtoV2`, `InvoiceLineCreationDtoV2`, `TaxSetDtoV2`, `BusinessDocumentFinalizationDtoV2`, `CreditMemoCreationDtoV2`. Customer-Felder völlig anders strukturiert (`customer_number`, `company_name`, `street_name`+`street_number` getrennt, `zip_code`, `tax_number`, `ignore_in_bsa` Pflicht-Bool).
+- **Modul-Präfixe in Pfaden**: `POST /clients/{id}/mas/customers` (statt `/customers`), `POST /clients/{id}/inv/credit_memos` (eigener Endpoint statt Negativ-Invoice).
+- **OIDC Client-Credentials-Flow** (`auth.go` neu) ersetzt das statische Bearer-Token. Realm-Discovery via `GET /auth/issuer` 1× pro Pod-Lifetime, Token-TTL 299s, Auto-Refresh bei <60s remaining, singleflight gegen concurrent Token-Calls, atomic.Value-Cache. `Invalidate()`-Methode für 401-Retry. `ErrAuthEndpointUnavailable` für Hard-Fail bei Discovery/Token-Endpoint-Down.
+- **Tax-Klassen + Account via Helm-Config-UUIDs**: 3 neue Pflicht-Helm-Vars (`freefinanceTaxClassEntryId` für ESTD_020 20% USt, `freefinanceRevenueAccountId` für Konto 4000, `freefinanceLayoutSetupId` für Default-Layout) + 2 optionale (`freefinancePaymentTermId`, `freefinanceSequenceGroupId`). Helm-Guards blockieren `globalLiveMode=true` ohne diese UUIDs.
+- **Single-Shot Invoice-Finalize**: `finalize:true` Top-Level-Flag + `layout_setup`-UUID im Create-Body spart Roundtrip. `FinalizeInvoice` als Fallback-Pfad behalten.
+- **GoBD-Klartext-Verkettung** in `text_top` der Credit-Memos: "Gutschrift zu Rechnung NR vom DATUM". FF-internes Reference-Field als OpenAPI-TODO.
+- **Helm-Kalt-Rename**: `secrets.freefinanceApiKey` → `secrets.freefinanceClientSecret`, Env-Var `FREEFINANCE_API_KEY` → `FREEFINANCE_CLIENT_SECRET`. Owner muss beim ersten Helm-Upgrade nach diesem Deploy den neuen Schlüssel verwenden (alter Wert wird nicht mehr gelesen).
+- **Idempotency-Key-Header** bleibt im Code-Pfad (kostenlose Defensive), aber Spec-Entscheidung #12 aus PROJ-104 revidiert: DB-`UNIQUE(rc, year, quarter)` auf `billing_period` ist die **alleinige** Idempotenz-Linie.
+
+Phase F (Scheduler-DB-Pre-Lookup-Pattern TX1→HTTP→TX2-Refactor), G (Pre-Flight-Mandant-Refs-Cache), K (Cron-Alert-Mail bei errored>0) sind **PROJ-108b** deferred. Bestand-Scheduler funktioniert mit neuem Client unverändert; DB-UNIQUE schützt schon heute gegen Doppel-Insert.
+
+11 Grilling-Entscheidungen G1-G15 festgenagelt: singleflight + atomic.Value für Token-Cache, Realm-Discovery einmalig persistent, Pattern A TX-Boundary, Crash-Window via Cron-Result-Audit + Owner-Mail, Helm-Config-V1 für Mandant-UUIDs, Kalt-Rename ohne Aliasing, OpenAPI-Pre-Code-Step für unbekannte Field-Namen, Single-Shot Finalize, Mock-Tests in CI + Owner-Manual-Live-Smoke pre-Cutover, In-Memory TTL-Cache 5min pro RC, Daily-Sync `import_failed`-Retry, Standard-System-Trust-Store, K8s default SIGTERM-Handling.
+
+Tests: 5 neue im freefinance-Paket inkl. singleflight-Concurrent-Test + 401-Retry mit multiplexem httptest-Server, plus 8 TokenSource-Tests (Discovery-Caching, TTL-Refresh, singleflight, Issuer/Token-Endpoint-Down → `ErrAuthEndpointUnavailable`, Invalidate). `go build ./...`, `go test ./...`, `govulncheck`, `gosec -severity medium` alle clean. Helm-Template-Tests verifiziert: Preview-OK, Live ohne Pflicht-Felder → Guard-Fail, Live komplett konfiguriert → OK.
+
+Default `BILLING_GLOBAL_LIVE_MODE=false` bleibt — Tester-Phase ungetriggert. Vor Owner-Live-Cutover offen: Mandant-Reset-Bestätigung durch FF-Support, neuer Tech-User, 5 UUIDs aus FF-UI ermitteln + in Helm-Config eintragen, OpenAPI-Verifikation für `MarkAsPaid`-Pfad + `CreditMemoCreationDtoV2.OriginalInvoice`-Field-Name (inline TODOs im Code).
+
+### Security-Fix-Welle PROJ-104 (vor Deploy)
+
+Fünf Findings aus dem dedizierten Security-Review für die Plattform-Abrechnung inline gefixt: XFF-Trust-Gate im Mollie-Webhook (Bestand-Helper `isTrustedProxy` jetzt korrekt verdrahtet — XFF/X-Real-IP wird nur honoriert, wenn der Peer aus einem trusted-proxy-CIDR kommt; bei XFF wird die LETZTE Entry verwendet, nicht die erste); Nil-Payment-Pfad in `ProcessWebhookPayment` (Mollie-NotFound-Webhooks gehen nicht mehr in `applyMollieStatus`, sondern werden direkt als `unknown_payment_webhook` ge-auditet); Credit-Note-Audit-RC-Lookup über neue `BillingPeriodRepository.GetByID` statt Placeholder; Helm-Required-Guard für `mollieAllowedIPs` (Helm-Install fehlt jetzt, wenn `mollieWebhookUrl` gesetzt aber Allowlist leer ist); `MaxBodySize(64 KiB)` um die Webhook-Route. Spec-Verdikt: **BLOCKED → APPROVED**.
+
+### CI-Workflow-Fix
+
+Safety-Check `NEXT_PUBLIC_TEST_AUTH_MODE must not appear in release artifacts` ignoriert YAML-Kommentar-Zeilen (`#`-prefix) jetzt korrekt — Bestand-False-Positive seit 07bac8c.
+
+### Deployment-Vorbereitung God-File-Refactor (Phase 2)
+
+Drei Skeleton-Specs angelegt für PROJ-105 (`src/lib/api.ts` Split), PROJ-106 (`registration-form.tsx` Split), PROJ-107 (`internal/http/admin.go` Split in 3-4 Sub-Wellen mit eigenem Security-Review pro Welle).
+
 ## 2026-06-12
 
 ### Plattform-Abrechnung (PROJ-104, Wellen 1–5)

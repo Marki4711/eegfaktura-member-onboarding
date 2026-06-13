@@ -122,6 +122,7 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 | PROJ-71 | EEG-Customer-Onboarding-Formular + AVV-PDF + Auto-Antwort-Mail — Self-Service-Anmeldung für zahlende EEG-Kunden (Phase A der Customer-Onboarding-Pipeline) |
 | PROJ-72 | Member-Onboarding-Cockpit — Owner-EEG-Übersicht aller EEGs mit Live-KPIs (Aktiv-Badge, Customer-Onboarding-State, Anträge-Pipeline) und Direkt-Links zu Anträgen & Einstellungen — **Phase 1B vor Prod** |
 | PROJ-104 | Abrechnung der Plattform-Nutzung (Pricing-V3) — Standard/Pro über `settings_view_mode` differenziert, Preis pro aktiviertem Mitglied, quartalsweise, FreeFinance + Mollie, K8s-CronJob, globaler `BILLING_LIVE_MODE`-Schalter (Test-Phase ohne Zahlungspflicht) — **Phase 1A vor Prod** |
+| PROJ-108 | FreeFinance-Client-Rewrite (Welle-5b) — `internal/freefinance/` an die echte API angeglichen nach AC-27b-Live-Befunden: snake_case-DTOs, Modul-Präfixe, HTTP 200, Tax-Class-Entry UUIDs, Layout-Setup-Pflicht im Finalize, eigener Credit-Memo-Endpoint, OIDC-Token-Cache mit Realm-Discovery, DB-Pre-Lookup-Pattern weil Idempotency-Key ignoriert wird — **blockierend vor Owner-Live-Cutover** |
 | PROJ-73 | Cleanup: verwaisten EEG-Toggle `use_company_sepa_mandate` entfernt — Domain-Logik seit PROJ-48 funktionslos; Settings-UI aufgeräumt, Migration 000066 |
 | PROJ-74 | B2B-Mandat-Gate-Fix — `buildSEPAMandateData` lässt B2B-Anträge auch bei `SEPAMandateEnabled=false` durch (SEPA-Rulebook), Hart-Fail bei fehlenden Stammdaten, UI-Klarstellung an den SEPA-Toggles |
 | PROJ-75 | SEPA-Einwilligungs-Checkbox in Bankverbindungs-Card verschoben, mit EEG-spezifischem Text + Creditor-ID |
@@ -144,7 +145,7 @@ Single source of truth for current implementation status is [`features/INDEX.md`
 | PROJ-51 | Anzeige offener Nutzungsgebühren im Admin-UI | Wartet auf Klärung des Abrechnungs- und Status-Pflege-Konzepts |
 | PROJ-55 | Nachmelden von Zählpunkten anhand der Mitgliedsnummer | Wartet auf Self-Service-Portal-Direction (Owner-Entscheidung 2026-05-23) |
 
-> **Next available feature ID:** PROJ-82 (siehe `features/INDEX.md`).
+> **Next available feature ID:** PROJ-109 (siehe `features/INDEX.md`).
 
 ## 5. Success Metrics
 

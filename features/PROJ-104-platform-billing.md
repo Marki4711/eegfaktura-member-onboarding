@@ -1,6 +1,6 @@
 # PROJ-104: Abrechnung der Plattform-Nutzung (Pricing-V3-Implementierung)
 
-## Status: Approved (alle 5 Wellen + Doku + QA 2026-06-12; /security-review + /deploy stehen aus)
+## Status: Deployed (2026-06-13)
 **Created:** 2026-06-12
 **Last Updated:** 2026-06-12 (nach 4 Grilling-Wellen, 16 zusätzliche Entscheidungen)
 **Typ:** Plattform-Verrechnung + externe Stack-Integration (FreeFinance + Mollie)
@@ -37,7 +37,7 @@ Verrechnungs-Stack ist im Memory ebenfalls festgelegt: **FreeFinance Plus** (Inv
 | # | Entscheidung |
 |---|---|
 | 11 | **Vendor-Credentials:** Helm-Secret-References analog Bestand. Neue Einträge `secrets.freefinanceApiKey` + `secrets.mollieApiKey` in values-secret.yaml. Backend liest über env vars `FREEFINANCE_API_KEY` + `MOLLIE_API_KEY`. Wird vom `required`-Guard in `templates/secrets.yaml` (aus Fable-Code-Review-Fix gestern) gefordert, wenn `BILLING_LIVE_MODE=true` global gesetzt ist. |
-| 12 | **Cron-Idempotenz:** DB-`UNIQUE(rc_number, year, quarter)` auf `billing_period` (bereits in AC-2) plus `INSERT … ON CONFLICT DO NOTHING`. Zusätzlich `Idempotency-Key`-Header bei `FreeFinance.CreateInvoice` = `{rc_number}-{year}-Q{quarter}`. FreeFinance dedupliziert serverseitig; bei Retry kommt dieselbe Invoice-ID zurück. |
+| 12 | **Cron-Idempotenz:** DB-`UNIQUE(rc_number, year, quarter)` auf `billing_period` (bereits in AC-2) plus `INSERT … ON CONFLICT DO NOTHING`. Zusätzlich `Idempotency-Key`-Header bei `FreeFinance.CreateInvoice` = `{rc_number}-{year}-Q{quarter}`. **REVIDIERT 2026-06-13 durch PROJ-108-AC-27b-Live-Test:** FreeFinance respektiert den `Idempotency-Key`-Header NICHT (drei Doppel-POSTs → drei verschiedene Invoice-IDs). Die DB-`UNIQUE`-Linie auf `billing_period` ist die **alleinige** Idempotenz-Sicherung; PROJ-108 ergänzt das DB-Pre-Lookup-Pattern in `scheduler.go` (TX1 INSERT+SELECT FOR UPDATE → HTTP außerhalb TX → TX2 UPDATE WHERE freefinance_invoice_id IS NULL). Header wird defensiv weiter gesetzt für den Fall dass FF das Verhalten ändert. |
 | 13 | **Edition-Switch:** **direkter Switch** per EEG-Admin-Aktion (Owner-Direktive Welle 1 — Approval-Flow verworfen). Owner sieht den Wechsel im Audit-Log. **Anti-Abuse** strukturell über Entscheidung #15 gelöst (Edition-Snapshot pro Aktivierung) — kein technisches Switch-Limit nötig. |
 | 14 | **`BILLING_LIVE_MODE`-Cutover:** **Pro-EEG-Schalter mit globalem Notbrems-Default.** Neue Spalte `registration_entrypoint.billing_live BOOLEAN NOT NULL DEFAULT FALSE`. Live wird abgerechnet, wenn `eeg.billing_live = TRUE` UND `cfg.Billing.GlobalLiveMode = true`. Owner kann pro EEG einzeln scharf schalten (Pilot-EEG zuerst), globaler Helm-Schalter ist Notbremse für alle. |
 | 15 | **Anti-Abuse durch Edition-Snapshot statt Switch-Limit:** neue Spalte `application.edition_at_activation TEXT NULL` (`'standard'` / `'pro'`), gesetzt beim `activated`-Status-Transition zum dann aktiven `registration_entrypoint.edition`. Pricing-Service zählt pro Edition separat. EEG kann frei zwischen Editionen switchen — die Buchung bleibt fair, weil jede Aktivierung ihren Edition-Stand mitträgt. |
@@ -1188,4 +1188,55 @@ Alle 5 Findings inline gefixt, Tests grün, Helm-Guard verifiziert:
 0 Critical, 0 High, 0 Medium nach Fix-Welle. Bestand-Info-Findings (esbuild Dev-CVE, postgres readOnlyRootFilesystem) bleiben Bestand. Owner-Aufgaben AC-27b (FreeFinance-Trial-Verifikation) + AGB §4 Cutover bleiben vor Live-Cutover offen.
 
 ## Deployment
-_To be added by /deploy_
+
+**Datum:** 2026-06-13
+**Image-SHA:** `sha-a1f0980` (Backend + Frontend)
+**Git-Tag:** `v1.32.0-PROJ-104`
+**Verantwortlicher Owner-Apply:** manueller `helm upgrade` (kein Cluster-Apply von Claude-Seite)
+
+### Was im Cluster ankommt
+
+- 9 neue DB-Migrationen 000079–000087 (pricing_plan + billing_period + billing_invoice + 5 Spalten-Erweiterungen + billing_audit_log) + 000088 (Vendor-Customer-IDs) — werden vor Backend-Rollout via `migrate`-Job ausgeführt
+- Backend mit neuem `internal/billing/` + `internal/freefinance/` + `internal/mollie/` + Mollie-Webhook-Endpoint + 11 Owner-Endpoints `/api/admin/billing/*`
+- Frontend mit Owner-Seite `/admin/billing` (4 Tabs) + EEG-Settings-Tab „Rechnungen"
+- Helm: 2 neue CronJobs (`billing-quarterly` + `billing-daily`), Seed-Job mit idempotenten Pricing-Plan-Defaults (Standard/Pro je €0), 5 neue Backend-ENV-Vars
+- Security-Fixes inkludiert: XFF-Trust-Gate, Nil-Payment-Pfad, Credit-Note-Audit-RC, Helm-Required-Guard, MaxBodySize-Webhook
+
+### Default-Verhalten nach Deploy (Tester-Phase läuft weiter)
+
+- `BILLING_GLOBAL_LIVE_MODE=false` (Helm-Default) → KEINE realen Rechnungen, KEINE realen SEPA-Lastschriften
+- Pricing-Plan-Defaults €0 (Seed-Job) → Pre-Flight blockt Live-Toggle bis Owner reale Werte gesetzt hat
+- Webhook-Endpoint nur registriert wenn `backend.billing.mollieWebhookUrl` befüllt
+- CronJobs aktiv: Daily 05:00 UTC läuft sofort, Quarterly startet erst am 1. Jul 2026
+
+### Owner-Schritte für `helm upgrade` (manuell)
+
+```bash
+helm upgrade eegfaktura-member-onboarding ./helm/member-onboarding \
+  -f helm/member-onboarding/values-env.yaml \
+  -f helm/member-onboarding/values-secret.yaml
+```
+
+Helm fährt automatisch:
+1. `migrate`-Job (Migrations 000079–000088 in IMMUTABLE-Zustand)
+2. `seed`-Job (Pricing-Plan-Defaults, idempotent)
+3. Rolling-Update Backend + Frontend
+4. CronJob-Reconcile
+
+Health-Check via `GET /health` und Smoke-Test der neuen Routes (`/admin/billing` mit Superuser-Login).
+
+### Verbleibend (Owner-Aufgaben — nicht Teil des Deploys)
+
+- **AC-27b FreeFinance-Trial-Verifikation:** Skeleton in `private/vendor-setup/freefinance-trial-verification-2026-06-12.md` (Mandant-ID, Tech-User, 3 Verifikations-Punkte). Pflicht vor Live-Cutover.
+- **AGB § 4 Pricing-Cutover:** Pricing-Werte manuell in `src/content/legal/agb-v1.0.md` ergänzen + Version `v1.0 → v1.1`. HTML-Kommentar als Reminder im File.
+- **Reale Pricing-Werte:** über `/admin/billing` Tab „Pricing-Plan" pflegen (überschreibt die €0-Seed-Defaults).
+- **API-Keys + Webhook-URL:** `secrets.freefinanceApiKey` + `secrets.mollieApiKey` + `backend.billing.freefinanceClientId` + `backend.billing.mollieWebhookUrl` + `backend.billing.mollieAllowedIPs` in `values-env.yaml` + `values-secret.yaml` befüllen → zweiter `helm upgrade`.
+- **Per-EEG Mandate-Setup:** Owner schaltet `billing_live=true` pro EEG via `/admin/billing` → triggert EUR 0,01 First-Payment + Mail an EEG-Vorstand.
+
+Nach dem Cutover greift erst der Quartals-Cron am 1. Oktober 2026 (Q3-Abrechnung); davor sind alle Q3-Buchungen im Preview-Modus sichtbar.
+
+### Deferred-Items mit Spec-Vermerk (für Folge-PROJ)
+
+- **F2 (Low):** UI-Wiring für `EditionSwitchDialog` (~2-3h)
+- **F4 (Info):** Backend-Downgrade-Block-Defense-in-Depth (Frontend-Block reicht V1)
+- **Lifecycle-sticky Pro (Owner-Idee 2026-06-13):** Activation-Snapshot bleibt; Re-Evaluation nach Q1-Daten. Siehe `project_todo_lifecycle_sticky_pro.md`.
