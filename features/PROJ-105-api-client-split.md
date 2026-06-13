@@ -1,6 +1,37 @@
 # PROJ-105: God-File-Refactor `src/lib/api.ts` (Phase 2 / Welle 1)
 
-## Status: In Review (Welle 1A done 2026-06-13)
+## Status: In Review (Welle 1A + 1B done 2026-06-13)
+
+## Implementation-Notes Welle 1B (2026-06-13 Nachmittag)
+
+Folgewelle nach 1A: 6 weitere End-of-File-Domänen extrahiert.
+
+### Neue Module
+- `reconciliation.ts` (PROJ-69 Reconciliation-Backstop, ~35 Zeilen)
+- `resync.ts` (PROJ-70 Stammdaten-Resync + SEPA-Mandate-Resend, ~45 Zeilen)
+- `settings.ts` (PROJ-32 EEG-Master-Data-Sync + `fetchEEGLogoBlob` + Intro-Text + PROJ-13 API-Key CRUD, ~105 Zeilen)
+- `attachments.ts` (Excel-Export + Approval-PDF + PROJ-76 Joining-Declaration-PDF, ~60 Zeilen)
+- `legal-docs.ts` (Legal-Documents CRUD + Reorder, ~50 Zeilen)
+- `bulk.ts` (PROJ-25 Bulk-Actions, ~30 Zeilen)
+
+### api.ts Stand nach Welle 1B
+- **1295 Zeilen** (von 2442 in Welle 1A → −47 % gesamt)
+- Re-exportiert jetzt 12 Domain-Module per Barrel (`public`, `data-export`, `configexport`, `billing`, `cockpit`, `reconciliation`, `resync`, `settings`, `attachments`, `legal-docs`, `bulk` + die Bestand-Helper aus `_internal`)
+- Verbleibendes Bestand: Public-Form-Types (Response-Shapes lines 27-407), Admin-Application-Types (lines 408-737), Admin-Application-Functions (lines 738-1289) — Applications-CRUD/Status/Field-Config/Settings-CRUD/Recovery/Reset/Rollback/Reassign/Activation-Check/Tariffs/Settings-View-Mode
+
+### Verifikation
+- `tsc --noEmit` clean
+- `vitest run` 238/238 grün
+- `NEXT_PUBLIC_TEST_AUTH_MODE= npm run build` clean
+- Backwards-Compat: alle Imports aus `@/lib/api` weiterhin valid
+
+### Was bewusst deferred zu PROJ-105c (Welle 1C)
+- **Welle 1C:** Applications-Domain extrahieren (~600 Zeilen) — komplexer wegen Cross-Deps zu Public-Form-Types
+- **Welle 1C:** Form-Types + Admin-Types in `_form-types.ts` + `_admin-types.ts`
+- **Welle 1C:** api.ts auf <50 Zeilen (Barrel-only) — AC-2 voll erfüllt
+- **Welle 1C:** Co-located Tests pro Domain-Modul
+
+---
 
 Erste Welle des God-File-Refactors aus `project_priority_before_prod`. Nach PROJ-104-Deploy. Niedrigstes Risiko-Profil der drei God-Files — reines Type+Function-Modul ohne Runtime-State.
 

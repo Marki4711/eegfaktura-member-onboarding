@@ -12,6 +12,21 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## 2026-06-13
 
+### God-File-Refactor `src/lib/api.ts` Welle 1B (PROJ-105)
+
+Direkt im Anschluss an Welle 1A wurden 6 weitere End-of-File-Domänen aus dem Bestand-`src/lib/api.ts` extrahiert:
+
+- `reconciliation.ts` — PROJ-69 Reconciliation-Backstop, ~35 Zeilen.
+- `resync.ts` — PROJ-70 Stammdaten-Resync + SEPA-Mandate-Resend, ~45 Zeilen.
+- `settings.ts` — PROJ-32 EEG-Master-Data-Sync + `fetchEEGLogoBlob` + Intro-Text + PROJ-13 API-Key CRUD, ~105 Zeilen.
+- `attachments.ts` — Excel-Export + Approval-PDF + PROJ-76 Joining-Declaration-PDF, ~60 Zeilen.
+- `legal-docs.ts` — Legal-Documents CRUD + Reorder, ~50 Zeilen.
+- `bulk.ts` — PROJ-25 Bulk-Actions, ~30 Zeilen.
+
+`src/lib/api.ts` geht damit auf **1295 Zeilen (von 2442 in Welle 1A → −47 % gesamt)** und re-exportiert jetzt insgesamt 12 Domain-Module per Barrel. Backwards-Compat bleibt voll erhalten — alle Aufrufer-Imports aus `@/lib/api` sind unverändert valid. `tsc --noEmit` clean, 238/238 Vitest grün, Production-`npm run build` clean.
+
+Verbleibend in `src/lib/api.ts`: Public-Form-Response-Shapes (Lines 27-407), Admin-Application-Types (Lines 408-737), Admin-Application-Functions (CRUD/Status/Field-Config/Settings-CRUD/Recovery/Reset/Rollback/Reassign/Activation-Check/Tariffs/View-Mode, Lines 738-1289). Diese Welle 1C (PROJ-105c) wird komplexer wegen Cross-Deps zu Public-Form-Types — eigene Spec mit grilling-Pflicht.
+
 ### God-File-Refactor `src/lib/api.ts` Welle 1A (PROJ-105)
 
 Phase 2 des vor-Prod-Refactors gestartet. Erste Welle extrahiert die fünf sauberen End-of-File-Domänen aus dem monolithischen `src/lib/api.ts` (2442 Zeilen, 178 Exports) in dedizierte Module unter `src/lib/api/`:
