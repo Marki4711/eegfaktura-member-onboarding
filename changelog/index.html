@@ -329,6 +329,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#2026-06-14" class="md-nav__link">
+    <span class="md-ellipsis">
+      2026-06-14
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#2026-06-12" class="md-nav__link">
     <span class="md-ellipsis">
       2026-06-12
@@ -738,6 +747,16 @@
 <h1 id="was-ist-neu">Was ist neu?<a class="headerlink" href="#was-ist-neu" title="Permanent link">&para;</a></h1>
 <p>Übersicht der Änderungen der letzten Tage, die für <strong>EEG-Admins</strong> und <strong>Mitglieder</strong> spürbar sind. Technische Details, Bug-Fixes ohne UI-Auswirkung und Infrastruktur-Themen sind hier bewusst weggelassen — die finden sich in der Commit-Historie.</p>
 <hr />
+<h2 id="2026-06-14">2026-06-14<a class="headerlink" href="#2026-06-14" title="Permanent link">&para;</a></h2>
+<p><strong>Datenweiterleitung: Export pro Zählpunkt</strong></p>
+<p>Im Editor der Datenweiterleitung gibt es jetzt oben einen <strong>Zeilen-Modus</strong>. Neben dem bisherigen <em>Eine Zeile pro Mitglied</em> kannst du auf <em>Eine Zeile pro Zählpunkt</em> umstellen — dann bekommt jeder Zählpunkt eine eigene Zeile (Mitgliedsdaten werden wiederholt) und du kannst jeden Zählpunkt-Wert als eigene Spalte exportieren (Verbrauch, PV-Leistung, Speicher, Richtung …). Im Mitglieds-Modus zeigen Zählpunkt-Spalten alle Werte eines Mitglieds in einer Zelle, getrennt mit <code>|</code>.</p>
+<blockquote>
+<p>Mehrfach-Werte in einer Zelle (z. B. die Zählpunkt-Liste) werden jetzt mit <code>|</code> statt mit Komma getrennt — falls deine Weiterverarbeitung darauf aufbaut, bitte anpassen.</p>
+</blockquote>
+<p><strong>Behoben: Konfigurations-Import zwischen EEGs</strong></p>
+<p>Der Import einer Konfiguration von einer EEG auf eine andere brach in manchen Fällen mit „fehlgeschlagen" ab (wenn die Quell-EEG keine SEPA-Wahl-Mitgliedstypen gesetzt hatte). Das funktioniert jetzt — Komplett-Bundle und einzelne Sektionen lassen sich sauber importieren.</p>
+<p><strong>Behoben: eigene Farben der Registrierungsseite</strong></p>
+<p>Bei einem eigenen Farbschema wurden manche Hinweistexte schwarz statt in der gewählten Farbe dargestellt. Die Farben werden jetzt auch für helle Designs korrekt berechnet.</p>
 <h2 id="2026-06-12">2026-06-12<a class="headerlink" href="#2026-06-12" title="Permanent link">&para;</a></h2>
 <p><strong>Neuer Tab „Rechnungen" in den Einstellungen</strong></p>
 <p>In jeder EEG-Settings-Ansicht gibt es jetzt einen neuen Tab <strong>„Rechnungen"</strong>, in dem du die quartalsweisen Abrechnungs-Rechnungen für die Plattform-Nutzung siehst — Quartal, Status, Brutto-Betrag, Versand- und Bezahldatum, Rechnungsnummer.</p>

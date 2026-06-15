@@ -878,6 +878,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#zeilen-modus-pro-mitglied-oder-pro-zahlpunkt" class="md-nav__link">
+    <span class="md-ellipsis">
+      Zeilen-Modus: pro Mitglied oder pro Zählpunkt
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#job-ubersicht" class="md-nav__link">
     <span class="md-ellipsis">
       Job-Übersicht
@@ -1644,6 +1653,17 @@ Wenn du einen Antrag bereits per Import-Button verarbeitet hast und die Mitglied
 </table>
 <blockquote>
 <p>Wenn die Spalte <strong>Beitrittsdatum</strong> im Export leer bleibt, prüfe unter <em>Einstellungen → Formular-Felder</em>, ob das Feld auf <em>Ausgeblendet</em> steht. In dem Fall hat das Mitglied keinen Wert eintragen können. Wer als „Beitritt" eher das Datum der formellen Aktivierung im System meint, nimmt stattdessen <strong>Aktiviert am</strong>.</p>
+</blockquote>
+<h3 id="zeilen-modus-pro-mitglied-oder-pro-zahlpunkt">Zeilen-Modus: pro Mitglied oder pro Zählpunkt<a class="headerlink" href="#zeilen-modus-pro-mitglied-oder-pro-zahlpunkt" title="Permanent link">&para;</a></h3>
+<p>Im Editor wählst du oben den <strong>Zeilen-Modus</strong>. Er bestimmt, wie Mitglieder mit mehreren Zählpunkten in der Datei dargestellt werden:</p>
+<ul>
+<li><strong>Eine Zeile pro Mitglied</strong> (Standard) — jedes Mitglied ist genau eine Zeile. Zählpunkt-Felder (z. B. <em>Verbrauch Vorjahr</em>, <em>PV-Leistung</em>) zeigen <strong>alle</strong> Werte des Mitglieds in einer Zelle, getrennt mit einem senkrechten Strich <code>|</code> (Beispiel: <code>3000 | 1500</code>).</li>
+<li><strong>Eine Zeile pro Zählpunkt</strong> — jeder Zählpunkt wird eine <strong>eigene</strong> Zeile. Die Mitgliedsdaten (Name, Mitgliedsnummer, Adresse …) werden in jeder Zeile dieses Mitglieds wiederholt. So bekommst du <strong>einen Einzelwert pro Zählpunkt</strong> in jeder Spalte. Ein Mitglied ohne Zählpunkt erscheint mit einer Zeile und leeren Zählpunkt-Spalten.</li>
+</ul>
+<p>In <strong>beiden</strong> Modi kannst du dieselben Zählpunkt-Felder als Spalten wählen — nur die Darstellung unterscheidet sich. Die Summen-Felder (z. B. <em>Jahresverbrauch (Summe)</em>) und die <em>Zählpunkte (Liste)</em>-Spalte gibt es nur im Modus <em>Eine Zeile pro Mitglied</em>; wechselst du auf <em>Eine Zeile pro Zählpunkt</em>, werden bereits gewählte Summen-Spalten automatisch entfernt (ein kurzer Hinweis zeigt, welche).</p>
+<blockquote>
+<p>Die Zeilen werden nach <strong>Mitgliedsnummer</strong> sortiert; Mitglieder ohne Nummer stehen am Ende, alphabetisch nach Name. Im Zählpunkt-Modus sind die Zählpunkte eines Mitglieds nach Zählpunkt-Nummer geordnet — so bleibt die Datei über wiederholte Exporte vergleichbar.</p>
+<p><strong>Hinweis zum Trennzeichen:</strong> Mehrfach-Werte in einer Zelle (z. B. die Zählpunkt-Liste oder mehrere Zählpunkt-Werte im Mitglieds-Modus) werden mit <code>|</code> getrennt. Falls du dich auf das frühere Komma verlassen hast, passe deine Weiterverarbeitung im Zielsystem entsprechend an.</p>
 </blockquote>
 <h3 id="job-ubersicht">Job-Übersicht<a class="headerlink" href="#job-ubersicht" title="Permanent link">&para;</a></h3>
 <p><img alt="Datenweiterleitung Jobs" src="../images/admin-settings-datenweiterleitung-jobs.png" /></p>
