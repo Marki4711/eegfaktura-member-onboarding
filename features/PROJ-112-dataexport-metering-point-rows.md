@@ -1,8 +1,29 @@
 # PROJ-112: Datenweiterleitung – Export-Granularität „eine Zeile pro Zählpunkt"
 
-## Status: In Progress
+## Status: Approved
 **Created:** 2026-06-14
 **Last Updated:** 2026-06-14
+
+## QA Test Results (2026-06-14)
+
+**Verdikt: READY** — 0 Critical/High/Medium/Low. Kein `/security-review` nötig (keine Trigger: kein Auth/Tenant/Schema/Public/Import/Helm/CI/Secrets).
+
+**Acceptance Criteria — alle 12 auf Code-Ebene verifiziert:**
+- AC-1/2/3 (Modus-Umschalter): `excelConfig.RowMode` + `resolveRowMode` (leer→member), `omitempty` + `parseConfig`-Default halten Bestand-Configs im Mitglieds-Modus, UI-Select im Editor. ✓
+- AC-4/5/6/8 (ZP-Modus): `buildRows` erzeugt 1 Zeile/ZP, Mitglied ohne ZP → 1 Leerzeile; `extractCell` zieht Mitglieds-Felder aus der Application (wiederholt) und ZP-Felder pro Zeile. Tests in `rows_test.go`. ✓
+- AC-7 (voller ZP-Feldsatz): **Katalog-Konsistenz maschinell verifiziert** — 21 Backend-ZP-Keys (`AvailableMeteringPointFields`) == 21 Frontend-Keys (Kategorie „Zählpunkt"), `diff` leer. memberOnly-Set (5) identisch. Frontend-Unit-Test `data-export-fields.test.ts` pinnt das (feedback_parallel_math_shared_vector). ✓
+- AC-9/10 (Aggregat-Sichtbarkeit): `memberOnlyFields` (4 Aggregate + meter_numbers) → `ValidateConfig` lehnt im ZP-Modus mit 400 ab (Defense-in-Depth); Frontend `isFieldVisibleInMode` blendet aus; meter_count in beiden Modi. ✓
+- AC-11/12 (Format-Optionen + Spalten-Reihenfolge): unverändert. ✓
+
+**Edge Cases:** EC-1 (Leerzeile), EC-3 (ZP-Sort nach Nummer), EC-5 (typabhängige NULL → leere Zelle via deref-Helper gegen typed-nil-Pointer-Falle), G2 (Pipe-Join), G4 (Sort Mitgliedsnummer→Name), G8 (Auto-Drop+Toast) durch `rows_test.go` + `data-export-fields.test.ts` abgedeckt.
+
+**Security-Smoke:** CSV/Excel-Injection — `sanitiseSpreadsheetValue(extractCell(...))` in **beiden** Render-Loops (Zeile 46 XLSX, 91 CSV); Pipe-Join + ZP-Werte laufen durch den Schutz; nur der Zell-Anfang triggert Formel-Injektion, Mid-Cell-Werte nach `|` sind ungefährlich. Kein SQL (reine Formatierung). PII unverändert (admin-only + tenant-scoped via `LoadForExport`). `ValidateConfig` rowMode-Whitelist + Modus-Spalten-Zulässigkeit. `FilterUnknownFields` (PROJ-61-Import) kennt jetzt beide Kataloge — ZP-Spalten werden beim Config-Import nicht mehr verworfen. **0 Findings.**
+
+**Scans:** `go build/vet/test ./...` grün · `npx tsc --noEmit` grün · `npx vitest run` 251 grün (245 + 6 neu) · `npm run build` grün · `gosec -severity medium ./internal/dataexport/...` 0 Findings · `govulncheck` 0 callable.
+
+**Deferred:** E2E/Playwright (braucht Backend+DB) → manuell auf test-Env nach Deploy (Modus-Umschalter, ZP-Export-Zeilen, Auto-Drop-Toast, Pipe-Trennung).
+
+**Regression:** Mitglieds-Modus unverändert (Bestand ohne rowMode = member). **Bewusste Bestand-Änderung (G2):** die ZP-Listen-Zelle (`meter_numbers`) nutzt jetzt `|` statt `, ` — in CHANGELOG/Doku vermerken. Beifang: PROJ-99-Aggregate + `mandate_reference` erstmals im Frontend-Picker sichtbar (geschlossene Bestand-Lücke).
 
 ## Implementation Notes (Backend — 2026-06-14)
 
