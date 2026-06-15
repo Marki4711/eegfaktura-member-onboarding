@@ -142,5 +142,6 @@ Central tracking for all features.
 | PROJ-109 | Internes Abrechnungs-Feature (Details in privater Spec, `visibility:private`). | Deployed | `features/PROJ-109-billing-approval-gate.md` | 2026-06-14 |
 | PROJ-110 | Internes Abrechnungs-Feature (Details in privater Spec, `visibility:private`). | Planned | `features/PROJ-110-edition-auto-derive.md` | 2026-06-14 |
 | PROJ-111 | Internes Abrechnungs-Feature (Details in privater Spec, `visibility:private`). | Planned | `features/PROJ-111-activation-cost-transparency.md` | 2026-06-14 |
+| PROJ-112 | Datenweiterleitung: Export-Granularität „eine Zeile pro Zählpunkt" — neuer per-Config-Modus, bei dem jeder Zählpunkt eine eigene Zeile bekommt (Mitglieds-Stammdaten wiederholt) und alle ZP-Felder (Verbrauch, PV-Leistung, Speicher, Richtung, abweichende Adresse …) einzeln als Spalten wählbar sind. Mitglieds-Modus bleibt Default. Tester-Feedback 2026-06-14. Grilling G1-G9 + Tech-Design abgeschlossen: zwei Darstellungs-Modi via `rowMode`, getrennter ZP-Feld-Katalog, ein Renderer-Pfad via Flatten, Pipe-Separator durchgängig, keine DB-Änderung. | In Progress | `features/PROJ-112-dataexport-metering-point-rows.md` | 2026-06-14 |
 
-## Next Available ID: PROJ-112
+## Next Available ID: PROJ-113
