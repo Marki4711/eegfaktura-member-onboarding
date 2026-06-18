@@ -17,7 +17,14 @@ Full-Chain umgesetzt (G8), kein neues Paket:
 - **Tests**: Mail-Routing (3 Pfade ON/ON-leer/OFF), Configexport-Roundtrip. `go build/vet/test ./...` grün, gosec 0 neu (4 Bestand-Findings in fremden Dateien).
 - D2-Handler-Validierung: kein DB-loses HTTP-Harness vorhanden → Verifikation auf Code-Ebene in /qa.
 
-Offen: **/frontend** (Toggle beim Vorstands-Schalter + Hinweis-Popover + Client-Sperre bei fehlender contact_email + Auto-Save), dann /qa + /deploy (mit Migration).
+## Implementation Notes (Frontend — 2026-06-18)
+
+- **applications.ts**: `joiningConfirmationToEEG` in `EEGSettings` (optional) + `EEGSettingsSavePayload` (required).
+- **admin-eeg-settings-editor.tsx**: Toggle direkt unter dem PROJ-76-Vorstands-Schalter (Advanced-Sektion), mit Hinweis-Popover (kein placeholder). **Client-Sperre (D2)**: `disabled` solange keine `contactEmail` UND aktuell OFF (ein bereits gesetztes ON bleibt ausschaltbar — Defense gegen Config-Import-Zustand) + amber-Hinweis „in eegFaktura hinterlegen + synchronisieren". Voll in den PROJ-84-Auto-Save-Pfad eingereiht (State + Snapshot-Type + Load + currentSnapshot + autoSave-Payload + onSaved-Payload + discard).
+- **admin-legal-documents-editor.tsx**: Full-Snapshot-Save um das Feld ergänzt (sonst hätte der Policy-Toggle-Save den Wert auf false zurückgesetzt — Full-Replace-Disziplin).
+- tsc + vitest + `npm run build` grün.
+
+Offen: **/qa** + **/deploy** (Migration 000090 → Schema-Change-Deploy).
 
 ## Dependencies
 - Requires: PROJ-53/46 (Beitrittsbestätigungs-Mail mit PDF beim `activated`-Übergang, `SendActivationNotification`).
