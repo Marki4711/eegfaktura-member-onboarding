@@ -10,6 +10,30 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+## 2026-06-18
+
+### Datenweiterleitung: Haushalts-/Verbrauchs-Felder im Export (PROJ-113)
+
+Tester-Befund: E-Auto + Wärmepumpe fehlten in der Datenweiterleitung. Die ganze Haushalts-Gruppe war nicht im Export-Feld-Katalog. Ergänzt (Kategorie „Haushalt", Backend `AvailableFields` + Frontend `EXCEL_FIELD_CATALOG`): `persons_in_household`, `heat_pump`, `electric_vehicle`, `electric_vehicle_count`, `electric_vehicle_annual_km`, `electric_hot_water`. NULL-Werte → leere Zelle (deref-Helper gegen typed-nil-Pointer-Falle, kein „<nil>"/„0"). Keine DB-Migration. Gleiche Klasse wie PROJ-99.
+
+## 2026-06-14
+
+### Datenweiterleitung: Export-Granularität „eine Zeile pro Zählpunkt" (PROJ-112)
+
+Der Excel/CSV-Export der Datenweiterleitung kennt jetzt pro Config einen `rowMode`:
+
+- **`member`** (Default/Bestand): eine Zeile pro Mitglied. Zählpunkt-Felder zeigen alle Werte eines Mitglieds pipe-getrennt in einer Zelle.
+- **`metering_point`**: eine Zeile pro Zählpunkt, Mitgliedsdaten je Zeile wiederholt; jedes Zählpunkt-Feld ein Einzelwert. Mitglied ohne Zählpunkt → eine Zeile mit leeren Zählpunkt-Spalten.
+
+21 Zählpunkt-Felder neu als Spalten wählbar (Verbrauch, PV-Leistung, Speicher, Richtung, Faktor, abweichende Adresse, Erzeugungsform, Wechselrichter …). Implementierung als ein Renderer-Pfad via Flatten (`exportRow`), getrennter Zählpunkt-Feld-Katalog (`Extract func(MeteringPoint)`), Modus-Sichtbarkeit (Aggregate + Zählpunkt-Liste nur im member-Modus), Sortierung nach Mitgliedsnummer (ohne Nummer ans Ende → Name; im Zählpunkt-Modus nach Zählpunkt-Nummer). Klonbare Standardvorlage „Zählpunkt-Export". Keine DB-Migration, kein neues Paket. Frontend-Config-Editor mit Modus-Auswahl + modusabhängigem Picker + Auto-Drop ungültiger Spalten beim Modus-Wechsel. Beifang: fehlende PROJ-99-Felder (Mandatsreferenz + 4 Aggregate) im Frontend-Picker nachgezogen.
+
+**Achtung Bestand-Änderung:** Das Trennzeichen für Mehrfach-Werte in einer Zelle (bisher Zählpunkt-Liste) wechselt von `", "` auf `" | "` — gilt auch für bestehende Mitglieds-Modus-Configs.
+
+### Tester-Fixes
+
+- **Config-Import schreibt `sepa_optional_member_types` nie als NULL (PROJ-61-Fix):** Der Komplett-Bundle-Import zwischen EEGs scheiterte mit 500 (NOT-NULL-Verletzung), wenn die Quell-EEG keine SEPA-Wahl-Mitgliedstypen hatte. Sanitizer liefert jetzt immer ein non-nil Slice (`'{}'`). Plus klare Frontend-Meldung bei leeren/kaputten Import-Dateien.
+- **Brand-Theme: `muted-foreground` robust ableiten (PROJ-103-Fix):** Bei hellen Custom-Themes mit dunkler Textfarbe kippte die abgeleitete Hilfstext-Farbe nach Schwarz. Neue Formel mischt 35 % Richtung Hintergrund statt stur −30 % Helligkeit (TS + Go, gemeinsamer Test-Vektor).
+
 ## 2026-06-13
 
 ### God-File-Refactor `internal/http/admin.go` komplett (PROJ-107)

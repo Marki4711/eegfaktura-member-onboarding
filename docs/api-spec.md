@@ -2097,10 +2097,16 @@ Returns non-deleted configs for the EEG, ordered `plugin_type, name`.
 }
 ```
 
+**Excel `rowMode` (PROJ-112).** The excel config accepts an optional `rowMode`:
+- `"member"` (default; also when the field is absent → backward-compatible with existing configs): one row per member. Metering-point fields render all of a member's values pipe-separated (`" | "`) in one cell.
+- `"metering_point"`: one row per metering point, member data repeated per row, each metering-point field a single value. A member without metering points yields one row with empty metering-point columns.
+
+The same metering-point fields are selectable in both modes (e.g. `metering_point`, `direction`, `consumption_previous_year`, `pv_power_kwp`, …). The aggregate fields (`*_sum`, `has_battery`) and `meter_numbers` are **member-mode only** and rejected with `400` if used while `rowMode = "metering_point"`. Rows are sorted by member number (members without a number sort last, then by name); in `metering_point` mode, a member's rows are ordered by metering-point number.
+
 Server-side validation:
 - `pluginType` must exist in the registry
 - `name` must be unique per EEG across all plugin types (cross-plugin-type collision)
-- `Plugin.ValidateConfig(config)` is called — for excel: at least 1, at most 50 columns, each with non-empty unique header, known field, and a format that matches the field's type
+- `Plugin.ValidateConfig(config)` is called — for excel: `rowMode` must be empty/`member`/`metering_point`; at least 1, at most 50 columns, each with non-empty unique header, known field (member **or** metering-point catalogue), a format that matches the field's type, and (in `metering_point` mode) not a member-only field
 - Per-EEG limit: max 20 non-deleted configurations (`DataExportMaxConfigsPerEEG`)
 
 #### Response 201

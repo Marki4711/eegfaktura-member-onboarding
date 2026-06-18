@@ -1,8 +1,17 @@
 # PROJ-112: Datenweiterleitung – Export-Granularität „eine Zeile pro Zählpunkt"
 
-## Status: Approved
+## Status: Deployed
 **Created:** 2026-06-14
 **Last Updated:** 2026-06-14
+
+## Deployment (2026-06-14)
+
+- **Image:** `sha-7b5a6e3` (Backend + Frontend). CI Build & Test + Security Scan grün; Docker-Image gebaut.
+- **Helm:** `helm/member-onboarding/values.yaml` images.{backend,frontend}.tag = `sha-7b5a6e3`.
+- **Git-Tag:** `v1.41.0-PROJ-112`.
+- **Keine DB-Migration**, kein neues Helm-Werk/Secret/Env — reiner Code-Rollout (Backend + Frontend).
+- **Owner-Aktion (manuell):** `git pull` + `helm upgrade eegfaktura-member-onboarding ./helm/member-onboarding -f values-env.yaml -f values-secret.yaml`.
+- **Bestand-Änderung (G2):** Mehrwert-Trennzeichen `", "` → `" | "` (auch bestehende Mitglieds-Modus-Configs, ZP-Listen-Zelle). In CHANGELOG + User-Guide dokumentiert.
 
 ## QA Test Results (2026-06-14)
 

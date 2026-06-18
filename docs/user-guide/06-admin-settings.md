@@ -564,6 +564,19 @@ Die wichtigsten zeitbezogenen Felder im Vergleich:
 
 > Wenn die Spalte **Beitrittsdatum** im Export leer bleibt, prüfe unter *Einstellungen → Formular-Felder*, ob das Feld auf *Ausgeblendet* steht. In dem Fall hat das Mitglied keinen Wert eintragen können. Wer als „Beitritt" eher das Datum der formellen Aktivierung im System meint, nimmt stattdessen **Aktiviert am**.
 
+### Zeilen-Modus: pro Mitglied oder pro Zählpunkt
+
+Im Editor wählst du oben den **Zeilen-Modus**. Er bestimmt, wie Mitglieder mit mehreren Zählpunkten in der Datei dargestellt werden:
+
+- **Eine Zeile pro Mitglied** (Standard) — jedes Mitglied ist genau eine Zeile. Zählpunkt-Felder (z. B. *Verbrauch Vorjahr*, *PV-Leistung*) zeigen **alle** Werte des Mitglieds in einer Zelle, getrennt mit einem senkrechten Strich `|` (Beispiel: `3000 | 1500`).
+- **Eine Zeile pro Zählpunkt** — jeder Zählpunkt wird eine **eigene** Zeile. Die Mitgliedsdaten (Name, Mitgliedsnummer, Adresse …) werden in jeder Zeile dieses Mitglieds wiederholt. So bekommst du **einen Einzelwert pro Zählpunkt** in jeder Spalte. Ein Mitglied ohne Zählpunkt erscheint mit einer Zeile und leeren Zählpunkt-Spalten.
+
+In **beiden** Modi kannst du dieselben Zählpunkt-Felder als Spalten wählen — nur die Darstellung unterscheidet sich. Die Summen-Felder (z. B. *Jahresverbrauch (Summe)*) und die *Zählpunkte (Liste)*-Spalte gibt es nur im Modus *Eine Zeile pro Mitglied*; wechselst du auf *Eine Zeile pro Zählpunkt*, werden bereits gewählte Summen-Spalten automatisch entfernt (ein kurzer Hinweis zeigt, welche).
+
+> Die Zeilen werden nach **Mitgliedsnummer** sortiert; Mitglieder ohne Nummer stehen am Ende, alphabetisch nach Name. Im Zählpunkt-Modus sind die Zählpunkte eines Mitglieds nach Zählpunkt-Nummer geordnet — so bleibt die Datei über wiederholte Exporte vergleichbar.
+
+> **Hinweis zum Trennzeichen:** Mehrfach-Werte in einer Zelle (z. B. die Zählpunkt-Liste oder mehrere Zählpunkt-Werte im Mitglieds-Modus) werden mit `|` getrennt. Falls du dich auf das frühere Komma verlassen hast, passe deine Weiterverarbeitung im Zielsystem entsprechend an.
+
 ### Job-Übersicht
 
 ![Datenweiterleitung Jobs](images/admin-settings-datenweiterleitung-jobs.png)

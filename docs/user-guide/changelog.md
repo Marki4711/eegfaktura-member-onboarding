@@ -4,6 +4,28 @@
 
 ---
 
+## 2026-06-18
+
+**Datenweiterleitung: Haushalts-Felder wählbar**
+
+Im Spalten-Picker der Datenweiterleitung gibt es jetzt die Kategorie **„Haushalt"** mit *Personen im Haushalt*, *Wärmepumpe*, *E-Auto* (inkl. Anzahl und Jahres-km) und *Elektrische Warmwasserbereitung*. Diese Felder fehlten bisher und lassen sich nun in den Export aufnehmen. Hat ein Mitglied das Feld nicht ausgefüllt (oder ist es unter *Formular-Felder* ausgeblendet), bleibt die Zelle leer.
+
+## 2026-06-14
+
+**Datenweiterleitung: Export pro Zählpunkt**
+
+Im Editor der Datenweiterleitung gibt es jetzt oben einen **Zeilen-Modus**. Neben dem bisherigen *Eine Zeile pro Mitglied* kannst du auf *Eine Zeile pro Zählpunkt* umstellen — dann bekommt jeder Zählpunkt eine eigene Zeile (Mitgliedsdaten werden wiederholt) und du kannst jeden Zählpunkt-Wert als eigene Spalte exportieren (Verbrauch, PV-Leistung, Speicher, Richtung …). Im Mitglieds-Modus zeigen Zählpunkt-Spalten alle Werte eines Mitglieds in einer Zelle, getrennt mit `|`.
+
+> Mehrfach-Werte in einer Zelle (z. B. die Zählpunkt-Liste) werden jetzt mit `|` statt mit Komma getrennt — falls deine Weiterverarbeitung darauf aufbaut, bitte anpassen.
+
+**Behoben: Konfigurations-Import zwischen EEGs**
+
+Der Import einer Konfiguration von einer EEG auf eine andere brach in manchen Fällen mit „fehlgeschlagen" ab (wenn die Quell-EEG keine SEPA-Wahl-Mitgliedstypen gesetzt hatte). Das funktioniert jetzt — Komplett-Bundle und einzelne Sektionen lassen sich sauber importieren.
+
+**Behoben: eigene Farben der Registrierungsseite**
+
+Bei einem eigenen Farbschema wurden manche Hinweistexte schwarz statt in der gewählten Farbe dargestellt. Die Farben werden jetzt auch für helle Designs korrekt berechnet.
+
 ## 2026-06-12
 
 **Neuer Tab „Rechnungen" in den Einstellungen**
