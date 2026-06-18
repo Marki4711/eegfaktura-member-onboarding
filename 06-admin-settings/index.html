@@ -623,6 +623,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#beitrittsbestatigung-an-die-eeg-senden-alle-optionen" class="md-nav__link">
+    <span class="md-ellipsis">
+      Beitrittsbestätigung an die EEG senden (Alle Optionen)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#genossenschaftsanteile-alle-optionen" class="md-nav__link">
     <span class="md-ellipsis">
       Genossenschaftsanteile (Alle Optionen)
@@ -1278,6 +1287,14 @@ Wenn du einen Antrag bereits per Import-Button verarbeitet hast und die Mitglied
 <p><strong>Toggle aus (Standard):</strong> Verhalten wie bisher — Mitglied bekommt automatisch die Beitrittsbestätigung als PDF-Anhang zur Aktivierungs-Mail.</p>
 <p><strong>Vor der Aktivierung sicherstellen:</strong> Wenn der Toggle aktiv ist, <strong>muss</strong> die EEG-Kontakt-Mail gepflegt sein. Fehlt sie, bricht der Aktivierungs-Übergang ab und der Antrag bleibt im vorherigen Status. Du siehst die Fehlermeldung direkt im Aktivierungs-Vorgang.</p>
 <p><strong>Beitrittserklärung im Nachhinein herunterladen:</strong> Im Antrags-Detail eines aktivierten Mitglieds findest du im Dropdown <strong>Herunterladen</strong> den Eintrag <em>Beitrittserklärung</em> (zusätzlich zu Excel + Beitrittsbestätigung). Damit kannst du das PDF jederzeit neu erzeugen — z. B. wenn der Vorstand das Dokument verlegt hat. Sichtbar nur, wenn die EEG den Vorstands-Genehmigungs-Workflow aktiv hat und der Antrag den Status <em>Aktiviert</em> erreicht hat.</p>
+<h3 id="beitrittsbestatigung-an-die-eeg-senden-alle-optionen">Beitrittsbestätigung an die EEG senden <em>(Alle Optionen)</em><a class="headerlink" href="#beitrittsbestatigung-an-die-eeg-senden-alle-optionen" title="Permanent link">&para;</a></h3>
+<p>Standardmäßig bekommt das Mitglied beim Aktivieren die Beitrittsbestätigung als PDF automatisch per Mail. Manche EEGs wollen die Bestätigung aber lieber selbst überreichen — z. B. um eine persönliche Grußnachricht oder Zusatzinfos zu ergänzen. Genau dafür ist dieser Schalter da.</p>
+<p><strong>Toggle aktiv:</strong> Beim Wechsel auf Status „Aktiviert" geht <strong>eine</strong> Mail mit dem Beitrittsbestätigungs-PDF an die in den EEG-Stammdaten hinterlegte <strong>Kontakt-E-Mail</strong> — mit einem kurzen Vorspann „Anbei die Beitrittsbestätigung für … Bitte leite sie an das Mitglied weiter; du kannst eine persönliche Nachricht ergänzen." Der Vorstand leitet die Mail dann selbst (in seinem Mail-Programm) ans Mitglied weiter. Das <strong>Mitglied bekommt vom System nichts</strong> — keine separate Aktivierungs-Mail.</p>
+<p><strong>Toggle aus (Standard):</strong> Verhalten wie bisher — das Mitglied bekommt die Beitrittsbestätigung direkt als PDF-Anhang, die EEG-Kontaktperson eine Kopie.</p>
+<p><strong>Nur mit hinterlegter Kontakt-E-Mail aktivierbar:</strong> Der Schalter lässt sich nur einschalten, wenn in eegFaktura eine Kontakt-E-Mail hinterlegt <strong>und</strong> synchronisiert ist (sonst gäbe es keinen Empfänger zum Weiterleiten). Fehlt sie, ist der Toggle gesperrt und ein Hinweis weist dich darauf hin — pflege die Adresse zuerst in eegFaktura und klicke „Aus eegFaktura aktualisieren".</p>
+<blockquote>
+<p>Dieser Schalter ist unabhängig vom <strong>Vorstands-Genehmigungs-Workflow</strong> weiter oben. Dort geht eine <em>Beitrittserklärung</em> (Dokument zum Unterschreiben) an die EEG; hier geht die fertige <em>Beitrittsbestätigung</em> zum Weiterleiten an die EEG. Beide lassen sich getrennt voneinander ein- und ausschalten.</p>
+</blockquote>
 <h3 id="genossenschaftsanteile-alle-optionen">Genossenschaftsanteile <em>(Alle Optionen)</em><a class="headerlink" href="#genossenschaftsanteile-alle-optionen" title="Permanent link">&para;</a></h3>
 <blockquote>
 <p>Diese Sektion ist nur in <strong>Alle Optionen</strong> sichtbar.</p>
