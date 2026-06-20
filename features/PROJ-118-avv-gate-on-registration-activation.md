@@ -139,7 +139,160 @@ Bestandsdaten eine Migration teuer machen.
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+
+### Kernidee
+Die öffentliche Registrierung darf nur scharf werden, wenn die EEG den AVV
+akzeptiert hat. „AVV akzeptiert" = es existiert eine **freigegebene, nicht
+suspendierte Plattform-Buchung** (die erzwingt AGB+AVV+PDF-Beleg). Alle anderen
+Wege zu „aktiv" werden geschlossen.
+
+### A) Wo das Gate sitzt
+```
+Settings-Toggle „Registrierung aktiv" (EIN)
+   └─ Gate-Prüfung: existiert freigegebene + aktive Buchung?  ── nein ──► 409 „booking_required"
+                                                                            (Meldung: „Bitte zuerst
+                                                                             Plattform buchen")
+                              │ ja
+                              ▼
+                       is_active = true
+
+Buchung → Auto-Akzept (PROJ-119)  ──►  setzt is_active=true selbst (sanktionierter Weg, kein Gate)
+Öffentliche Registrierungs-Seite  ──►  prüft is_active schon (inaktiv → 404/410), UNVERÄNDERT
+```
+
+### B) Daten-Modell (Klartext) + Migration
+Keine neue Tabelle. Eine **neue Migration** (die alte 000002 bleibt unangetastet —
+Migrationen sind nach Apply unveränderlich) mit drei Teilen:
+1. **Default-Umstellung:** Der Standardwert von „Registrierung aktiv" wird von
+   *an* auf *aus* gesetzt. Wirkt nur auf **neu** angelegte EEG-Einträge —
+   bestehende Werte bleiben unangetastet.
+2. **Neue Ja/Nein-Eigenschaft „bestandsgeschützt aktiviert"** am EEG-Eintrag
+   (Standard: nein).
+3. **Einmaliger Bestandsschutz-Lauf:** Jede EEG, die *jetzt* aktiv ist, aber **keine**
+   freigegebene Buchung hat, wird als „bestandsgeschützt aktiviert" markiert.
+
+**Gate-Prädikat (zentral, der Kern-Stolperstein):** Aktivierung erlaubt, wenn
+**(freigegebene Buchung existiert UND Vertrag nicht suspendiert)** ODER
+**(„bestandsgeschützt aktiviert" = ja)**. Die reine „Vertrag aktiv?"-Prüfung genügt
+NICHT, weil sie für eine *nie gebuchte* EEG fälschlich „aktiv" liefert
+(Bestandsschutz-Netz) — deshalb muss zuerst die **freigegebene Buchung** nachgewiesen
+werden.
+
+### C) Tech-Entscheidungen (WHY)
+1. **Bestandsschutz als eigene Ja/Nein-Eigenschaft (Variante ii)** — nicht über einen
+   Eintrag im Vertrags-Ereignis-Log (Variante i) und nicht „ohne Marker" (Variante
+   iii). WHY:
+   - *Variante iii (kein Marker)* würde zwar bereits-aktive EEGs in Ruhe lassen, aber
+     eine bestandsgeschützte EEG könnte sich nach einem Aus→Ein nicht mehr ohne
+     Buchung reaktivieren — Owner-Wunsch („dürfen reaktivieren") verletzt.
+   - *Variante i (Log-Ereignis)* vermischt die Registrierungs-Aktivierung mit der
+     Vertrags-Semantik und müsste trotzdem zusätzlich geprüft werden — das Gate
+     verlangt ohnehin den Buchungs-Nachweis.
+   - *Variante ii (Eigenschaft am EEG-Eintrag)* ist genau dort, wo das Gate ohnehin
+     liest, explizit und einfach abfragbar. Hinweis: `registration_entrypoint` hat
+     bereits viele Spalten ([[project_todo_db_design_review]]) — eine bewusste,
+     gut begründete Ergänzung.
+2. **Owner-/Test-Ausnahme braucht KEINEN Sonderpfad.** Bestehende Test-/Owner-EEGs
+   sind durch den Bestandsschutz-Lauf abgedeckt; **neue** Test-EEGs bucht der Owner
+   einfach selbst — was dank **PROJ-119 Auto-Akzept** ein Ein-Klick-Schritt ist (sofort
+   aktiv). Schöne Kopplung: Auto-Akzept macht die „Aktivierung ohne Buchung"-Ausnahme
+   überflüssig.
+3. **Öffentlicher Endpoint unverändert:** Er prüft schon `is_active`; das Gate sitzt
+   eine Ebene davor (auf der Aktivierungs-Umschaltung), nicht im Public-Pfad.
+4. **Reihenfolge der Migration:** erst neue Eigenschaft anlegen, dann den Bestands-Lauf
+   (Daten füllen), dann ist der Default-Flip unabhängig — keine „Constraint vor
+   Daten"-Falle ([[feedback_migration_constraint_before_data]]).
+
+### D) Full-Chain (Umsetzungs-Stellen)
+- **Migration** (Default-Flip + neue Eigenschaft + Bestands-Lauf) — **Schema-Change →
+  Owner-Approval-Checkpoint**, Migration wird vor Apply gezeigt.
+- EEG-Eintrag-Repository: neue Eigenschaft lesen; Helfer „darf diese EEG aktiviert
+  werden?" (Buchungs-Nachweis + Vertrag-aktiv kombiniert — der Buchungs-Check kommt
+  aus dem Customer-Onboarding-Bereich, wird als Prüf-Funktion in den Settings-Handler
+  injiziert, analog zum bestehenden Vertrags-Checker).
+- Settings-Speichern-Pfad: Gate vor der Aktivierungs-Umschaltung; klare Fehlermeldung
+  + Fehlercode.
+- Admin-Settings-Oberfläche: das Gate sichtbar machen — Aktivierungs-Schalter
+  deaktiviert/mit Hinweis „erst Plattform buchen", statt erst beim Speichern zu
+  scheitern.
+
+### E) Dependencies
+PROJ-71 (Buchung liefert den AVV-Nachweis), gekoppelt mit PROJ-119 (erzeugt den
+„freigegeben"-Zustand). Keine neuen Pakete.
+
+### Grilling-Findings (2026-06-20, codebasiert verifiziert)
+1. **Gate-Scope bestätigt: nur der Settings-Aktivierungs-Pfad.** `is_active=true`
+   wird im Code NUR an zwei Stellen geschrieben: `SaveIsActive` (Settings-Toggle —
+   braucht das Gate) und `ApproveTx`/der Buchungs-Pfad (hat per Definition eine
+   Buchung → KEIN Gate). DB-Default wird per Migration FALSE; manueller INSERT ist
+   Owner-Sache. `SaveEEGSettings` setzt `is_active` NICHT (separater Pfad). → Das
+   Gate sitzt an genau einer Stelle.
+2. **Gate-Prädikat = `grandfathered ODER (freigegebene Buchung UND Vertrag aktiv)`.**
+   „Freigegebene Buchung" = es gibt eine `approved`-Submission (`FindApprovedForRC`);
+   „Vertrag aktiv" = `CheckContract.Active` (schließt suspendiert/terminiert aus).
+   Eine suspendierte EEG hat zwar eine `approved`-Submission, ist aber nicht aktiv →
+   Gate blockt korrekt (Reaktivierung nur durch Owner). Eine nie gebuchte EEG hat
+   keine `approved`-Submission → Gate blockt, obwohl `CheckContract` allein „aktiv"
+   liefern würde (Bestandsschutz-Netz) — genau der Grund, warum der Buchungs-Nachweis
+   zuerst kommt.
+3. **Cross-Package sauber:** ein **einziger injizierter Checker**
+   `hasApprovedActiveBooking(rc) bool` (im `customeronboarding`-Paket gebaut:
+   `FindApprovedForRC` + `CheckContract.Active`), analog zum bestehenden
+   `customerContractChecker` in main.go. Der Settings-Handler liest
+   `activation_grandfathered` aus dem schon geladenen Entrypoint und ODER-t:
+   `grandfathered || hasApprovedActiveBooking`. Kein direkter Repo-Import im
+   HTTP-Layer.
+4. **Migration (neue Datei, 000002 unangetastet — [[feedback_migration_after_apply_drift]]):**
+   Reihenfolge: (a) `ADD COLUMN activation_grandfathered BOOLEAN NOT NULL DEFAULT
+   FALSE`; (b) Bestands-Lauf `UPDATE … SET activation_grandfathered=true WHERE
+   is_active=true AND NOT EXISTS (approved submission für die rc)`; (c) `ALTER COLUMN
+   is_active SET DEFAULT FALSE`. Kein CHECK → keine „Constraint-vor-Daten"-Falle.
+   **Down-Migration:** Spalte droppen + Default wieder TRUE. Auf Prod trifft der
+   Bestands-Lauf genau TE100200 (aktiv, keine Buchung) → grandfathered; bestehende
+   `is_active`-Werte bleiben unangetastet. Dirty-Recovery siehe
+   [[reference_migrate_dirty_flag_recovery]].
+5. **Settings-UI-Gate (Full-Chain):** Die `GetEEGSettings`-Response bekommt ein
+   berechnetes Feld **`canActivateRegistration`** (= `grandfathered ||
+   hasApprovedActiveBooking`). Das Frontend deaktiviert den Aktivierungs-Schalter
+   bzw. zeigt den Hinweis „erst Plattform buchen", wenn `!canActivateRegistration &&
+   nicht bereits aktiv` — statt erst beim Speichern zu scheitern
+   ([[feedback_admin_field_full_chain]]: Feld in der bestehenden Response, kein
+   Extra-Call). Server-seitiges 409-Gate bleibt die harte Linie.
+
+### AC-Schärfungen
+- **AC-1** präzisiert: Gate sitzt ausschließlich am `SaveIsActive`-true-Zweig;
+  Prädikat `grandfathered || (FindApprovedForRC && CheckContract.Active)`.
+- **AC-6 (UI)** präzisiert: `canActivateRegistration`-Feld in `GetEEGSettings`.
+- Neuer **AC:** Migration enthält Down-Pfad; Bestands-Lauf markiert nur
+  aktuell-aktive-ohne-Buchung.
+
+### Build/Deploy
+Gemeinsam mit PROJ-119 (eine Migration nur hier, ein Tag `v1.45.0-PROJ-118-119`).
+PROJ-118 allein wäre nicht kaputt (Aktivierung ginge dann nur über manuellen
+Owner-Approve = mehr Reibung), aber gekoppelt ist es rund. **Schema-Change →
+Owner-Approval-Checkpoint:** Migration wird im /backend-Schritt vor Apply gezeigt.
+Nach Grilling: /backend.
+
+## Implementation Notes (Backend+Frontend, 2026-06-20)
+Umgesetzt (go build/vet/test + tsc + vitest 252 + build grün):
+- **Migration 000091** (`avv_gate_activation_grandfathered`): up = ADD COLUMN
+  `activation_grandfathered` → Bestands-Lauf (aktiv ohne approved-Buchung → TRUE) →
+  `is_active` DEFAULT FALSE; down = DEFAULT TRUE + DROP COLUMN. **Vor Apply dem Owner
+  gezeigt** (Schema-Checkpoint). Apply via helm-Migrate-Job beim Owner-`helm upgrade`.
+- `shared/models.go` Feld `ActivationGrandfathered`; `registration_entrypoint_repo.go`
+  GetByRCNumber SELECT+Scan ergänzt.
+- `contract.go` **HasApprovedActiveBooking** (FindApprovedForRC-Existenz UND
+  CheckContract.Active).
+- `admin.go` **ActivationBookingCheckerFunc** + SetActivationBookingChecker +
+  **activationAllowed**(ep) = `grandfathered || checker` (nil-Checker = Gate offen).
+- `admin_settings_eeg.go`: **Gate** im SaveEEGSettings (RegistrationActive==true ohne
+  Buchung+nicht-grandfathered → **409 `booking_required`**); **canActivateRegistration**
+  in GetEEGSettings-Response.
+- `main.go` injiziert den Checker (`customeronboarding.HasApprovedActiveBooking`).
+- Frontend: `EEGSettings.canActivateRegistration`; Aktivierungs-Toggle **disabled** +
+  Info-Popover „erst Plattform buchen", wenn `canActivate===false && nicht aktiv`.
+- Test: `activationAllowed`-Wahrheitstabelle (DB-frei). DB-Pfade (Gate-409,
+  HasApprovedActiveBooking, Migration) → QA/E2E nach Deploy.
 
 ## QA Test Results
 _To be added by /qa_

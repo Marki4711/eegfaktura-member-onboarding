@@ -1,6 +1,6 @@
 # PROJ-120: Owner-Identität via Allowlist — Superuser auf Datensicht reduzieren
 
-## Status: Planned
+## Status: Deployed
 **Created:** 2026-06-20
 **Last Updated:** 2026-06-20
 
@@ -311,8 +311,67 @@ Email evtl. nicht. Owner-Verifikation nötig.
 
 **Offen:** /security-review (Auth-Change Backend+Frontend), dann /deploy (nach AC-6).
 
+## Security Review
+
+**Reviewer:** Security Engineer (AI) · **Datum:** 2026-06-20 · **Scope:** git diff
+`81e892b..6755d15` (Backend `6f7322b` + Frontend `6755d15`): auth_middleware, config,
+admin_billing/admin_customer_onboarding/admin_cockpit, cors, main.go, 3 Nav-Links,
+Helm-Env, Tests.
+
+### Threat Model Summary
+PROJ-120 ist eine **Privilege-REDUKTION**: Owner-Funktionen (Cockpit, Abrechnung,
+Plattform-Buchungen) verlangen jetzt die Owner-Allowlist (`IsOwner`, Email-Match)
+statt der bloßen `superuser`-Rolle. Worst-Case wäre ein versehentliches *Öffnen*
+(Gate lockerer als vorher) oder ein *falsch umgestelltes* Daten-Sicht-Gate. Beides
+wurde ausgeschlossen.
+
+### Findings
+| Severity | File | Area | Risk | Exploit Scenario | Fix | Confidence |
+|---|---|---|---|---|---|---|
+| Info | — | requireOwner (3 Flächen) | Keiner — strenger als zuvor | `claims==nil`→403 (wie vorher); leere/nil-Allowlist→`IsOwner`=false (kein Bypass); nur die 3 Owner-Dateien geändert (Daten-Sicht-Dateien 0 Diff) | n/a | High |
+| Info | auth_middleware/cors | X-Test-Email | Trivial fälschbar, aber wirkungslos in Prod | TestHeaderAuthMiddleware nur bei `TEST_AUTH_MODE=headers`; main.go `log.Fatalf` blockt das in `ENVIRONMENT=production` (unverändert) | n/a | High |
+| Info (Bestand) | helm/postgres.yaml | KSV-0014 | postgres `readOnlyRootFilesystem` nicht gesetzt | Pre-existing; von PROJ-120 **nicht** berührt (postgres.yaml 0 Diff) | separat (nicht PROJ-120) | High |
+| Info (Bestand) | package-lock | npm audit (2 high) | Bestand-Deps | Kein Dep-Change in PROJ-120 (package.json/lock 0 Diff) | separat | High |
+
+Keine PII im Log (`OwnerAuthPath`/Audit-Log nutzt `emailDomainAuditSafe` → nur
+`@domain`); `/me`-Probe liefert nur `eligible`-bool + `authPath`. Keine neuen
+Public-Endpoints, keine DB-Migration, keine Status-Transition, kein Import-to-Core,
+keine Secrets (Emails sind nicht geheim → korrekt als plain value, kein secretKeyRef).
+
+### Scan Results
+- **govulncheck:** ./... → 0 callable (5 Import + 1 Modul Bestand, nicht erreichbar).
+- **gosec** (-severity/-confidence medium, internal/http + internal/config): **0 Issues** (39 Files / 8549 Lines).
+- **npm audit** (high): 9 Bestand (2 low/5 mod/2 high) — kein Dep-Change → 0 neu.
+- **Trivy IaC** (helm, --helm-set required Secrets, `Detected config files num=10` → real gescannt): 22/23 SUCCESS, 1 HIGH = KSV-0014 (postgres, Bestand, nicht berührt). 0 neu durch PROJ-120; securityContext intakt.
+
+### Verdict: **APPROVED**
+Reine Privilege-Reduktion, keine neue Angriffsfläche, 0 neue HIGH/CRITICAL.
+**Deploy-Voraussetzung (AC-6, Availability, KEIN Code-Vuln):** Betreiber-Login-Email
+MUSS in der Owner-Allowlist beider Zonen stehen, sonst Self-Lockout — vom Owner vor
+`helm upgrade` zu verifizieren.
+
 ## QA Test Results
 _To be added by /qa_
 
 ## Deployment
-_To be added by /deploy_
+
+**Tag:** `v1.44.0-PROJ-120` · **Datum:** 2026-06-20 · **Image:** `sha-6755d15`
+(Backend `6f7322b` + Frontend `6755d15`) · **Migration:** keine.
+
+- Auth-Change (Privilege-**Reduktion**): Owner-Funktionen (Cockpit, Abrechnung,
+  Plattform-Buchungen) gateen auf die Owner-Allowlist (`claims.IsOwner`); `superuser`
+  = nur Datensicht. Security-Review **APPROVED** (0 neue HIGH/CRITICAL).
+- Helm: `OWNER_ALLOWED_EMAILS` (neu) + `COCKPIT_ALLOWED_EMAILS` (Fallback); CI grün,
+  Docker-Image gebaut, `values.yaml` image-Tags auf `sha-6755d15`.
+
+**Owner-Manual (helm upgrade macht der Owner selbst, je Zone test + prod):**
+1. **BLOCKING — Lockout-Check (AC-6):** Betreiber-Login-Email muss in
+   `backend.ownerAllowedEmails` (oder via Fallback in `cockpitAllowedEmails`) der
+   jeweiligen `values-env-*.yaml` stehen. Prod-Allowlist hatte zum Deploy-Zeitpunkt
+   `office@gemeinstrom.at,eegfaktura@vfeeg.org` — falls der Login mit einer anderen
+   Email erfolgt, diese ergänzen, sonst Self-Lockout aus allen Owner-Funktionen.
+2. `git pull` + `helm upgrade eegfaktura-member-onboarding ./helm/member-onboarding
+   -f values-env.yaml -f values-secret.yaml` (keine Migration).
+3. Smoke-Test: als Owner (allowlisted) → 3 Owner-Nav-Links sichtbar + Endpoints 200;
+   als reiner Superuser ohne Allowlist → Links weg + Owner-Endpoints 403, „Anträge"
+   weiterhin voll sichtbar (alle EEGs).

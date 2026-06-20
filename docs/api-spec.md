@@ -2489,7 +2489,9 @@ No body.
 EEG-Customer-Onboarding: ein bereits per Keycloak authentifizierter EEG-Admin
 bucht die SaaS-Plattform aus den Einstellungen heraus. Alle Endpoints liegen
 unter `/api/admin/customer-onboarding/*` und sind JWT-protected. Submit ist
-Tenant-scoped (RC aus Claims), Approve/Reject/List/Detail sind Superuser-only.
+Tenant-scoped (RC aus Claims), Approve/Reject/List/Detail sind **Owner-only**
+(Owner-Allowlist `OWNER_ALLOWED_EMAILS`, PROJ-120 — die Superuser-Rolle allein
+genügt nicht mehr).
 
 Status-Lifecycle (linear):
 - `submitted` — EEG-Admin hat das Formular abgeschickt, wartet auf Owner-Freischaltung
@@ -2545,7 +2547,7 @@ serverseitig aus `AGBVersion` / `AVVVersion`-Konstanten gestempelt.
 
 ### GET `/api/admin/customer-onboarding/submissions`
 
-Superuser-only. Optional query param `status` (komma-separierte Liste) filtert
+Owner-only (Owner-Allowlist). Optional query param `status` (komma-separierte Liste) filtert
 auf einen oder mehrere Lifecycle-Werte. Default: alle 3 Statuswerte.
 
 ### Response 200
@@ -2572,7 +2574,7 @@ auf einen oder mehrere Lifecycle-Werte. Default: alle 3 Statuswerte.
 
 ### GET `/api/admin/customer-onboarding/submissions/{id}`
 
-Superuser-only. Liefert die Submission inkl. aktuellem Vertragsstatus aus dem
+Owner-only (Owner-Allowlist). Liefert die Submission inkl. aktuellem Vertragsstatus aus dem
 Event-Log.
 
 ### Response 200
@@ -2605,7 +2607,7 @@ Event-Log.
 
 ### POST `/api/admin/customer-onboarding/submissions/{id}/approve`
 
-Superuser-only. Schaltet `submitted` → `approved` in einer Transaktion:
+Owner-only (Owner-Allowlist). Schaltet `submitted` → `approved` in einer Transaktion:
 1. AVV-PDF wird generiert (best-effort, bei Fehler ohne Anhang weiter)
 2. `ApproveTx` atomar mit Advisory-Lock auf `rc_number`:
    - `customer_onboarding_submission.status='approved'`, `approved_at`, `approved_by_subject`
@@ -2637,7 +2639,7 @@ Superuser-only. Schaltet `submitted` → `approved` in einer Transaktion:
 
 ### POST `/api/admin/customer-onboarding/submissions/{id}/reject`
 
-Superuser-only. Behavior depends on current status:
+Owner-only (Owner-Allowlist). Behavior depends on current status:
 - **Pre-Approve** (`submitted`): Status-Transition auf `owner_rejected`,
   Reason + Keycloak-Subject werden persistiert. Kein Event geschrieben.
 - **Post-Approve** (`approved` mit aktivem Vertrag): atomar
@@ -2769,9 +2771,10 @@ durchgelassen (Verfügbarkeit > Strenge), Fehler wird geloggt.
 
 ## PROJ-104 Platform Billing API (Welle 1+2+3+4)
 
-Alle Owner-Endpoints unter `/api/admin/billing/*` sind **Superuser-only**
-(per-Handler `requireSuperuser`-Check). EEG-Admin sieht eine eigene Read-
-Only-Liste unter `/api/admin/eeg/{rc}/invoices` (Tenant-scoped via
+Alle Owner-Endpoints unter `/api/admin/billing/*` sind **Owner-only**
+(Owner-Allowlist `OWNER_ALLOWED_EMAILS`, PROJ-120; per-Handler `requireOwner`-
+Check — die Superuser-Rolle allein genügt nicht mehr). EEG-Admin sieht eine
+eigene Read-Only-Liste unter `/api/admin/eeg/{rc}/invoices` (Tenant-scoped via
 `containsRC`).
 
 ### Owner-Endpoints

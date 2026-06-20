@@ -95,7 +95,109 @@ Suspend behandelt (BackOffice bleibt dafür erhalten).
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+
+### Kernidee
+Der zweistufige Buchungs-Ablauf wird einstufig: Die Bestätigung von AGB+AVV durch
+den EEG-Admin aktiviert die EEG sofort — der separate Owner-Freigabe-Klick entfällt.
+
+### A) Ablauf vorher → nachher
+```
+VORHER:  EEG-Admin: „Plattform buchen" (AGB+AVV)
+         → Status „submitted"  → wartet auf Owner
+         → Owner klickt „Approve" im BackOffice
+         → Status „aktiviert", Registrierung scharf, Welcome-Mail
+
+NACHHER: EEG-Admin: „Plattform buchen" (AGB+AVV)
+         → in EINEM Schritt: aktiviert, Registrierung scharf, Welcome-Mail
+         → Owner bekommt nur noch eine FYI-Mail („gebucht + auto-aktiviert")
+```
+
+### B) Daten-Modell (Klartext)
+- **Keine DB-Migration.** Es ändert sich nur die *Reihenfolge* im Buchungs-Ablauf,
+  nicht das Datenmodell. Der bestehende Status `submitted` wird nur noch transient
+  innerhalb desselben Vorgangs durchlaufen (oder übersprungen) und bleibt nie als
+  „Warteposten" liegen.
+- Der bestehende **Doppel-Buchungs-Schutz** (eine EEG kann nicht zweimal buchen,
+  solange eine eingereichte/aktive Buchung existiert) bleibt unverändert.
+
+### C) Tech-Entscheidungen (WHY)
+1. **Aktivierung über die bestehende Freigabe-Logik wiederverwenden** (kein
+   Duplikat): Derselbe atomare Schritt, der heute beim Owner-Approve läuft
+   (Status → aktiviert, `is_active=true`, Welcome-Mail mit AVV-PDF), wird direkt im
+   Buchungs-Vorgang ausgelöst. WHY: ein einziger Code-Pfad für „aktivieren" — keine
+   zwei Pfade, die auseinanderdriften.
+2. **Suspendierte EEG kann nicht heimlich reaktiviert werden** — und zwar **ohne
+   neue Logik**: Der bestehende Doppel-Buchungs-Schutz blockiert eine erneute
+   Buchung, solange die (auch suspendierte) Buchung im System ist. Eine reaktivierte
+   EEG bleibt also eine bewusste Owner-Handlung. WHY: kein Risiko, dass Auto-Akzept
+   eine Sperre umgeht.
+3. **Owner-Benachrichtigung wird FYI**: Inhalt von „bitte prüfen/freigeben" zu
+   „EEG X hat gebucht und ist aktiv" umformuliert. Reject/Suspend im BackOffice
+   bleibt für den Nachhinein-Fall.
+4. **AVV bleibt Pflicht**: AGB+AVV-Häkchen + die synchrone AVV-PDF-Erzeugung bleiben
+   Voraussetzung; schlägt die PDF-Erzeugung fehl, scheitert der ganze Vorgang (keine
+   Aktivierung ohne AVV-Beleg).
+
+### D) Full-Chain (Umsetzungs-Stellen)
+- Buchungs-Service (Submit) ruft die Aktivierungs-Logik inline auf (statt nur
+  „submitted" zu schreiben).
+- Owner-Benachrichtigungs-Mail: Text → FYI.
+- Welcome-Mail: unverändert, feuert jetzt im Buchungs-Schritt.
+- BackOffice-Liste/Detail: kein neuer Wartezustand mehr; Suspend/Reject bleibt.
+  Nav-Link „Plattform-Buchungen" ist bereits live (committet).
+
+### E) Dependencies
+PROJ-71 (Buchungs-/Freigabe-Lifecycle). Keine neuen Pakete, keine Migration.
+
+### Grilling-Findings (2026-06-20, codebasiert verifiziert)
+1. **Eine Transaktion, kein „submitted"-Waise.** `ApproveTx` verlangt heute eine
+   bereits existierende `submitted`-Zeile (`UPDATE … WHERE status='submitted'`) und
+   öffnet eine eigene Tx. Für Auto-Akzept NICHT „CreateSubmission, dann ApproveTx"
+   (zwei Tx → Crash dazwischen = hängende `submitted`-Buchung). Stattdessen **eine
+   Transaktion** „buchen+aktivieren": Submission direkt als `approved` anlegen +
+   Event `activated` + `is_active=true`, alles atomar (advisory-lock wie ApproveTx
+   gegen Suspend-Race). `InsertEvent` ist bereits Tx-fähig (`sqlExec`-Param) →
+   wiederverwendbar; `CreateSubmission` wird Tx-fähig gemacht oder im neuen
+   Tx-Pfad inline (shared helper, [[feedback_shared_helpers_for_parallel_paths]]).
+2. **Welcome-Mail bleibt best-effort, NACH Commit** (DB zuerst — Bestand-BUG-2-Fix).
+   Der AVV-PDF-Beleg + DB-Commit sind die harte Wahrheit; die Aktivierung darf nicht
+   an der Mail-Zustellbarkeit scheitern. Bewusst KEIN Hard-Fail hier (Abweichung von
+   [[feedback_mail_hard_fail]] begründet: member-getriggerter Buchungs-Flow, Beleg =
+   PDF). Owner-Notification: async, best-effort, Text → FYI.
+3. **Event-Herkunft:** der `activated`-Event im Auto-Akzept trägt `reason_code`
+   `auto_accept` (statt `owner_approve`), `actor_kind=human`, `actor_subject` = der
+   submittende EEG-Admin. So bleibt der Audit-Trail ehrlich (kein fiktiver Owner).
+4. **`submitted` wird toter, aber geduldeter Zweig.** Der neue Pfad erzeugt nie mehr
+   eine wartende `submitted`-Buchung. BackOffice-„Approve" + `BadgeKindSubmitted` +
+   Cockpit-`latest_cos` bleiben **unverändert** (defensive Reserve für etwaige
+   Vor-Deploy-Strays — der Owner kann eine stray `submitted` weiterhin manuell
+   freigeben). Kein Status-Wert entfernen, kein Cleanup nötig.
+5. **Suspendierte Re-Buchung bleibt blockiert** (verifiziert): `HasActiveSubmissionFor`
+   = `status IN (submitted,approved)`; Suspend behält `approved` → erneuter Submit →
+   `ErrAlreadyActive`. Auto-Akzept kann eine Sperre NICHT umgehen. Null neue Logik.
+
+### AC-Schärfungen
+- **AC-1** präzisiert: Buchen+Aktivieren in **einer** DB-Transaktion (kein
+  `submitted`-Zwischenzustand persistiert).
+- **AC-3** (Event): `activated` mit `reason_code=auto_accept`, `actor=human/submitter`.
+- **AC-2** (Welcome-Mail): best-effort nach Commit (kein Hard-Fail).
+
+### Build/Deploy
+Gemeinsam mit PROJ-118 deployen (eine Migration in PROJ-118, ein Tag, z. B.
+`v1.45.0-PROJ-118-119`) — PROJ-118s Gate liest den `approved`-Zustand, den
+Auto-Akzept direkt erzeugt. Nach Grilling: /backend.
+
+## Implementation Notes (Backend+Frontend, 2026-06-20)
+Umgesetzt (go build/vet/test + tsc + vitest 252 + build grün), **keine Migration**:
+- `repository.go` **SubmitAndActivateTx**: eine Tx — advisory-lock → INSERT submission
+  direkt `approved` → InsertEvent `activated`/`auto_accept` → `is_active=true`; 23505 →
+  `ErrAlreadyActive`. Kein `submitted`-Waise.
+- `service.go` **Submit** ruft jetzt SubmitAndActivateTx (Status direkt approved,
+  approved_at/by gesetzt) + **spawnAutoAcceptMails** (Welcome mit AVV-PDF + Owner-FYI,
+  beide best-effort NACH Commit). Altes spawnSubmitBackground ersetzt.
+- `contract.go` Konstante **ReasonAutoAccept** `auto_accept`.
+- Mail: Owner-Notification-Template + Betreff → FYI „gebucht & automatisch aktiviert".
+- ApproveTx + BackOffice-Approve BLEIBEN (Reserve für Vor-Deploy-`submitted`-Strays).
 
 ## QA Test Results
 _To be added by /qa_

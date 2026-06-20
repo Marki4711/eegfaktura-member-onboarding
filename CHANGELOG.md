@@ -24,6 +24,15 @@ Strategie-Wechsel: das Produkt geht zunächst **kostenlos** live, mit Hinweis, d
 
 Globaler, dauerhafter Banner (Admin + öffentliche Registrierung), der erscheint, wenn ein Umgebungs-Label konfiguriert ist; Prod = leer = kein Banner. Sicherheits-Hintergrund: die Test-Zone hängt am Produktiv-Faktura-Core — ein Import wirkt real. Label + Hinweistext kommen als **Laufzeit-Env** (`ENVIRONMENT_LABEL` / `ENVIRONMENT_NOTICE`, kein `NEXT_PUBLIC` — dasselbe Image läuft in Test und Prod). Server-seitig in den dynamisch gerenderten Layouts (Admin + Public-Shell) gelesen → statische Info-Seiten backen nichts ein. Hinweistext bewusst konfigurierbar (NICHT pauschal „keine Produktivdaten", da Core produktiv). Helm: `frontend.environmentLabel` / `environmentNotice` (Default leer). Kein Go-Backend, keine DB.
 
+### Owner-Identität via Allowlist — Superuser auf Datensicht reduziert (PROJ-120)
+
+Die Betreiber-Funktionen **Cockpit** (`/admin/cockpit`), **Abrechnung** (`/admin/billing`) und **Plattform-Buchungen** (`/admin/customer-onboarding`) sind jetzt entkoppelt von der Keycloak-`superuser`-Rolle: Zugang nur noch über die **Owner-Allowlist** (`OWNER_ALLOWED_EMAILS`, mit Rückwärts-Fallback auf das frühere `COCKPIT_ALLOWED_EMAILS` — kein Flag-Day). Die `superuser`-Rolle bleibt reine **Datensicht** (alle Anträge/EEGs tenant-übergreifend sehen + verwalten) und gewährt **keinen** Owner-Funktions-Zugang mehr.
+
+- Backend: neuer `claims.IsOwner(allowlist)`-Check (Email-Match, ohne Superuser-Zweig) ersetzt `requireSuperuser` auf den 17 Billing-Endpoints, den 4 Customer-Onboarding-BackOffice-Endpoints und im Cockpit-Gate. Alle übrigen `IsSuperuser`-Stellen (Anträge-Liste/Bulk/Reassign/Import, Tenant-Bypass-Lesepfade, Customer-Onboarding-Submit/AVV/Tenant-Status) bleiben unverändert.
+- Frontend: die drei Owner-Nav-Links rendern nur noch für Owner-Allowlist-Identitäten (gemeinsame Eligibility-Probe `/api/admin/owner-cockpit/me`, jetzt allowlist-only).
+- E2E: neuer `X-Test-Email`-Header (nur im Test-Auth-Modus; in Produktion weiterhin per Start-Guard gesperrt).
+- **Betrieb:** Die Betreiber-Login-Email **muss** in `ownerAllowedEmails` (bzw. via Fallback `cockpitAllowedEmails`) stehen — die Superuser-Rolle allein schützt nicht mehr vor Selbst-Aussperrung. Keine DB-Migration.
+
 ## 2026-06-18
 
 ### Datenweiterleitung: Haushalts-/Verbrauchs-Felder im Export (PROJ-113)
