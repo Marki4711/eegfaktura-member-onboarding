@@ -719,15 +719,16 @@
     note right of imported
         transient — Server&lt;br/&gt;routet sofort weiter
     end note</code></pre>
-<p>Aus den Stati <code>imported</code> und <code>ready_for_activation</code> ist über die Aktion <strong>Import zurücksetzen</strong> ein Rückweg nach <code>approved</code> möglich — siehe <a href="05-admin-status/#import-zurucksetzen-imported-ready_for_activation-approved">Statusverwaltung</a>. Aus <code>activated</code> gibt es keinen Reset; ein aktives Mitglied muss zuerst im eegFaktura-Core deaktiviert werden.</p>
+<p>Für Korrekturen gibt es mehrere Rückwege (jeweils mit Pflicht-Begründung, keiner berührt den eegFaktura-Core): aus <code>imported</code> / <code>ready_for_activation</code> führt <strong>Import zurücksetzen</strong> nach <code>approved</code>; aus <code>activated</code> holt <strong>Aktivierung zurücksetzen</strong> den Antrag nach <code>imported</code> zurück (Mitgliedsnummer + Core-Teilnehmer-ID bleiben); aus <code>imported</code> führt <strong>Auf Prüfung zurücksetzen</strong> ganz zurück nach <code>under_review</code>. Siehe <a href="05-admin-status/#import-zurucksetzen-imported-ready_for_activation-approved">Statusverwaltung</a>.</p>
 <p>Details zu den einzelnen Übergängen:</p>
 <ul>
 <li><code>submitted → email_confirmed</code>: nur wenn die EEG <strong>E-Mail-Bestätigung erforderlich</strong> aktiviert hat — Mitglied klickt den Bestätigungs-Link in der Willkommens-Mail.</li>
 <li><code>import_failed → approved</code>: nach Fehlerbehebung kann der Import erneut versucht werden.</li>
 <li><code>imported</code> ist <strong>transient</strong> (nur Millisekunden) — der Server transitioniert sofort weiter nach <code>ready_for_activation</code>, unabhängig von der Einzugsart. Wenn der Antrag für eine spätere B2B-Umstellung vorgesehen ist (Toggle „Mitglied für Umstellung auf B2B vorbereiten" oder Einzugsart=B2B), enthält die Mandat-Mail zusätzlich ein Firmenlastschrift-PDF — der spätere Wechsel auf SEPA-B2B passiert manuell im eegFaktura-Core nach der Bank-Bestätigung.</li>
 <li><code>ready_for_activation → activated</code>: Admin klickt manuell „Als aktiv markieren" ODER nutzt den Batch-Button „Aktivierung im Core prüfen" in der Antragsliste.</li>
-<li><code>activated</code> ist <strong>strikter Endzustand</strong>: keine Übergänge raus, kein Reset. Deaktivierung erfolgt direkt im Core.</li>
-<li><code>imported / ready_for_activation → approved</code>: über die Aktion <strong>Import zurücksetzen</strong> in der Detailansicht. NICHT aus <code>activated</code>.</li>
+<li><code>activated → imported</code>: über die Aktion <strong>Aktivierung zurücksetzen</strong> (z. B. bei irrtümlicher Aktivierung). Reine Onboarding-Buchhaltung — Mitgliedsnummer und Core-Teilnehmer-ID bleiben, der Core wird nicht berührt.</li>
+<li><code>imported / ready_for_activation → approved</code>: über die Aktion <strong>Import zurücksetzen</strong> in der Detailansicht.</li>
+<li><code>imported → under_review</code>: über die Aktion <strong>Auf Prüfung zurücksetzen</strong> — vollständiges Zurückholen in die Bearbeitung (Import- und Aktivierungs-Vermerke werden geleert).</li>
 </ul>
 <table>
 <thead>

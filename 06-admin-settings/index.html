@@ -545,6 +545,15 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#vertrag-onboarding-status-plattform-buchen" class="md-nav__link">
+    <span class="md-ellipsis">
+      Vertrag &amp; Onboarding-Status (Plattform buchen)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#mitgliederregistrierung-aktiv" class="md-nav__link">
     <span class="md-ellipsis">
       Mitgliederregistrierung aktiv
@@ -1135,6 +1144,15 @@ Wenn du einen Antrag bereits per Import-Button verarbeitet hast und die Mitglied
 <h2 id="eeg-stammdaten-sepa-mandat">EEG-Stammdaten &amp; SEPA-Mandat<a class="headerlink" href="#eeg-stammdaten-sepa-mandat" title="Permanent link">&para;</a></h2>
 <p>In diesem Abschnitt steuerst du die öffentliche Registrierung und hinterlegst die Stammdaten für das SEPA-Lastschriftmandat.</p>
 <p><img alt="EEG-Einstellungen" src="../images/admin-settings-eeg.png" /></p>
+<h3 id="vertrag-onboarding-status-plattform-buchen">Vertrag &amp; Onboarding-Status (Plattform buchen)<a class="headerlink" href="#vertrag-onboarding-status-plattform-buchen" title="Permanent link">&para;</a></h3>
+<p>Ganz oben auf der Einstellungs-Seite steht die Karte <strong>„Vertrag &amp; Onboarding-Status"</strong>. Sie zeigt, ob deine EEG die Plattform bereits gebucht hat, und ist die Voraussetzung dafür, die Mitgliederregistrierung scharfzuschalten.</p>
+<ul>
+<li><strong>Plattform buchen:</strong> Mit der Bestätigung von <strong>AGB</strong> und <strong>AVV</strong> (Auftragsverarbeitungsvertrag) buchst du die Plattform. Die Buchung schaltet deine EEG <strong>sofort frei</strong> — es ist keine separate manuelle Freischaltung mehr nötig. Du erhältst direkt eine Willkommens-Mail mit dem AVV-Beleg.</li>
+<li><strong>Status-Anzeige:</strong> Die Karte zeigt den aktuellen Vertragsstatus (z. B. <em>noch nicht gebucht</em>, <em>aktiv</em> oder <em>ausgesetzt</em>).</li>
+</ul>
+<blockquote>
+<p>Hintergrund: Der AVV regelt die Verarbeitung der Mitglieder-Daten in deinem Auftrag. Erst wenn er vorliegt, dürfen über das öffentliche Formular personenbezogene Daten erfasst werden — deshalb hängt die Registrierung an der Buchung (siehe nächster Abschnitt).</p>
+</blockquote>
 <h3 id="mitgliederregistrierung-aktiv">Mitgliederregistrierung aktiv<a class="headerlink" href="#mitgliederregistrierung-aktiv" title="Permanent link">&para;</a></h3>
 <p><img alt="Mitgliederregistrierung aktiv" src="../images/admin-settings-eeg-registration.png" /></p>
 <p>Der Toggle ganz oben steuert, ob der öffentliche Registrierungslink für deine EEG aktiv ist.</p>
@@ -1142,7 +1160,7 @@ Wenn du einen Antrag bereits per Import-Button verarbeitet hast und die Mitglied
 <li><strong>Aktiv</strong>: Interessenten können sich über den Registrierungslink anmelden.</li>
 <li><strong>Inaktiv</strong>: Besucher des Registrierungslinks erhalten eine Fehlermeldung. Bestehende Anträge sind davon nicht betroffen.</li>
 </ul>
-<p>Neue EEGs starten standardmäßig als inaktiv. Aktiviere die Registrierung erst, wenn alle Einstellungen konfiguriert sind.</p>
+<p><strong>Erst Plattform buchen:</strong> Der Toggle lässt sich nur einschalten, wenn deine EEG die Plattform gebucht hat (AGB + AVV, siehe oben). Ist noch nicht gebucht, ist der Schalter <strong>ausgegraut</strong> mit dem Hinweis <em>„erst Plattform buchen"</em>. Neue EEGs starten standardmäßig als <strong>inaktiv</strong>. Aktiviere die Registrierung erst, wenn die Plattform gebucht und alle Einstellungen konfiguriert sind.</p>
 <h3 id="eeg-stammdaten-logo-aus-eegfaktura">EEG-Stammdaten &amp; Logo — aus eegFaktura<a class="headerlink" href="#eeg-stammdaten-logo-aus-eegfaktura" title="Permanent link">&para;</a></h3>
 <p>Neun Werte werden direkt aus eegFaktura übernommen und sind in der Onboarding-Oberfläche <strong>schreibgeschützt</strong> (kleines Schloss-Symbol). Änderungen erfolgen ausschließlich in eegFaktura selbst, danach hier per „Aus eegFaktura aktualisieren" synchronisieren.</p>
 <table>
@@ -1635,6 +1653,7 @@ Wenn du einen Antrag bereits per Import-Button verarbeitet hast und die Mitglied
 <li><strong>Stammdaten und Zählpunkt-Daten</strong> — werden vom Mitglied im Public-Form eingegeben (z. B. Name, Adresse, IBAN, Zählpunkt-Bezeichnung).</li>
 <li><strong>Form-Felder mit Sichtbarkeits-Schalter</strong> — werden nur befüllt, wenn das EEG das Feld unter <strong>Einstellungen → Formular-Felder</strong> auf <em>Optional</em>, <em>Pflicht</em> oder <em>Nur Admin</em> gestellt hat. Steht das Feld auf <em>Ausgeblendet</em>, sieht das Mitglied es nicht im Formular und der Wert bleibt leer. Beispiele: Beitrittsdatum, Personen im Haushalt, Wärmepumpe, E-Auto-Details, Genossenschaftsanteile.</li>
 <li><strong>System-Zeitstempel</strong> — werden automatisch vom System gesetzt, wenn der Antrag den entsprechenden Status erreicht. Diese Werte sind immer befüllt, sobald der Status durchlaufen wurde.</li>
+<li><strong>Zusammengesetzte Felder</strong> — einzelne Felder sind <strong>kein eigenes Datenfeld</strong>, sondern werden zur Export-Zeit aus mehreren Werten gebildet. Das wichtigste ist <strong>Name</strong>: es liefert automatisch den <em>Firmennamen</em> bei Organisationen (Unternehmen, Verein, Gemeinde) und sonst <em>Vorname + Nachname</em>. So musst du nicht Vor- und Nachname getrennt wählen und im Zielsystem zusammensetzen. Im Editor sind solche Felder mit dem Zusatz <strong>„· automatisch"</strong> gekennzeichnet und zeigen beim Auswählen einen kurzen Erklär-Hinweis.</li>
 </ul>
 <p>Die wichtigsten zeitbezogenen Felder im Vergleich:</p>
 <table>

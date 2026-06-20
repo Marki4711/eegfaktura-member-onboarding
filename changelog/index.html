@@ -773,9 +773,11 @@
 <p><strong>Rechnungen-Tab: Hinweis „aktuell kostenlos"</strong></p>
 <p>Solange die Plattform-Nutzung kostenlos ist, erscheint im Tab <strong>„Rechnungen"</strong> oben ein Hinweis: <em>Die Nutzung ist derzeit kostenlos. Eine kostenpflichtige Nutzung ist geplant und wird rechtzeitig vorab angekündigt.</em> Die angezeigten Beträge sind eine <strong>unverbindliche Vorschau</strong> und werden aktuell nicht in Rechnung gestellt — das Status-Etikett heißt jetzt entsprechend <strong>„Vorschau"</strong> (statt „Preview"). Sobald für deine EEG echt abgerechnet wird, verschwindet der Hinweis automatisch.</p>
 <p><strong>Datenweiterleitung: Spalte „Name" auswählbar</strong></p>
-<p>Im Spalten-Editor der Excel-Datenweiterleitung lässt sich jetzt die Spalte <strong>„Name"</strong> auswählen. Sie liefert je nach Mitgliedstyp automatisch den passenden Wert — Firmenname bei Organisationen, Vor- und Nachname bei Privatpersonen — sodass du Vor- und Nachname nicht mehr getrennt zusammensetzen musst. (Zusätzlich neu wählbar: „SEPA-Akzept-IP".)</p>
+<p>Im Spalten-Editor der Excel-Datenweiterleitung lässt sich jetzt die Spalte <strong>„Name"</strong> auswählen. Sie liefert je nach Mitgliedstyp automatisch den passenden Wert — Firmenname bei Organisationen, Vor- und Nachname bei Privatpersonen — sodass du Vor- und Nachname nicht mehr getrennt zusammensetzen musst. Im Editor ist sie mit dem Zusatz <strong>„· automatisch"</strong> gekennzeichnet und zeigt beim Auswählen einen Erklär-Hinweis, damit klar ist, dass es sich um ein zusammengesetztes Feld handelt und nicht um ein einzelnes Datenfeld. (Zusätzlich neu wählbar: „SEPA-Akzept-IP".) → <a href="../06-admin-settings/#welche-felder-gibt-es">Datenweiterleitung — Welche Felder gibt es</a></p>
 <p><strong>AGB: Gerichtsstand Linz</strong></p>
 <p>Der Gerichtsstand in den AGB (§ 11) ist jetzt <strong>Linz</strong>.</p>
+<p><strong>Benutzerhandbuch aktualisiert</strong></p>
+<p>Das Handbuch wurde durchgesehen und auf den aktuellen Stand gebracht — u. a.: Plattform-Buchung schaltet die EEG sofort frei und ist Voraussetzung für die Mitgliederregistrierung, die Rücksetz-Aktionen <em>Aktivierung zurücksetzen</em> und <em>Auf Prüfung zurücksetzen</em>, die korrekte Reihenfolge der Felder im Registrierungsformular sowie die Feldbezeichnung <em>Kontowortlaut</em>.</p>
 <h2 id="2026-06-18">2026-06-18<a class="headerlink" href="#2026-06-18" title="Permanent link">&para;</a></h2>
 <p><strong>Datenweiterleitung: Haushalts-Felder wählbar</strong></p>
 <p>Im Spalten-Picker der Datenweiterleitung gibt es jetzt die Kategorie <strong>„Haushalt"</strong> mit <em>Personen im Haushalt</em>, <em>Wärmepumpe</em>, <em>E-Auto</em> (inkl. Anzahl und Jahres-km) und <em>Elektrische Warmwasserbereitung</em>. Diese Felder fehlten bisher und lassen sich nun in den Export aufnehmen. Hat ein Mitglied das Feld nicht ausgefüllt (oder ist es unter <em>Formular-Felder</em> ausgeblendet), bleibt die Zelle leer.</p>
@@ -1125,7 +1127,7 @@
 <p><strong>Zählpunkt-Prefix pro EEG konfigurierbar</strong></p>
 <p>Wenn die Zählpunkte deiner EEG mehrheitlich vom selben Netzbetreiber + PLZ-Bereich kommen, kannst du in den Einstellungen einen <strong>festen Prefix</strong> pro Richtung (Verbraucher / Einspeisung) hinterlegen. Das Mitglied tippt dann nur noch die individuellen letzten Stellen — der Prefix ist gelockt und kann nicht überschrieben werden. Beim Verlassen des Eingabefelds werden fehlende Stellen automatisch mit führenden Nullen ergänzt.</p>
 <p>→ <a href="../06-admin-settings/#zahlpunkt-prefixes">Admin-Einstellungen — Zählpunkt-Prefixes</a>
-→ <a href="../02-member-registration/#schritt-5-zahlpunkte-angeben">Mitglieder-Registrierung — Zählpunkte</a></p>
+→ <a href="../02-member-registration/#schritt-6-zahlpunkte-angeben">Mitglieder-Registrierung — Zählpunkte</a></p>
 <p><strong>Zählpunkt-Format 2-6-5-20 in PDF + Mail</strong></p>
 <p>Die Zählpunkt-Nummer wird jetzt überall in der offiziellen E-Control-Gruppierung <code>AT 003100 00000 12345678901234567890</code> angezeigt (PDFs, Bestätigungs-E-Mails, Admin-Detail-View).</p>
 <p><strong>Bankname als konfigurierbares Feld pro EEG</strong></p>
@@ -1136,7 +1138,7 @@
 <h2 id="2026-05-17">2026-05-17<a class="headerlink" href="#2026-05-17" title="Permanent link">&para;</a></h2>
 <p><strong>Erzeugungsform + Batterie-Felder</strong></p>
 <p>Erzeuger-Zählpunkte fragen jetzt die <strong>Erzeugungsform</strong> (PV / Wasser / Wind / Biomasse) ab und — bei PV — optional Batteriespeicher-Daten (Größe, Wechselrichter-Hersteller, Speichersteuerungs-Einverständnis). Alle Felder sind pro EEG konfigurierbar; die Sichtbarkeit ist typabhängig und wird im Admin-Editor mit farbigen Badges (<code>[Verbraucher]</code>, <code>[Einspeisung]</code>, <code>[PV]</code>, <code>[+Speicher]</code>, etc.) sofort sichtbar gemacht.</p>
-<p>→ <a href="../02-member-registration/#schritt-5-zahlpunkte-angeben">Mitglieder-Registrierung — Zählpunkte</a>
+<p>→ <a href="../02-member-registration/#schritt-6-zahlpunkte-angeben">Mitglieder-Registrierung — Zählpunkte</a>
 → <a href="../06-admin-settings/#typabhangige-sichtbarkeit-badges">Admin-Einstellungen — Typabhängige Sichtbarkeit</a></p>
 <p><strong>Energiefelder pro Zählpunkt</strong></p>
 <p>Die früheren Application-Level-Felder „Verbrauch Vorjahr/Prognose", „Einspeisung Prognose" und „PV-Leistung (kWp)" werden jetzt <strong>pro Zählpunkt</strong> abgefragt — direkt im jeweiligen Zählpunkt-Block des Formulars. Zusätzlich neu: <strong>Einspeiselimit (kW)</strong> für Anschlüsse mit begrenzter Einspeise-Leistung.</p>

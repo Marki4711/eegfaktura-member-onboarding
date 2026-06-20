@@ -553,6 +553,24 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#aktivierung-zurucksetzen-activated-imported" class="md-nav__link">
+    <span class="md-ellipsis">
+      Aktivierung zurücksetzen (activated → imported)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#auf-prufung-zurucksetzen-imported-under_review" class="md-nav__link">
+    <span class="md-ellipsis">
+      Auf Prüfung zurücksetzen (imported → under_review)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#post-import-stati" class="md-nav__link">
     <span class="md-ellipsis">
       Post-Import-Stati
@@ -785,7 +803,7 @@ reguläre Import-Pfad übersprungen werden soll.</p>
 </tr>
 <tr>
 <td><code>imported</code></td>
-<td>Import zurücksetzen <em>(nur sichtbar wenn Auto-Transition fehlgeschlagen)</em></td>
+<td>Import zurücksetzen, Auf Prüfung zurücksetzen <em>(nur sichtbar wenn die Auto-Transition fehlgeschlagen ist)</em></td>
 </tr>
 <tr>
 <td><code>ready_for_activation</code></td>
@@ -793,7 +811,7 @@ reguläre Import-Pfad übersprungen werden soll.</p>
 </tr>
 <tr>
 <td><code>activated</code></td>
-<td>— (Endzustand, keine Aktionen möglich)</td>
+<td>Aktivierung zurücksetzen</td>
 </tr>
 </tbody>
 </table>
@@ -887,7 +905,28 @@ reguläre Import-Pfad übersprungen werden soll.</p>
 </ol>
 <blockquote>
 <p><strong>Wichtig:</strong> Diese Aktion kontaktiert den eegFaktura-Core <em>nicht</em>. Bevor du sie nutzt, musst du den Teilnehmer im Core manuell gelöscht haben.</p>
-<p><strong>Endzustand <code>activated</code> nicht resetbar:</strong> ein aktives Mitglied muss zuerst im eegFaktura-Core deaktiviert werden — das Onboarding entfernt es nicht still.</p>
+</blockquote>
+<h2 id="aktivierung-zurucksetzen-activated-imported">Aktivierung zurücksetzen (<code>activated → imported</code>)<a class="headerlink" href="#aktivierung-zurucksetzen-activated-imported" title="Permanent link">&para;</a></h2>
+<p>Wurde ein Antrag versehentlich aktiviert (z. B. durch einen manuellen Klick oder den Batch „Aktivierung im Core prüfen", obwohl das Mitglied im Core noch nicht aktiv ist), kannst du die Aktivierung zurücknehmen.</p>
+<ol>
+<li>Öffne den Antrag (Status <code>activated</code>)</li>
+<li>Klicke im Status-Block auf <strong>Aktivierung zurücksetzen</strong></li>
+<li>Gib eine Begründung an (Pflichtfeld, mindestens 10 Zeichen, wird im Statusverlauf protokolliert)</li>
+<li>Der Antrag wechselt zurück auf <code>imported</code>. Die Aktivierungs-Vermerke (Aktivierungs-Zeitpunkt, Versand-Markierungen der Beitrittsbestätigung) werden geleert — die <strong>Mitgliedsnummer</strong>, die Core-Teilnehmer-ID und der Import-Zeitpunkt <strong>bleiben</strong> erhalten.</li>
+</ol>
+<blockquote>
+<p>Diese Aktion ändert <strong>nichts</strong> im eegFaktura-Core. Das Mitglied existiert dort weiterhin mit derselben Nummer. Es ist reine Onboarding-Buchhaltung — gedacht, um eine irrtümliche Aktivierung zu korrigieren.</p>
+</blockquote>
+<h2 id="auf-prufung-zurucksetzen-imported-under_review">Auf Prüfung zurücksetzen (<code>imported → under_review</code>)<a class="headerlink" href="#auf-prufung-zurucksetzen-imported-under_review" title="Permanent link">&para;</a></h2>
+<p>Soll ein bereits importierter Antrag komplett neu bewertet werden, kannst du ihn ganz an den Anfang der Bearbeitung zurückholen.</p>
+<ol>
+<li>Öffne den Antrag (Status <code>imported</code>)</li>
+<li>Klicke im Status-Block auf <strong>Auf Prüfung zurücksetzen</strong></li>
+<li>Gib eine Begründung an (Pflichtfeld, mindestens 10 Zeichen)</li>
+<li>Der Antrag wechselt auf <code>under_review</code>. Import- <strong>und</strong> Aktivierungs-Vermerke (Mitgliedsnummer, Core-Teilnehmer-ID, alle zugehörigen Timestamps) werden vollständig geleert und im Statusverlauf archiviert. Von <code>under_review</code> aus kannst du den Antrag erneut genehmigen, Rückfragen stellen oder ablehnen.</li>
+</ol>
+<blockquote>
+<p>Wie beim Import-Zurücksetzen kontaktiert auch diese Aktion den Core <strong>nicht</strong> — einen bereits importierten Teilnehmer musst du bei Bedarf zuerst manuell im eegFaktura-Core löschen.</p>
 </blockquote>
 <h2 id="post-import-stati">Post-Import-Stati<a class="headerlink" href="#post-import-stati" title="Permanent link">&para;</a></h2>
 <p>Nach erfolgreichem Import wechselt der Antrag automatisch auf <code>ready_for_activation</code> — unabhängig von der Einzugsart. Den früheren Zwischenstop „Warte auf Bank-Bestätigung" für B2B-Anträge gibt es nicht mehr; die spätere SEPA-B2B-Umstellung im eegFaktura-Core nach der Hausbank-Bestätigung passiert dort manuell und ohne Eingriff im Onboarding.</p>
