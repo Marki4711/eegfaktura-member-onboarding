@@ -101,7 +101,7 @@ stateDiagram-v2
     end note
 ```
 
-Aus den Stati `imported` und `ready_for_activation` ist über die Aktion **Import zurücksetzen** ein Rückweg nach `approved` möglich — siehe [Statusverwaltung](05-admin-status.md#import-zurucksetzen-imported-ready_for_activation-approved). Aus `activated` gibt es keinen Reset; ein aktives Mitglied muss zuerst im eegFaktura-Core deaktiviert werden.
+Für Korrekturen gibt es mehrere Rückwege (jeweils mit Pflicht-Begründung, keiner berührt den eegFaktura-Core): aus `imported` / `ready_for_activation` führt **Import zurücksetzen** nach `approved`; aus `activated` holt **Aktivierung zurücksetzen** den Antrag nach `imported` zurück (Mitgliedsnummer + Core-Teilnehmer-ID bleiben); aus `imported` führt **Auf Prüfung zurücksetzen** ganz zurück nach `under_review`. Siehe [Statusverwaltung](05-admin-status.md#import-zurucksetzen-imported-ready_for_activation-approved).
 
 Details zu den einzelnen Übergängen:
 
@@ -109,8 +109,9 @@ Details zu den einzelnen Übergängen:
 * `import_failed → approved`: nach Fehlerbehebung kann der Import erneut versucht werden.
 * `imported` ist **transient** (nur Millisekunden) — der Server transitioniert sofort weiter nach `ready_for_activation`, unabhängig von der Einzugsart. Wenn der Antrag für eine spätere B2B-Umstellung vorgesehen ist (Toggle „Mitglied für Umstellung auf B2B vorbereiten" oder Einzugsart=B2B), enthält die Mandat-Mail zusätzlich ein Firmenlastschrift-PDF — der spätere Wechsel auf SEPA-B2B passiert manuell im eegFaktura-Core nach der Bank-Bestätigung.
 * `ready_for_activation → activated`: Admin klickt manuell „Als aktiv markieren" ODER nutzt den Batch-Button „Aktivierung im Core prüfen" in der Antragsliste.
-* `activated` ist **strikter Endzustand**: keine Übergänge raus, kein Reset. Deaktivierung erfolgt direkt im Core.
-* `imported / ready_for_activation → approved`: über die Aktion **Import zurücksetzen** in der Detailansicht. NICHT aus `activated`.
+* `activated → imported`: über die Aktion **Aktivierung zurücksetzen** (z. B. bei irrtümlicher Aktivierung). Reine Onboarding-Buchhaltung — Mitgliedsnummer und Core-Teilnehmer-ID bleiben, der Core wird nicht berührt.
+* `imported / ready_for_activation → approved`: über die Aktion **Import zurücksetzen** in der Detailansicht.
+* `imported → under_review`: über die Aktion **Auf Prüfung zurücksetzen** — vollständiges Zurückholen in die Bearbeitung (Import- und Aktivierungs-Vermerke werden geleert).
 
 | Status | Bedeutung |
 |--------|-----------|

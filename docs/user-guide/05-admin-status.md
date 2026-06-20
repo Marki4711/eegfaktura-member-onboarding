@@ -54,9 +54,9 @@ Klicke auf die gewünschte Aktion. Je nach aktuellem Status stehen unterschiedli
 | `needs_info` | — (wartet auf Ergänzung durch das Mitglied) |
 | `approved` | Import starten |
 | `import_failed` | Import erneut starten |
-| `imported` | Import zurücksetzen *(nur sichtbar wenn Auto-Transition fehlgeschlagen)* |
+| `imported` | Import zurücksetzen, Auf Prüfung zurücksetzen *(nur sichtbar wenn die Auto-Transition fehlgeschlagen ist)* |
 | `ready_for_activation` | **Als aktiv markieren**, Zurück in Bearbeitung, Import zurücksetzen *(oder via Batch-Button „Aktivierung im Core prüfen" in der Liste)* |
-| `activated` | — (Endzustand, keine Aktionen möglich) |
+| `activated` | Aktivierung zurücksetzen |
 
 Bei `approved` gibt es zwei Buttons: **„In eegFaktura importieren"** (Standard) und **„Manuell aktivieren …"** (Ausnahmefall — überspringt den Import, falls das Mitglied im Faktura bereits manuell überschrieben wurde; siehe unten).
 
@@ -155,8 +155,28 @@ Wenn ein bereits importierter Teilnehmer im eegFaktura-Core gelöscht wurde (z. 
 4. Der Antrag wechselt auf `approved`; die alte `target_participant_id`, die Mitgliedsnummer, Mandatsreferenz, Mandatsdatum und alle Audit-Timestamps werden geleert und im Statusverlauf archiviert
 
 > **Wichtig:** Diese Aktion kontaktiert den eegFaktura-Core *nicht*. Bevor du sie nutzt, musst du den Teilnehmer im Core manuell gelöscht haben.
->
-> **Endzustand `activated` nicht resetbar:** ein aktives Mitglied muss zuerst im eegFaktura-Core deaktiviert werden — das Onboarding entfernt es nicht still.
+
+## Aktivierung zurücksetzen (`activated → imported`)
+
+Wurde ein Antrag versehentlich aktiviert (z. B. durch einen manuellen Klick oder den Batch „Aktivierung im Core prüfen", obwohl das Mitglied im Core noch nicht aktiv ist), kannst du die Aktivierung zurücknehmen.
+
+1. Öffne den Antrag (Status `activated`)
+2. Klicke im Status-Block auf **Aktivierung zurücksetzen**
+3. Gib eine Begründung an (Pflichtfeld, mindestens 10 Zeichen, wird im Statusverlauf protokolliert)
+4. Der Antrag wechselt zurück auf `imported`. Die Aktivierungs-Vermerke (Aktivierungs-Zeitpunkt, Versand-Markierungen der Beitrittsbestätigung) werden geleert — die **Mitgliedsnummer**, die Core-Teilnehmer-ID und der Import-Zeitpunkt **bleiben** erhalten.
+
+> Diese Aktion ändert **nichts** im eegFaktura-Core. Das Mitglied existiert dort weiterhin mit derselben Nummer. Es ist reine Onboarding-Buchhaltung — gedacht, um eine irrtümliche Aktivierung zu korrigieren.
+
+## Auf Prüfung zurücksetzen (`imported → under_review`)
+
+Soll ein bereits importierter Antrag komplett neu bewertet werden, kannst du ihn ganz an den Anfang der Bearbeitung zurückholen.
+
+1. Öffne den Antrag (Status `imported`)
+2. Klicke im Status-Block auf **Auf Prüfung zurücksetzen**
+3. Gib eine Begründung an (Pflichtfeld, mindestens 10 Zeichen)
+4. Der Antrag wechselt auf `under_review`. Import- **und** Aktivierungs-Vermerke (Mitgliedsnummer, Core-Teilnehmer-ID, alle zugehörigen Timestamps) werden vollständig geleert und im Statusverlauf archiviert. Von `under_review` aus kannst du den Antrag erneut genehmigen, Rückfragen stellen oder ablehnen.
+
+> Wie beim Import-Zurücksetzen kontaktiert auch diese Aktion den Core **nicht** — einen bereits importierten Teilnehmer musst du bei Bedarf zuerst manuell im eegFaktura-Core löschen.
 
 ## Post-Import-Stati
 

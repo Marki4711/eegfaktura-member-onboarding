@@ -14,6 +14,8 @@ Der Hostname `member-onboarding.eegfaktura.at` ist für alle EEGs gleich — die
 
 ![Startseite Registrierungsformular](images/register-form-start.png)
 
+> **Hinweis:** Jede EEG kann ihre Registrierungsseite mit eigenem **Logo**, eigenen **Farben** und Schriftart gestalten. Weicht das Aussehen vom Standard ab, ist das kein Fehler — deine EEG hat ihr eigenes Erscheinungsbild hinterlegt. Erscheint ganz oben ein farbiges Banner wie **„TESTUMGEBUNG"**, befindest du dich nicht auf dem produktiven System; Eingaben dort sind nur zu Testzwecken.
+
 ## Schritt 2: Mitgliedstyp auswählen
 
 ![Mitgliedstyp-Auswahl](images/register-form-mitgliedstyp.png)
@@ -52,21 +54,36 @@ Fülle alle Pflichtfelder aus (mit * markiert):
 - **Firmenname** (bei Unternehmen, Gemeinden, Vereinen)
 - **E-Mail-Adresse** — hieran erhältst du die Einreichungsbestätigung
 - **Telefon** (optional, sofern von deiner EEG aktiviert)
-- **Wohnadresse** (Straße, Hausnummer, PLZ, Ort)
 
-Direkt darunter erscheint die Adress-Sektion (Rechnungsadresse):
+**Ansprechperson (nur Organisationen):** Bei Unternehmen, Vereinen und Gemeinden kannst du — sofern deine EEG das aktiviert hat — über die Checkbox **„Ansprechperson angeben"** zusätzliche Felder für Name, E-Mail und Telefon der zuständigen Kontaktperson einblenden.
+
+Direkt darunter erscheint die Adress-Sektion (Wohn-/Rechnungsadresse):
 
 ![Adresse Rechnungsadresse](images/register-form-adresse.png)
 
-## Schritt 4: Bankverbindung eingeben
+## Schritt 4: Genossenschaftsanteile (nur bei aktivierten EEGs)
+
+![Genossenschaftsanteile](images/register-form-genossenschaft.png)
+
+Wenn deine EEG als Genossenschaft organisiert ist und in den Einstellungen die Anteils-Erfassung aktiviert hat, erscheint ein zusätzlicher Block **„Genossenschaftsanteile"** im Formular:
+
+- **Pflichtanteil je Standort** — der von der EEG festgelegte Mindestwert (z.B. „1 Anteil"). Reiner Hinweistext, kann nicht geändert werden.
+- **Anzahl Anteile gesamt** — Eingabefeld, vorbefüllt mit dem Pflichtwert. Du kannst den Wert nach oben überschreiben (mehr Anteile freiwillig zeichnen), aber nicht darunter.
+- **Genossenschaftsanteilswert** und **Gesamtbetrag** werden live berechnet und unterhalb angezeigt (z.B. „€ 100,00 × 3 = € 300,00").
+
+Wenn deine EEG dieses Feature nicht aktiviert hat, ist der Block ausgeblendet und du kannst diesen Schritt überspringen.
+
+## Schritt 5: Bankverbindung eingeben
 
 ![Bankverbindung](images/register-form-bankverbindung.png)
 
-Gib deine IBAN und den Kontoinhaber an. Mit dem Setzen des Häkchens bei **SEPA-Lastschriftmandat** erteilst du der EEG die Erlaubnis, Beiträge einzuziehen.
+Gib deine IBAN und den **Kontowortlaut** an (der Name, wie er exakt auf dem Konto- bzw. Bankauszug steht — bei abweichender Schreibweise weist die Bank die Lastschrift zurück). Mit dem Setzen des Häkchens bei **SEPA-Lastschriftmandat** erteilst du der EEG die Erlaubnis, Beiträge einzuziehen.
 
 > **Hinweis:** IBANs aus allen SEPA-Ländern werden akzeptiert (AT, DE, CH, etc.).
 
-## Schritt 5: Zählpunkte angeben
+**Abweichende Rechnungs-E-Mail (nur Organisationen):** Hat deine EEG das Feld aktiviert, kannst du als Unternehmen, Verein oder Gemeinde über die Checkbox **„Abweichende Rechnungs-E-Mail"** eine separate Adresse angeben, an die Rechnungen/Gutschriften gehen sollen.
+
+## Schritt 6: Zählpunkte angeben
 
 ![Zählpunkt-Eingabe](images/register-form-metering-points.png)
 
@@ -91,28 +108,17 @@ Gib mindestens einen Zählpunkt an. Pro Zählpunkt-Eintrag erscheinen die Felder
 
 Über **Zählpunkt hinzufügen** kannst du bis zu 10 Zählpunkte angeben.
 
-### Schritt 5b: Weitere Angaben *(typabhängig)*
+## Schritt 7: Weitere Angaben *(typabhängig)*
 
 Nach der Zählpunkt-Eingabe erscheint — sofern deine EEG die zugehörigen Felder konfiguriert hat — der Block „Weitere Angaben". Welche Felder dort sichtbar sind, hängt vom Typ deiner Zählpunkte ab:
 
-- **Verbraucher-Zählpunkt vorhanden:** „Personen im Haushalt", „Wärmepumpe", „E-Auto" (+ optional Anzahl/Jahres-km, falls E-Auto = Ja), „Warmwasser elektrisch"
+- **Aktiv am (Beitrittsdatum)** — gewünschtes Beitritts-/Aktivierungsdatum, sofern von deiner EEG abgefragt.
+- **Verbraucher-Zählpunkt vorhanden:** „Personen im Haushalt", „Wärmepumpe vorhanden", „E-Auto vorhanden" (+ optional „Anzahl E-Fahrzeuge" und „Jahres-Kilometer", falls E-Auto = Ja), „Warmwasser elektrisch (Boiler)"
 - Bei reinen Erzeuger-Anträgen werden diese Verbraucher-Felder ausgeblendet.
 
-> **Hinweis:** Die früheren Application-Level-Felder „Verbrauch Vorjahr/Prognose", „Einspeisung Prognose" und „PV-Leistung (kWp)" werden jetzt **pro Zählpunkt** abgefragt — direkt im jeweiligen Zählpunkt-Block des Formulars, nicht mehr hier im allgemeinen Abschnitt. Bei mehreren Verbraucher- oder Erzeuger-Zählpunkten gibt es entsprechend mehrere Eingaben.
+> **Hinweis:** Die früheren Felder „Verbrauch Vorjahr/Prognose", „Einspeisung Prognose" und „PV-Leistung (kWp)" werden jetzt **pro Zählpunkt** abgefragt — direkt im jeweiligen Zählpunkt-Block des Formulars, nicht mehr hier im allgemeinen Abschnitt. Bei mehreren Verbraucher- oder Erzeuger-Zählpunkten gibt es entsprechend mehrere Eingaben.
 
-## Schritt 5a: Genossenschaftsanteile (nur bei aktivierten EEGs)
-
-![Genossenschaftsanteile](images/register-form-genossenschaft.png)
-
-Wenn deine EEG als Genossenschaft organisiert ist und in den Einstellungen die Anteils-Erfassung aktiviert hat, erscheint ein zusätzlicher Block **„Genossenschaftsanteile"** im Formular:
-
-- **Pflichtanteil je Standort** — der von der EEG festgelegte Mindestwert (z.B. „1 Anteil"). Reiner Hinweistext, kann nicht geändert werden.
-- **Anzahl Anteile gesamt** — Eingabefeld, vorbefüllt mit dem Pflichtwert. Du kannst den Wert nach oben überschreiben (mehr Anteile freiwillig zeichnen), aber nicht darunter.
-- **Genossenschaftsanteilswert** und **Gesamtbetrag** werden live berechnet und unterhalb angezeigt (z.B. „€ 100,00 × 3 = € 300,00").
-
-Wenn deine EEG dieses Feature nicht aktiviert hat, ist der Block ausgeblendet und du kannst diesen Schritt überspringen.
-
-## Schritt 6: Datenschutz und Einreichung
+## Schritt 8: Datenschutz und Einreichung
 
 ![Einwilligungen](images/register-form-einwilligungen.png)
 
@@ -120,16 +126,16 @@ Wenn deine EEG dieses Feature nicht aktiviert hat, ist der Block ausgeblendet un
 - Bestätige die **Richtigkeit deiner Angaben**
 - Falls deine EEG zusätzliche Pflicht-Dokumente hinterlegt hat (z. B. Satzung), bestätige diese ebenfalls per Häkchen
 - Falls deine EEG **Info-Dokumente** verlinkt hat (z. B. Mitgliederinfo, Hausordnung), werden diese nur zur Kenntnisnahme angezeigt — kein Häkchen, aber das Einreichen des Antrags gilt als Kenntnisnahme
-- Falls deine EEG die **Netzbetreiber-Vollmacht** verlangt, lies den Volltext der Vollmacht und bestätige sie per Häkchen — damit ermächtigst du die EEG, in deinem Namen Abstimmungen mit dem Netzbetreiber durchzuführen
+- Falls deine EEG die **Netzbetreiber-Vollmacht** verlangt, lies den Volltext der Vollmacht und bestätige sie per Häkchen — damit ermächtigst du die EEG, in deinem Namen Abstimmungen mit dem Netzbetreiber durchzuführen. Stimmst du zu, kannst du optional noch deine **Netzbetreiber-Kundennummer** und die **Inventarnummer eines Zählers** angeben.
 - Klicke auf **Antrag einreichen**
 
 Nach der Einreichung erhältst du eine **Bestätigungs-E-Mail** mit deiner Antragsnummer (Format `<RC>-<Jahr>-<NNNN>`, z. B. `RC123456-2026-0001`). Die E-Mail enthält zusätzlich:
 
 * eine PDF-Zusammenfassung deiner Angaben,
 * eine Identifikations-Fußzeile mit deiner EEG, damit du die Mail eindeutig zuordnen kannst,
-* eine **Reply-To**-Adresse, über die du direkt mit deiner EEG in Kontakt treten kannst (Antworten gehen nicht an einen „noreply"-Postfach).
+* eine **Reply-To**-Adresse, über die du direkt mit deiner EEG in Kontakt treten kannst (Antworten gehen nicht an ein „noreply"-Postfach).
 
-## Schritt 7: E-Mail-Adresse bestätigen (nur bei aktivierten EEGs)
+## Schritt 9: E-Mail-Adresse bestätigen (nur bei aktivierten EEGs)
 
 Wenn deine EEG das Feature **„E-Mail-Bestätigung erforderlich"** aktiviert hat, enthält deine Bestätigungs-Mail zusätzlich einen gelben Hinweisblock mit einem Button **„E-Mail-Adresse bestätigen"**. Der Link ist 30 Tage gültig. Erst nach dem Klick wird dein Antrag von der EEG bearbeitet.
 

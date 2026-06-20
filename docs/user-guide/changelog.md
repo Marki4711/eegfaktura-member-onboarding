@@ -20,11 +20,15 @@ Solange die Plattform-Nutzung kostenlos ist, erscheint im Tab **„Rechnungen"**
 
 **Datenweiterleitung: Spalte „Name" auswählbar**
 
-Im Spalten-Editor der Excel-Datenweiterleitung lässt sich jetzt die Spalte **„Name"** auswählen. Sie liefert je nach Mitgliedstyp automatisch den passenden Wert — Firmenname bei Organisationen, Vor- und Nachname bei Privatpersonen — sodass du Vor- und Nachname nicht mehr getrennt zusammensetzen musst. (Zusätzlich neu wählbar: „SEPA-Akzept-IP".)
+Im Spalten-Editor der Excel-Datenweiterleitung lässt sich jetzt die Spalte **„Name"** auswählen. Sie liefert je nach Mitgliedstyp automatisch den passenden Wert — Firmenname bei Organisationen, Vor- und Nachname bei Privatpersonen — sodass du Vor- und Nachname nicht mehr getrennt zusammensetzen musst. Im Editor ist sie mit dem Zusatz **„· automatisch"** gekennzeichnet und zeigt beim Auswählen einen Erklär-Hinweis, damit klar ist, dass es sich um ein zusammengesetztes Feld handelt und nicht um ein einzelnes Datenfeld. (Zusätzlich neu wählbar: „SEPA-Akzept-IP".) → [Datenweiterleitung — Welche Felder gibt es](06-admin-settings.md#welche-felder-gibt-es)
 
 **AGB: Gerichtsstand Linz**
 
 Der Gerichtsstand in den AGB (§ 11) ist jetzt **Linz**.
+
+**Benutzerhandbuch aktualisiert**
+
+Das Handbuch wurde durchgesehen und auf den aktuellen Stand gebracht — u. a.: Plattform-Buchung schaltet die EEG sofort frei und ist Voraussetzung für die Mitgliederregistrierung, die Rücksetz-Aktionen *Aktivierung zurücksetzen* und *Auf Prüfung zurücksetzen*, die korrekte Reihenfolge der Felder im Registrierungsformular sowie die Feldbezeichnung *Kontowortlaut*.
 
 ## 2026-06-18
 
@@ -619,7 +623,7 @@ Beide SEPA-Mandate (Basislastschrift CORE und B2B-Firmenlastschrift) zeigen im U
 Wenn die Zählpunkte deiner EEG mehrheitlich vom selben Netzbetreiber + PLZ-Bereich kommen, kannst du in den Einstellungen einen **festen Prefix** pro Richtung (Verbraucher / Einspeisung) hinterlegen. Das Mitglied tippt dann nur noch die individuellen letzten Stellen — der Prefix ist gelockt und kann nicht überschrieben werden. Beim Verlassen des Eingabefelds werden fehlende Stellen automatisch mit führenden Nullen ergänzt.
 
 → [Admin-Einstellungen — Zählpunkt-Prefixes](06-admin-settings.md#zahlpunkt-prefixes)
-→ [Mitglieder-Registrierung — Zählpunkte](02-member-registration.md#schritt-5-zahlpunkte-angeben)
+→ [Mitglieder-Registrierung — Zählpunkte](02-member-registration.md#schritt-6-zahlpunkte-angeben)
 
 **Zählpunkt-Format 2-6-5-20 in PDF + Mail**
 
@@ -641,7 +645,7 @@ Bisher Pflichtfeld bei `memberType=company`, jetzt durchgehend optional (auch we
 
 Erzeuger-Zählpunkte fragen jetzt die **Erzeugungsform** (PV / Wasser / Wind / Biomasse) ab und — bei PV — optional Batteriespeicher-Daten (Größe, Wechselrichter-Hersteller, Speichersteuerungs-Einverständnis). Alle Felder sind pro EEG konfigurierbar; die Sichtbarkeit ist typabhängig und wird im Admin-Editor mit farbigen Badges (`[Verbraucher]`, `[Einspeisung]`, `[PV]`, `[+Speicher]`, etc.) sofort sichtbar gemacht.
 
-→ [Mitglieder-Registrierung — Zählpunkte](02-member-registration.md#schritt-5-zahlpunkte-angeben)
+→ [Mitglieder-Registrierung — Zählpunkte](02-member-registration.md#schritt-6-zahlpunkte-angeben)
 → [Admin-Einstellungen — Typabhängige Sichtbarkeit](06-admin-settings.md#typabhangige-sichtbarkeit-badges)
 
 **Energiefelder pro Zählpunkt**

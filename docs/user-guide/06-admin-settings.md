@@ -81,6 +81,15 @@ In diesem Abschnitt steuerst du die öffentliche Registrierung und hinterlegst d
 
 ![EEG-Einstellungen](images/admin-settings-eeg.png)
 
+### Vertrag & Onboarding-Status (Plattform buchen)
+
+Ganz oben auf der Einstellungs-Seite steht die Karte **„Vertrag & Onboarding-Status"**. Sie zeigt, ob deine EEG die Plattform bereits gebucht hat, und ist die Voraussetzung dafür, die Mitgliederregistrierung scharfzuschalten.
+
+- **Plattform buchen:** Mit der Bestätigung von **AGB** und **AVV** (Auftragsverarbeitungsvertrag) buchst du die Plattform. Die Buchung schaltet deine EEG **sofort frei** — es ist keine separate manuelle Freischaltung mehr nötig. Du erhältst direkt eine Willkommens-Mail mit dem AVV-Beleg.
+- **Status-Anzeige:** Die Karte zeigt den aktuellen Vertragsstatus (z. B. *noch nicht gebucht*, *aktiv* oder *ausgesetzt*).
+
+> Hintergrund: Der AVV regelt die Verarbeitung der Mitglieder-Daten in deinem Auftrag. Erst wenn er vorliegt, dürfen über das öffentliche Formular personenbezogene Daten erfasst werden — deshalb hängt die Registrierung an der Buchung (siehe nächster Abschnitt).
+
 ### Mitgliederregistrierung aktiv
 
 ![Mitgliederregistrierung aktiv](images/admin-settings-eeg-registration.png)
@@ -90,7 +99,7 @@ Der Toggle ganz oben steuert, ob der öffentliche Registrierungslink für deine 
 - **Aktiv**: Interessenten können sich über den Registrierungslink anmelden.
 - **Inaktiv**: Besucher des Registrierungslinks erhalten eine Fehlermeldung. Bestehende Anträge sind davon nicht betroffen.
 
-Neue EEGs starten standardmäßig als inaktiv. Aktiviere die Registrierung erst, wenn alle Einstellungen konfiguriert sind.
+**Erst Plattform buchen:** Der Toggle lässt sich nur einschalten, wenn deine EEG die Plattform gebucht hat (AGB + AVV, siehe oben). Ist noch nicht gebucht, ist der Schalter **ausgegraut** mit dem Hinweis *„erst Plattform buchen"*. Neue EEGs starten standardmäßig als **inaktiv**. Aktiviere die Registrierung erst, wenn die Plattform gebucht und alle Einstellungen konfiguriert sind.
 
 ### EEG-Stammdaten & Logo — aus eegFaktura
 
@@ -172,7 +181,7 @@ Für die B2B-Firmenlastschrift gibt es zwei Wege, die der Admin im Antrags-Bearb
 
 Im Bearbeiten-Dialog wählt der Admin *Einzugsart = Firmenlastschrift (B2B)*. Der Antrag geht beim Import direkt mit SEPA-B2B in den eegFaktura-Core. Die erste Lastschrift kann nur ausgeführt werden, sobald das Mitglied das B2B-Mandat bei seiner Hausbank registriert hat — ohne diese Bank-Registrierung lehnt die Bank die Lastschrift ab. Vorteil: kein nachträglicher Eingriff im Core nötig.
 
-**Weg 2 — Einzugsart CORE + Vorbereitungs-Toggle (PROJ-91):**
+**Weg 2 — Einzugsart CORE + Vorbereitungs-Toggle:**
 
 Im Bearbeiten-Dialog wählt der Admin *Einzugsart = Basislastschrift (CORE)* und aktiviert zusätzlich den Schalter **„Mitglied für Umstellung auf B2B vorbereiten"** (nur sichtbar bei Einzugsart=CORE). Beim Import:
 
@@ -187,7 +196,7 @@ Sobald die Hausbank des Mitglieds die B2B-Registrierung bestätigt hat, geht der
 
 **Beispiel — Musterbetrieb GmbH (Weg 2):** Der Antrag wurde mit Einzugsart B2B eingereicht; der Admin entscheidet sich beim Bearbeiten für *Einzugsart=CORE + Vorbereitungs-Toggle* (um sofort abbuchen zu können). Beim Import landet im Faktura-Core ein Eintrag mit SEPA-Typ CORE. Die Musterbetrieb GmbH bekommt CORE-Mandat **und** B2B-Mandat in einer Mail. Drei Wochen später meldet die Hausbank der Musterbetrieb GmbH die B2B-Registrierung — der EEG-Admin wechselt den SEPA-Typ im Faktura-Core manuell auf B2B. Bis dahin liefen die Lastschriften als CORE-Lastschrift mit normaler 8-Wochen-Rückbuchungsfrist.
 
-**Bestand:** Anträge, die vor PROJ-91 mit Einzugsart B2B erstellt wurden, wurden bei der Migration auf *Einzugsart=CORE + Vorbereitungs-Toggle=an* umgestellt — sie verhalten sich jetzt wie Weg 2. Laufende B2B-Lastschriften mit aktivem Mandat im Core wurden nicht angetastet.
+**Bestand:** Ältere Anträge, die ursprünglich mit Einzugsart B2B erstellt wurden, wurden auf *Einzugsart=CORE + Vorbereitungs-Toggle=an* umgestellt — sie verhalten sich jetzt wie Weg 2. Laufende B2B-Lastschriften mit aktivem Mandat im Core wurden nicht angetastet.
 
 ### SEPA-Feld für ausgewählte Mitgliedstypen auf optional setzen *(Alle Optionen)*
 
@@ -564,6 +573,7 @@ Die Spalten-Auswahl im Editor enthält drei Arten von Feldern:
 - **Stammdaten und Zählpunkt-Daten** — werden vom Mitglied im Public-Form eingegeben (z. B. Name, Adresse, IBAN, Zählpunkt-Bezeichnung).
 - **Form-Felder mit Sichtbarkeits-Schalter** — werden nur befüllt, wenn das EEG das Feld unter **Einstellungen → Formular-Felder** auf *Optional*, *Pflicht* oder *Nur Admin* gestellt hat. Steht das Feld auf *Ausgeblendet*, sieht das Mitglied es nicht im Formular und der Wert bleibt leer. Beispiele: Beitrittsdatum, Personen im Haushalt, Wärmepumpe, E-Auto-Details, Genossenschaftsanteile.
 - **System-Zeitstempel** — werden automatisch vom System gesetzt, wenn der Antrag den entsprechenden Status erreicht. Diese Werte sind immer befüllt, sobald der Status durchlaufen wurde.
+- **Zusammengesetzte Felder** — einzelne Felder sind **kein eigenes Datenfeld**, sondern werden zur Export-Zeit aus mehreren Werten gebildet. Das wichtigste ist **Name**: es liefert automatisch den *Firmennamen* bei Organisationen (Unternehmen, Verein, Gemeinde) und sonst *Vorname + Nachname*. So musst du nicht Vor- und Nachname getrennt wählen und im Zielsystem zusammensetzen. Im Editor sind solche Felder mit dem Zusatz **„· automatisch"** gekennzeichnet und zeigen beim Auswählen einen kurzen Erklär-Hinweis.
 
 Die wichtigsten zeitbezogenen Felder im Vergleich:
 

@@ -45,6 +45,11 @@ Zwei gekoppelte Änderungen am EEG-Buchungs- und Aktivierungs-Lifecycle.
 - **Datenweiterleitung: Spalte „Name" (+ „SEPA-Akzept-IP") im Excel-Editor wählbar.** Beide Felder existierten nur im Backend-Katalog (`internal/dataexport/excel/fields.go`), fehlten aber im hartkodierten Frontend-Katalog (`src/lib/data-export-fields.ts`), aus dem der Spalten-Editor seine Auswahl liest — daher waren sie für Admins nicht auswählbar (gleicher FE/BE-Drift wie zuvor bei `mandate_reference`/PROJ-99). Beide nachgezogen (`member_name` = Firmenname bei Orgs, sonst Vor- + Nachname; `sepa_mandate_accepted_ip` als sensibles Feld markiert) + Regressions-Test, der die früher gedrifteten Member-/Bank-Felder absichert.
 - **Customer-Onboarding-Seiten im dunklen Admin-Theme.** Liste + Detail nutzten das helle `leaf/sun/slatey`-Brand-Palette und wuschen auf dem dunklen Admin-Shell aus; auf Semantic-Tokens + shadcn `Table/Badge/Card/Dialog` migriert (gleiche Behandlung wie Cockpit/Abrechnung).
 - **Öffentliche AGB-Seite:** interner Kommentar (Owner-Cutover-Notiz) wurde vom Markdown-Renderer als sichtbarer Klartext ausgegeben → entfernt, Renderer mit `skipHtml` gehärtet. Gerichtsstand in § 11 von Wien auf **Linz** geändert.
+- **Datenweiterleitung: „Name" als abgeleitetes Feld kenntlich gemacht.** Das Feld ist kein eigenes DB-Feld, sondern wird zur Export-Zeit zusammengesetzt (Firmenname bzw. Vor-/Nachname). Der Spalten-Editor markiert es jetzt mit „· automatisch" und zeigt beim Auswählen einen Erklär-Hinweis (`derived`/`hint`-Flag im Feldkatalog). Rein additiv, kein Einfluss auf bestehende Exporte.
+
+### Dokumentation
+
+- **Benutzerhandbuch (`docs/user-guide/`) durchgesehen und aktualisiert** gegen den aktuellen Code: Plattform-Buchung/Auto-Akzept + AVV-Gate für die Registrierung (06), Rücksetz-Aktionen `Aktivierung zurücksetzen`/`Auf Prüfung zurücksetzen` (05 + index, vorher als „nicht resetbar" beschrieben), Beitrittsbestätigung-an-EEG-Mailweg (07), korrekte Formular-Reihenfolge + Feldlabel `Kontowortlaut` + Ansprechperson/Rechnungs-E-Mail/Netzbetreiber-Subfelder (02).
 
 ## 2026-06-18
 
