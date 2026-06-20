@@ -148,6 +148,15 @@ Backend umgesetzt (kein DB-Change). Tests grün (`go build/vet/test ./...`).
 - **Tests:** [admin_billing_free_phase_guard_test.go](../internal/http/admin_billing_free_phase_guard_test.go) — beide Guards → 409 + Code (DB-los, nil-Repos). `IsLive`-Wahrheitstabelle schon in `live_mode_test.go`. Bestehende Billing-/HTTP-Tests grün.
 - **Frontend-Vertrag für /frontend:** `listEEGOwnInvoices` liefert künftig zusätzlich `billingLive: boolean`. Banner zeigt wenn `!billingLive`; Badge `preview` „Preview"→„Vorschau" gekeyt auf `status`.
 
+## Implementation Notes (Frontend, 2026-06-20)
+
+Frontend umgesetzt. `npx tsc --noEmit` + `npx vitest run` (252) + `npm run build` grün.
+
+- **TS-Typ:** [billing.ts](../src/lib/api/billing.ts) — `listEEGOwnInvoices` Response auf `{ invoices, billingLive: boolean }` erweitert.
+- **Free-Banner:** [eeg-own-invoices.tsx](../src/components/billing/eeg-own-invoices.tsx) — neuer `billingLive`-State (aus der Response), shadcn `Alert` (default-Variante, ruhige sky-Tönung, Info-Icon) mit dem Owner-Wortlaut. Render-Restruktur: Banner steht über **beiden** Ausgängen (Leer-Fall + Tabelle) via `space-y-4`-Wrapper, sichtbar nur wenn `!billingLive`. Loading/Error-Early-Returns zeigen keinen Banner.
+- **Badge-Relabel:** `STATUS_LABEL.preview` „Preview" → „Vorschau". Gekeyt unverändert auf `inv.status`. Übrige Labels unberührt.
+- EC-1/EC-3 automatisch abgedeckt (Banner folgt nur dem berechneten `billingLive`-Flag, keine Frontend-Logik).
+
 ## Nächster Schritt
 
-Backend abgeschlossen (2026-06-20). → `/frontend` (Banner + Badge-Relabel, liest `billingLive`) → `/qa` (mit No-Charge-Cron-Test) → `/deploy`.
+Frontend abgeschlossen (2026-06-20). → `/qa` (alle ACs + No-Charge-Cron-Verifikation; entscheidet ob `/security-review` nötig) → `/deploy`.
