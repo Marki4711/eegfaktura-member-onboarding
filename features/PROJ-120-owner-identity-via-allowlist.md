@@ -299,10 +299,17 @@ die Owner-Probe), dann `/security-review` (Pflicht), dann `/deploy`.
   `email`-Option (AC-10/AC-11).
 - **ALLE anderen `IsSuperuser`-Stellen unangetastet** (Daten-Sicht/Tenant-Bypass).
 
+**Frontend (2026-06-20, tsc + vitest 252 + build grün):** `billing-nav-link.tsx` +
+`customer-onboarding-nav-link.tsx` von `roles.includes("superuser")` auf die
+Owner-Probe `getCockpitMe` umgestellt (Muster von `cockpit-nav-link.tsx`, das die
+Probe schon nutzte → keine Logik-Änderung, nur Kommentar). `cockpit.ts`:
+`CockpitMe.authPath`-Union auf `owner_allowlist | none | dev_mode` korrigiert. Kein
+Rename von `getCockpitMe` (1 Bestand-Caller, Endpoint heißt bereits `owner-cockpit`).
+
 **⚠️ BLOCKING vor Deploy:** siehe AC-6 — Prod-Allowlist enthält die Betreiber-Login-
 Email evtl. nicht. Owner-Verifikation nötig.
 
-**Offen:** /frontend (3 Nav-Links auf Owner-Probe), dann /security-review (Auth-Change).
+**Offen:** /security-review (Auth-Change Backend+Frontend), dann /deploy (nach AC-6).
 
 ## QA Test Results
 _To be added by /qa_
