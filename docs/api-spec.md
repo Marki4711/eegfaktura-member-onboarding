@@ -2847,12 +2847,23 @@ nicht-leere String backend-seitig)
 
 ### EEG-Admin-Endpoint
 
-`GET /api/admin/eeg/{rc}/invoices` → `{ invoices: [EEGInvoiceItem], billingLive: bool }`
+`GET /api/admin/eeg/{rc}/invoices` → `{ invoices: [EEGInvoiceItem], billingLive: bool, currentQuarter: QuarterProjection | null }`
 Tenant-scoped Read-Only (`containsRC`-Check). Liefert Quartal, Status,
 Brutto, Versanddatum, Bezahltdatum, Rechnungsnummer.
 `billingLive` (PROJ-115) = `IsLive(globalLiveMode, eeg)` — `false` in der
 kostenlosen Phase; das Frontend zeigt dann den Free-Phasen-Banner. Der globale
 `globalLiveMode` wird nicht roh ausgeliefert, nur das berechnete Bool.
+
+`currentQuarter` (PROJ-111) = read-only Projektion der voraussichtlichen
+Aktivierungs-Kosten des **laufenden** Quartals (best-effort; `null` bei Lookup-
+Fehler, Liste bleibt). Felder (camelCase): `year`, `quarter`, `edition`,
+`unitPriceStandard|unitPricePro` (`null` = kein Tarif hinterlegt, `0` = €0-Plan),
+`countStandard`, `countPro`, `rawNetEur`, `rawGrossEur`, `projectedGrossEur`
+(= `rawGross` nur wenn regulär abrechenbar, sonst `0`), `note`
+(`trial_period`/`no_activity`/`carryover`/`below_minimum`/`null`), `inTrial`,
+`trialEndsAt`, `minimumApplied`. Reine Aggregat-Zahlen (kein Mitglieder-PII).
+Zahlen kommen serverseitig aus denselben Quellen wie die echte Abrechnung
+(`pricing_plan`, `CountActivationsInQuarter`) — keine Schreibpfade, kein Vendor-Call.
 
 ### Webhook
 

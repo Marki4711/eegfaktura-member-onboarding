@@ -18,6 +18,10 @@ Der Schalter **„Mitgliederregistrierung aktiv"** in den Einstellungen lässt s
 
 Solange die Plattform-Nutzung kostenlos ist, erscheint im Tab **„Rechnungen"** oben ein Hinweis: *Die Nutzung ist derzeit kostenlos. Eine kostenpflichtige Nutzung ist geplant und wird rechtzeitig vorab angekündigt.* Die angezeigten Beträge sind eine **unverbindliche Vorschau** und werden aktuell nicht in Rechnung gestellt — das Status-Etikett heißt jetzt entsprechend **„Vorschau"** (statt „Preview"). Sobald für deine EEG echt abgerechnet wird, verschwindet der Hinweis automatisch.
 
+**Rechnungen-Tab: Vorschau der Aktivierungs-Kosten des laufenden Quartals**
+
+Im Tab **„Rechnungen"** siehst du jetzt oben eine Karte **„Aktivierungs-Kosten · laufendes Quartal"**. Sie zeigt, wie viele Mitglieder in diesem Quartal bereits aktiviert wurden (getrennt nach Edition), den Stückpreis je aktiviertem Mitglied und die voraussichtliche Quartals-Summe. Befindest du dich noch in der kostenlosen Testphase, steht das samt Enddatum dabei. So ist jederzeit nachvollziehbar, welche Kosten eine Aktivierung auslöst — auch wenn sie automatisch (z. B. über die Aktivierungs-Prüfung) erfolgt. Die Zahlen sind eine unverbindliche Vorschau.
+
 **Datenweiterleitung: Spalte „Name" auswählbar**
 
 Im Spalten-Editor der Excel-Datenweiterleitung lässt sich jetzt die Spalte **„Name"** auswählen. Sie liefert je nach Mitgliedstyp automatisch den passenden Wert — Firmenname bei Organisationen, Vor- und Nachname bei Privatpersonen — sodass du Vor- und Nachname nicht mehr getrennt zusammensetzen musst. Im Editor ist sie mit dem Zusatz **„· automatisch"** gekennzeichnet und zeigt beim Auswählen einen Erklär-Hinweis, damit klar ist, dass es sich um ein zusammengesetztes Feld handelt und nicht um ein einzelnes Datenfeld. (Zusätzlich neu wählbar: „SEPA-Akzept-IP".) → [Datenweiterleitung — Welche Felder gibt es](06-admin-settings.md#welche-felder-gibt-es)
