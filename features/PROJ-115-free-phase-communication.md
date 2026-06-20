@@ -1,6 +1,6 @@
 # PROJ-115: Free-Phase-Kommunikation & No-Charge-Gate
 
-## Status: In Progress
+## Status: Approved
 **Created:** 2026-06-20
 **Last Updated:** 2026-06-20
 
@@ -157,6 +157,46 @@ Frontend umgesetzt. `npx tsc --noEmit` + `npx vitest run` (252) + `npm run build
 - **Badge-Relabel:** `STATUS_LABEL.preview` „Preview" → „Vorschau". Gekeyt unverändert auf `inv.status`. Übrige Labels unberührt.
 - EC-1/EC-3 automatisch abgedeckt (Banner folgt nur dem berechneten `billingLive`-Flag, keine Frontend-Logik).
 
+## QA Test Results (2026-06-20)
+
+**Verdikt: READY** — 0 Critical/High/Medium/Low. Verifikation auf Code- + Test-Ebene (kein laufender Stack; E2E auf test-Env nach Deploy).
+
+### Acceptance Criteria
+| AC | Ergebnis | Nachweis |
+|---|---|---|
+| AC-1 Banner nur Rechnungen-Tab, Owner-Wortlaut, über Leer-Fall + Tabelle, nicht in loading/error | ✅ PASS | `eeg-own-invoices.tsx` — `Alert` mit `!billingLive`, `space-y-4`-Wrapper über beiden Ausgängen, Early-Returns ohne Banner |
+| AC-2 „Vorschau"-Badge, gekeyt auf `status==='preview'` | ✅ PASS | `STATUS_LABEL.preview="Vorschau"`; Badge nutzt `inv.status`, getrennt vom Banner-Flag; übrige Labels unverändert |
+| AC-3 Banner-Quelle = berechnetes `billingLive` (IsLive), kein roher `globalLiveMode` | ✅ PASS | `admin_eeg_invoices.go` liefert `{invoices, billingLive}`; `globalLiveMode`+`entrypointRepo` in `main.go` injiziert; Lookup-Fehler → `false` |
+| AC-4 nur Rechnungen-Tab, keine weiteren Stellen | ✅ PASS | nur `eeg-own-invoices.tsx` berührt |
+| AC-5 Cron sendet im Preview-Modus 0 EEG-Mails | ✅ PASS | `scheduler.go` Preview-Zweig: nur `runMockVendor`+Insert, kein Mail; Scheduler-Mails alle owner-facing (CronAlert/RunReady/Chargeback); EEG-Mails (`MandateSetup`/`CreditNote`) nur aus `admin_billing.go`, kein Dunning-Mail existiert |
+| AC-6 409-Guard `SetBillingLive(true)` + `CreateCreditNote` bei `globalLiveMode=false` | ✅ PASS | `admin_billing.go` Guards (Off-Toggle erlaubt); 2 Tests in `admin_billing_free_phase_guard_test.go` (409 + `free_phase_active`) |
+
+### Edge Cases
+| EC | Ergebnis | Nachweis |
+|---|---|---|
+| EC-1 Mischzustand (`billing_live=true`, global=false) → Banner + Guard | ✅ PASS | `IsLive` UND-Logik (`live_mode_test.go`); Guard auf `globalLiveMode` |
+| EC-2 Owner-Footgun → 409, kein Mail/Vendor | ✅ PASS | Guard vor jedem Mail-/Vendor-/DB-Zugriff |
+| EC-3 paid-Cutover (global=true) → Banner weg, Guard hebt sich auf, kein Redeploy | ✅ PASS | berechnetes Flag + Guard-Bedingung, keine persistierten Texte |
+| EC-4 Preview-Betrag 0/carryover → „Vorschau" korrekt | ✅ PASS | Badge an `status`, betragsunabhängig |
+| EC-5 Multi-Tenant | ✅ PASS | `ListInvoices` `containsRC(claims.Tenant, rc)` unverändert |
+
+### Security Smoke
+- **Tenant-Iso:** `containsRC`-Check unverändert; neuer `GetByRCNumber(rc)` nutzt die schon tenant-geprüfte RC — kein neuer Leak. `billingLive` ist kein PII.
+- **AuthZ:** Guards sitzen auf `requireSuperuser`-Endpoints; der Guard **erhöht** die Restriktion (keine neue Angriffsfläche).
+- **Logging:** `slog.Warn` beim eeg-Lookup-Fehler loggt nur `rc_number`+`error` — kein PII.
+- **Leak:** `globalLiveMode` wird nicht roh ausgeliefert (nur berechnetes Bool).
+
+### Scans / Tests
+- `go build/vet/test ./...` grün (inkl. 2 Guard-Tests + `live_mode_test`). `tsc` + `vitest` (252) + `npm run build` grün.
+- **govulncheck:** 5 Import + 1 Modul, **0 callable** (Bestand). **npm audit:** 9 Bestand-Findings; PROJ-115 hat `package.json`/`lock` nicht angefasst → **0 neu**.
+- Kein Helm-Change (keine Chart-Validierung nötig).
+
+### Coverage-Hinweis
+Kein laufender Stack in dieser Umgebung → AC-Verifikation auf Code- + Unit/Integration-Ebene. **E2E (Playwright)** für Banner-Sichtbarkeit + 409-Pfade ist auf der test-Env nach Deploy nachzuholen (globalLiveMode-Schalten erforderlich). `globalLiveMode=true` wurde in der QA bewusst **nicht** scharf geschaltet.
+
+### /security-review-Empfehlung
+**Optional, nicht erzwungen.** PROJ-115 berührt **keinen** CLAUDE.md-Pflicht-Trigger (kein DB-Schema, keine Auth-/Tenant-Iso-/Status-Transition-/Import-/Public-Endpoint-/Helm-/Secret-Änderung). Der einzige sicherheitsnahe Effekt ist der Guard, der ausschließlich **restriktiver** macht, plus ein read-only Non-PII-Bool. Owner kann direkt zu `/deploy`.
+
 ## Nächster Schritt
 
-Frontend abgeschlossen (2026-06-20). → `/qa` (alle ACs + No-Charge-Cron-Verifikation; entscheidet ob `/security-review` nötig) → `/deploy`.
+QA READY (2026-06-20). → `/deploy` (Free-Phase-Banner + No-Charge-Guard; kein Schema-Change). `/security-review` optional.
