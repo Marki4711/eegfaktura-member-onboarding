@@ -18,6 +18,14 @@ Der Schalter **„Mitgliederregistrierung aktiv"** in den Einstellungen lässt s
 
 Solange die Plattform-Nutzung kostenlos ist, erscheint im Tab **„Rechnungen"** oben ein Hinweis: *Die Nutzung ist derzeit kostenlos. Eine kostenpflichtige Nutzung ist geplant und wird rechtzeitig vorab angekündigt.* Die angezeigten Beträge sind eine **unverbindliche Vorschau** und werden aktuell nicht in Rechnung gestellt — das Status-Etikett heißt jetzt entsprechend **„Vorschau"** (statt „Preview"). Sobald für deine EEG echt abgerechnet wird, verschwindet der Hinweis automatisch.
 
+**Datenweiterleitung: Spalte „Name" auswählbar**
+
+Im Spalten-Editor der Excel-Datenweiterleitung lässt sich jetzt die Spalte **„Name"** auswählen. Sie liefert je nach Mitgliedstyp automatisch den passenden Wert — Firmenname bei Organisationen, Vor- und Nachname bei Privatpersonen — sodass du Vor- und Nachname nicht mehr getrennt zusammensetzen musst. (Zusätzlich neu wählbar: „SEPA-Akzept-IP".)
+
+**AGB: Gerichtsstand Linz**
+
+Der Gerichtsstand in den AGB (§ 11) ist jetzt **Linz**.
+
 ## 2026-06-18
 
 **Datenweiterleitung: Haushalts-Felder wählbar**
