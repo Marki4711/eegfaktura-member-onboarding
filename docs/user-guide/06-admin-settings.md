@@ -223,6 +223,18 @@ Manche EEGs wollen die Beitrittsbestätigung nicht automatisch ans Mitglied vers
 
 **Beitrittserklärung im Nachhinein herunterladen:** Im Antrags-Detail eines aktivierten Mitglieds findest du im Dropdown **Herunterladen** den Eintrag *Beitrittserklärung* (zusätzlich zu Excel + Beitrittsbestätigung). Damit kannst du das PDF jederzeit neu erzeugen — z. B. wenn der Vorstand das Dokument verlegt hat. Sichtbar nur, wenn die EEG den Vorstands-Genehmigungs-Workflow aktiv hat und der Antrag den Status *Aktiviert* erreicht hat.
 
+### Beitrittsbestätigung an die EEG senden *(Alle Optionen)*
+
+Standardmäßig bekommt das Mitglied beim Aktivieren die Beitrittsbestätigung als PDF automatisch per Mail. Manche EEGs wollen die Bestätigung aber lieber selbst überreichen — z. B. um eine persönliche Grußnachricht oder Zusatzinfos zu ergänzen. Genau dafür ist dieser Schalter da.
+
+**Toggle aktiv:** Beim Wechsel auf Status „Aktiviert" geht **eine** Mail mit dem Beitrittsbestätigungs-PDF an die in den EEG-Stammdaten hinterlegte **Kontakt-E-Mail** — mit einem kurzen Vorspann „Anbei die Beitrittsbestätigung für … Bitte leite sie an das Mitglied weiter; du kannst eine persönliche Nachricht ergänzen." Der Vorstand leitet die Mail dann selbst (in seinem Mail-Programm) ans Mitglied weiter. Das **Mitglied bekommt vom System nichts** — keine separate Aktivierungs-Mail.
+
+**Toggle aus (Standard):** Verhalten wie bisher — das Mitglied bekommt die Beitrittsbestätigung direkt als PDF-Anhang, die EEG-Kontaktperson eine Kopie.
+
+**Nur mit hinterlegter Kontakt-E-Mail aktivierbar:** Der Schalter lässt sich nur einschalten, wenn in eegFaktura eine Kontakt-E-Mail hinterlegt **und** synchronisiert ist (sonst gäbe es keinen Empfänger zum Weiterleiten). Fehlt sie, ist der Toggle gesperrt und ein Hinweis weist dich darauf hin — pflege die Adresse zuerst in eegFaktura und klicke „Aus eegFaktura aktualisieren".
+
+> Dieser Schalter ist unabhängig vom **Vorstands-Genehmigungs-Workflow** weiter oben. Dort geht eine *Beitrittserklärung* (Dokument zum Unterschreiben) an die EEG; hier geht die fertige *Beitrittsbestätigung* zum Weiterleiten an die EEG. Beide lassen sich getrennt voneinander ein- und ausschalten.
+
 ### Genossenschaftsanteile *(Alle Optionen)*
 
 > Diese Sektion ist nur in **Alle Optionen** sichtbar.

@@ -16,6 +16,10 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 Tester-Befund: E-Auto + Wärmepumpe fehlten in der Datenweiterleitung. Die ganze Haushalts-Gruppe war nicht im Export-Feld-Katalog. Ergänzt (Kategorie „Haushalt", Backend `AvailableFields` + Frontend `EXCEL_FIELD_CATALOG`): `persons_in_household`, `heat_pump`, `electric_vehicle`, `electric_vehicle_count`, `electric_vehicle_annual_km`, `electric_hot_water`. NULL-Werte → leere Zelle (deref-Helper gegen typed-nil-Pointer-Falle, kein „<nil>"/„0"). Keine DB-Migration. Gleiche Klasse wie PROJ-99.
 
+### Beitrittsbestätigung an die EEG statt ans Mitglied (PROJ-114)
+
+Tester-Wunsch des Vorstands: die Beitrittsbestätigung selbst ans Mitglied schicken (mit persönlicher Grußnachricht). Neuer per-EEG-Toggle `joining_confirmation_to_eeg` (Migration 000090, `BOOLEAN NOT NULL DEFAULT FALSE`). Wenn aktiv, geht beim `→ activated`-Übergang **eine** Forward-Mail mit dem Beitrittsbestätigungs-PDF + „bitte weiterleiten"-Vorspann an die EEG-Kontakt-E-Mail (Reply-To = Mitglied); das Mitglied bekommt **nichts**, die bisherige separate EEG-Kopie entfällt. Toggle aus (Default) → Bestand (Member-Mail + EEG-Kopie). Eigenes Template `application_activated_eeg_forward.html` mit `pdfFailed`-Branch. D2-Validierung: Toggle nur aktivierbar, wenn synchronisierte `contact_email` vorhanden (400 sonst), Frontend sperrt den Schalter zusätzlich; Sendezeit-Fallback ans Mitglied + Warn-Log falls `contact_email` doch leer (Defense-in-Depth). Full-Chain inkl. Config-Export/-Import (Pointer-Muster). Unabhängig vom PROJ-76-Vorstands-Workflow (anderes Dokument). Mail-Routing-Test (3 Pfade) + Configexport-Roundtrip grün.
+
 ## 2026-06-14
 
 ### Datenweiterleitung: Export-Granularität „eine Zeile pro Zählpunkt" (PROJ-112)

@@ -1521,6 +1521,7 @@ Returns the EEG settings — the eight Core-mastered fields (PROJ-32) plus the o
   "cooperativeRequiredShares": 1,
   "cooperativeShareAmountCents": 10000,
   "boardApprovalWorkflowEnabled": false,
+  "joiningConfirmationToEEG": false,
   "sepaMandateCoreAuditEnabled": false,
   "sepaMandateB2BAuditEnabled": false,
   "sepaOptionalEnabled": false,
@@ -1535,6 +1536,8 @@ Returns the EEG settings — the eight Core-mastered fields (PROJ-32) plus the o
 `cooperativeSharesEnabled` (PROJ-37) defaults to `false`. When `true`, both `cooperativeRequiredShares` (positive integer, minimum mandatory shares per member) and `cooperativeShareAmountCents` (positive integer, price per share in cents) are returned. When `false`, those two value fields are omitted.
 
 `boardApprovalWorkflowEnabled` (PROJ-76) defaults to `false`. When `true`, the `→ activated` transition sends a **Beitrittserklärung** (with Vorstands-Signaturblock) to the EEG contact instead of an automatic Beitrittsbestätigung to the member. The board signs manually and forwards the document; the member is informed via the regular eegFaktura-Core activation mail. Status transition is sync hard-fail: missing `contact_email` or SMTP failure rolls back the activation.
+
+`joiningConfirmationToEEG` (PROJ-114) defaults to `false`. When `true`, the `→ activated` transition sends the **Beitrittsbestätigung** (the PDF the member would normally receive) as a single forward-framed mail to the EEG `contact_email` (subject „Beitrittsbestätigung für … – bitte weiterleiten", Reply-To = member) instead of mailing the member; the member receives **nothing** and the usual separate EEG copy is suppressed. The board forwards the mail to the member, optionally adding a personal note. Independent of `boardApprovalWorkflowEnabled` — that toggle routes the *Beitrittserklärung* (a document to sign), this one the finished *Beitrittsbestätigung* (to forward); both can be on or off independently. Send-time fallback: if `contact_email` is empty when the mail is built, it falls back to the member and logs a warning (defense-in-depth behind the save-time validation below).
 
 `sepaMandateCoreAuditEnabled` and `sepaMandateB2BAuditEnabled` (PROJ-78) both default to `false`. When `true` for the matching mandate type (`einzugsart=core` resp. `einzugsart=b2b`), the SEPA-mandate PDF renders the electronic audit-trail block (formfreie Willenserklärung gem. § 76 (3) EIWOG 2010 — Tenant, Zustimmungs-Zeitstempel, IP-Adresse) **in place of** the classic Datum/Unterschrift-Block. When `false`, the classic block is always rendered, even if the audit data is fully populated. The two toggles are independent: a single EEG can opt into the electronic variant for B2B (Geschäftsleute) while keeping CORE (Verbraucher) on the classic signature workflow, or vice versa. Audit fallback (PROJ-77): even with the toggle on, the renderer falls back to the classic block if any of the three audit data fields (`AuditTenant`, `sepa_mandate_accepted_at`, `sepa_mandate_accepted_ip`) is empty — relevant for legacy applications without IP capture.
 
@@ -1568,12 +1571,15 @@ Writes the onboarding-only editable fields. The Core-mastered fields (`eegId`, `
   "cooperativeRequiredShares": 1,
   "cooperativeShareAmountCents": 10000,
   "boardApprovalWorkflowEnabled": false,
+  "joiningConfirmationToEEG": false,
   "sepaMandateCoreAuditEnabled": false,
   "sepaMandateB2BAuditEnabled": false,
   "sepaOptionalEnabled": false,
   "sepaOptionalMemberTypes": ["private", "farmer"]
 }
 ```
+
+`joiningConfirmationToEEG` (PROJ-114): when `true`, the activation Beitrittsbestätigung is forwarded to the EEG `contact_email` instead of the member (see the GET section above for the full routing). **Cross-field validation:** if the body sets `joiningConfirmationToEEG = true` while the synchronised (Core-mastered) `contact_email` is empty, the save returns `400` with field `joiningConfirmationToEEG` and message „Bitte zuerst in eegFaktura eine Kontakt-E-Mail hinterlegen und die Stammdaten synchronisieren." (the value is validated against the stored Core value, not against the request body, because `contact_email` is read-only in onboarding).
 
 `activationMode` (PROJ-53) is optional in the request — `null`/omitted leaves the existing value unchanged (patch semantics). Allowed values: `participant_active` (default for new EEGs — Core-Teilnehmer-Status `ACTIVE` löst Activation aus) or `any_meter_registration_started` (mind. ein Zählpunkt mit `processState ∈ {PENDING, APPROVED, ACTIVE}`). Invalid values return `400`.
 

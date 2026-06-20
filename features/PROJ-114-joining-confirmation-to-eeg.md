@@ -1,8 +1,64 @@
 # PROJ-114: Beitrittsbestätigung an die EEG statt an das Mitglied (Vorstand leitet weiter)
 
-## Status: In Progress
+## Status: Deployed
 **Created:** 2026-06-18
 **Last Updated:** 2026-06-18
+
+## Deployment
+- **Date:** 2026-06-18
+- **Tag:** `v1.42.0-PROJ-114` (Feature-Bump MIT Schema-Migration; vorher v1.41.1-PROJ-113)
+- **Image:** `sha-46a9595` (Backend + Frontend; letzter Code-Commit der Welle — Folge-Commits sind features/docs-only, path-ignored)
+- **Migration:** `000090_registration_entrypoint_joining_confirmation_to_eeg` — additive `BOOLEAN NOT NULL DEFAULT FALSE`, läuft automatisch via Migrate-Job VOR dem Backend-Rollout. Kein Backfill, Bestand-EEGs unkritisch (Default FALSE).
+- **Helm:** keine Chart-Änderung (nur Image-Tags via Auto-Bump). Owner führt `helm upgrade` selbst aus.
+- **CI:** Build & Test + Security Scan + Docker-Build + Mirror für `46a9595` grün.
+
+## Security Review (2026-06-18)
+
+**Reviewer:** Security Engineer (AI) · **Scope:** Migration 000090 + Mail-Routing (SendActivationNotification + Forward-Template) + Settings-Save/Validierung + configexport + Frontend-Toggle. **Trigger:** DB-Schema-Migration.
+
+**Threat-Model-Verifikation (alle clean):**
+1. **Mitglieds-PII-Routing** — `SendActivationNotification` lädt `entrypoint = GetByRCNumber(reloadedApp.RCNumber)` (admin_service.go), also die EEG **des Antrags**. Die Forward-Mail (mit Mitglieds-PDF) geht eindeutig an die contact_email der EEG, der das Mitglied beigetreten ist — **kein Cross-Tenant/fremde-EEG-Leak**. ✓
+2. **SQL-Injection** — alle neuen SELECT/UPDATE parametrisiert ($-Params, Renumber $11/$21 korrekt), kein String-Concat. ✓
+3. **AuthZ** — Schreibpfade hinter admin_settings_eeg (parseRCAndCheck Tenant-Iso) bzw. configexport (eigene Tenant-Prüfung). Der configexport-Import-Pfad setzt den Toggle ohne D2-Validierung — **bewusst** durch den G3-Runtime-Fallback (ON+leer→Member) abgesichert, reines UX-/kein Security-Thema. ✓
+4. **XSS** — neues Forward-Template nutzt html/template (auto-escape für `{{.MemberName}}` etc.). `{{.B2BPrepareNoticeEEGHTML}}` ist `template.HTML` aus dem zentralen Helper `RenderB2BPrepareNoticeBannerEEG` (statischer Text, kein User-Input) — identisches Muster zum Bestand-`activated_eeg.html`, kein neuer Vektor. ✓
+5. **PII-Logging** — `slog.Warn` (NULL-Fallback) loggt nur `application_id` + `rc_number`, keine E-Mail/Name/PDF. ✓
+6. **Migration** — additiv `NOT NULL DEFAULT FALSE`, kein Backfill, `down` dropt sauber. ✓
+7. **Reply-To** — Forward-Mail Reply-To = Mitglieds-Adresse; die EEG kennt ihr Mitglied ohnehin, kein Leak. ✓
+
+| Severity | File | Risk | Status |
+|---|---|---|---|
+| — | — | Keine Critical/High/Medium/Low durch PROJ-114 | — |
+
+### Scan Results
+- **govulncheck:** 0 callable (mein Code 0 affected; 5 Import-/1 Modul-Vuln nicht erreichbar — Bestand).
+- **gosec -severity medium:** 0 neu durch PROJ-114. 2 G203 in `internal/mail/b2b_notice.go` + 2 G101 in `application.go`/`application_service.go` sind **Bestand** (nicht im PROJ-114-Diff; statischer Banner-Text, keine User-kontrollierte HTML-Injektion).
+- **npm audit:** keine PROJ-114-Neuzugänge (esbuild-HIGH im Dev-Tree ist Bestand seit PROJ-103).
+- **Trivy IaC:** nicht ausgeführt (kein Helm/Dockerfile/CI berührt).
+
+### Verdict: APPROVED
+Low-Risk: additive Boolean-Spalte + Mail-Routing innerhalb der eigenen EEG. Keine Auth-/Tenant-Iso-/Public-/Import-/Secret-Änderung. Tenant-Isolation des PII-Routings auf Code-Ebene bestätigt. Nächster Schritt: /deploy (mit Migration).
+
+## QA Test Results (2026-06-18)
+
+**Verdikt: READY** — 0 Critical/High/Medium/Low. **`/security-review` empfohlen** (DB-Schema-Migration-Trigger laut CLAUDE.md), danach /deploy.
+
+**Acceptance Criteria — alle 9 auf Code-Ebene verifiziert:**
+- AC-1/2/3 (Einstellung + D2): Migration 000090 (Default FALSE); GET-Map + Save-Body + **D2-Validierung** in admin_settings_eeg.go (lädt `ep`, prüft synchronisierten `ContactEmail`, Toggle=true+leer → 400). Frontend-Toggle + Client-Sperre (disabled wenn off+keine contactEmail) + amber-Hinweis. ✓
+- AC-4/5/6 (Mail-Routing ON): `SendActivationNotification`-Verzweigung — nur Forward-EEG-Mail (neues Template, Subject „… bitte weiterleiten", PDF angehängt, an contactEmail, Reply-To Mitglied), keine Member-Mail, keine alte EEG-Kopie. PDF unverändert. Test `joining_confirmation_test.go` (ON-Pfad). ✓
+- AC-7 (OFF): Bestand-Pfad unverändert (Test). ✓
+- AC-8/9 (Abgrenzung): nur Aktivierungs-Mail; unabhängig von PROJ-76. ✓
+
+**Edge Cases:** EC-1 (G3 NULL-Fallback ON+leer → Member + slog.Warn) durch Test abgedeckt; EC-2 (pdfFailed-Branch im Forward-Template); EC-4 (PROJ-76 parallel, kein Konflikt). ✓
+
+**Full-Chain (G8) maschinell verifiziert** — der Schlüssel ist über **alle Schichten** verdrahtet: Migration ↔ shared.models ↔ repo SELECT/Scan + SaveEEGSettings + SaveAllEEGSettingsTx ↔ admin_settings_eeg (GET+Save+D2) ↔ configexport (schema/exporter/importer/diff) ↔ mail (service+template) ↔ Frontend (applications.ts + **beide** saveEEGSettings-Caller: eeg-settings-editor **und** legal-documents-editor). G7 Roundtrip-Test grün.
+
+**Security-Smoke:** Tenant-Iso — Toggle per-EEG, Forward-Mail geht an die EEG-eigene contact_email (kein Cross-Tenant; das Mitglied gehört zu dieser EEG). Input — D2 server- + clientseitig. SQL — parametrisiert (Bestand-Muster). PII-Logging — slog.Warn nur application_id + rc_number, keine E-Mail/Name. Mail-Template — html/template auto-escape. Migration — additiv NOT NULL DEFAULT FALSE, kein Backfill. **0 Findings.**
+
+**Scans:** `go build/vet/test ./...` grün (neuer Mail-Test 3 Pfade + Configexport-Roundtrip) · `gosec -severity medium` 0 neu (4 Bestand-Findings in fremden Dateien application.go/application_service.go/b2b_notice.go) · `npx tsc --noEmit` grün · `npx vitest run` grün · `npm run build` grün.
+
+**Deferred:** E2E/Playwright (braucht Backend+DB) → manuell auf test-Env nach Deploy (Toggle sichtbar/gesperrt ohne contactEmail; ON → EEG-Forward-Mail; OFF → Bestand).
+
+**Regression:** OFF-Pfad + PROJ-76 unverändert; PROJ-84-Auto-Save + Legal-Docs-Policy-Save weiter funktional (Full-Snapshot mit neuem Feld).
 
 ## Implementation Notes (Backend — 2026-06-18)
 

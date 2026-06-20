@@ -10,6 +10,10 @@
 
 Im Spalten-Picker der Datenweiterleitung gibt es jetzt die Kategorie **„Haushalt"** mit *Personen im Haushalt*, *Wärmepumpe*, *E-Auto* (inkl. Anzahl und Jahres-km) und *Elektrische Warmwasserbereitung*. Diese Felder fehlten bisher und lassen sich nun in den Export aufnehmen. Hat ein Mitglied das Feld nicht ausgefüllt (oder ist es unter *Formular-Felder* ausgeblendet), bleibt die Zelle leer.
 
+**Beitrittsbestätigung an die EEG senden (Vorstand leitet weiter)**
+
+In den EEG-Einstellungen gibt es einen neuen Schalter **„Beitrittsbestätigung an die EEG senden"**. Ist er aktiv, bekommt nicht das Mitglied die Beitrittsbestätigung beim Aktivieren, sondern die EEG-Kontakt-E-Mail erhält das fertige Beitrittsbestätigungs-PDF mit der Bitte, es ans Mitglied weiterzuleiten. So kann der Vorstand eine persönliche Grußnachricht ergänzen, bevor er die Bestätigung selbst verschickt. Der Schalter lässt sich nur einschalten, wenn in eegFaktura eine Kontakt-E-Mail hinterlegt und synchronisiert ist. Standardmäßig ist er aus — dann bekommt das Mitglied die Beitrittsbestätigung wie bisher direkt.
+
 ## 2026-06-14
 
 **Datenweiterleitung: Export pro Zählpunkt**
