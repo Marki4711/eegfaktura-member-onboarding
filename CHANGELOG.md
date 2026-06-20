@@ -10,6 +10,20 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+## 2026-06-20
+
+### Kostenlose Phase: Hinweis-Banner + No-Charge-Gate (PROJ-115)
+
+Strategie-Wechsel: das Produkt geht zunächst **kostenlos** live, mit Hinweis, dass eine kostenpflichtige Nutzung geplant ist und vorab angekündigt wird. Der Abrechnungs-Apparat bleibt schlafend (`IsLive = globalLiveMode && eeg.billing_live`, beide false → Mock-Clients, Preview-Rechnungen).
+
+- **Free-Banner** im Rechnungen-Tab (`eeg-own-invoices.tsx`): sichtbar, wenn die EEG nicht live abgerechnet wird. Quelle: neues berechnetes Feld `billingLive` (= `IsLive`) in der Response von `GET /api/admin/eeg/{rc}/invoices` (Handler um `entrypointRepo` + `globalLiveMode` erweitert; `globalLiveMode` wird **nicht** roh ausgeliefert).
+- **Status-Badge** `preview`: „Preview" → **„Vorschau"** (gekeyt auf `status==='preview'`, getrennt vom Banner-Flag).
+- **No-Charge-Guard (409 `free_phase_active`):** `SetBillingLive` (true-Zweig, vor jeder Mail/Vendor-Aktion) + `CreateCreditNote` blocken bei `globalLiveMode=false` — verhindert versehentliche EEG-Mandats-/Gutschrift-Mails in der kostenlosen Phase. Off-Toggle bleibt erlaubt. Der Cron sendet im Preview-Modus ohnehin keine EEG-Mail. Keine DB-Migration.
+
+### Umgebungs-Indikator (PROJ-117)
+
+Globaler, dauerhafter Banner (Admin + öffentliche Registrierung), der erscheint, wenn ein Umgebungs-Label konfiguriert ist; Prod = leer = kein Banner. Sicherheits-Hintergrund: die Test-Zone hängt am Produktiv-Faktura-Core — ein Import wirkt real. Label + Hinweistext kommen als **Laufzeit-Env** (`ENVIRONMENT_LABEL` / `ENVIRONMENT_NOTICE`, kein `NEXT_PUBLIC` — dasselbe Image läuft in Test und Prod). Server-seitig in den dynamisch gerenderten Layouts (Admin + Public-Shell) gelesen → statische Info-Seiten backen nichts ein. Hinweistext bewusst konfigurierbar (NICHT pauschal „keine Produktivdaten", da Core produktiv). Helm: `frontend.environmentLabel` / `environmentNotice` (Default leer). Kein Go-Backend, keine DB.
+
 ## 2026-06-18
 
 ### Datenweiterleitung: Haushalts-/Verbrauchs-Felder im Export (PROJ-113)

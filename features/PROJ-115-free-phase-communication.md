@@ -1,8 +1,14 @@
 # PROJ-115: Free-Phase-Kommunikation & No-Charge-Gate
 
-## Status: Approved
+## Status: Deployed
 **Created:** 2026-06-20
 **Last Updated:** 2026-06-20
+
+## Deployment
+- **Date:** 2026-06-20 · **Tag:** `v1.43.0-PROJ-115-117` (Joint-Deploy mit PROJ-117) · **Image:** `sha-d32a292`
+- **Migration:** keine (migration-frei).
+- **Helm:** keine Chart-Änderung durch PROJ-115 (nur Image-Tag via Auto-Bump). PROJ-117 bringt die Helm-Werte mit.
+- **CI:** Build & Test + Security Scan + Docker für `d32a292` grün. Owner führt `helm upgrade` selbst aus.
 
 ## Überblick / Kontext
 
@@ -197,6 +203,24 @@ Kein laufender Stack in dieser Umgebung → AC-Verifikation auf Code- + Unit/Int
 ### /security-review-Empfehlung
 **Optional, nicht erzwungen.** PROJ-115 berührt **keinen** CLAUDE.md-Pflicht-Trigger (kein DB-Schema, keine Auth-/Tenant-Iso-/Status-Transition-/Import-/Public-Endpoint-/Helm-/Secret-Änderung). Der einzige sicherheitsnahe Effekt ist der Guard, der ausschließlich **restriktiver** macht, plus ein read-only Non-PII-Bool. Owner kann direkt zu `/deploy`.
 
+## Security Review (2026-06-20)
+
+**Reviewer:** Security Engineer (AI) · **Scope:** PROJ-115 + PROJ-117 gemeinsam (Joint-Deploy). **Verdikt: APPROVED** — 0 Critical/High/Medium/Low.
+
+**Threat-Model:** PROJ-115 fügt nur eine **restriktivere** Bedingung auf bereits superuser-geschützten Endpoints hinzu und liefert ein read-only Non-PII-Bool — Worst-Case wäre ein fälschlich nicht/doch gezeigter Banner, kein Daten-/Rechte-Risiko.
+
+| Bereich | Ergebnis |
+|---|---|
+| AuthZ (Guard) | ✅ `SetBillingLive`-Guard **vor** eeg-Load/Pre-Flight/Mail; `CreateCreditNote`-Guard direkt nach `requireSuperuser`. Nur restriktiver, kein Bypass, keine neue Angriffsfläche |
+| Tenant-Iso | ✅ `containsRC(claims.Tenant, rc)` unverändert **vor** dem neuen `GetByRCNumber(rc)`; kein Cross-Tenant-Leak; `billingLive` ist Bool, kein PII |
+| Info-Leak | ✅ `globalLiveMode` wird **nicht** roh ausgeliefert — nur das berechnete `billingLive` |
+| PII-Logging | ✅ `slog.Warn` loggt nur `rc_number` + `error` |
+
+**Scans:** govulncheck 0 callable · gosec 0 in geänderten Go-Dateien · npm audit 9 Bestand (0 neu, kein Dep-Change) · CI Security-Scan (gosec+Semgrep+Trivy) grün.
+
+### Verdict: APPROVED
+Keine Critical/High/Medium/Low. → `/deploy` (gemeinsam mit PROJ-117).
+
 ## Nächster Schritt
 
-QA READY (2026-06-20). → `/deploy` (Free-Phase-Banner + No-Charge-Guard; kein Schema-Change). `/security-review` optional.
+QA READY + Security APPROVED (2026-06-20). → `/deploy` (gemeinsam mit PROJ-117, ein helm upgrade).

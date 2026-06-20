@@ -641,12 +641,14 @@ Dateiname enthält RC-Nummer und Zeitstempel — manuelle Versionierung in Git o
 
 In jeder EEG-Settings-Ansicht findest du seit dem Plattform-Abrechnungs-Update einen Tab **„Rechnungen"**. Hier siehst du als EEG-Admin die quartalsweisen Abrechnungs-Rechnungen, die der Plattform-Betreiber an deine EEG ausgestellt hat.
 
+> **Aktuell kostenlos:** Solange die Plattform-Nutzung kostenlos ist, erscheint oben im Tab ein Hinweis: *Die Nutzung ist derzeit kostenlos. Eine kostenpflichtige Nutzung ist geplant und wird rechtzeitig vorab angekündigt.* Die angezeigten Beträge sind eine **unverbindliche Vorschau** und werden aktuell nicht in Rechnung gestellt. Sobald für deine EEG echt abgerechnet wird, verschwindet der Hinweis automatisch.
+
 ### Was du hier siehst
 
 | Spalte | Bedeutung |
 |---|---|
 | **Quartal** | Z. B. Q1/2026 — das abgerechnete Kalenderquartal |
-| **Status** | `Preview` (Testbetrieb, noch nicht zahlungspflichtig), `Versandt`, `Bezahlt`, `Überfällig`, `Storniert` oder `Gutschrift` |
+| **Status** | `Vorschau` (unverbindlich, noch nicht zahlungspflichtig), `Versandt`, `Bezahlt`, `Überfällig`, `Storniert` oder `Gutschrift` |
 | **Brutto** | Endbetrag inkl. USt für dieses Quartal |
 | **Versandt** | Wann die Rechnung an dich ging |
 | **Bezahlt** | Wann der Plattform-Betreiber die Zahlung über Mollie B.V. erhalten hat |

@@ -2826,6 +2826,7 @@ nicht-leere String backend-seitig)
 - Original-Status muss `sent | paid | overdue` sein
 - Schreibt neue Zeile mit `status='credit_note'` + `cancels_invoice_id=originalID`
 - Audit-Log: `credit_note_issued`
+- **PROJ-115 No-Charge-Gate:** bei `globalLiveMode=false` (kostenlose Phase) `409` mit `code=free_phase_active` — keine EEG-Gutschrift-Mail. Gilt analog für `POST /api/admin/billing/eegs/{rc}/billing-live` (true-Zweig): in der kostenlosen Phase `409`, der Off-Toggle (`live:false`) bleibt erlaubt.
 
 #### Audit-Log
 
@@ -2834,9 +2835,12 @@ nicht-leere String backend-seitig)
 
 ### EEG-Admin-Endpoint
 
-`GET /api/admin/eeg/{rc}/invoices` → `{ invoices: [EEGInvoiceItem] }`
+`GET /api/admin/eeg/{rc}/invoices` → `{ invoices: [EEGInvoiceItem], billingLive: bool }`
 Tenant-scoped Read-Only (`containsRC`-Check). Liefert Quartal, Status,
 Brutto, Versanddatum, Bezahltdatum, Rechnungsnummer.
+`billingLive` (PROJ-115) = `IsLive(globalLiveMode, eeg)` — `false` in der
+kostenlosen Phase; das Frontend zeigt dann den Free-Phasen-Banner. Der globale
+`globalLiveMode` wird nicht roh ausgeliefert, nur das berechnete Bool.
 
 ### Webhook
 

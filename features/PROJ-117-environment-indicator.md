@@ -1,8 +1,14 @@
 # PROJ-117: Umgebungs-Indikator (Nicht-Prod-Kennzeichnung)
 
-## Status: In Progress
+## Status: Deployed
 **Created:** 2026-06-20
 **Last Updated:** 2026-06-20
+
+## Deployment
+- **Date:** 2026-06-20 · **Tag:** `v1.43.0-PROJ-115-117` (Joint-Deploy mit PROJ-115) · **Image:** `sha-d32a292`
+- **Migration:** keine (migration-frei).
+- **Helm:** neue Werte `frontend.environmentLabel` + `frontend.environmentNotice` (Default leer) + `frontend.yaml`-Env-Vars. **Owner-Aktion:** in der TEST-`values-env.yaml` Label + Hinweistext setzen, damit der Banner erscheint; in PROD leer lassen → kein Banner.
+- **CI:** Build & Test + Security Scan (inkl. Trivy IaC) + Docker für `d32a292` grün. Owner führt `helm upgrade` selbst aus.
 
 ## Überblick / Kontext
 
@@ -138,6 +144,64 @@ Umgesetzt (kein Go-Backend, keine DB). `tsc` + `vitest` (252) + `npm run build` 
 - **Helm (feedback_helm_values_split, ein Commit):** `values.yaml` (`frontend.environmentLabel`/`environmentNotice` Default `""`) + `values-env.yaml.example` (Test-Zone-Beispiel mit Prod-Core-Hinweis) + `frontend.yaml` (Env-Vars `ENVIRONMENT_LABEL`/`ENVIRONMENT_NOTICE` ins Deployment).
 - Build bestätigt: `/register/[rc_number]` bleibt `ƒ` (dynamisch) → Laufzeit-Env greift.
 
+## QA Test Results (2026-06-20)
+
+**Verdikt: READY** — 0 Critical/High/Medium/Low. Verifikation auf Code- + Build- + Helm-Ebene.
+
+### Acceptance Criteria
+| AC | Ergebnis | Nachweis |
+|---|---|---|
+| AC-1 globaler, dauerhafter Banner Admin + Public, nur wenn Label gesetzt | ✅ PASS | `environment-banner.tsx` (nicht schließbar) eingehängt in `admin/layout.tsx` + `public-page-shell.tsx`; `null` wenn Label leer |
+| AC-2 kein Label (Prod) → kein Banner, kein Layout-Shift | ✅ PASS | Komponente `return null` bei leerem Label; Helm-Default `""` |
+| AC-3 Label + konfigurierbarer Hinweistext, beide pro Deployment setzbar | ✅ PASS | zwei Env-Werte; `helm template --set` rendert beide ins Frontend-Deployment |
+| AC-4 Hinweistext nicht auf „keine Produktivdaten" fixiert | ✅ PASS | Text ist Env-Wert; `values-env.yaml.example`-Default flaggt Prod-Core ehrlich |
+| AC-5 amber, abgesetzt, responsive ab 375px, überlagert nichts | ✅ PASS | full-width-Leiste oben, `flex-wrap`, amber, `AlertTriangle`; klar getrennt vom PROJ-115-Free-Banner |
+| AC-6 generisch über Umgebungen, kein Code-Change pro Umgebung | ✅ PASS | Sichtbarkeit + Texte allein über Helm-Werte |
+
+### Edge Cases
+| EC | Ergebnis | Nachweis |
+|---|---|---|
+| EC-1 Label gesetzt, Hinweistext leer → nur Label | ✅ PASS | Notice-Span konditional gerendert |
+| EC-2 sehr langer Label/Text → sauberer Umbruch | ✅ PASS | `flex-wrap` + `gap-y` |
+| EC-3 Admin + Public konsistent | ✅ PASS | dieselbe Komponente an beiden Stellen |
+| EC-4 Free-Banner (PROJ-115) + Umgebungs-Banner gleichzeitig | ✅ PASS | Umgebungs-Banner global oben, Free-Banner im Rechnungen-Tab-Inhalt — keine Überlappung |
+| EC-5 Prod (kein Label) → kein Banner | ✅ PASS | `null`-Render + Default `""` |
+| EC-6 Admin/Public-Wording | ✅ PASS | ein gemeinsamer Text (Architektur-Entscheidung D) |
+
+### Security Smoke
+- **XSS/Injection:** Label + Hinweistext sind **Betreiber-gesetzte Helm-Werte** (kein User-Input), via React als **Plain-Text** gerendert (auto-escaped) — kein `dangerouslySetInnerHTML`. Kein neuer Vektor.
+- **Secrets:** Label/Hinweis sind Anzeige-Strings (nicht sensibel) → korrekt in `values.yaml` (nicht in Secrets). Kein securityContext-/RBAC-/Secret-Handling berührt.
+- **Auth/Tenant/Endpoints:** keine Änderung; kein neuer Endpoint, keine DB.
+
+### Scans / Tests
+- `tsc` + `vitest` (252) + `npm run build` grün; `/register/[rc_number]` bleibt `ƒ` (dynamisch) → Laufzeit-Env greift.
+- `helm lint` 0 failed; `helm template --set frontend.environmentLabel=TEST ...` → `ENVIRONMENT_LABEL`/`ENVIRONMENT_NOTICE` korrekt im Frontend-Deployment.
+- Keine neuen npm-Pakete (`lucide-react` bereits in Nutzung) → npm audit unverändert.
+
+### Coverage-Hinweis
+Projekt hat **kein** Component-Render-Test-Setup (kein testing-library) → die triviale Sichtbarkeitslogik (`null` bei leerem Label) ist typgeprüft + build- + helm-template-verifiziert. Visueller Nachweis (Banner sichtbar in Test / abwesend in Prod) auf der test-Env nach Deploy.
+
+### /security-review-Empfehlung
+**Empfohlen** — PROJ-117 berührt **Helm/Kubernetes-Templates** (CLAUDE.md-Pflicht-Trigger). Inhaltlich benigne (zwei **nicht-geheime Anzeige-Env-Werte** in ein Deployment; keine securityContext-/Secret-/RBAC-Änderung). Sinnvoll als **gemeinsames** Gate mit PROJ-115 vor dem Joint-Deploy.
+
+## Security Review (2026-06-20)
+
+**Reviewer:** Security Engineer (AI) · **Scope:** PROJ-117 + PROJ-115 gemeinsam (Joint-Deploy). **Verdikt: APPROVED** — 0 Critical/High/Medium/Low. Pflicht-Trigger: Helm/Kubernetes-Templates.
+
+**Threat-Model:** PROJ-117 fügt zwei **nicht-geheime Anzeige-Env-Werte** in ein Deployment ein und rendert sie als Plain-Text — Worst-Case wäre ein Tippfehler im Banner-Text, kein Daten-/Rechte-/Injection-Risiko.
+
+| Bereich | Ergebnis |
+|---|---|
+| XSS | ✅ `environment-banner.tsx` rendert Label/Hinweis als React-Plain-Text (auto-escaped), **kein** `dangerouslySetInnerHTML`; Werte sind Betreiber-Helm-Env (kein User-/Tenant-Input) |
+| Helm/K8s securityContext | ✅ am gerenderten Frontend-Deployment verifiziert: `runAsNonRoot`, `runAsUser:1000`, `allowPrivilegeEscalation:false`, `readOnlyRootFilesystem:true`, `drop:["ALL"]`, `automountServiceAccountToken:false` **unverändert**; 2 Env-Vars rein additiv |
+| Secrets-Hygiene | ✅ Label/Notice korrekt in `values.yaml` (nicht-sensibel, erscheinen im UI), **nicht** in Secrets/secretKeyRef; kein Secret committet; Defaults leer (Prod-sicher) |
+| Auth/Tenant/Endpoints/DB | ✅ keine Änderung |
+
+**Scans:** CI Security-Scan (gosec+Semgrep+**Trivy IaC** via SARIF) **grün** auf dem Helm-Commit (maßgebliche IaC-Sicht). Lokaler `trivy config` renderte das Chart nicht (`num=0` = nicht gescannt, nicht „clean") → stattdessen CI-Trivy + manuelle securityContext-Verifikation am `helm template`-Output. npm audit 9 Bestand (0 neu, kein Dep-Change).
+
+### Verdict: APPROVED
+Keine Critical/High/Medium/Low. → `/deploy` (gemeinsam mit PROJ-115).
+
 ## Nächster Schritt
 
-Frontend + Helm abgeschlossen (2026-06-20). → `/qa` (Banner sichtbar bei gesetztem Label / unsichtbar bei leer; helm lint; responsive) → `/deploy` (ggf. zusammen mit PROJ-115). Owner setzt die Werte pro Umgebung in `values-env.yaml`.
+QA READY + Security APPROVED (2026-06-20). → `/deploy` (gemeinsam mit PROJ-115, ein helm upgrade). Owner setzt die Werte pro Umgebung in `values-env.yaml`.

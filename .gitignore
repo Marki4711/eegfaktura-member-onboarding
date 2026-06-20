@@ -34,9 +34,11 @@ yarn-error.log*
 # local env files
 .env*.local
 
-# Helm environment and secret overrides — never commit environment-specific or secret values
-helm/**/values-env.yaml
-helm/**/values-secret.yaml
+# Helm environment and secret overrides — never commit environment-specific or secret values.
+# Glob covers per-environment suffixes too (values-env-test.yaml, values-env-prod.yaml, …).
+# Die *.example-Vorlagen bleiben getrackt (enden auf .example, nicht .yaml).
+helm/**/values-env*.yaml
+helm/**/values-secret*.yaml
 
 # vercel
 .vercel

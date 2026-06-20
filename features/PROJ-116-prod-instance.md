@@ -34,12 +34,12 @@ Merksätze:
 
 - **Kein Code / keine Migration / keine Chart-Änderung.** Der Helm-Chart ist bereits vollständig environment-parametrisiert (`namespace`, `ingress.host`, eigener Postgres, Keycloak/Core via `values-env.yaml`). Prod = zweite Helm-Release mit eigener `values-env.yaml` + `values-secret.yaml` (beide gitignored).
 - **Mein Deliverable:** Einrichtungs-Runbook + Prod-`values-env`-Profil + Smoke-Test-Checkliste → `private/deploy/prod-instance-runbook.md` (visibility:private, weil Infra-Topologie).
-- **Owner-Arbeit (kein Cluster-Apply durch Claude):** DNS, TLS, Keycloak-Redirect-URIs, frische Prod-Secrets, `helm install`.
+- **Owner-Arbeit (kein Cluster-Apply durch Claude):** Keycloak-Redirect-URIs, frische Prod-Secrets, `helm install`. **DNS + TLS sind durch das vorhandene Wildcard `*.eegfaktura.at` bereits erledigt** (Owner-Bestätigung 2026-06-20).
 
 ## Offene Owner-Bestätigungen (im Runbook detailliert)
 
-- Prod-`coreBaseUrl`: identisch zur Test-Instanz (echter Core) oder separater Prod-Core?
-- Postal-Prod-Host/User/Absender (⚠ SMTP **Port 25**, 587 geblockt).
+- ~~Prod-`coreBaseUrl`~~ ✅ **geklärt 2026-06-20**: identisch zur Test-Instanz (nur ein echter Core).
+- Postal-Prod-Host/User/Absender (⚠ SMTP **Port 25**, 587 geblockt). Falls identisch zu Test → 1:1 übernehmen.
 - Echte `customerOnboarding`-Owner-Stammdaten fürs AVV-PDF.
 
 ## Abgrenzung
