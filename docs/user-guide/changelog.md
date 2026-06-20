@@ -6,6 +6,14 @@
 
 ## 2026-06-20
 
+**Plattform buchen schaltet sofort frei**
+
+Wenn du die Plattform buchst (Bestätigung von AGB und AVV unter **„Vertrag & Onboarding-Status"**), ist deine EEG **sofort aktiv** — es ist keine separate manuelle Freischaltung mehr nötig. Du bekommst direkt die Willkommens-Mail mit dem AVV-Beleg.
+
+**Mitgliederregistrierung erst nach Buchung aktivierbar**
+
+Der Schalter **„Mitgliederregistrierung aktiv"** in den Einstellungen lässt sich erst einschalten, wenn deine EEG die Plattform gebucht hat (AGB + AVV). Ist noch nicht gebucht, ist der Schalter ausgegraut mit dem Hinweis, zuerst die Plattform zu buchen. Hintergrund: Damit ist sichergestellt, dass der Auftragsverarbeitungsvertrag (AVV) vorliegt, bevor Mitgliederdaten über das öffentliche Formular erfasst werden.
+
 **Rechnungen-Tab: Hinweis „aktuell kostenlos"**
 
 Solange die Plattform-Nutzung kostenlos ist, erscheint im Tab **„Rechnungen"** oben ein Hinweis: *Die Nutzung ist derzeit kostenlos. Eine kostenpflichtige Nutzung ist geplant und wird rechtzeitig vorab angekündigt.* Die angezeigten Beträge sind eine **unverbindliche Vorschau** und werden aktuell nicht in Rechnung gestellt — das Status-Etikett heißt jetzt entsprechend **„Vorschau"** (statt „Preview"). Sobald für deine EEG echt abgerechnet wird, verschwindet der Hinweis automatisch.

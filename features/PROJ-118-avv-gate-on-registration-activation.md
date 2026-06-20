@@ -295,7 +295,66 @@ Umgesetzt (go build/vet/test + tsc + vitest 252 + build grün):
   HasApprovedActiveBooking, Migration) → QA/E2E nach Deploy.
 
 ## QA Test Results
-_To be added by /qa_
+**QA Engineer (AI) · 2026-06-20 · Verdikt: READY** (Code-/Full-Chain-Ebene; DB-/E2E-
+Pfade nach Deploy auf test-Env).
+
+| AC | Ergebnis | Beleg |
+|----|----------|-------|
+| AC-1 Gate nur am SaveIsActive-true-Zweig | ✅ | `admin_settings_eeg.go` RegistrationActive==true → `activationAllowed` → 409 `booking_required`; deaktivieren immer erlaubt |
+| AC-1 Prädikat | ✅ | `activationAllowed` = grandfathered \|\| checker; Unit-Test `TestActivationAllowed` 5/5 (grandfathered→allow, nil→open, true→allow, false→block, error→propagate) |
+| AC-2 ApproveTx kein Gate | ✅ | Buchungs-Pfad hat per Definition Buchung — kein Gate dort |
+| AC-4 Migration 000091 | ✅ | up: ADD COLUMN → Bestands-Lauf → DEFAULT FALSE; down: DEFAULT TRUE + DROP; 000002 unangetastet; Reihenfolge ok |
+| AC-5 Bestand | ✅ | Bestands-Lauf nur is_active=true AND NOT EXISTS approved; bestehende Werte unangetastet |
+| AC-6 UI Full-Chain | ✅ | Go-Struct `ActivationGrandfathered` → repo SELECT/Scan → Response `canActivateRegistration` → TS-Typ → Toggle disabled + Info-Popover |
+| AC-8 server-seitig | ✅ | 409 hart; Frontend-disable advisory |
+
+**Security-Smoke:** Tenant-Iso unverändert (parseRCAndCheck vor dem Gate); Gate ist
+zusätzliche Restriktion (kein neuer Pfad); SQL parametrisiert (Migration + EXISTS-
+Checker); kein PII-Log; kein neuer Status (Event `activated`). go build/vet/test +
+tsc + vitest(252) + build grün; govulncheck 0 callable; npm audit Bestand (kein
+Dep-Change).
+
+**Deferred (E2E/DB nach Deploy):** echtes 409 über HTTP, Migration-Apply + Bestands-Lauf
+(TE100200 → grandfathered), Gate mit echter/suspendierter Buchung.
+
+**Empfehlung:** **/security-review Pflicht** (Schema-Migration + Auth-Gate + Status).
+
+## Security Review
+**Reviewer:** Security Engineer (AI) · **2026-06-20** · **Scope:** Migration 000091,
+`admin_settings_eeg.go`-Gate, `admin.go`-Checker, `HasApprovedActiveBooking`, Repo-Scan,
+Frontend-Toggle.
+
+**Threat Model:** Worst-Case wäre ein Aktivierungs-Bypass (scharf ohne AVV) oder
+SQL-Injection/Datenverlust via Migration. Beides ausgeschlossen.
+
+| Severity | Datei | Risiko | Befund | Confidence |
+|---|---|---|---|---|
+| Info | admin_settings_eeg.go | Gate-Bypass | Gate sitzt NACH `parseRCAndCheck` (Tenant-Iso first); nur zusätzliche Restriktion auf `RegistrationActive=true`; deaktivieren bleibt frei; in Prod Checker immer gesetzt (main.go) → Gate aktiv. Kein neuer Cross-Tenant-Pfad. | High |
+| Info | 000091 up/down | Migration | Statisches SQL ohne User-Input; ADD COLUMN NOT NULL DEFAULT FALSE (kleine Tabelle); Bestands-Lauf lässt `is_active`-Werte unangetastet; Down-Pfad vorhanden; 000002 unverändert. Kein Datenverlust. | High |
+| Info | contract.go / repo | Injection | `HasApprovedActiveBooking`-EXISTS + Repo-SELECT parametrisiert; `rc` aus tenant-geprüftem Pfad. | High |
+| Info | gate/UI | Info-Leak | 409 `booking_required` verrät nur „erst buchen"; `canActivateRegistration` ist bool, kein PII. | High |
+
+**Scans:** govulncheck 0 callable · gosec 0 (64 Files/19236 Lines) · npm audit Bestand
+(kein Dep-Change) · Trivy IaC übersprungen (keine Helm-Template-Änderung, nur
+Migration-SQL).
+
+### Verdikt: **APPROVED**
+Privilege-Reduktion + parametrisierte statische Migration + kein PII. 0 neue HIGH/CRITICAL.
 
 ## Deployment
-_To be added by /deploy_
+**Tag:** `v1.45.0-PROJ-118-119` · **Datum:** 2026-06-20 · **Image:** `sha-bb49495`
+**Migration:** `000091` (läuft im helm-Migrate-Job, pre-upgrade-Hook). Gemeinsam mit
+PROJ-119 deployed; QA READY + Security APPROVED.
+
+**Migration 000091 (Schema-Checkpoint):** ADD COLUMN `activation_grandfathered`
+(DEFAULT FALSE) → Bestands-Lauf (`is_active=true` ohne approved-Buchung → TRUE) →
+`is_active` SET DEFAULT FALSE. Down: DEFAULT TRUE + DROP COLUMN.
+
+**Owner-Manual (helm upgrade je Zone test + prod):**
+1. `git pull` + `helm upgrade … -f values-env.yaml -f values-secret.yaml`. Die
+   Migration 000091 läuft automatisch (pre-upgrade-Hook); kein manueller Migrate.
+   Der Bestands-Lauf markiert aktuell-aktive-ohne-Buchung als grandfathered (Prod:
+   TE100200 falls aktiv).
+2. Smoke-Test: EEG **ohne** Buchung → „Mitgliederregistrierung aktiv"-Toggle disabled
+   + Hinweis; Aktivierungs-PUT ohne Buchung → `409 booking_required`; grandfatherte
+   Bestand-EEG kann weiter toggeln; nach „Plattform buchen" (PROJ-119) → Toggle frei.

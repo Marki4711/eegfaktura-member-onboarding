@@ -200,7 +200,53 @@ Umgesetzt (go build/vet/test + tsc + vitest 252 + build grün), **keine Migratio
 - ApproveTx + BackOffice-Approve BLEIBEN (Reserve für Vor-Deploy-`submitted`-Strays).
 
 ## QA Test Results
-_To be added by /qa_
+**QA Engineer (AI) · 2026-06-20 · Verdikt: READY** (Code-/Full-Chain-Ebene; DB-/E2E-
+Pfade nach Deploy auf test-Env).
+
+| AC | Ergebnis | Beleg |
+|----|----------|-------|
+| AC-1 Eine Tx buchen+aktivieren | ✅ | `SubmitAndActivateTx` (advisory-lock → INSERT approved → Event → is_active=true → commit); Submit setzt `StatusApproved` + ruft SubmitAndActivateTx; kein submitted-Persist |
+| AC-2 Welcome best-effort post-commit | ✅ | `spawnAutoAcceptMails` nach Commit, loggt nur bei Fehler; AVV-PDF als Anhang |
+| AC-3 Owner-FYI | ✅ | Template + Betreff „gebucht & automatisch aktiviert" |
+| AC-4/7 kein submitted-Waise; Doppel-Schutz | ✅ | HasActiveSubmissionFor (submitted,approved) unverändert → suspendierte Re-Buchung → ErrAlreadyActive |
+| AC-8 AVV bleibt Pflicht | ✅ | AGB/AVV eq=true + synchrone PDF-Gen vor SubmitAndActivateTx |
+| Audit-Trail | ✅ | Event `activated`, reason_code `auto_accept`, actor human/submitter |
+
+**Regression:** ApproveTx + BackOffice-Approve unverändert (Reserve); BadgeKindSubmitted/
+BackOffice-Filter/cockpit latest_cos unberührt. **Security-Smoke:** keine neue
+Angriffsfläche (Tenant-Iso unverändert, SQL parametrisiert, kein PII-Log). go build/
+vet/test + tsc + vitest(252) + build grün; govulncheck 0 callable.
+
+**Deferred (E2E nach Deploy):** End-to-End Buchung → sofort aktiv + Mailversand.
+
+**Empfehlung:** /security-review (gekoppelt mit PROJ-118 — Status-Transition + Mail).
+
+## Security Review
+**Reviewer:** Security Engineer (AI) · **2026-06-20** · **Scope:** `SubmitAndActivateTx`,
+`Submit`/`spawnAutoAcceptMails`, `ReasonAutoAccept`, Owner-FYI-Mail.
+
+**Threat Model:** Worst-Case wäre eine Doppel-/Race-Aktivierung, ein Status-Bypass oder
+ein PII-Leak. Ausgeschlossen.
+
+| Severity | Datei | Risiko | Befund | Confidence |
+|---|---|---|---|---|
+| Info | repository.go | Race/Doppel-Aktivierung | `SubmitAndActivateTx` atomar mit `pg_advisory_xact_lock` (gegen Suspend-Race); UNIQUE → 23505 → `ErrAlreadyActive` (kein Doppel); suspendierte EEG kann nicht re-buchen (HasActiveSubmissionFor). | High |
+| Info | repository.go | Status-Bypass | Kein neuer Status-Wert; Event `activated` wie Bestand; Customer-Onboarding-Event-Log-Semantik (nicht die Application-Status-Map). | High |
+| Info | service.go/mail | PII/Mail | Logs nur rc/submission_id/error-domain; Owner-FYI-Template kein neues PII; Welcome best-effort post-commit (Mail-Fehler ≠ Daten-Inkonsistenz, Aktivierung steht in DB). | High |
+
+**Scans:** govulncheck 0 callable · gosec 0 · npm audit Bestand · Trivy n/a (keine IaC).
+
+### Verdikt: **APPROVED**
+Auto-Akzept entfernt nur den manuellen Approve-Schritt; AVV-Erfassung + Doppel-Schutz +
+Suspend-Schutz bleiben. Atomare Tx, kein PII. 0 neue HIGH/CRITICAL.
 
 ## Deployment
-_To be added by /deploy_
+**Tag:** `v1.45.0-PROJ-118-119` · **Datum:** 2026-06-20 · **Image:** `sha-bb49495` ·
+**Migration:** keine (gehört zu PROJ-118). Gemeinsam deployed; QA READY + Security APPROVED.
+
+- „Plattform buchen" (AGB+AVV) aktiviert die EEG sofort (`SubmitAndActivateTx`); kein
+  manueller Owner-Approve; Owner-Mail = FYI. Nav-Link „Plattform-Buchungen" war bereits
+  live (PROJ-120-Image).
+- **Owner-Manual:** `helm upgrade` je Zone (mit PROJ-118). Smoke-Test: als EEG-Admin
+  „Plattform buchen" → EEG sofort aktiv + Welcome-Mail; Owner erhält FYI; Owner-BackOffice
+  zeigt keinen Wartezustand mehr.

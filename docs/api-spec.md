@@ -1510,6 +1510,7 @@ Returns the EEG settings — the eight Core-mastered fields (PROJ-32) plus the o
   "contactEmail": "kontakt@beispiel-eeg.at",
   "lastSyncedFromCoreAt": "2026-05-14T16:58:58.750289Z",
   "registrationActive": true,
+  "canActivateRegistration": true,
   "sepaMandateAtImport": false,
   "showCentralPolicy": true,
   "memberNumberStart": 1,
@@ -1531,7 +1532,7 @@ Returns the EEG settings — the eight Core-mastered fields (PROJ-32) plus the o
 
 **Core-mastered fields** (PROJ-32, read-only — only modified via `/sync` below): `eegId`, `eegName`, `eegStreet`, `eegStreetNumber`, `eegZip`, `eegCity`, `creditorId`, `contactEmail`. `lastSyncedFromCoreAt` is `null` until the first successful sync.
 
-`registrationActive` is `false` by default. `sepaMandateAtImport` (PROJ-48) defaults to `false`. (PROJ-73 removed the obsolete `useCompanySEPAMandate` EEG toggle; PROJ-80 removed the `sepaMandateEnabled` toggle. B2B/Core mandate selection now lives exclusively in the per-application `einzugsart` field; the variant of the always-generated PDF — audit-trail vs. signature field — is steered by `sepaMandateCoreAuditEnabled` / `sepaMandateB2BAuditEnabled`.) `showCentralPolicy` defaults to `true`. `memberNumberStart` defaults to `1`. `requireEmailConfirmation` (PROJ-31) defaults to `false`.
+`registrationActive` is `false` by default (PROJ-118 / Migration 000091). `canActivateRegistration` (PROJ-118) is a computed read-only boolean: `true` when the EEG may switch the registration on — i.e. it has a freigegebene, nicht suspendierte Plattform-Buchung (AVV-Nachweis) **or** is grandfathered (`activation_grandfathered`). The admin UI disables the activation toggle when `false` and the EEG is not already active. `sepaMandateAtImport` (PROJ-48) defaults to `false`. (PROJ-73 removed the obsolete `useCompanySEPAMandate` EEG toggle; PROJ-80 removed the `sepaMandateEnabled` toggle. B2B/Core mandate selection now lives exclusively in the per-application `einzugsart` field; the variant of the always-generated PDF — audit-trail vs. signature field — is steered by `sepaMandateCoreAuditEnabled` / `sepaMandateB2BAuditEnabled`.) `showCentralPolicy` defaults to `true`. `memberNumberStart` defaults to `1`. `requireEmailConfirmation` (PROJ-31) defaults to `false`.
 
 `cooperativeSharesEnabled` (PROJ-37) defaults to `false`. When `true`, both `cooperativeRequiredShares` (positive integer, minimum mandatory shares per member) and `cooperativeShareAmountCents` (positive integer, price per share in cents) are returned. When `false`, those two value fields are omitted.
 
@@ -1607,6 +1608,7 @@ Writes the onboarding-only editable fields. The Core-mastered fields (`eegId`, `
 ### Errors
 - `400` missing `rc_number` or invalid JSON
 - `403` not authorized for this EEG
+- `409` `booking_required` (PROJ-118) — `registrationActive: true` ohne freigegebene Plattform-Buchung und ohne Bestandsschutz (`activation_grandfathered`). Das AVV-Gate erlaubt das Scharfschalten erst nach der Buchung. `registrationActive: false` (deaktivieren) ist immer erlaubt.
 
 ---
 
@@ -2511,11 +2513,18 @@ des Aufrufers enthalten sein (oder Superuser). Variante B 2026-06-06:
 Stammdaten kommen LIVE aus `registration_entrypoint` (PROJ-32-Sync), nur
 der RC + die zwei Akzept-Booleans werden uebertragen.
 
-Backend-Ablauf:
+Backend-Ablauf (**PROJ-119 Auto-Akzept** 2026-06-20 — kein manueller Owner-Approve mehr):
 1. Laed Stammdaten aus `registration_entrypoint` (Pflicht — sonst 404).
 2. Generiert AVV-PDF SYNCHRON aus den Live-Stammdaten.
-3. Persistiert Submission im Status `submitted` zusammen mit dem PDF-Blob.
-4. Feuert asynchron Owner-Notification-Mail an `CUSTOMER_ONBOARDING_OWNER_EMAIL`.
+3. Persistiert Submission in EINER Transaktion **direkt im Status `approved`** +
+   Event `activated` (reason_code `auto_accept`) + setzt `registration_entrypoint.is_active=true`
+   (`SubmitAndActivateTx`, advisory-lock gegen Suspend-Race; Doppel-Buchung → 409/ErrAlreadyActive).
+4. Versendet **nach dem Commit** best-effort die Welcome-Mail (mit AVV-PDF) an den
+   EEG-Kontakt + eine Owner-FYI an `CUSTOMER_ONBOARDING_OWNER_EMAIL` (nur noch Info,
+   keine Freigabe nötig).
+
+Der frühere Zwischenzustand `submitted` wird nicht mehr persistiert; die
+BackOffice-Approve-Endpoints bleiben als Reserve für etwaige Alt-`submitted`-Strays.
 
 ### Request body
 

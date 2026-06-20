@@ -33,6 +33,13 @@ Die Betreiber-Funktionen **Cockpit** (`/admin/cockpit`), **Abrechnung** (`/admin
 - E2E: neuer `X-Test-Email`-Header (nur im Test-Auth-Modus; in Produktion weiterhin per Start-Guard gesperrt).
 - **Betrieb:** Die Betreiber-Login-Email **muss** in `ownerAllowedEmails` (bzw. via Fallback `cockpitAllowedEmails`) stehen — die Superuser-Rolle allein schützt nicht mehr vor Selbst-Aussperrung. Keine DB-Migration.
 
+### Plattform-Buchung aktiviert sofort (PROJ-119) + AVV-Gate für die Registrierung (PROJ-118)
+
+Zwei gekoppelte Änderungen am EEG-Buchungs- und Aktivierungs-Lifecycle.
+
+- **Auto-Akzept (PROJ-119):** „Plattform buchen" (Bestätigung von AGB + AVV) aktiviert die EEG jetzt **sofort** — der separate manuelle Owner-Freigabe-Schritt entfällt. Umgesetzt als eine atomare Transaktion (`SubmitAndActivateTx`: Submission direkt `approved` + Event `activated`/`auto_accept` + `is_active=true`, advisory-lock gegen Suspend-Race). Welcome-Mail (mit AVV-PDF) + Owner-FYI laufen best-effort nach dem Commit; die Owner-Benachrichtigung ist nur noch eine Info („gebucht & automatisch aktiviert"). Doppel-Buchungs- und Suspend-Schutz bleiben (eine suspendierte EEG kann nicht heimlich re-aktivieren). BackOffice-Approve bleibt als Reserve.
+- **AVV-Gate (PROJ-118):** Die Mitgliederregistrierung kann nur noch scharf geschaltet werden, wenn die EEG eine freigegebene Plattform-Buchung hat (AVV-Nachweis) — der Settings-Toggle „Mitgliederregistrierung aktiv" ist sonst deaktiviert (mit Hinweis „erst Plattform buchen"), und das Aktivieren über die API antwortet mit `409 booking_required`. Das Gate-Prädikat prüft eine **freigegebene, nicht suspendierte** Buchung (nicht nur „Vertrag aktiv"). **DB-Migration `000091`:** neue Spalte `registration_entrypoint.activation_grandfathered` (Bestandsschutz für EEGs, die zum Migrations-Zeitpunkt aktiv waren, aber keine Buchung haben) + `is_active`-Default von `TRUE` auf `FALSE` (nur für neue Einträge; bestehende Werte unangetastet).
+
 ## 2026-06-18
 
 ### Datenweiterleitung: Haushalts-/Verbrauchs-Felder im Export (PROJ-113)
