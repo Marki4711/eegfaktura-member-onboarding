@@ -101,7 +101,7 @@ Gib mindestens einen Zählpunkt an. Pro Zählpunkt-Eintrag erscheinen die Felder
   - **Hersteller Wechselrichter** *(sofern die EEG das Feld konfiguriert hat)*
   - **Speichersteuerung im Sinne der EEG vorstellbar?** *(sofern die EEG das Feld konfiguriert hat)* — Ja-/Nein-Häkchen: die EEG könnte deinen Heimspeicher gemeinsam mit anderen Speichern der Mitglieder so steuern, dass die Erzeugung innerhalb der Gemeinschaft optimal genutzt wird. Eine konkrete Steuerung wird separat abgestimmt; das Häkchen ist nur deine grundsätzliche Bereitschaft.
 - **Verbrauch Vorjahr / Verbrauch Prognose (kWh)** *(nur bei Verbraucher-Zählpunkten)*
-- **Einspeisung Prognose (kWh/Jahr)** *(nur bei Erzeuger-Zählpunkten)*
+- **Einspeise-Prognose (kWh/Jahr)** *(nur bei Erzeuger-Zählpunkten)*
 - **PV-Leistung (kWp)** *(nur bei Erzeuger-Zählpunkten mit Erzeugungsform PV)*
 - **Einspeiselimit** *(nur bei PV-Erzeugern)* — Checkbox „Einspeiselimit vorhanden". Bei Ja erscheint ein Eingabefeld für den maximalen Einspeisewert in kW. Hintergrund: manche Netzanschlüsse sind leistungstechnisch beschränkt, sodass nur ein Teil der erzeugten PV-Leistung tatsächlich ins Netz eingespeist werden darf.
 - **Abweichende Adresse** *(optional)* — Checkbox einblendet vier Adressfelder, wenn der Zählpunkt nicht an deiner Wohnadresse liegt. Alle vier Felder müssen ausgefüllt werden, sobald die Checkbox aktiviert ist.
