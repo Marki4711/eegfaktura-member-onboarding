@@ -542,7 +542,7 @@ Bei Erfolg antwortet die API mit Status `201` und der eindeutigen `id` plus `ref
 
 **Mitgliedstypen** und **Pflichtfelder** orientieren sich an der `field_config` der EEG — die gleichen Regeln wie im öffentlichen Formular. Für `private`/`farmer` sind `firstname` + `lastname` Pflicht, für `company`/`municipality`/`association` ist `companyName` Pflicht.
 
-**Vollständige technische Referenz** (alle Felder, Validierungen, Fehler-Codes, Mitgliedstyp-Details): [API-Spezifikation, Sektion „External API"](https://github.com/Marki4711/eegfaktura-member-onboarding/blob/main/docs/api-spec.md#8-external-api).
+**Vollständige technische Referenz** (alle Felder, Validierungen, Fehler-Codes, Mitgliedstyp-Details): [API-Spezifikation, Sektion „External API"](https://github.com/gemeinstrom/eegfaktura-member-onboarding/blob/main/docs/api-spec.md#8-external-api).
 
 **Neu seit Juni 2026:** Du kannst im Request-Body das optionale Feld `submitterIp` mitgeben (z.B. `"submitterIp": "203.0.113.42"`). Wenn dein Backend die End-User-IP aus dem ursprünglichen Browser-Request kennt, dokumentiert die Plattform sie als Audit-Trail im SEPA-Firmenlastschrift-Mandat-PDF (rechtskonform nach § 76 (3) EIWOG 2010). Ohne dieses Feld wird das PDF im klassischen Format mit Datum/Unterschriftsfeld erstellt.
 

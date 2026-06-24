@@ -5,7 +5,7 @@
 ## Deployment 2026-06-13
 
 - **Tag:** `v1.39.0-PROJ-107`
-- **Image:** `marki4711/eegfaktura-member-onboarding-{backend,frontend}:sha-094b31e`
+- **Image:** `gemeinstrom/eegfaktura-member-onboarding-{backend,frontend}:sha-094b31e`
 - **Helm:** image-tags via auto-bump-commit `d0740eb` aktualisiert
 - **Owner-Action:** `helm upgrade eegfaktura-member-onboarding ./helm/member-onboarding -f helm/member-onboarding/values-env.yaml -f helm/member-onboarding/values-secret.yaml`
 - **DB-Migrationen:** keine

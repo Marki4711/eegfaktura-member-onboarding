@@ -245,8 +245,8 @@ Both services are published to Docker Hub on every push to `main`:
 
 | Image | Docker Hub |
 |-------|-----------|
-| Backend | `marki4711/eegfaktura-member-onboarding-backend` |
-| Frontend | `marki4711/eegfaktura-member-onboarding-frontend` |
+| Backend | `gemeinstrom/eegfaktura-member-onboarding-backend` |
+| Frontend | `gemeinstrom/eegfaktura-member-onboarding-frontend` |
 
 **Tags:** `latest` (default branch) and short git SHA (e.g. `abc1234`).
 
@@ -264,12 +264,12 @@ Set these under **Settings → Secrets and variables → Actions** in the GitHub
 
 ```bash
 # Backend
-docker build -f Dockerfile.backend -t marki4711/eegfaktura-member-onboarding-backend .
+docker build -f Dockerfile.backend -t gemeinstrom/eegfaktura-member-onboarding-backend .
 
 # Frontend (set API URL for the target environment)
 docker build -f Dockerfile.frontend \
   --build-arg NEXT_PUBLIC_API_URL=https://api.example.com \
-  -t marki4711/eegfaktura-member-onboarding-frontend .
+  -t gemeinstrom/eegfaktura-member-onboarding-frontend .
 ```
 
 The frontend image requires `NEXT_PUBLIC_API_URL` at **build time** because Next.js bakes `NEXT_PUBLIC_*` variables into the static bundle. Pass the correct URL for each target environment.

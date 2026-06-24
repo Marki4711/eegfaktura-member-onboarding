@@ -29,7 +29,7 @@ werden, ohne dass sie nachträglich aus Git-Historie entfernt werden müssen.
 ## Hintergrund
 
 Aktueller Zustand: ein öffentlicher Repo
-`github.com/Marki4711/eegfaktura-member-onboarding`. Bisher wurde die
+`github.com/gemeinstrom/eegfaktura-member-onboarding`. Bisher wurde die
 Sensibilitätsgrenze über Disziplin (`MEMORY.md`-Regel "Pricing/Verträge nicht
 in docs/CHANGELOG/PROJ-Specs") eingehalten. Das skaliert nicht mehr, sobald:
 
@@ -86,7 +86,7 @@ sichtbar, Mirror-Lag von wenigen Minuten ist akzeptabel.
 ### Repo-Topologie
 
 1. **Neues privates Repo anlegen**, z. B.
-   `github.com/Marki4711/eegfaktura-member-onboarding-private` (Name in offenen
+   `github.com/gemeinstrom/eegfaktura-member-onboarding-private` (Name in offenen
    Fragen).
 2. **Vollständige Spiegelung** des aktuellen Public-Repos (`git clone --mirror`)
    ins neue private Repo — inklusive Historie + Branches + Tags.
@@ -296,8 +296,8 @@ Falls der Mirror-Workflow Probleme macht oder Sensibles "lecken" sollte:
 **Cutover am 2026-05-20 abgeschlossen.**
 
 Shipped:
-- Privates Repo `Marki4711/eegfaktura-member-onboarding-private` (visibility private),
-  Public-Repo `Marki4711/eegfaktura-member-onboarding` als gefilterter Mirror.
+- Privates Repo `gemeinstrom/eegfaktura-member-onboarding-private` (visibility private),
+  Public-Repo `gemeinstrom/eegfaktura-member-onboarding` als gefilterter Mirror.
 - Mirror-Infrastruktur: `.github/workflows/mirror-to-public.yml`,
   `.github/mirror-whitelist.txt`, `.github/scripts/apply-mirror-filter.sh`,
   `.github/scripts/strip-private-frontmatter.sh`.

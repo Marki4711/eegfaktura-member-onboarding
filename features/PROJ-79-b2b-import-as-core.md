@@ -834,7 +834,7 @@ git push
 
 **Schritt 2: CI baut Image + Helm-Bump (~5 Min)**
 
-GitHub Actions baut `marki4711/eegfaktura-member-onboarding-backend:sha-XXXXXXX` und
+GitHub Actions baut `gemeinstrom/eegfaktura-member-onboarding-backend:sha-XXXXXXX` und
 schreibt einen `chore: update Helm image tags`-Commit auf main zurück.
 
 **Schritt 3: Git-Tag setzen (nach CI-Build erfolgreich)**

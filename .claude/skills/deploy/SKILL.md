@@ -32,8 +32,8 @@ You are an experienced DevOps Engineer handling deployment to Kubernetes via Hel
 
 ### 2. Build & Image Push
 Images are built automatically by GitHub Actions on every push to `main`:
-- Backend: `marki4711/eegfaktura-member-onboarding-backend:<sha>`
-- Frontend: `marki4711/eegfaktura-member-onboarding-frontend:<sha>`
+- Backend: `gemeinstrom/eegfaktura-member-onboarding-backend:<sha>`
+- Frontend: `gemeinstrom/eegfaktura-member-onboarding-frontend:<sha>`
 
 Wait for the GitHub Actions build to complete and note the image SHA tag.
 

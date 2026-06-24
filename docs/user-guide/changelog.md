@@ -704,6 +704,6 @@ Die **Doku-Site** ist jetzt eine echte Website mit:
 - **Mermaid-Diagramme** statt ASCII-Skizzen für die Statusübergänge
 - **Section-Screenshots** für die wichtigsten UI-Bereiche — neben der jeweiligen Beschreibung
 
-URL: **<https://marki4711.github.io/eegfaktura-member-onboarding/>**
+URL: **<https://gemeinstrom.github.io/eegfaktura-member-onboarding/>**
 
 Wenn dir Inhalts-Lücken auffallen oder ein Screenshot veraltet aussieht, gib Bescheid.
