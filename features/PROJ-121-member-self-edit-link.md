@@ -1,8 +1,24 @@
 # PROJ-121 — Mitglieder-Bearbeitungslink (Self-Edit im needs_info-Flow)
 
-**Status:** In Review
+**Status:** Deployed (v1.47.0-PROJ-121, sha-f905fa0)
 **Owner-Anfrage:** 2026-07-01 (Tester/Nutzer: needs_info-Mail versprach einen
 „ursprünglichen Antragslink", den es nicht gab)
+
+## Deployment
+
+- **Datum:** 2026-07-01
+- **Tag:** `v1.47.0-PROJ-121`
+- **Image:** `sha-f905fa0` (Backend + Frontend; values.yaml Auto-Bump c2975e9)
+- **Migration:** keine (nur neue Query + Endpoint, kein Schema-Change) → kein
+  Migrate-Job-Schema-Apply nötig, reiner Image-Wechsel
+- **Security:** Review APPROVED (0 Critical/High)
+- **Owner-Aktion:** `git pull` + `helm upgrade` je Zone (test + prod) mit
+  `-f values-env.yaml -f values-secret.yaml`. Owner führt `helm upgrade` selbst
+  aus (kein Cluster-Apply durch Claude).
+- **Smoke:** Antrag auf „Info benötigt" setzen → Mail enthält
+  „Antrag online bearbeiten"-Button; Link öffnet Formular vorbefüllt; Änderung +
+  Absenden → `needs_info → submitted`; Link nach Genehmigung → „nicht mehr
+  bearbeitbar".
 
 ## Problem
 
@@ -98,13 +114,62 @@ Ablaufzeit. Token-Härtung (Ablauf/Widerruf) als spätere Option vermerkt.
   PUT persistiert alle Felder (inkl. membership_start_date + cooperative_shares);
   submit `needs_info → submitted`; GET danach 404 (re-locked). ✔
 
-## Security
+## Security Review
 
-Berührt **öffentlichen Endpoint** (PII per Capability) + **Status-Transition**
-→ `/security-review` **Pflicht** vor Deploy. Kein Schema-Change (keine Migration).
+**Reviewer:** Security Engineer (AI) · **Datum:** 2026-07-01 · **Verdikt: APPROVED**
+
+**Threat Model:** Neuer **unauthentifizierter** öffentlicher `GET
+/api/public/applications/{id}` gibt die eigenen Antragsdaten eines Mitglieds
+(inkl. IBAN) per **UUID-Capability** zurück. Worst Case bei Fehlern: PII-Leak
+oder Lesen/Ändern von Anträgen außerhalb des Bearbeitungsfensters. Alle
+Fokuspunkte am Code verifiziert.
+
+### Verifiziert
+- **PII-Exposure:** `PublicApplicationEditResponse` wird Feld-für-Feld gemappt
+  (NICHT `shared.Application` verbatim). Enthält **keine** Admin-/Internal-Felder
+  (adminNote, memberNumber, needsInfoReason, mandateReference,
+  targetParticipantId, importError*, sepaMandateAcceptedIp, status_log) —
+  per grep bestätigt. MeteringPoints = eigene ZP-Daten des Mitglieds. IBAN ist
+  die **eigene** IBAN des Mitglieds (fürs Edit-Formular nötig) → akzeptiert.
+- **Status-Gate/IDOR:** `GetApplicationForEdit` + `UpdateApplication` +
+  `SubmitApplication` akzeptieren nur `draft`/`needs_info` → sonst
+  `ErrNotFound`/`ErrConflict`. Re-Lock nach Submit E2E-bestätigt (GET→404).
+- **Existence-Oracle:** non-editable UND unknown liefern beide generisches
+  `{"code":"not_found","message":"Resource not found"}` (404). Kein Statuscode-
+  Leak; Timing-Delta (PK-Hit vs. -Miss) vernachlässigbar bei 122-bit-UUID.
+- **Injection:** `GetByID` / `GetByApplicationID` / `UpdateTx` ($43) alle
+  parametrisiert. Kein neuer String-Concat-Query.
+- **Rate-Limit:** GET unter `PublicGetRegistrationRateLimitMiddleware`,
+  PUT/submit unter `PublicSubmitRateLimitMiddleware`. Mail hängt am
+  Auth-geschützten Admin-needs_info, nicht am Public-GET.
+- **Open-Redirect/SSRF:** `editURL` = `publicBaseURL` (Server-Config) + rcNumber
+  (DB) + app.ID (UUID) — kein user-kontrollierter Anteil.
+- **State-Corruption:** `UpdateApplication` ändert keinen Status; `UpdateTx` hat
+  **genau einen** Aufrufer (member `UpdateApplication`, per grep bestätigt) →
+  der `cooperative_shares_count`-Fix bricht keinen Admin-Pfad. Kein Schema-Change.
+
+### Findings
+
+| Severity | File | Area | Risk | Szenario | Fix | Confidence |
+|----------|------|------|------|----------|-----|------------|
+| Info | internal/http/application.go | GetApplicationForEdit | Capability-URL exponiert die **eigene** IBAN/PII des Mitglieds im GET | Wer den Link hat (Mitglied / Weiterleitung / Mail-Intercept), sieht die eigenen Antragsdaten | Akzeptiert: fürs Edit-Formular nötig; 122-bit-UUID; Link nur an Mitglieds-Mail; HTTPS; dieselbe UUID erlaubt bereits PUT (mächtiger). Optionale Härtung: Edit-Token mit Ablauf | High |
+| Info | internal/lib (npm) | Dependencies | 2 High-CVEs im npm-Baum | Bestand — **kein** package.json-Change durch PROJ-121 | Separat via CI-Security-Scan (SARIF) triagen | High |
+
+**Keine Critical/High-Findings durch PROJ-121 eingeführt.**
+
+### Scans
+- **govulncheck:** 0 callable (5 imported + 1 module, nicht aufgerufen).
+- **gosec:** 64 Files, **0 Issues**.
+- **npm audit:** 2 high / 0 critical — Bestand (kein package.json-Change), CI-SARIF.
+- **Trivy IaC:** übersprungen — keine Helm-/Dockerfile-/CI-Änderung (begründet).
+
+### Verdikt: **APPROVED**
+Keine Critical/High durch das Feature. Info-Items dokumentiert + akzeptiert.
+Deploy freigegeben (Owner macht `helm upgrade`; **keine Migration** → kein
+Schema-Checkpoint).
 
 ## Offen
 
-- `/security-review` (Public-Endpoint + Status-Transition).
 - Optionale Härtung: dedizierter Edit-Token mit Ablauf/Widerruf (Migration),
   falls die reine UUID-Capability später nicht ausreicht.
+- 2 High-npm-CVEs (Bestand) separat über den CI-Security-Scan behandeln.

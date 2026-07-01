@@ -22,6 +22,14 @@ Die „Info anfordern"-Mail (needs_info) enthält jetzt einen funktionierenden *
 - **Frontend:** `getApplicationForEdit` + `updatePublicApplication`, Inverse-Mapper `mapApplicationToFormValues` (Gegenstück zu `buildCreatePayload`, per Round-trip-Test fixiert) + `buildUpdatePayload`. `RegistrationForm` erhält einen Edit-Modus (`editApplication`-Prop): vorbefüllte Werte, Edit-Banner, `PUT`+`submit` statt `create`, kein Turnstile. `/register/[rc_number]?edit=<id>` lädt den Antrag serverseitig (RC-Guard, Fehler-Alert).
 - Sicherheit: berührt Public-Endpoint + Status-Transition → `/security-review` vor Deploy.
 
+### Benachrichtigung beim Wieder-Einreichen nach Rückfrage (PROJ-122)
+
+Follow-up zu PROJ-121: Reicht ein Mitglied seinen Antrag nach einer Rückfrage über den Bearbeitungslink erneut ein (`needs_info → submitted`), läuft jetzt **dieselbe Verständigungskette wie beim Erstantrag** — vorher war der Rückweg stumm.
+
+- **Mitglied** bekommt erneut die Bestätigungs-Mail mit der **Übersicht der übermittelten Werte** (inkl. aktualisiertem SEPA-Mandat-PDF, falls zutreffend).
+- **EEG** wird über die Aktualisierung **informiert** (gleiche EEG-Benachrichtigung wie beim Erstantrag).
+- Umsetzung in `ApplicationService.SubmitApplication`: der bestehende `SendSubmissionEmails`-Block feuert jetzt bei `draft` **oder** `needs_info`; das E-Mail-Bestätigungs-Token wird nur noch beim Erst-Submit (`draft`) gemintet (Mitglied ist beim Wieder-Einreichen bereits bestätigt → EEG-Info geht sofort raus, nicht deferred). Submit-Zähler bleibt erst-Submit-only. Kein neues Template, kein Schema-/Endpoint-Change.
+
 ## 2026-06-20
 
 ### Kostenlose Phase: Hinweis-Banner + No-Charge-Gate (PROJ-115)

@@ -400,7 +400,14 @@ Both types carry the same fields (`title`, `url`, `consentedAt`) and appear in `
 
 ### POST `/api/public/applications/{id}/submit`
 
-Submits the application.
+Submits the application (`draft → submitted`) or re-submits it after a query
+(`needs_info → submitted`, PROJ-121 member self-edit).
+
+**Notifications (PROJ-122):** both transitions trigger the same chain —
+the member gets the confirmation mail with the value summary and the EEG gets
+its notification. The e-mail-confirmation token is minted only on the first
+submit (`draft`); on re-submit the member is already confirmed, so the EEG
+notification is sent immediately (not deferred).
 
 ### Path params
 - `id: uuid`

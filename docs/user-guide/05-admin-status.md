@@ -93,7 +93,7 @@ Wenn Angaben fehlen oder unklar sind:
 3. Das Mitglied erhält eine E-Mail mit deiner Rückfrage 1:1 im Body — inklusive eines Buttons **„Antrag online bearbeiten"**. Damit öffnet das Mitglied seinen Antrag vorausgefüllt, korrigiert die gewünschten Stellen selbst und reicht ihn erneut ein (kein Duplikat). Alternativ kannst du die Korrektur wie bisher selbst über **Bearbeiten** vornehmen.
 4. **Hard-Fail (ab 2026-05-17):** scheitert der SMTP-Versand, wird der Statuswechsel zurückgerollt und du siehst die Fehlermeldung direkt im Dialog. Status bleibt unverändert, du kannst nach SMTP-Recovery erneut klicken
 
-Nach der Ergänzung durch das Mitglied wechselt der Status automatisch zurück auf `submitted`.
+Nach der Ergänzung durch das Mitglied wechselt der Status automatisch zurück auf `submitted`. Dabei läuft **dieselbe Verständigung wie beim Erstantrag**: Das Mitglied bekommt erneut die Bestätigungs-Mail mit der Übersicht seiner Angaben, und **du als EEG wirst per E-Mail informiert**, dass der Antrag aktualisiert wurde und wieder auf deine Prüfung wartet.
 
 > **Hinweis zum Mail-Footer (seit 2026-05-18):** Der Footer in den Member-Mails (Eingangsbestätigung, Rückfragen, Ablehnung) verweist auf die **EEG-Kontakt-E-Mail** als `mailto:`-Link statt der bisherigen Postadresse. Antworten gehen weiter direkt an deine EEG (Reply-To bleibt unverändert) — der Link ist nur eine zusätzliche Komfort-Option für Mitglieder, die nicht via Antwort sondern via neue Mail kontaktieren wollen.
 
