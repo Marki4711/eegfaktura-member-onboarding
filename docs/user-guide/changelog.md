@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-07-01
+
+**Mitglieder können ihren Antrag nach einer Rückfrage selbst korrigieren**
+
+Stellt eine EEG eine Rückfrage („Info anfordern"), enthält die E-Mail an das Mitglied jetzt einen Button **„Antrag online bearbeiten"**. Darüber öffnet das Mitglied seinen Antrag mit allen bisherigen Angaben bereits vorausgefüllt, korrigiert die gewünschten Stellen und sendet ihn erneut ab — es entsteht **kein neuer Antrag/Duplikat**, und das Mitglied muss nichts doppelt eingeben. Nach dem Absenden geht der Antrag automatisch wieder in die Prüfung. Der Link funktioniert nur, solange der Antrag in Bearbeitung ist; nach Genehmigung ist er nicht mehr darüber änderbar. Als EEG-Admin kannst du Korrekturen weiterhin auch selbst über **Bearbeiten** vornehmen.
+
 ## 2026-06-20
 
 **Plattform buchen schaltet sofort frei**

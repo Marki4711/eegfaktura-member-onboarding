@@ -10,6 +10,18 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+## 2026-07-01
+
+### Mitglieder-Bearbeitungslink im needs_info-Flow (PROJ-121)
+
+Die „Info anfordern"-Mail (needs_info) enthält jetzt einen funktionierenden **Bearbeitungslink** — vorher versprach der Mailtext einen „ursprünglichen Antragslink", den es nicht gab. Das Mitglied korrigiert seinen Antrag selbst, ohne alles neu einzugeben.
+
+- **Neuer öffentlicher Endpoint** `GET /api/public/applications/{id}` (`GetApplicationForEdit`): liefert den Antrag in Formular-Form. Capability = Antrags-UUID (schützt bereits `PUT`/`submit`), Zugriff status-gegatet auf `draft`/`needs_info` → sonst generisches `404` (verrät nicht, ob eine ID existiert-aber-gesperrt). Response enthält **nur** die eigenen Formular-Felder — keine Admin-/Internal-Felder (adminNote, memberNumber, needsInfoReason, mandateReference, targetParticipantId, SEPA-IP, Status-Log). Rate-Limit wie die Registration-Config. **Kein Schema-Change.**
+- **needs_info-Mail** (`application_needs_info_member.html` + `buildStatusChangeData` + `admin_service`): Button „Antrag online bearbeiten" mit `/register/{rc}?edit={id}`. Ohne `publicBaseURL` entfällt der Button (Fallback-Text).
+- **`UpdateApplication` / `UpdateApplicationRequest`** um die Zusatzangaben-Felder erweitert (membershipStartDate, personsInHousehold, heatPump, electricVehicle[+count/km], electricHotWater) — fehlten und wären beim Member-Edit still verloren gegangen. **`UpdateTx` um `cooperative_shares_count`** ergänzt (Pre-Existing-Lücke: nur der Admin-Update-Pfad persistierte es).
+- **Frontend:** `getApplicationForEdit` + `updatePublicApplication`, Inverse-Mapper `mapApplicationToFormValues` (Gegenstück zu `buildCreatePayload`, per Round-trip-Test fixiert) + `buildUpdatePayload`. `RegistrationForm` erhält einen Edit-Modus (`editApplication`-Prop): vorbefüllte Werte, Edit-Banner, `PUT`+`submit` statt `create`, kein Turnstile. `/register/[rc_number]?edit=<id>` lädt den Antrag serverseitig (RC-Guard, Fehler-Alert).
+- Sicherheit: berührt Public-Endpoint + Status-Transition → `/security-review` vor Deploy.
+
 ## 2026-06-20
 
 ### Kostenlose Phase: Hinweis-Banner + No-Charge-Gate (PROJ-115)

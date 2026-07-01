@@ -147,6 +147,6 @@ Ist das Feature in deiner EEG deaktiviert, entfällt dieser Schritt — der Antr
 
 Dein Antrag wird nun vom EEG-Betreiber geprüft. Mögliche nächste Schritte:
 
-- **Rückfragen:** Der EEG-Betreiber kann dich um Ergänzungen bitten. Du erhältst eine E-Mail mit den Rückfragen und kannst deinen Antrag ergänzen.
+- **Rückfragen:** Der EEG-Betreiber kann dich um Ergänzungen bitten. Du erhältst eine E-Mail mit den Rückfragen und einem Button **„Antrag online bearbeiten"**. Über diesen Link öffnest du deinen Antrag mit allen bisherigen Angaben bereits vorausgefüllt, korrigierst die gewünschten Stellen und sendest ihn erneut ab — es entsteht kein neuer Antrag. Nach dem Absenden geht dein Antrag wieder in die Prüfung. (Der Link funktioniert nur, solange dein Antrag in Bearbeitung ist; sobald er geprüft/genehmigt wurde, ist er nicht mehr über diesen Link änderbar.)
 - **Genehmigung:** Dein Antrag wird genehmigt und in eegFaktura importiert.
 - **Ablehnung:** In Ausnahmefällen kann ein Antrag abgelehnt werden.

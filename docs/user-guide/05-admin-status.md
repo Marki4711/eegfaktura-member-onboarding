@@ -90,7 +90,7 @@ Wenn Angaben fehlen oder unklar sind:
 
 1. Klicke auf **Rückfragen stellen**
 2. Gib den Grund / die Rückfrage ein — der blaue Hinweis im Dialog erinnert daran: **„Der hier eingegebene Text wird per E-Mail an den Beitrittswerber übermittelt"**
-3. Das Mitglied erhält eine E-Mail mit deiner Rückfrage 1:1 im Body und kann seinen Antrag ergänzen
+3. Das Mitglied erhält eine E-Mail mit deiner Rückfrage 1:1 im Body — inklusive eines Buttons **„Antrag online bearbeiten"**. Damit öffnet das Mitglied seinen Antrag vorausgefüllt, korrigiert die gewünschten Stellen selbst und reicht ihn erneut ein (kein Duplikat). Alternativ kannst du die Korrektur wie bisher selbst über **Bearbeiten** vornehmen.
 4. **Hard-Fail (ab 2026-05-17):** scheitert der SMTP-Versand, wird der Statuswechsel zurückgerollt und du siehst die Fehlermeldung direkt im Dialog. Status bleibt unverändert, du kannst nach SMTP-Recovery erneut klicken
 
 Nach der Ergänzung durch das Mitglied wechselt der Status automatisch zurück auf `submitted`.

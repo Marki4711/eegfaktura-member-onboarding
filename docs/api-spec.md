@@ -319,11 +319,44 @@ Required-validation runs per-subfield: each name/email/phone is required only wh
 
 ---
 
+## 5.2b Load application for member self-edit (PROJ-121)
+
+### GET `/api/public/applications/{id}`
+
+Returns an application in form shape so the public registration form can be
+re-hydrated for member self-correction (the link sent in the `needs_info` mail:
+`/register/{rc}?edit={id}`). The application UUID is the capability (same token
+that guards `PUT`/`submit`).
+
+### Path params
+- `id: uuid`
+
+### Behaviour
+- Only applications in status `draft` or `needs_info` are returned. Any other
+  status — and unknown ids — return a generic `404` so the capability URL never
+  reveals whether an id exists-but-locked vs. does-not-exist.
+- The response carries only the member's own form fields + `id`,
+  `referenceNumber`, `rcNumber`, `status`, and `meteringPoints[]`. It
+  deliberately omits admin/internal fields (`adminNote`, `memberNumber`,
+  `needsInfoReason`, `mandateReference`, `targetParticipantId`, import errors,
+  SEPA-IP, status log).
+- Rate-limited like the registration-config endpoint.
+
+### Responses
+- `200` → `PublicApplicationEditResponse`
+- `400` invalid UUID
+- `404` not found or no longer editable
+
+---
+
 ## 5.3 Update application
 
 ### PUT `/api/public/applications/{id}`
 
-Updates an existing application in status `draft` or `needs_info`.
+Updates an existing application in status `draft` or `needs_info`. PROJ-121: the
+payload now also carries the Zusatzangaben fields (membershipStartDate,
+personsInHousehold, heatPump, electricVehicle[+count/km], electricHotWater) and
+`cooperativeSharesCount` is persisted on this member path (previously admin-only).
 
 ### Path params
 - `id: uuid`
